@@ -1,4 +1,4 @@
-# CHANGELOG — V2 (AI Creative Studio Refactor)
+# CHANGELOG — (AI Creative Studio Refactor)
 
 > Version: **V2** (Studio Isolation Refactor) · Date: 2026-09-17 · Breaking changes: **None**
 
