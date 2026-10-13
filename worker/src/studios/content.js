@@ -99,7 +99,7 @@ function condLine(v, label) {
 // Tab 1 — Generate Content
 // Content Type အလိုက် Structure ပြောင်းလဲသည် (Section 3)
 // ============================================================
-export async function generateContent(env, { idea, contentType, generationLevel, platform, product, goal, cta, plan, apiKey, model }) {
+export async function generateContent(env, { idea, contentType, generationLevel, platform, product, goal, cta, plan, apiKey, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const gl = String(generationLevel || '1');
   const c = await getCMSData(env, CMS_STUDIO, plan, gl);
@@ -120,10 +120,13 @@ export async function generateContent(env, { idea, contentType, generationLevel,
     '6. Speaking Style — ဤ Content ကို မည်သည့် အသံဟန်ဖြင့် ပြောသင့်သည် (ဥပမာ: အေးဆေးသော၊ စိတ်လှုပ်ရှားဖွယ်) — အတိုချုံး ဖော်ပြပါ။',
     '7. Voice Style — ဤ Content အတွက် သင့်တော်သော Voice အမည်/အမျိုးအစား — အတိုချုံး ဖော်ပြပါ။',
     '',
-    'ရလဒ်ကို အောက်ပါ JSON format အတိုင်းသာ ပြန်ပေးပါ (ရှင်းလင်းချက် မထည့်ပါနှင့်):',
-    '{ "content": "...", "speakingStyle": "...", "voiceStyle": "..." }',
+    'ရလဒ်ကို အောက်ပါအတိုင်း ပြန်ပေးပါ:',
+    '1) Content အပြည့်အစုံကို ပထမဆုံး ရေးပါ။',
+    '2) Content ပြီးနောက် အောက်ပါ JSON block ကို ထည့်ပါ (```json ဖြင့် စ၍ ``` ဖြင့် ဆုံးပါ):',
+    '{ "speakingStyle": "...", "voiceStyle": "..." }',
+    'Content စာသားအတွင်း JSON မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return parseContentResult(raw);
 }
 
@@ -131,7 +134,7 @@ export async function generateContent(env, { idea, contentType, generationLevel,
 // Tab 1 — Revise Content (Chat)
 // User ရဲ့ Feedback အတိုင်း Content + Styles ကို ပြန်ရေးသည်
 // ============================================================
-export async function reviseContent(env, { originalContent, originalSpeaking, originalVoice, feedback, contentType, generationLevel, plan, apiKey, model }) {
+export async function reviseContent(env, { originalContent, originalSpeaking, originalVoice, feedback, contentType, generationLevel, plan, apiKey, model, onChunk }) {
   if (!feedback || !String(feedback).trim()) throw new Error('missing_feedback');
   const gl = String(generationLevel || '1');
   const c = await getCMSData(env, CMS_STUDIO, plan, gl);
@@ -148,10 +151,13 @@ export async function reviseContent(env, { originalContent, originalSpeaking, or
     String(feedback).trim(),
     '',
     'Feedback အတိုင်း Content အပြည့်အစုံကို ပြန်ရေးပါ (Content Type ၏ Structure အတိုင်း ဆက်ထိန်းပါ)။',
-    'ရလဒ်ကို အောက်ပါ JSON format အတိုင်းသာ ပြန်ပေးပါ:',
-    '{ "content": "...", "speakingStyle": "...", "voiceStyle": "..." }',
+    'ရလဒ်ကို အောက်ပါအတိုင်း ပြန်ပေးပါ:',
+    '1) Content အပြည့်အစုံကို ပထမဆုံး ရေးပါ။',
+    '2) Content ပြီးနောက် အောက်ပါ JSON block ကို ထည့်ပါ (```json ဖြင့် စ၍ ``` ဖြင့် ဆုံးပါ):',
+    '{ "speakingStyle": "...", "voiceStyle": "..." }',
+    'Content စာသားအတွင်း JSON မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return parseContentResult(raw);
 }
 
@@ -295,15 +301,45 @@ function tryParseContentJson(rawText) {
 export function parseContentResult(raw) {
   const text = String(raw || '').trim();
   if (!text) return { content: '', speakingStyle: '', voiceStyle: '' };
+  // 1) Legacy format — တစ်ခုလုံး JSON (content key ပါမှသာ ဤပုံစံဟု ယူသည်)
   const obj = tryParseContentJson(text);
-  if (obj && (obj.content || obj.speakingStyle || obj.voiceStyle)) {
+  if (obj && obj.content !== undefined) {
     return {
       content: String(obj.content || '').trim(),
       speakingStyle: String(obj.speakingStyle || obj.speaking_style || '').trim(),
       voiceStyle: String(obj.voiceStyle || obj.voice_style || '').trim(),
     };
   }
-  // JSON မဟုတ်ပါက Plain Text ကို Content အဖြစ် သုံးသည်
+  // 2) Streaming format — Content Text ပထမ + နောက်ဆုံးတွင် JSON meta block
+  let contentText = text;
+  let metaObj = null;
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) {
+    try { metaObj = JSON.parse(fence[1].trim()); } catch (e) { metaObj = null; }
+    if (metaObj && typeof metaObj === 'object') {
+      contentText = text.replace(/```(?:json)?\s*[\s\S]*?```/i, '').trim();
+    }
+  } else {
+    // Fence မရှိပါက text ၏ နောက်ဆုံးတွင် standalone { ... } meta block ရှာသည်
+    const first = text.indexOf('{');
+    const last = text.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      const tail = text.slice(first);
+      try {
+        const m = JSON.parse(tail);
+        if (m && typeof m === 'object' && m.content === undefined) metaObj = m;
+      } catch (e) { /* not a JSON tail */ }
+      if (metaObj) contentText = text.slice(0, first).trim();
+    }
+  }
+  if (metaObj && typeof metaObj === 'object') {
+    return {
+      content: contentText || '',
+      speakingStyle: String(metaObj.speakingStyle || metaObj.speaking_style || '').trim(),
+      voiceStyle: String(metaObj.voiceStyle || metaObj.voice_style || '').trim(),
+    };
+  }
+  // 3) Plain Text — content သာ
   return { content: text, speakingStyle: '', voiceStyle: '' };
 }
 

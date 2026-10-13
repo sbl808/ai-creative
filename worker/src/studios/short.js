@@ -22,7 +22,8 @@ const CMS_VIDEO = 'SHORTVIDEO';
 // Step 01 → 02 → 03 — Short Script Generate
 // Short-form script: Hook (first 3s), short sentences, voiceover + on-screen text, CTA
 // ============================================================
-export async function generateShort(env, { idea, type, plan, apiKey, model }) {
+// GLOBAL RESULT STREAMING: onChunk(deltaText) ကို ရရှိလာတိုင်း ခေါ်သည် (real streaming)။
+export async function generateShort(env, { idea, type, plan, apiKey, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const c = await getCMSData(env, CMS_STUDIO, plan, type);
   const system = c ? buildSystemPrompt(c) : '';
@@ -38,7 +39,7 @@ export async function generateShort(env, { idea, type, plan, apiKey, model }) {
     '4. Call To Action ဖြင့် အဆုံးသတ်ပါ။',
     '5. Short Script စာသားကိုသာ ပြန်ပေးပါ — ရှင်းလင်းချက် (Explanation) မထည့်ပါနှင့်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return { short: raw ? raw.trim() : '' };
 }
 
@@ -46,7 +47,7 @@ export async function generateShort(env, { idea, type, plan, apiKey, model }) {
 // Step 03 — Short Script Revise (Chat Revision)
 // User နောက်ဆုံး ပြင်ထားသော Script ကို လက်ခံပြီး ပြန်ရေးသည်
 // ============================================================
-export async function reviseShort(env, { idea, type, currentShort, instruction, plan, apiKey, model }) {
+export async function reviseShort(env, { idea, type, currentShort, instruction, plan, apiKey, model, onChunk }) {
   if (!instruction || !String(instruction).trim()) throw new Error('missing_instruction');
   if (!currentShort) throw new Error('missing_current_short');
   const c = await getCMSData(env, CMS_STUDIO, plan, type);
@@ -66,7 +67,7 @@ export async function reviseShort(env, { idea, type, currentShort, instruction, 
       'Short Video ပုံစံ (Hook → လျင်မြန်သော အရှိန် → CTA) ကို ဆက်ထိန်းပါ။ ' +
       'Script စာသားကိုသာ ပြန်ပေးပါ — ရှင်းလင်းချက် မထည့်ပါနှင့်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return { short: raw ? raw.trim() : '' };
 }
 

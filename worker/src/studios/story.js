@@ -2,63 +2,169 @@
 // Studio Isolation: ဤ File သည် Story Studio နှင့်သာ သက်ဆိုင်သည်။
 // အခြား Studio (Content/Short/Image/Voice/Shop) ကို မထိခိုက်စေရ။
 // Story Studio Workflow (01→06) အတွက် Video Plan ကို Structured JSON ဖြင့် ဦးစားပေးထုတ်သည်။
+// 11-Layer Brain (§4): Generic Engine တစ်ခုတည်း — Story Type / Video Workflow အတွက်
+// သီးခြား Engine မဖန်တီးဘဲ CMS မှ Selected Config / Knowledge / Prompt ကို dynamic load လုပ်သည်။
+// Knowledge Isolation (§5): selected Story Type / Visual Style / Video Workflow rows များသာ
+// AI context ထဲ ဝင်မည် — အခြား type ၏ knowledge ကို ထည့်မည် မဟုတ်ပါ။
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getStoryTypeContext, getStoryVideoContext, buildBrainPrompt } from '../core/cmsBrain.js';
 import { callGeminiText, callGeminiImage } from '../core/ai.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'STORY';
 const CMS_VIDEO = 'STORYVIDEO';
 
-// Tab 1 — Story Generate
-export async function generateStory(env, { idea, type, plan, apiKey, model }) {
-  if (!idea || !String(idea).trim()) throw new Error('missing_idea');
-  const c = await getCMSData(env, CMS_STUDIO, plan, type);
-  const system = c ? buildSystemPrompt(c) : '';
-  const prompt = system
-    ? (system + '\n\nUSER IDEA:\n' + String(idea).trim())
-    : String(idea).trim();
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
-  return { story: raw ? raw.trim() : '' };
+// Story Engine system prompt — Priority (§15): GLOBAL_BRAIN → SELECTED TYPE → (legacy fallback)
+async function buildStorySystem(env, typeId, plan) {
+  const brain = await getStoryTypeContext(env, typeId, plan);
+  const globalPrompt = buildBrainPrompt(brain.global);
+  const typePrompt = buildBrainPrompt(brain.type);
+  const legacy = await getCMSData(env, CMS_STUDIO, plan, typeId);
+  const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
+  return [globalPrompt, typePrompt, typePrompt ? '' : legacyPrompt].filter(Boolean).join('\n\n');
 }
 
-// Tab 1 — Story Revise (Chat Revision)
-export async function reviseStory(env, { idea, type, currentStory, instruction, plan, apiKey, model }) {
+// Tab 1 — Story Generate
+// Backward Compat: { story } ကို ဆက်ထိန်းပြီး { storyFacts } ကို additive ထည့်သည်။
+// GLOBAL RESULT STREAMING: onChunk(deltaText) ကို ရရှိလာတိုင်း ခေါ်သည် (real streaming)။
+export async function generateStory(env, { idea, type, plan, apiKey, model, onChunk }) {
+  if (!idea || !String(idea).trim()) throw new Error('missing_idea');
+  const typeId = String(type || '1');
+  const system = await buildStorySystem(env, typeId, plan);
+  const factsSchema = [
+    '{ "storyId": "", "storyType": "' + typeId + '", "title": "", "summary": "",',
+    '  "characters": [ { "name": "", "role": "", "attributes": "" } ],',
+    '  "locations": [], "timeline": [], "events": [], "dialogue": [],',
+    '  "emotion": "", "importantObjects": [], "visualFacts": [], "sceneInformation": [] }',
+  ].join('\n');
+  const prompt = [
+    system,
+    'USER IDEA:\n' + String(idea).trim(),
+    '',
+    'အလုပ် ၂ ခု လုပ်ပါ:',
+    '1) ဇာတ်လမ်းအပြည့်အစုံကို ရေးပါ။',
+    '2) ဇာတ်လမ်းပြီးနောက် storyFacts ကို JSON block တစ်ခုအဖြစ် ထည့်ပါ (```json ဖြင့် စ၍ ``` ဖြင့် ဆုံးပါ)။ Format:',
+    factsSchema,
+    'storyFacts သည် ဇာတ်လမ်းစာသားအတွင်း မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
+  ].filter(Boolean).join('\n');
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
+  const parsed = parseStoryWithFacts(raw);
+  return { story: parsed.story, storyFacts: parsed.storyFacts };
+}
+
+// Tab 1 — Story Revise (Chat Revision) — brain context ကို ထိုနည်းတူ သုံးသည်
+export async function reviseStory(env, { idea, type, currentStory, instruction, plan, apiKey, model, onChunk }) {
   if (!instruction || !String(instruction).trim()) throw new Error('missing_instruction');
   if (!currentStory) throw new Error('missing_current_story');
-  const c = await getCMSData(env, CMS_STUDIO, plan, type);
-  const system = c ? buildSystemPrompt(c) : '';
+  const typeId = String(type || '1');
+  const system = await buildStorySystem(env, typeId, plan);
   let prompt = system + '\n\n';
   prompt += 'USER IDEA (မူရင်းစိတ်ကူး):\n' + (idea || '(empty)') + '\n\n';
   prompt += 'လက်ရှိ ဇာတ်လမ်း:\n' + String(currentStory) + '\n\n';
   prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
   prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း ဇာတ်လမ်းကို ပြင်ဆင်ပါ။ ' +
     'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။';
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return { story: raw ? raw.trim() : '' };
 }
 
+// ---- Story Facts (Structured Story Data — §9) ----
+// generateStory မှ JSON block ကို ခွဲထုတ်သည်။ video သို့ story facts (video-relevant) သာ ပို့မည်။
+export function parseStoryWithFacts(rawText) {
+  let text = String(rawText || '').trim();
+  if (!text) return { story: '', storyFacts: {} };
+  let storyFacts = {};
+  // 1) ```json ... ``` block (နောက်ဆုံးတစ်ခုကို ယူ)
+  const fence = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let m;
+  let lastFence = null;
+  let lastIndex = -1;
+  while ((m = fence.exec(text)) !== null) { lastFence = m; lastIndex = m.index; }
+  if (lastFence) {
+    try {
+      const obj = JSON.parse(String(lastFence[1]).trim());
+      if (obj && typeof obj === 'object') {
+        storyFacts = obj;
+        text = (text.slice(0, lastIndex) + text.slice(lastIndex + String(lastFence[0]).length)).trim();
+      }
+    } catch (e) { /* fall through */ }
+  }
+  // 2) fence မရလျှင် — နောက်ဆုံး {...} (storyFacts / storyId / characters ပါသော) ကို စမ်းကြည့်
+  if (!Object.keys(storyFacts).length) {
+    const idx = text.lastIndexOf('{');
+    const endIdx = text.lastIndexOf('}');
+    if (idx !== -1 && endIdx > idx) {
+      try {
+        const obj = JSON.parse(text.slice(idx, endIdx + 1));
+        if (obj && typeof obj === 'object') {
+          const candidate = (obj.storyFacts && typeof obj.storyFacts === 'object') ? obj.storyFacts : obj;
+          if (candidate.storyId || candidate.characters || candidate.sceneInformation || candidate.summary) {
+            storyFacts = candidate;
+            text = text.slice(0, idx).trim();
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+  }
+  return { story: text.trim(), storyFacts };
+}
+
+// Video Engine သို့ ပို့မည့် video-relevant story facts သာ (Story Type Knowledge မဟုတ်)
+export function buildStoryFactsBlock(facts) {
+  if (!facts || typeof facts !== 'object') return '';
+  const keys = ['storyId', 'storyType', 'title', 'summary', 'characters', 'locations', 'timeline', 'events', 'dialogue', 'emotion', 'importantObjects', 'visualFacts', 'sceneInformation'];
+  const out = {};
+  let n = 0;
+  keys.forEach((k) => {
+    if (facts[k] !== undefined && facts[k] !== null && String(facts[k]).trim() !== '') { out[k] = facts[k]; n++; }
+  });
+  if (!n) return '';
+  try { return JSON.stringify(out); } catch (e) { return ''; }
+}
+
+// Video Workflow default directions (code default — CMS VIDEO_WORKFLOW knowledge rows က override လုပ်နိုင်)
+const WORKFLOW_DIRECTIONS = {
+  CINEMATIC_FEATURE: 'Feature-film structure: three-act arc, establishing shots, character beats, polished pacing.',
+  CHARACTER_FOCUS: 'Character-driven: prioritize character presence, expressions, performance and emotional beats.',
+  DOCUMENTARY: 'Observational realism: natural environments, factual tone, documentary narration style.',
+  EPISODIC_SERIES: 'Episodic series framing: episode-level arcs, recurring settings and characters, serial pacing.',
+  NON_LINEAR_THRILLER: 'Non-linear thriller: fractured timeline, suspense pacing, reveal-driven structure.',
+};
+
 // Tab 2 — Story Video Plan (Characters + Scenes — Structured JSON)
-// 04 Video Form မှ ပို့လာသော ဆက်တင်များကို လက်ခံပြီး
-// Character continuity (တူညီ character id) ကို ထိန်းထားသော
-// Structured JSON result ရအောင် Prompt ကို တိုးချဲ့ထားသည်။
+// Generic Video Engine (§7): Story Type Engine နှင့် သီးခြား — Story Facts + Video Knowledge
+// + Selected Visual Style + Selected Video Workflow ကို separate context အဖြစ် assemble လုပ်သည်။
 export async function generateStoryVideoPlan(env, {
-  story, idea, type, videoType, duration, sceneDuration, aspectRatio,
-  visualStyle, cameraStyle, language, environmentStyle, characterContinuity,
+  story, idea, type, videoType, workflow, visualStyle, duration, sceneDuration, aspectRatio,
+  cameraStyle, language, environmentStyle, characterContinuity,
   characterConsistency, referenceImage, additionalInstructions,
   characterDirection, cameraDirection, lighting, environmentDetails,
-  colorMood, transitionPacing, audioDirection, plan, apiKey, model,
+  colorMood, transitionPacing, audioDirection, storyFacts, plan, apiKey, model,
 }) {
   const text = String(story || idea || '').trim();
   if (!text) throw new Error('missing_idea');
-  const c = await getCMSData(env, CMS_VIDEO, plan, type);
-  const system = c ? buildSystemPrompt(c) : '';
+  const wf = String(workflow || 'CINEMATIC_FEATURE').toUpperCase();
+  const vs = String(visualStyle || (videoType && /^[A-Za-z]/.test(String(videoType)) ? videoType : '') || 'REALISM');
+  // 11-Layer Video Context — separate contexts (Knowledge Isolation):
+  // GLOBAL + VIDEO_KNOWLEDGE(base) + SELECTED VISUAL_STYLE + SELECTED VIDEO_WORKFLOW (သာ)
+  const ctx = await getStoryVideoContext(env, { visualStyle: vs, workflow: wf, plan });
+  const globalPrompt = buildBrainPrompt(ctx.global);
+  const videoKnowledgePrompt = buildBrainPrompt(ctx.videoKnowledge);
+  const stylePrompt = buildBrainPrompt(ctx.visualStyle);
+  const workflowPrompt = buildBrainPrompt(ctx.workflow);
+  const hasBrainVideo = Boolean(videoKnowledgePrompt || stylePrompt || workflowPrompt);
+  const legacy = await getCMSData(env, CMS_VIDEO, plan, type || '1');
+  const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
+  // Brain config မရှိမှသာ legacy STORYVIDEO row ကို video knowledge fallback အဖြစ် သုံးမည်
+  const knowledgePrompt = [globalPrompt, videoKnowledgePrompt, stylePrompt, workflowPrompt, hasBrainVideo ? '' : legacyPrompt].filter(Boolean).join('\n\n');
+  const factsBlock = buildStoryFactsBlock(storyFacts);
   const settings = [
-    'Video Type: ' + (videoType || 'Video'),
+    'Visual Style: ' + vs,
+    'Video Workflow: ' + wf + (WORKFLOW_DIRECTIONS[wf] ? (' — ' + WORKFLOW_DIRECTIONS[wf]) : ''),
     'Video Duration: ' + (duration || '30 sec'),
     'Scene Duration: ' + (sceneDuration || '8 sec'),
     'Aspect Ratio: ' + (aspectRatio || '16:9'),
-    'Visual Style: ' + (visualStyle || 'Cinematic Realism'),
     'Camera Style: ' + (cameraStyle || 'Feature Film'),
     'Language: ' + (language || 'မြန်မာ'),
     'Environment Style: ' + (environmentStyle || 'Realistic'),
@@ -82,10 +188,10 @@ export async function generateStoryVideoPlan(env, {
   const settingsStr = settings.join('\n');
   const extra = String(additionalInstructions || '').trim();
   const prompt = [
-    system,
+    knowledgePrompt,
     'USER STORY:',
     text,
-    '',
+    factsBlock ? ('STORY FACTS (structured — video အတွက် လိုအပ်သော facts သာ):\n' + factsBlock) : '',
     'VIDEO SETTINGS:',
     settingsStr,
     extra ? ('ADDITIONAL INSTRUCTIONS:\n' + extra) : '',
@@ -94,7 +200,8 @@ export async function generateStoryVideoPlan(env, {
     '1. ဇာတ်လမ်းထဲမှ ဇာတ်ကောင်များကို ရှာပြီး character တစ်ယောက်စီအတွက် id (char_01, char_02 ...) သတ်မှတ်ပါ။',
     '2. ဇာတ်လမ်းကို Scene များအဖြစ် ခွဲပါ။ Scene တစ်ခုစီအတွက် title, description (မြင်ကွင်းဖော်ပြချက်), visualDescription (ရုပ်ပုံအသေးစိတ်), Video Prompt နှင့် Environment Reference Prompt ကို ရေးပါ။',
     '3. Character Continuity — တူညီသော ဇာတ်ကောင်သည် Scene အားလုံးတွင် character ID တူတူသာ သုံးရပါမည်။',
-    '4. Video Prompt သည် Visual Style, Camera Style, Aspect Ratio, Language, Scene Duration စသည်တို့နှင့် ကိုက်ညီအောင် ရေးပါ။',
+    '4. Video Prompt သည် Visual Style, Video Workflow, Camera Style, Aspect Ratio, Language, Scene Duration စသည်တို့နှင့် ကိုက်ညီအောင် ရေးပါ။',
+    '5. STORY FACTS ပါလျှင် ဇာတ်ကောင်၊ နေရာ၊ ဖြစ်ရပ်များကို facts မှ တိုက်ရိုက် ယူသုံးပါ (story စာသားကို ပြန်ခွဲစရာ မလို)။',
     '',
     'ရလဒ်ကို အောက်ပါ JSON format အတိုင်းသာ ပြန်ပေးပါ (စာသားရှင်းလင်းချက် မထည့်ပါနှင့်):',
     '{',

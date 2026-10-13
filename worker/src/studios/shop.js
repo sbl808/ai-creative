@@ -21,8 +21,9 @@ const CMS_VIDEO = 'SHOPVIDEO';
 // ============================================================
 // Tab 1 — Content Maker: Generate
 // Reference ပုံ (Optional) ပါလျှင် Multimodal Call သုံးသည်
+// GLOBAL RESULT STREAMING: onChunk(deltaText) ကို ရရှိလာတိုင်း ခေါ်သည် (real streaming)။
 // ============================================================
-export async function generateShopContent(env, { idea, type, plan, apiKey, images, model }) {
+export async function generateShopContent(env, { idea, type, plan, apiKey, images, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const c = await getCMSData(env, CMS_CONTENT, plan, type);
   const system = c ? buildSystemPrompt(c) : '';
@@ -39,14 +40,14 @@ export async function generateShopContent(env, { idea, type, plan, apiKey, image
     return parseContentResponse(raw);
   }
 
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return parseContentResponse(raw);
 }
 
 // ============================================================
 // Tab 1 — Content Maker: Revise (Chat)
 // ============================================================
-export async function reviseShopContent(env, { idea, type, currentContent, instruction, plan, apiKey, model }) {
+export async function reviseShopContent(env, { idea, type, currentContent, instruction, plan, apiKey, model, onChunk }) {
   if (!currentContent) throw new Error('missing_current_content');
   if (!instruction || !String(instruction).trim()) throw new Error('missing_instruction');
   const c = await getCMSData(env, CMS_CONTENT, plan, type);
@@ -56,7 +57,7 @@ export async function reviseShopContent(env, { idea, type, currentContent, instr
   prompt += 'လက်ရှိ Content:\n' + currentContent + '\n\n';
   prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
   prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း Content ကို ပြင်ဆင်ပါ။ Content အပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   return parseContentResponse(raw);
 }
 

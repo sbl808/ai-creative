@@ -69,7 +69,8 @@ export function parseImageMap(raw) {
 }
 
 // Tab 1 — Image Prompt Generate + IMAGE MAP (structured)
-export async function generateImagePrompt(env, { idea, type, plan, apiKey, images, model }) {
+// GLOBAL RESULT STREAMING: onChunk(deltaText) ကို ရရှိလာတိုင်း ခေါ်သည် (real streaming)။
+export async function generateImagePrompt(env, { idea, type, plan, apiKey, images, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const c = await getCMSData(env, CMS_IMAGE, plan, type);
   const system = c ? buildSystemPrompt(c) : '';
@@ -87,7 +88,7 @@ export async function generateImagePrompt(env, { idea, type, plan, apiKey, image
       'ထည့်သွင်းပါ — JSON ပုံစံအတိုင်းသာ ပြန်ထုတ်ပါ။)';
     raw = await callGeminiMultimodal(env, { model: await resolveModel(env, 'text', plan, model), prompt, images, apiKey });
   } else {
-    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   }
 
   const parsed = parseImageMap(raw);
@@ -95,8 +96,8 @@ export async function generateImagePrompt(env, { idea, type, plan, apiKey, image
   return { prompt: promptText, map: parsed };
 }
 
-// Tab 2 — Ad Image Prompt Generate (ကြော်ငြာပုံ) — မပြောင်း (API contract ထိန်းသည်)
-export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, images, model }) {
+// Tab 2 — Ad Image Prompt Generate (ကြော်ငြာပုံ) — GLOBAL RESULT STREAMING: onChunk pass-through
+export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, images, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const c = await getCMSData(env, CMS_IMAGEAD, plan, type);
   const system = c ? buildSystemPrompt(c) : '';
@@ -113,7 +114,7 @@ export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, ima
       'DESCRIPTION Text ထက် ပုံအစစ်ကို ဦးစားပေး ကိုးကားပါ။)';
     raw = await callGeminiMultimodal(env, { model: await resolveModel(env, 'text', plan, model), prompt, images, apiKey });
   } else {
-    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
   }
   return { prompt: raw ? raw.trim() : '' };
 }

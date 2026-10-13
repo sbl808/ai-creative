@@ -43,6 +43,7 @@ export async function transcribeAudio(env, { audioBase64, mimeType, type, plan, 
     images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
     apiKey,
   });
+  if (!text || !String(text).trim()) throw new Error('empty_transcription');
   return { text };
 }
 
@@ -71,7 +72,31 @@ const DEFAULT_LINE_RULE =
   '2\n00:00:01,500 --> 00:00:03,000\nAI Voice ဖန်တီးပြီး\n\n' +
   '3\n00:00:03,000 --> 00:00:04,500\nSubtitle လေးတွေ လုပ်ကြမယ်';
 
-export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan, apiKey, model }) {
+// knownText (optional): Text→Voice မှ ရလာသော အသံဖြစ်ပါက မူရင်းစာသားကို အမှန်အဖြစ်သုံးပြီး
+// Audio ကို Timestamp ခန့်မှန်းရန်သာ သုံးသည် (ပြန် Transcribe မလုပ်ခြင်းဖြင့် စာလုံးပေါင်း မကွဲစေရန်)။
+// မပေးလျှင် အရင်အတိုင်း Audio ကို Transcribe လုပ်သည် (Shop Studio စသည့် ရှိပြီးသား ခေါ်သူများ မပြောင်း)။
+export function buildVoiceSrtInstruction(lineRule, knownText) {
+  const text = knownText == null ? '' : String(knownText).trim().slice(0, 20000);
+  if (!text) {
+    return (
+      'အောက်ပါ Audio ကို SRT (SubRip Subtitle) format အတိုင်း Transcribe လုပ်ပါ။ ' +
+      'Audio ရဲ့ speech pacing ကို ကြည့်ပြီး Timestamp ကို အကြမ်းဖျင်း ခန့်မှန်းပါ။\n\n' +
+      lineRule +
+      '\n\nSRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။'
+    );
+  }
+  return (
+    'ပါလာသော Audio သည် အောက်ပါ မူရင်းစာသားကို ဖတ်ထားသော အသံဖြစ်သည်။ ' +
+    'မူရင်းစာသားကိုသာ အမှန်အဖြစ် အသုံးပြုပါ — စာလုံး၊ စာလုံးပေါင်း၊ ပုဒ်ဖြတ်ပုဒ်ရပ်ကို ' +
+    'မပြောင်း၊ မထည့်၊ မဖျက်ပါနှင့်။ Audio ကို Timestamp ခန့်မှန်းရန်အတွက်သာ (speech pacing ကြည့်၍) သုံးပါ။ ' +
+    'ရလဒ်ကို SRT (SubRip Subtitle) format ဖြင့် ပေးပါ။\n\n' +
+    lineRule +
+    '\n\nမူရင်းစာသား:\n"""\n' + text + '\n"""' +
+    '\n\nSRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။'
+  );
+}
+
+export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan, apiKey, model, knownText }) {
   if (!audioBase64) throw new Error('missing_audio');
   let lineRule = '';
   try {
@@ -80,11 +105,7 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
   } catch (e) { /* CMS မရှိရင် Default သုံးသည် */ }
   if (!lineRule || !lineRule.trim()) lineRule = DEFAULT_LINE_RULE;
 
-  const instruction =
-    'အောက်ပါ Audio ကို SRT (SubRip Subtitle) format အတိုင်း Transcribe လုပ်ပါ။ ' +
-    'Audio ရဲ့ speech pacing ကို ကြည့်ပြီး Timestamp ကို အကြမ်းဖျင်း ခန့်မှန်းပါ။\n\n' +
-    lineRule +
-    '\n\nSRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
+  const instruction = buildVoiceSrtInstruction(lineRule, knownText);
 
   const srt = await callGeminiMultimodal(env, {
     model: await resolveModel(env, 'transcribe', plan, model),
@@ -92,6 +113,7 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
     images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
     apiKey,
   });
+  if (!srt || !String(srt).trim()) throw new Error('empty_transcription');
   return { srt };
 }
 
