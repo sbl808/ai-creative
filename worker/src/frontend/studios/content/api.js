@@ -45,7 +45,7 @@ function collectIdeaNotes(){
   return parts;
 }
 
-// ===== Content Generate (Main — Step 01 → 02 Result — Unified Result Loading) =====
+// ===== Content Generate (Main — Step 01 → 02 Result — GLOBAL RESULT UI Streaming) =====
 function generateContent(){
   if(csBusy)return;
   var idea=document.getElementById('ideaInput').value.trim();
@@ -65,9 +65,11 @@ function generateContent(){
   csBusy=true;
   setGenButtonsDisabled(true);
   csMarkDone(1);
-  // Unified: Result section အတွင်း loading ပြသည် (processing step မရှိ) — Exact Text: AI ရေးသားနေသည်
-  if(window.aicsResultLoading)window.aicsResultLoading.show('contentLoading','AI ရေးသားနေသည်',idea);
-  var crb=document.getElementById('contentResultBody');if(crb)crb.style.display='none';
+  // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
+  var grid=document.getElementById('resultGrid');if(grid)grid.style.display='block';
+  var hint=document.getElementById('noResultHint');if(hint)hint.style.display='none';
+  var rbox=contentResultBox();
+  rbox.start('AI ရေးသားနေသည်...');
   csGoForce(2);
   setLoading('genLoading',true);
   var body={idea:idea,contentType:contentType,generationLevel:generationLevel};
@@ -77,31 +79,31 @@ function generateContent(){
   if(cv.goal)body.goal=cv.goal;
   if(cv.cta)body.cta=cv.cta;
   if(byok)body.apiKey=byok;
-  apiCall('/api/studio/content/generate',body)
-    .then(function(data){
+  streamCall('/api/studio/content/generate',body,{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       lastResult=data;
       contentState.result=data;
       contentState.status='done';
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('contentLoading');
-      var crb2=document.getElementById('contentResultBody');if(crb2)crb2.style.display='';
-      renderContentResult(false); // Typewriter Effect
+      renderContentResult(true);
+      rbox.complete({content:data.content||''});
       document.getElementById('ttsText').value=data.content||'';
       csMarkDone(1);
       csMarkDone(2);
       showToastMsg('&#10004; Content ပြီးပါပြီ');
       csGoForce(2);
-    })
-    .catch(function(err){
+    },
+    onError:function(err){
       console.error(err);
       contentState.status='error';
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('contentLoading');
+      rbox.setError('Content ဖန်တီးရာတွင် ပြဿနာရှိပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
       // Error State (Section 8) — Form Data မပျောက်၊ Retry ရှိသည်
       showError('genError2','⚠️ Content ဖန်တီးရာတွင် ပြဿနာရှိပါသည်။');
       document.getElementById('genRetryRow').style.display='flex';
       csUnmarkDone(2);
       showToastMsg('⚠️ Content ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ');
-    })
-    .finally(function(){setLoading('genLoading',false);setGenButtonsDisabled(false);csBusy=false;});
+    }
+  }).finally(function(){setLoading('genLoading',false);setGenButtonsDisabled(false);csBusy=false;});
 }
 
 function renderContentResult(instant){
@@ -113,20 +115,13 @@ function renderContentResult(instant){
   var ta=document.getElementById('contentOut');
   if(document.getElementById('resultGrid'))document.getElementById('resultGrid').style.display='block';
   if(document.getElementById('noResultHint'))document.getElementById('noResultHint').style.display='none';
-  var showMeta=function(){
-    if(document.getElementById('speakingOut'))document.getElementById('speakingOut').textContent=lastResult.speakingStyle||'(empty)';
-    if(document.getElementById('voiceOut'))document.getElementById('voiceOut').textContent=lastResult.voiceStyle||'(empty)';
-    if(document.getElementById('resultActionsRow'))document.getElementById('resultActionsRow').style.display='flex';
-  };
-  if(instant){
-    if(ta){ta.value=lastResult.content||'(empty)';autoGrow(ta);}
-    showMeta();
-  }else{
-    typewriterFill(ta,lastResult.content||'(empty)',showMeta); // Typewriter + Auto Expand
-  }
+  if(instant&&ta){ta.value=lastResult.content||'(empty)';autoGrow(ta);}
+  if(document.getElementById('speakingOut'))document.getElementById('speakingOut').textContent=lastResult.speakingStyle||'(empty)';
+  if(document.getElementById('voiceOut'))document.getElementById('voiceOut').textContent=lastResult.voiceStyle||'(empty)';
+  if(document.getElementById('resultActionsRow'))document.getElementById('resultActionsRow').style.display='flex';
 }
 
-// ===== Revise (AI ပြန်ပြင်ရန် — Existing ကို ဆက်သုံးသည်) =====
+// ===== Revise (AI ပြန်ပြင်ရန် — Existing ကို ဆက်သုံးသည် — GLOBAL RESULT UI Streaming) =====
 function reviseContent(){
   if(csBusy)return;
   var feedback=document.getElementById('feedbackInput').value.trim();
@@ -150,20 +145,25 @@ function reviseContent(){
     contentType:contentType
   };
   if(byok)body.apiKey=byok;
-  apiCall('/api/studio/content/revise',body)
-    .then(function(data){
+  var rbox=contentResultBox();
+  rbox.start('AI ပြန်ပြင်နေသည်...');
+  streamCall('/api/studio/content/revise',body,{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       lastResult=data;
       contentState.result=data;
-      renderContentResult(false); // Typewriter Effect
+      renderContentResult(true);
+      rbox.complete({content:data.content||''});
       document.getElementById('feedbackInput').value='';
       document.getElementById('ttsText').value=data.content||'';
       addHistory('ai','ပြင်ဆင်ပြီးပါပြီ — အထက်ပါရလဒ်ကို ကြည့်ပါ။');
-    })
-    .catch(function(err){
+    },
+    onError:function(err){
       console.error(err);
+      rbox.setError('Content ပြင်ဆင်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
       showError('revError','Content ပြင်ဆင်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
-    })
-    .finally(function(){setLoading('revLoading',false);setGenButtonsDisabled(false);document.getElementById('reviseBtn').disabled=false;csBusy=false;});
+    }
+  }).finally(function(){setLoading('revLoading',false);setGenButtonsDisabled(false);document.getElementById('reviseBtn').disabled=false;csBusy=false;});
 }
 function addHistory(role,text){
   var div=document.createElement('div');

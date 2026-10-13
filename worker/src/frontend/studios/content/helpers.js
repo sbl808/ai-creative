@@ -181,32 +181,16 @@ function copyText(id){
 function showToastMsg(msg){ var t=document.getElementById('toast'); if(!t)return; t.textContent=msg||'&#9989; ကူးယူပြီးပါပြီ'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2000); }
 function escapeHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function autoGrow(el){ if(!el)return; el.style.height='auto'; el.style.height=(el.scrollHeight+4)+'px'; }
-function onContentEdit(){ if(typingNow)return; if(!lastResult)return; lastResult.content=document.getElementById('contentOut').value; contentState.editedResult=lastResult.content; }
+function onContentEdit(){ if(!lastResult)return; lastResult.content=document.getElementById('contentOut').value; contentState.editedResult=lastResult.content; }
 
-// ===== Typewriter Effect + Auto Expand (Section 9) =====
-var typeTimer=null;
-var typingNow=false;
-function stopTypewriter(){ if(typeTimer){clearInterval(typeTimer);typeTimer=null;} typingNow=false; }
-function typewriterFill(ta,text,onDone){
-  if(!ta)return;
-  stopTypewriter();
-  var full=text||'';
-  if(!full){ta.value='';autoGrow(ta);if(onDone)onDone();return;}
-  ta.readOnly=true;
-  ta.value='';
-  autoGrow(ta);
-  typingNow=true;
-  var i=0;
-  typeTimer=setInterval(function(){
-    i+=2;
-    if(i>full.length)i=full.length;
-    ta.value=full.slice(0,i);
-    autoGrow(ta);
-    if(i>=full.length){
-      clearInterval(typeTimer);typeTimer=null;typingNow=false;ta.readOnly=false;
-      if(onDone)onDone();
-    }
-  },14);
+// ===== GLOBAL RESULT UI — Content Result Box (state machine lives in shared-ui.js) =====
+function contentResultBox(){
+  return window.aicsResultBox.create({ id:'contentOut', type:'text', collapsible:true, previewMax:280 });
+}
+function streamCall(url,body,handlers){
+  var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;
+  if(!window.aicsStreamCall)return Promise.reject(new Error('streaming_not_available'));
+  return window.aicsStreamCall(url,body,handlers);
 }
 
 function buildQuickActions(){
