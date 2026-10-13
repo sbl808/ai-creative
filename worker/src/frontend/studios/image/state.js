@@ -14,7 +14,6 @@ var originalIdea='';
 var latestPrompt='';
 var prepPrompt='';
 var finalPromptManual=false;
-var typewriterTimer=null;
 var prepareBusy=false;
 var generateBusy=false;
 var regenBusy=false;

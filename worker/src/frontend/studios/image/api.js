@@ -76,42 +76,42 @@ function preparePrompt(){
   originalIdea=idea;
   if(aud&&aud.value)idea+='\\n\\nAudience: '+aud.value;
   prepareBusy=true;
-  stopTypewriter();
   studioMarkDone(1);
-  // Unified: Result (Prompt Result) section အတွင်း loading ပြသည်
-  if(window.aicsResultLoading)window.aicsResultLoading.show('promptLoading','AI က သင့်အတွက် Image Prompt ကို ပြင်ဆင်နေသည်...',originalIdea);
+  // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
+  var rbox=imageResultBox();
+  rbox.start('AI က သင့်အတွက် Image Prompt ကို ပြင်ဆင်နေသည်...');
   if(window.studioForceGoStep)window.studioForceGoStep(2);else window.studioGoStep(2);
   if(window.studioSetLoading)window.studioSetLoading({on:true});
   var body={idea:idea,type:selectedImageType};
   if(refImages.length>0){
     body.images=refImages.map(function(img){return{base64:img.base64,mimeType:img.mimeType};});
   }
-  apiCall('/api/studio/image/prompt',body)
-    .then(function(data){
+  streamCall('/api/studio/image/prompt',body,{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       var promptText=(data&&data.prompt)?data.prompt:'';
       applyMapData((data&&data.map)?data.map:null,promptText);
       latestPrompt=promptText||buildFinalPromptFromMap();
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('promptLoading');
       if(window.studioSetLoading)window.studioSetLoading({on:false});
       prepareBusy=false;
       studioMarkDone(1);
       studioMarkDone(2);
-      var ta=document.getElementById('promptResult');
-      if(ta)typewrite(latestPrompt,ta);
+      rbox.complete({content:latestPrompt});
       if(window.studioForceGoStep)window.studioForceGoStep(2);else window.studioGoStep(2);
       showToast('✓ Image Prompt ပြင်ဆင်ပြီးပါပြီ');
       autoSave();
-    })
-    .catch(function(err){
+    },
+    onError:function(err){
       console.error('Image Prompt Prepare Error:', err);
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('promptLoading');
       if(window.studioSetLoading)window.studioSetLoading({on:false});
+      rbox.setError(friendlyMsg(err,'prepare'));
       prepareBusy=false;
       showStepError('prepareErr2','prepareRetry',friendlyMsg(err,'prepare'));
       // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
       if(window.studioUnmarkDone)window.studioUnmarkDone(2);
       showToast('⚠️ '+(friendlyMsg(err,'prepare').replace(/\\n/g,' ')),true);
-    });
+    }
+  });
 }
 
 // Backend MAP (ရှိလျှင်) ကို imageMap state သို့ ထည့်သည် — မရှိလျှင် fallback (တစ်ပိုင်းလုံး subject)
@@ -150,7 +150,6 @@ function buildFinalPromptFromMap(){
 // ===================== 03 → 04 (Latest Prompt auto-transfer) =====================
 function goPrepare(){
   var ta=document.getElementById('promptResult');
-  stopTypewriter();
   if(ta)latestPrompt=ta.value;
   if(!latestPrompt||!latestPrompt.trim()){showToast('Prompt မရှိသေးပါ — ပြန်ပြင်ဆင်ပါ',true);return;}
   prepPrompt=latestPrompt;
