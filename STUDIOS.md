@@ -61,6 +61,15 @@ Existing six studios are unaffected.
 
 Legacy: `/api/studio/generate` (generic) remains for backward compatibility.
 
+### Story Studio — 11-Layer Brain (v2.1)
+- **Story Engine** (`/generate`, `/revise`) — Story Type (1–5) အတိုင်း Free/Pro type-based logic ဆက် သုံးသည်; response `{ story, storyFacts }` (storyFacts additive — legacy `story` မပျက်)။
+- **Video Engine** (`/video`, `/video-image`) — **Feature-level PRO gate** (Story Type နှင့် သီးခြား)။ Body မှာ Visual Style + Video Workflow ကို configuration အဖြစ် ပို့သည်:
+  - `visualStyle` — `Realism` / `Anime` / `3D Animation` / `2D Illustration` / `Documentary` / `Film Noir` / `Fantasy` (video ဘယ်လိုမြင်ရမလဲ)
+  - `workflow` — `CINEMATIC_FEATURE` / `CHARACTER_FOCUS` / `DOCUMENTARY` / `EPISODIC_SERIES` / `NON_LINEAR_THRILLER` (video ကို ဘယ်လိုတည်ဆောက်မလဲ)
+  - `storyFacts` — generate မှ ရလာသော structured facts (video-relevant သာ; မရှိလျှင် story text fallback)
+- **Backward compat** — `body.story` / `body.idea`, `body.type` (legacy CMS key), `body.videoType` (legacy) များကို ဆက် လက်ခံသည်။
+- **Brain CMS** — Admin → Brain CMS tab မှ GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO rows စီမံနိုင် (migration 014) — selected rows သာ AI context ထဲ ဝင်သည် (Knowledge Isolation)။
+
 ### Voice Studio — dropdown ၂ ခု
 - `aiModelSel` (category=voice) — Text → Voice (TTS) အတွက်
 - `aiModelSel2` (category=transcribe) — Voice → Text / SRT / ဘာသာပြန် အတွက်

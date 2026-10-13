@@ -1,6 +1,6 @@
 # DATABASE.md
 
-Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, **in order 001 → 012**. Each migration is incremental and additive — existing tables are never dropped.
+Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, **in order 001 → 014**. Each migration is incremental and additive — existing tables are never dropped.
 
 ## Migrations
 
@@ -18,6 +18,8 @@ Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migration
 | 010 | `010_create_ai_models.sql` | `ai_models` (seeded with 3 built-ins) |
 | 011 | `011_add_transcribe_model.sql` | `transcribe` category + `gemini-3.5-transcribe` seed |
 | 012 | `012_upgrade_cms_workflow.sql` | CMS workflow upgrade (see file) |
+| 013 | `013_switch_transcribe_model.sql` | transcribe model switch (idempotent) |
+| 014 | `014_create_cms_brain.sql` | `cms_brain` (11-Layer Brain — Story Studio) |
 
 ## Tables
 
@@ -73,13 +75,32 @@ Key-value extensible preferences: `(user_id, pref_key)` PK, `pref_value`, `updat
 ### admin_logs (008) — Audit
 `id` PK, `admin_email`, `action`, `detail`, `created_at`. Written (best-effort) on admin actions: CMS create/update/delete, user plan change, studio toggle, feature update.
 
+### cms_brain (014) — 11-Layer Brain (Story Studio, additive)
+Scoped key-value knowledge/config store for the Story 11-Layer architecture. `cms_prompts` (002) ကို မထိ — Content/Short/Shop/Voice/Image များသည် legacy path ဆက် အလုပ်လုပ်သည်။
+
+| Column | Type | Notes |
+|---|---|---|
+| id | INTEGER PK AUTOINCREMENT | |
+| scope | TEXT NOT NULL | `GLOBAL_BRAIN` / `STORY_TYPES` / `STORY_VIDEO` |
+| module | TEXT NOT NULL | `GLOBAL_FRAMEWORK` / `STORY_TYPE` / `VIDEO_KNOWLEDGE` / `VISUAL_STYLE` / `VIDEO_WORKFLOW` |
+| type | TEXT DEFAULT 'BASE' | `BASE` / `TYPE_1..TYPE_n` / `ANIME` / `CINEMATIC_FEATURE` … |
+| plan | TEXT DEFAULT 'FREE' | `FREE` / `PRO` |
+| key | TEXT NOT NULL | `role` / `memory` / `knowledge` / `rules` / `structure` / `prompt` / `quality_check` / `final_output` … |
+| value | TEXT | prompt/knowledge/rules content |
+| active | INTEGER DEFAULT 1 | 0 = inactive (loader skips) |
+| version | INTEGER DEFAULT 1 | newer version wins (ordered ASC → later overrides) |
+| updated_at | TEXT | |
+| UNIQUE | (scope,module,type,plan,key) | upsert key |
+
+**Knowledge Isolation:** `core/cmsBrain.js` loader သည် selected `(scope, module, type, plan)` rows **သာ** load လုပ်သည် — အခြား Story Type / Visual Style / Video Workflow ၏ rows များကို AI context ထဲ ထည့်မည် မဟုတ်ပါ။ Table မရှိသေးသော env → graceful fallback (legacy `cms_prompts` သို့ ဆင်းသည်)။
+
 ## Ownership rule
 
 **Every** query in `core/` (`projects`, `settings`, `usage`, `user_keys`) filters by `user_id` taken from the **verified JWT** (`payload.sub`), never from client-supplied values. This guarantees User A cannot access User B's data. (Creations are no longer server-side — Phase 13, see the `creations` table note above.)
 
 ## Adding a new migration
 
-Create `worker/migrations/013_xxx.sql` (additive `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN`), apply it, and update this file. Do **not** drop or rename existing tables/columns without a documented plan.
+Create `worker/migrations/015_xxx.sql` (additive `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN`), apply it, and update this file. Do **not** drop or rename existing tables/columns without a documented plan.
 
 ### users — Phase 12 additions (009)
 `name` TEXT NOT NULL DEFAULT '' (personal display name, set from Google profile or Sign Up), `password_hash` TEXT NOT NULL DEFAULT '' (PBKDF2-SHA256 hash of optional email/password login — **never** plaintext). Existing Google-only accounts keep `name=''` / `password_hash=''`; the app falls back to the email prefix for display.

@@ -8,6 +8,7 @@ This is the fully re-architected version produced under the **Master Development
 ## ✨ Features
 
 - **6 Studios** — Story, Content, Short, Image, Voice, Shop (Studio Registry — new studios plug in without touching core).
+- **Story 11-Layer Brain** — generic Story Engine + generic Video Engine (no per-type duplicate engines); Story Type / Visual Style / Video Workflow များကို `cms_brain` (Brain CMS, migration 014) မှ knowledge/rules/prompts သီးခြား dynamic-load လုပ်သည် (Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်သည်)။
 - **Personal User System** — every user sees only their own Profile, Settings, Preferences, Projects, Creations, API Keys, Usage. Accounts/config are enforced **server-side**; creations are stored **in the user's own browser** (IndexedDB, Phase 13 — D1 stores no user content).
 - **Global Shared Sidebar** — one component, responsive across Desktop / iPad / Phone.
 - **Free / Pro** — controlled by configuration (feature registry), not hard-coded.
@@ -28,7 +29,7 @@ wrangler login
 # 3. Create D1 database & bind it (see wrangler.toml; binding name: DB)
 #    Then apply all migrations in order:
 wrangler d1 execute DB --local --file=worker/migrations/001_create_users.sql
-# ... repeat for 002..012
+# ... repeat for 002..014
 
 # 4. Local dev (the project has no package.json — use wrangler directly)
 cd worker && npx wrangler@4 dev
@@ -49,7 +50,7 @@ ai-creative-studio-main/
 ├── IMPLEMENTATION_REPORT.md       # Phase 1–10 change/test report (V2)
 ├── worker/
 │   ├── wrangler.toml              # environments + D1 binding
-│   ├── migrations/                # 001–012 D1 schema (see DATABASE.md)
+│   ├── migrations/                # 001–014 D1 schema (see DATABASE.md)
 │   └── src/
 │       ├── index.js               # entry: routing, auth, plan/feature gates, pages
 │       ├── admin.js               # Admin panel HTML + admin API
@@ -68,6 +69,7 @@ ai-creative-studio-main/
 │           └── _legacy/           # v1 archive (rollback/reference — keep)
 ├── scripts/                       # tests (Node ≥ 20):
 │   ├── regression-test.mjs        # route-level regression (mock D1 + real JWT) — 22 checks
+│   ├── story-brain-test.mjs       # 11-Layer brain: knowledge isolation + PRO gate + facts — 22 checks
 │   ├── e2e-smoke.mjs              # Playwright browser E2E — 6 studios, 90 checks
 │   ├── e2e-server.mjs             # worker HTTP test server (real worker + mock D1)
 │   ├── api-integration-test.mjs   # API integration (auth/AI error path/projects) — 16 checks
@@ -81,6 +83,7 @@ ai-creative-studio-main/
 node --experimental-default-type=module scripts/verify-split.mjs
 node --experimental-default-type=module scripts/check-browser-scripts.mjs
 node --experimental-default-type=module scripts/regression-test.mjs
+node --experimental-default-type=module scripts/story-brain-test.mjs
 node --experimental-default-type=module scripts/e2e-smoke.mjs      # needs Playwright + Chromium
 node --experimental-default-type=module scripts/api-integration-test.mjs
 ```

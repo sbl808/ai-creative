@@ -75,7 +75,30 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 - `config/studios.js` — `STUDIO_REGISTRY` (id, name, nameMy, icon, route, component, enabled), `STUDIO_ORDER`, `SITE_LINKS`, helpers `getStudio` / `isStudioEnabled` / `listEnabledStudios`.
 - `config/features.js` — `FEATURE_REGISTRY` (27 features: access FREE/PRO + limit) — mirrors the legacy hard-coded plan logic.
 
-## 6. Legacy note
+## 6. Story 11-Layer Brain (v2.1 — Story Studio only)
+
+Generic Engine တစ်ခုတည်း — Story Type / Video Workflow တစ်ခုချင်းစီအတွက် Engine မဖန်တီး (per-type duplicate engine မရှိ)။ Config / Knowledge / Prompt များကို CMS မှ selected သာ dynamic-load လုပ်သည်။
+
+```
+STORY ENGINE  (generic)                     VIDEO ENGINE (generic)
+User Input                                   Story Facts (video-relevant သာ)
+  → Select Story Type (1–5)                   → Select Visual Style (Realism/Anime/…)
+  → Load GLOBAL_BRAIN + TYPE_n rows (သာ)      → Select Video Workflow (CINEMATIC_FEATURE/…)
+  → Generate Story                             → Load GLOBAL + VIDEO_KNOWLEDGE + STYLE + WORKFLOW rows (သာ)
+  → Quality Check                              → Video Prompt → Video Output (characters+scenes JSON)
+  → Final Story
+  → { story, storyFacts } (additive)
+```
+
+- **Knowledge Isolation** — `core/cmsBrain.js`: `WHERE scope=? AND module=? AND type=? AND plan=?` — TYPE_1 ရွေးလျှင် TYPE_2/3/4/5 knowledge မဝင်; CINEMATIC_FEATURE ရွေးလျှင် DOCUMENTARY rules မဝင်။
+- **Story Type ≠ Video Workflow** — Story Type သည် Story Engine အတွက်; Visual Style + Video Workflow သည် Video Engine အတွင်း configuration (သီးခြားရွေးချယ်နိုင်)။
+- **Structured Story Data** — `generateStory()` က `{ story, storyFacts }` ပြန်သည် (storyFacts = storyId/title/summary/characters/locations/timeline/events/dialogue/emotion/objects/visualFacts/scenes) — legacy `story` ကို မဖျက်။
+- **CMS separation** — `cms_brain` (014) scope: `GLOBAL_BRAIN` / `STORY_TYPES` / `STORY_VIDEO`; module: `GLOBAL_FRAMEWORK` / `STORY_TYPE` / `VIDEO_KNOWLEDGE` / `VISUAL_STYLE` / `VIDEO_WORKFLOW`။ `cms_prompts` (002) ကို မထိ — အခြား Studio 5 ခုနှင့် legacy path ဆက် အလုပ်လုပ်သည်။
+- **Story Video PRO** — `story.video` / `story.video_image` = feature-level PRO gate (type-based 1–5 မဟုတ်); Story Type ၏ Free/Pro logic နှင့် သီးခြား။
+- **Dynamic expansion** — TYPE_6 / TRAILER အသစ် = Brain CMS တွင် rows ထည့်ရုံဖြင့် code မပြန် (frontend workflow/style list မှာ ရွေးစရာ ထည့်ရန် constants ကိုတော့ update လိုအပ်သည်)။
+- Admin → **Brain CMS** tab (GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO rows CRUD) + `/api/brain` endpoints။
+
+## 7. Legacy note
 
 `/api/studio/generate` (`studio.js`) is the original generic generator kept for backward compatibility; it still auto-saves a creation on success. The per-studio endpoints (`/api/studio/<id>/…`) are the current path and save explicitly on user action. See `STUDIOS.md`.
 
@@ -84,7 +107,7 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 - App pages use `.hamburger`, studio pages use `.menu-btn` — both render identically (same position, color, size) on every page.
 - On phones, studio headers get `padding-left:64px` so the logo never collides with the fixed button.
 
-## 7. AI Model Service (Phase C — Phase 14)
+## 8. AI Model Service (Phase C — Phase 14)
 
 ```
 Admin Panel ──(PUT/POST/DELETE /api/admin/models)──► ai_models (D1)

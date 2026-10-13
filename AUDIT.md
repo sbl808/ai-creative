@@ -1,4 +1,4 @@
-# V2_AUDIT.md — AI Creative Studio V2 (Production-Readiness Audit)
+# AUDIT.md — AI Creative Studio (Production-Readiness Audit)
 
 > ဤ Audit သည် Code မပြင်မီ ထုတ်ပေးရမည့် အကြိုစာရင်း (Phase 0) ဖြစ်သည်။
 > Audit ကာလ: 2026-09-17 · စစ်ဆေးသည့် အတိုင်းအတာ: ဖိုင် 125 ခုလုံး (worker/ + scripts/ + docs/ + CI)
@@ -11,12 +11,12 @@
 ```
 Browser ──▶ worker/src/index.js (single router: auth → plan/feature gate → pages/API)
               ├── frontend/  (HTML-string modules)
-              │     ├── studios/<slug>/  ← V2 studio packages (page/ui/state/constants/helpers/actions/stepper/…)
-              │     ├── studioPages.js   ← V2 lazy loader (getStudioPage)
-              │     ├── shared.js        ← shell/sidebar/loading (v1 shared, protected)
-              │     ├── shared-ui.js     ← V2 canonical aics* helpers (merge target, မသုံးရသေး)
+              │     ├── studios/<slug>/  ← studio packages (page/ui/state/constants/helpers/actions/stepper/…)
+              │     ├── studioPages.js   ← lazy loader (getStudioPage)
+              │     ├── shared.js        ← shell/sidebar/loading (shared, protected)
+              │     ├── shared-ui.js     ← canonical aics* helpers (merge target, မသုံးရသေး)
               │     ├── {story,content,short,image,voice,shop}.js ← back-compat shims
-              │     └── _legacy/*_v1_full.js ← v1 archive (6 files)
+              │     └── _legacy/*_v_full.js ← archive (6 files)
               ├── studios/*.js   (backend business logic ×6)
               ├── core/*.js      (auth, ai, cms, settings, projects, usage, aiModels, adminLogs,
               │                   featureSettings, studioSettings, utilities, creations[unused])
@@ -25,7 +25,7 @@ Browser ──▶ worker/src/index.js (single router: auth → plan/feature gate
               └── migrations/*.sql (001–012, D1)
 ```
 
-- **V2 core guarantee (confirmed):** Studio 6 ခုစလုံး → 6 packages (44 files)။ Reassembled HTML သည် v1 နှင့် byte-identical (verify-split.mjs **6/6 PASS** — 115,670 / 133,238 / 105,492 / 88,541 / 88,926 / 159,065 chars)။
+- **core guarantee (confirmed):** Studio 6 ခုစလုံး → 6 packages (44 files)။ Reassembled HTML သည် v1 နှင့် byte-identical (verify-split.mjs **6/6 PASS** — 115,670 / 133,238 / 105,492 / 88,541 / 88,926 / 159,065 chars)။
 - **Cross-studio imports: မရှိ** (grep confirmed — studio package တစ်ခုမှ အခြား studio package ကို import မလုပ်; shared.js သို့သာ သုံးသည်)။
 - **Lazy loading:** `/app/<slug>` → `getStudioPage(slug)` (dynamic import, static literal specifiers — wrangler bundling အတွက် OK)။
 
