@@ -8,12 +8,13 @@ export const CONSTANTS_SCRIPT = `var STORY_TYPES=[
   {v:'4',label:'ဇာတ်လမ်းတို',pro:true},
   {v:'5',label:'ဟာသဇာတ်လမ်း',pro:true}
 ];
-var VIDEO_TYPES=[
-  {v:'1',label:'Video',pro:false},
-  {v:'2',label:'ရုပ်ရှင် (Film)',pro:true},
-  {v:'3',label:'ဇာတ်လမ်းတွဲ (Series)',pro:true},
-  {v:'4',label:'ဇာတ်လမ်းတို (Short)',pro:true},
-  {v:'5',label:'ဟာသဇာတ်လမ်း (Comedy)',pro:true}
+// Video Workflow — "Video ကို ဘယ်လိုတည်ဆောက်မလဲ" (Story Type / Visual Style နှင့် သီးခြား)
+var VIDEO_WORKFLOWS=[
+  {v:'CINEMATIC_FEATURE',label:'Cinematic Feature'},
+  {v:'CHARACTER_FOCUS',label:'Character Focus'},
+  {v:'DOCUMENTARY',label:'Documentary'},
+  {v:'EPISODIC_SERIES',label:'Episodic Series'},
+  {v:'NON_LINEAR_THRILLER',label:'Non-Linear Thriller'}
 ];
 // Advanced Settings fields (field_0 = ဇာတ်လမ်းအကြောင်းအရာ — Essential, Required)
 // အောက်ပါတို့သည် Optional ဖြစ်ပြီး Advanced Accordion အတွင်းတွင် ပြသည်
@@ -33,7 +34,7 @@ var FIELD_CONFIG=[
 var DURATIONS=['15 sec','30 sec','45 sec','60 sec','90 sec','120 sec'];
 var SCENE_DURATIONS=['5 sec','8 sec','10 sec','12 sec','15 sec'];
 var RATIOS=['16:9','9:16','1:1','4:3','21:9'];
-var VISUAL_STYLES=['Cinematic Realism','Anime','3D Animation','2D Illustration','Stop Motion','Documentary','Film Noir','Fantasy'];
+var VISUAL_STYLES=['Realism','Anime','3D Animation','2D Illustration','Documentary','Film Noir','Fantasy'];
 var CAMERA_STYLES=['Feature Film','Documentary','Drone Shot','Handheld','Static Shot','Slow Motion','Tracking Shot','Aerial'];
 var LANGUAGES=['မြန်မာ','English','မြန်မာ + English'];
 

@@ -115,11 +115,11 @@ const STEP4_HTML = `
 
 <div class="aics-section-label"><span class="aics-section-title">ဗီဒီယို သတ်မှတ်ချက်များ</span><span class="aics-section-sub">Video Settings</span></div>
 <div class="vf-grid">
-<div class="form-group aics-cms-type-field"><label for="vidTypeSel">Video အမျိုးအစား (Video Type)</label><select id="vidTypeSel"></select></div>
+<div class="form-group"><label for="vidWorkflowSel">Video Workflow (Video တည်ဆောက်ပုံ)</label><select id="vidWorkflowSel"></select></div>
 <div class="form-group"><label for="vidDurationSel">Video ကြာချိန် (Video Duration)</label><select id="vidDurationSel"></select></div>
 <div class="form-group"><label for="vidSceneSel">Scene ကြာချိန် (Scene Duration)</label><select id="vidSceneSel"></select></div>
 <div class="form-group"><label for="vidRatioSel">ပုံရိပ်အချိုး (Aspect Ratio)</label><select id="vidRatioSel"></select></div>
-<div class="form-group"><label for="vidStyleSel">ရုပ်ပုံစတိုင် (Visual Style)</label><select id="vidStyleSel"></select></div>
+<div class="form-group"><label for="vidStyleSel">Visual Style (အမြင်ပုံစံ)</label><select id="vidStyleSel"></select></div>
 <div class="form-group"><label for="vidCamSel">ကင်မရာစတိုင် (Camera Style)</label><select id="vidCamSel"></select></div>
 <div class="form-group"><label for="vidLangSel">ဘာသာစကား (Language)</label><select id="vidLangSel"></select></div>
 </div>

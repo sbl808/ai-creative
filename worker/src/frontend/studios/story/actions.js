@@ -1,7 +1,7 @@
 // AI Creative Studio — Story Studio / actions.js (V2 refactor)
 // Browser-side actions — extracted VERBATIM from frontend/story.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
-export const ACTIONS_SCRIPT = `// ===================== Step 01 → 02 (Story Generate — Unified Result Loading) =====================
+export const ACTIONS_SCRIPT = `// ===================== Step 01 → 02 (Story Generate — GLOBAL RESULT UI Streaming) =====================
 function generateStory(){
   if(storyBusy)return;
   var collected=collectIdeaText();
@@ -13,9 +13,10 @@ function generateStory(){
   storyBusy=true;
   currentStory='';
   studioMarkDone(1);
-  // Unified: Result section အတွင်း loading ပြသည် (Stepper ထဲတွင် မပြ)
-  if(window.aicsResultLoading)window.aicsResultLoading.show('storyLoading','AI ရေးသားနေသည်...',idea);
-  var sb=document.getElementById('storyResultBody');if(sb)sb.style.display='none';
+  // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
+  var sb=document.getElementById('storyResultBody');if(sb)sb.style.display='';
+  var rbox=storyResultBox();
+  rbox.start('AI ရေးသားနေသည်...');
   var gb=document.getElementById('genStoryBtn');
   if(gb){gb.disabled=true;gb.innerHTML='&#9203; ဇာတ်လမ်းရေးသားနေသည်...';}
   var f0=document.getElementById('field_0');if(f0)f0.disabled=true;
@@ -24,16 +25,15 @@ function generateStory(){
   var byok=document.getElementById('byokInput')?document.getElementById('byokInput').value.trim():'';
   var body={idea:idea,type:selectedStoryType};
   if(byok)body.apiKey=byok;
-  apiCall('/api/studio/story/generate',body)
-    .then(function(data){
+  streamCall('/api/studio/story/generate',body,{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       currentStory=data.story||'';
+      currentStoryFacts=data.storyFacts||{};
       currentStoryIdea=idea;
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('storyLoading');
-      var sb2=document.getElementById('storyResultBody');if(sb2)sb2.style.display='';
+      rbox.complete();
       studioMarkDone(1);studioMarkDone(2);
       document.getElementById('reviseHistory').innerHTML='';
-      var ta=document.getElementById('storyResult');
-      typewriteStory(currentStory,ta);
       storyBusy=false;
       if(f0)f0.disabled=false;
       if(gb){gb.disabled=false;gb.innerHTML='&#10024; ဇာတ်လမ်းရေးသားရန်';}
@@ -41,22 +41,23 @@ function generateStory(){
       else window.studioGoStep(2);
       showToastMsg('&#10004; ဇာတ်လမ်းရေးပြီးပါပြီ');
       autoSave();
-    })
-    .catch(function(err){
+    },
+    onError:function(err){
       console.error('Story Generate Error:', err);
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('storyLoading');
+      rbox.setError(friendlyMsg(err,'story'));
       storyBusy=false;
       if(f0)f0.disabled=false;
       if(gb){gb.disabled=false;gb.innerHTML='&#10024; ဇာတ်လမ်းရေးသားရန်';}
-      var sb3=document.getElementById('storyResultBody');if(sb3)sb3.style.display='none';
+      var sb3=document.getElementById('storyResultBody');if(sb3)sb3.style.display='';
       showStepError('genError2','genRetry2',friendlyMsg(err,'story'));
       // Error → Result section အတွင်းတွင် error + retry ပြသည်
       if(window.studioUnmarkDone)window.studioUnmarkDone(2);
       showToastMsg('⚠️ '+(friendlyMsg(err,'story').replace(/\\n/g,' ')));
-    });
+    }
+  });
 }
 
-// ===================== Revise =====================
+// ===================== Revise (GLOBAL RESULT UI Streaming) =====================
 function reviseStory(){
   var instruction=document.getElementById('feedbackInput').value.trim();
   if(!instruction){showError('revError','ဘယ်လိုပြင်ချင်လဲ ရေးပါ');return;}
@@ -68,16 +69,24 @@ function reviseStory(){
   document.getElementById('feedbackInput').value='';
   var latestStory=document.getElementById('storyResult').value;
   var body={idea:currentStoryIdea,type:selectedStoryType,currentStory:latestStory,instruction:instruction};
-  apiCall('/api/studio/story/revise',body)
-    .then(function(data){
+  var rbox=storyResultBox();
+  rbox.start('AI ပြန်ပြင်နေသည်...');
+  streamCall('/api/studio/story/revise',body,{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       currentStory=data.story||'';
-      var ta=document.getElementById('storyResult');
-      if(ta){ta.value=currentStory;autoExpand(ta);}
+      rbox.complete();
       addHistory('ai','ပြင်ဆင်ပြီးပါပြီ — အထက်က ဇာတ်လမ်းထဲမှာ ကြည့်ပါ');
       autoSave();
-    })
-    .catch(function(err){showError('revError',friendlyMsg(err,'story'));})
-    .finally(function(){document.getElementById('revLoading').classList.remove('show');document.getElementById('reviseBtn').disabled=false;});
+    },
+    onError:function(err){
+      rbox.setError(friendlyMsg(err,'story'));
+      showError('revError',friendlyMsg(err,'story'));
+    }
+  }).finally(function(){
+    document.getElementById('revLoading').classList.remove('show');
+    document.getElementById('reviseBtn').disabled=false;
+  });
 }
 function addHistory(role,text){
   var div=document.createElement('div');div.className='revise-msg '+role;
@@ -96,9 +105,10 @@ function focusRevise(){
 }
 
 // ===================== 02 → 03 (User နောက်ဆုံးပြင်ထားသော Story ကို ပို့သည် — Auto Transfer) =====================
+// Story Video = Feature-level PRO gate — "Story Result → Create Video → PRO Check → Story Video"
 function goToVideoForm(){
+  if(!isPro){showToastMsg('Story Video ကို Pro User သာ အသုံးပြုနိုင်ပါသည်။');return;}
   var ta=document.getElementById('storyResult');
-  stopTypewriter();
   if(ta)currentStory=ta.value;
   if(!currentStory||!currentStory.trim()){showToastMsg('ဗီဒီယို ဖန်တီးရန် ဇာတ်လမ်း မရှိသေးပါ');return;}
   stMarkDone(2);
@@ -117,6 +127,7 @@ function fillVideoStoryField(){
 
 // ===================== Step 03 → 04 (Video Plan — Unified Result Loading) =====================
 function generateVideoPlan(){
+  if(!isPro){showToastMsg('Story Video ကို Pro User သာ အသုံးပြုနိုင်ပါသည်။');return;}
   if(planBusy)return;
   var story=document.getElementById('videoStoryInput').value.trim();
   if(!story){showError('planError','ဇာတ်လမ်း ထည့်ရန် လိုအပ်ပါသည် — Step 02 မှာ ဇာတ်လမ်းရေးပြီးမှ ဆက်လုပ်ပါ');return;}
@@ -133,12 +144,12 @@ function generateVideoPlan(){
   var consistency=document.getElementById('vidConsistency');
   var body={
     story:story,
-    type:selectedVideoType,
-    videoType:sel('vidTypeSel'),
+    workflow:selectedWorkflow,
+    visualStyle:sel('vidStyleSel'),
+    storyFacts:currentStoryFacts||{},
     duration:sel('vidDurationSel'),
     sceneDuration:sel('vidSceneSel'),
     aspectRatio:sel('vidRatioSel'),
-    visualStyle:sel('vidStyleSel'),
     cameraStyle:sel('vidCamSel'),
     language:sel('vidLangSel'),
     characterContinuity:(continuity&&continuity.checked)?'true':'false',
@@ -340,7 +351,7 @@ function saveAllResult(){
   var defaultTitle=(document.getElementById('field_0').value.trim()||'Story Result').substring(0,40);
   var title=prompt('Creation အမည် ပေးပါ:',defaultTitle);
   if(title===null)return;
-  AICS_CREATIONS.save({studio:'STORY',type:selectedVideoType,title:title||defaultTitle,original_prompt:currentStoryIdea,ai_output:text})
+  AICS_CREATIONS.save({studio:'STORY',type:selectedWorkflow,title:title||defaultTitle,original_prompt:currentStoryIdea,ai_output:text})
     .then(function(){showToastMsg('&#128190; My Creations ထဲ Save ပြီးပါပြီ');})
     .catch(function(err){showToastMsg('Save မအောင်မြင်ပါ: '+(err&&err.message||'Error'));});
 }
@@ -396,7 +407,8 @@ function studioCollectDraft(){
     stepNow:window.studioCur?window.studioCur():1,
     mode:ST_MODE,
     storyType:selectedStoryType,
-    videoType:selectedVideoType,
+    workflow:selectedWorkflow,
+    storyFacts:currentStoryFacts||{},
     aud:(document.getElementById('audSel')?document.getElementById('audSel').value:''),
     tone:document.getElementById('toneSel')?document.getElementById('toneSel').value:'',
     lang:document.getElementById('langSel')?document.getElementById('langSel').value:'',
@@ -406,7 +418,7 @@ function studioCollectDraft(){
     videoStarted:videoStarted,
     videoForm:{
       story:document.getElementById('videoStoryInput')?document.getElementById('videoStoryInput').value:'',
-      videoType:selectedVideoType,
+      workflow:selectedWorkflow,
       duration:sel('vidDurationSel'),
       sceneDuration:sel('vidSceneSel'),
       aspectRatio:sel('vidRatioSel'),
@@ -433,7 +445,8 @@ window.studioCollectDraft=studioCollectDraft;
 function studioRestoreDraft(d){
   if(!d)return;
   selectedStoryType=d.storyType||'1';
-  selectedVideoType=d.videoType||'1';
+  selectedWorkflow=d.workflow||'CINEMATIC_FEATURE';
+  currentStoryFacts=d.storyFacts||{};
   var sts=document.getElementById('storyTypeSel');if(sts)sts.value=selectedStoryType;
   var aud=document.getElementById('audSel');if(aud&&d.aud)aud.value=d.aud;window.aichAud=(aud?aud.value:'လူတိုင်း');
   var tone=document.getElementById('toneSel');if(tone&&d.tone)tone.value=d.tone;
@@ -446,8 +459,8 @@ function studioRestoreDraft(d){
   if(d.videoForm){
     var vf=d.videoForm;
     var vs=document.getElementById('videoStoryInput');if(vs){vs.value=vf.story||currentStory;autoExpand(vs);}
-    var vt=document.getElementById('vidTypeSel');
-    if(vt){vt.value=(!isPro&&vf.videoType&&vf.videoType!=='1')?'1':(vf.videoType||'1');selectedVideoType=vt.value||'1';}
+    var vt=document.getElementById('vidWorkflowSel');
+    if(vt){vt.value=vf.workflow||selectedWorkflow;selectedWorkflow=vt.value||'CINEMATIC_FEATURE';}
     var setf=function(id,v){var e=document.getElementById(id);if(e&&v)e.value=v;};
     setf('vidDurationSel',vf.duration);setf('vidSceneSel',vf.sceneDuration);setf('vidRatioSel',vf.aspectRatio);
     setf('vidStyleSel',vf.visualStyle);setf('vidCamSel',vf.cameraStyle);setf('vidLangSel',vf.language);
