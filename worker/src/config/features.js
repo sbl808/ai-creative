@@ -23,8 +23,8 @@ export const FEATURE_REGISTRY = {
 
   'story.generate': { name: 'Story Generate', nameMy: 'ဇာတ်လမ်းရေးခြင်း', access: 'FREE', desc: 'Story Studio — Tab 1' },
   'story.revise': { name: 'Story Revise', nameMy: 'ဇာတ်လမ်းပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Story Studio — Tab 2' },
-  'story.video': { name: 'Story Video Plan', nameMy: 'Story Video Plan', access: 'FREE', desc: 'Story Studio — Video Plan' },
-  'story.video_image': { name: 'Story Video Image', nameMy: 'Story Video ပုံ', access: 'FREE', desc: 'Story Studio — Video Image' },
+  'story.video': { name: 'Story Video Plan', nameMy: 'Story Video Plan', access: 'PRO', desc: 'Story Studio — Story Video (Visual Style + Video Workflow) — PRO feature' },
+  'story.video_image': { name: 'Story Video Image', nameMy: 'Story Video ပုံ', access: 'PRO', desc: 'Story Studio — Video Character/Env Image (PRO)' },
 
   'short.generate': { name: 'Short Generate', nameMy: 'Short Script ရေးခြင်း', access: 'FREE', desc: 'Short Studio — Tab 1' },
   'short.revise': { name: 'Short Revise', nameMy: 'Short ပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Short Studio — Tab 2' },

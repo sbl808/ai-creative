@@ -10,7 +10,7 @@ export const AI_MODEL_REGISTRY = [
   { id: 'gemini-3.5-flash-lite', name: 'သာမန်', category: 'text', enabled: true, is_default: true, plan_access: 'FREE' },
   { id: 'gemini-3.1-flash-lite-image', name: 'သာမန်', category: 'image', enabled: true, is_default: true, plan_access: 'FREE' },
   { id: 'gemini-2.5-flash-preview-tts', name: 'သာမန်', category: 'voice', enabled: true, is_default: true, plan_access: 'FREE' },
-  { id: 'gemini-3.5-transcribe', name: 'သာမန်', category: 'transcribe', enabled: true, is_default: true, plan_access: 'FREE' },
+  { id: 'gemini-3.6-flash', name: 'သာမန်', category: 'transcribe', enabled: true, is_default: true, plan_access: 'FREE' },
 ];
 
 // Category တစ်ခုချင်းစီအတွက် နောက်ဆုံး အရံ Model (Registry မှာလည်း မရှိတဲ့အခါသာ)
@@ -18,7 +18,7 @@ export const DEFAULT_MODELS = {
   text: 'gemini-3.5-flash-lite',
   image: 'gemini-3.1-flash-lite-image',
   voice: 'gemini-2.5-flash-preview-tts',
-  transcribe: 'gemini-3.5-transcribe',
+  transcribe: 'gemini-3.6-flash',
 };
 
 export const MODEL_CATEGORIES = ['text', 'image', 'voice', 'transcribe'];
