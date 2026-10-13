@@ -17,8 +17,10 @@ var imgCache={};
 var videoStarted=false;
 var shortBusy=false;
 var planBusy=false;
-var typewriterTimer=null;
 var refImages=[];
 var MAX_REF_IMAGES=5;
+
+// GLOBAL RESULT UI — Short result uses the shared Global Result Box (state machine lives in shared-ui.js)
+function shortResultBox(){ return window.aicsResultBox.create({ id:'shortResult', type:'text', collapsible:true, previewMax:280 }); }
 
 `;

@@ -1,7 +1,7 @@
 // AI Creative Studio — Short Studio / actions.js (V2 refactor)
 // Browser-side actions — extracted VERBATIM from frontend/short.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
-export const ACTIONS_SCRIPT = `// ===================== Step 01 → 02 → 03 (Short Generate) =====================
+export const ACTIONS_SCRIPT = `// ===================== Step 01 → 02 → 03 (Short Generate — GLOBAL RESULT UI Streaming) =====================
 function collectShortIdea(){
   var lines=[],valid=true;
   var topic=document.getElementById('field_0').value.trim();
@@ -36,65 +36,50 @@ function generateShort(){
   shortBusy=true;
   currentShort='';
   studioMarkDone(1);
-  // Unified: Result section အတွင်း loading ပြသည် (processing step မရှိ)
-  if(window.aicsResultLoading)window.aicsResultLoading.show('shortLoading','AI က သင့်အတွက် Short Script ကို ရေးသားနေသည်...',idea);
-  var sb=document.getElementById('shortResultBody');if(sb)sb.style.display='none';
+  // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
+  var sb=document.getElementById('shortResultBody');if(sb)sb.style.display='';
+  var rbox=shortResultBox();
+  rbox.start('AI က သင့်အတွက် Short Script ကို ရေးသားနေသည်...');
   if(window.studioForceGoStep)window.studioForceGoStep(2);
   else window.studioGoStep(2);
   if(window.studioSetLoading)window.studioSetLoading({on:true});
-  apiCall('/api/studio/short/generate',{idea:idea,type:selectedShortType})
-    .then(function(data){
+  streamCall('/api/studio/short/generate',{idea:idea,type:selectedShortType},{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       currentShort=data.short||'';
       currentShortIdea=idea;
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('shortLoading');
       if(window.studioSetLoading)window.studioSetLoading({on:false});
-      var sb2=document.getElementById('shortResultBody');if(sb2)sb2.style.display='';
+      rbox.complete({content:data.short||''});
       studioMarkDone(1);studioMarkDone(2);
       document.getElementById('reviseHistory').innerHTML='';
-      var ta=document.getElementById('shortResult');
-      typewriteShort(currentShort,ta);
       shortBusy=false;
       if(window.studioForceGoStep)window.studioForceGoStep(2);
       else window.studioGoStep(2);
       showToastMsg('✓ Short Script ရေးပြီးပါပြီ');
       autoSave();
-    })
-    .catch(function(err){
+    },
+    onError:function(err){
       console.error('Short Generate Error:', err);
-      if(window.aicsResultLoading)window.aicsResultLoading.hide('shortLoading');
       if(window.studioSetLoading)window.studioSetLoading({on:false});
+      rbox.setError(friendlyMsg(err,'short'));
       shortBusy=false;
-      var sb3=document.getElementById('shortResultBody');if(sb3)sb3.style.display='none';
+      var sb3=document.getElementById('shortResultBody');if(sb3)sb3.style.display='';
       showStepError('genError2','genRetry2',friendlyMsg(err,'short'));
       // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
       if(window.studioUnmarkDone)window.studioUnmarkDone(2);
       showToastMsg('⚠️ '+(friendlyMsg(err,'short').replace(/\\n/g,' ')));
-    });
+    }
+  });
 }
 
-// ===================== Typewriter + Auto Expand =====================
-function stopTypewriter(){if(typewriterTimer){clearInterval(typewriterTimer);typewriterTimer=null;}}
+// ===================== Auto Expand (Global Result Box handles streaming display) =====================
 function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
-function typewriteShort(text,ta){
-  stopTypewriter();
-  if(!ta)return;
-  ta.value='';autoExpand(ta);
-  var i=0,total=text.length;
-  var step=Math.max(1,Math.round(total/150));
-  typewriterTimer=setInterval(function(){
-    i+=step;
-    if(i>=total){ta.value=text;stopTypewriter();autoExpand(ta);currentShort=text;return;}
-    ta.value=text.slice(0,i);
-    autoExpand(ta);
-  },18);
-}
 function onShortEdit(){
-  stopTypewriter();
   var ta=document.getElementById('shortResult');
   if(ta){currentShort=ta.value;autoExpand(ta);}
 }
 
-// ===================== Step 03 — Revise =====================
+// ===================== Step 03 — Revise (GLOBAL RESULT UI Streaming) =====================
 function reviseShort(){
   var instruction=document.getElementById('feedbackInput').value.trim();
   if(!instruction){showError('revError','ဘယ်လိုပြင်ချင်လဲ ရေးပါ');return;}
@@ -105,16 +90,21 @@ function reviseShort(){
   addHistory('user',instruction);
   document.getElementById('feedbackInput').value='';
   var latestShort=document.getElementById('shortResult').value;
-  apiCall('/api/studio/short/revise',{idea:currentShortIdea,type:selectedShortType,currentShort:latestShort,instruction:instruction})
-    .then(function(data){
+  var rbox=shortResultBox();
+  rbox.start('AI ပြန်ပြင်နေသည်...');
+  streamCall('/api/studio/short/revise',{idea:currentShortIdea,type:selectedShortType,currentShort:latestShort,instruction:instruction},{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(data){
       currentShort=data.short||'';
-      var ta=document.getElementById('shortResult');
-      if(ta){ta.value=currentShort;autoExpand(ta);}
+      rbox.complete({content:data.short||''});
       addHistory('ai','ပြင်ဆင်ပြီးပါပြီ — အထက်က Short Script ထဲမှာ ကြည့်ပါ');
       autoSave();
-    })
-    .catch(function(err){showError('revError',friendlyMsg(err,'short'));})
-    .finally(function(){document.getElementById('revLoading').classList.remove('show');document.getElementById('reviseBtn').disabled=false;});
+    },
+    onError:function(err){
+      rbox.setError(friendlyMsg(err,'short'));
+      showError('revError',friendlyMsg(err,'short'));
+    }
+  }).finally(function(){document.getElementById('revLoading').classList.remove('show');document.getElementById('reviseBtn').disabled=false;});
 }
 function addHistory(role,text){
   var div=document.createElement('div');div.className='revise-msg '+role;
@@ -132,7 +122,6 @@ function focusRevise(){
 // ===================== 03 → 04 (User နောက်ဆုံးပြင်ထားသော Final Short Script ကို ပို့သည်) =====================
 function goToVideoForm(){
   var ta=document.getElementById('shortResult');
-  stopTypewriter();
   if(ta)currentShort=ta.value;
   if(!currentShort||!currentShort.trim()){showToastMsg('ဗီဒီယို ဖန်တီးရန် Short Script မရှိသေးပါ');return;}
   stMarkDone(2);

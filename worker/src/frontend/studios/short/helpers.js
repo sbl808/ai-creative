@@ -19,11 +19,6 @@ export const HELPERS_SCRIPT = `(function init(){
   fillSelect('vidLangSel',LANGUAGES,'မြန်မာ');
   var _ta=document.getElementById('field_0');
   if(_ta){_ta.addEventListener('input',function(){this.style.height='auto';this.style.height=(this.scrollHeight)+'px';});}
-  var sr=document.getElementById('shortResult');
-  if(sr){
-    sr.addEventListener('keydown',function(){stopTypewriter();});
-    sr.addEventListener('pointerdown',function(){stopTypewriter();});
-  }
   var _db=debounce(autoSave,400);
   document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#aicsApp'))_db();},true);
   document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#aicsApp'))_db();},true);
@@ -70,5 +65,12 @@ function toggleAdvFields(){
 }
 
 function apiCall(url,body){var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;return fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});}
+
+// GLOBAL RESULT STREAMING — NDJSON stream reader wrapper (model select + token handled inside)
+function streamCall(url,body,handlers){
+  var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;
+  if(!window.aicsStreamCall)return Promise.reject(new Error('streaming_not_available'));
+  return window.aicsStreamCall(url,body,handlers);
+}
 
 `;
