@@ -7,6 +7,7 @@
 // ============================================================
 
 import { listEnabledStudios, SITE_LINKS } from '../config/studios.js';
+import { AICS_RESULT_BOX_CSS, AICS_RESULT_BOX_SCRIPT, AICS_STREAM_SCRIPT } from './shared-ui.js';
 
 // ---- Sidebar အတွင်း Studio Link များ (Registry မှ ထုတ်သည်) ----
 // data-studio attribute — Admin မှ Studio ပိတ်ထားပါက Script က ဤ Link ကို ဖျောက်သည် (Phase 4)
@@ -420,6 +421,8 @@ export function sidebarScript() {
     '    box.classList.remove(\'show\');\n' +
     '  }\n' +
     '};\n' +
+    AICS_RESULT_BOX_SCRIPT + '\n' +
+    AICS_STREAM_SCRIPT + '\n' +
     '</script>';
 }
 
@@ -637,6 +640,8 @@ function aicsShellCss() {
     '  .aics-advanced-toggle{min-height:48px;}\n' +
     '  .aics-work .ref-upload-area input[type=file]{min-height:48px;}\n' +
     '}\n' +
+    // ===== GLOBAL RESULT UI — Global Result Box styles (all studios) =====
+    AICS_RESULT_BOX_CSS +
     '</style>'
   );
 }
