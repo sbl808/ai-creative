@@ -49,15 +49,12 @@ function collectContentIdea(){
 function syncContent(){
   var ta=document.getElementById('resultContent');
   if(ta&&ta.value!==undefined){
-    // Typewriter ဖွင့်နေစဉ် textarea သည် partial value သာ ရှိနေသေးသည် —
-    // ထိုအခါ full generated content (source) ကို မဖျောက်ရပါ။
-    if(!twRunning)shopState.content.result=ta.value;
+    shopState.content.result=ta.value;
   }
   shopState.content.input.idea=collectContentIdea();
   shopState.content.input.type=contentType;
 }
 function onContentEdit(){
-  stopTypewriter();
   var ta=document.getElementById('resultContent');
   if(!ta)return;
   shopState.content.result=ta.value;
@@ -128,7 +125,7 @@ function setTypeChip(containerId,val){
   });
 }
 
-// ===================== MAIN STEP 01 → 02 (Content Generate) =====================
+// ===================== MAIN STEP 01 → 02 (Content Generate — GLOBAL RESULT UI Streaming) =====================
 function generateContent(){
   if(shopBusy)return;
   var idea=collectContentIdea();
@@ -141,45 +138,46 @@ function generateContent(){
   shopState.content.input.images=refImagesContent;
   hideStepError('step2Err','step2Retry');
   shopBusy=true;
-  // Unified: Result section အတွင်း loading ပြသည် (processing step မရှိ)
+  // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
   studioMarkDone(1);
   if(window.studioForceGoStep)window.studioForceGoStep(2);
   else window.studioGoStep(2);
   shopState.view='content';
   showBranchViews();
-  if(window.aicsResultLoading)window.aicsResultLoading.show('contentLoading','AI ရေးသားနေသည်...',idea);
-  api('/api/studio/shop/content/generate',{method:'POST',body:{idea:idea,type:contentType,images:refImagesContent}})
-  .then(function(d){
-    shopBusy=false;
-    if(window.aicsResultLoading)window.aicsResultLoading.hide('contentLoading');
-    if(d.error){
-      console.error('Shop Content Generate Error:', d.error);
-      showStepError('step2Err','step2Retry','❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\n'+friendlyApiError(d));
+  var rbox=shopResultBox();
+  rbox.start('AI ရေးသားနေသည်...');
+  streamCall('/api/studio/shop/content/generate',{idea:idea,type:contentType,images:refImagesContent},{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(d){
+      shopBusy=false;
+      if(d.error){
+        console.error('Shop Content Generate Error:', d.error);
+        rbox.setError('❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\n'+friendlyApiError(d));
+        showStepError('step2Err','step2Retry','❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\n'+friendlyApiError(d));
+        // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
+        showToast('⚠️ Content ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ','error');
+        return;
+      }
+      var text=d.content||'';
+      if(d.speakingStyle)text+='\\n\\n[SPEAKING STYLE]\\n'+d.speakingStyle;
+      if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
+      shopState.content.result=text;
+      studioMarkDone(1);
+      studioMarkDone(2);
+      rbox.complete({content:text});
+      shopState.view='content';
+      showBranchViews();
+      showToast('✓ Content ဖန်တီးပြီးပါပြီ','success');
+      autoSave();
+    },
+    onError:function(err){
+      console.error('Shop Content Generate Error:', err);
+      shopBusy=false;
+      rbox.setError('❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\nNetwork error — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
+      showStepError('step2Err','step2Retry','❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\nNetwork error — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
       // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
       showToast('⚠️ Content ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ','error');
-      return;
     }
-    var text=d.content||'';
-    if(d.speakingStyle)text+='\\n\\n[SPEAKING STYLE]\\n'+d.speakingStyle;
-    if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
-    shopState.content.result=text;
-    studioMarkDone(1);
-    studioMarkDone(2);
-    var ta=document.getElementById('resultContent');
-    if(ta){ta.value=text;}
-    shopState.view='content';
-    showBranchViews();
-    if(ta)typewrite(ta,text);
-    showToast('✓ Content ဖန်တီးပြီးပါပြီ','success');
-    autoSave();
-  })
-  .catch(function(err){
-    console.error('Shop Content Generate Error:', err);
-    shopBusy=false;
-    if(window.aicsResultLoading)window.aicsResultLoading.hide('contentLoading');
-    showStepError('step2Err','step2Retry','❌ Content ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။\\nNetwork error — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
-    // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
-    showToast('⚠️ Content ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ','error');
   });
 }
 function retryContent(){
@@ -208,23 +206,27 @@ function sendRevision(){
   log.innerHTML+='<div class="chat-bubble chat-user">'+escapeHtml(instr)+'</div>';
   document.getElementById('chatInput').value='';
   document.getElementById('loadingChat').classList.add('show');
-  api('/api/studio/shop/content/revise',{method:'POST',body:{idea:collectContentIdea(),type:contentType,currentContent:current,instruction:instr}})
-  .then(function(d){
-    document.getElementById('loadingChat').classList.remove('show');
-    if(d.error){showToast(friendlyApiError(d),'error');return;}
-    var text=d.content||'';
-    if(d.speakingStyle)text+='\\n\\n[SPEAKING STYLE]\\n'+d.speakingStyle;
-    if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
-    var ta=document.getElementById('resultContent');
-    if(ta){ta.value=text;autoExpand(ta);}
-    shopState.content.result=text;
-    log.innerHTML+='<div class="chat-bubble chat-ai">✓ ပြင်ဆင်ပြီးပါပြီ</div>';
-    log.scrollTop=log.scrollHeight;
-    autoSave();
-  })
-  .catch(function(){
-    document.getElementById('loadingChat').classList.remove('show');
-    showToast('Network error','error');
+  var rbox=shopResultBox();
+  rbox.start('AI ပြန်ပြင်နေသည်...');
+  streamCall('/api/studio/shop/content/revise',{idea:collectContentIdea(),type:contentType,currentContent:current,instruction:instr},{
+    onChunk:function(t){rbox.appendChunk(t);},
+    onDone:function(d){
+      document.getElementById('loadingChat').classList.remove('show');
+      if(d.error){rbox.setError(friendlyApiError(d));showToast(friendlyApiError(d),'error');return;}
+      var text=d.content||'';
+      if(d.speakingStyle)text+='\\n\\n[SPEAKING STYLE]\\n'+d.speakingStyle;
+      if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
+      rbox.complete({content:text});
+      shopState.content.result=text;
+      log.innerHTML+='<div class="chat-bubble chat-ai">✓ ပြင်ဆင်ပြီးပါပြီ</div>';
+      log.scrollTop=log.scrollHeight;
+      autoSave();
+    },
+    onError:function(err){
+      document.getElementById('loadingChat').classList.remove('show');
+      rbox.setError('Network error');
+      showToast('Network error','error');
+    }
   });
 }
 
@@ -318,7 +320,6 @@ function showBranchViews(){
   else if(shopState.view==='image')showImagePhase();
 }
 function goContentResult(){
-  stopTypewriter();
   syncContent();
   shopState.view='content';
   showBranchViews();
@@ -328,7 +329,6 @@ function goContentResult(){
 // Product Content Result → Video Branch (Data Auto Transfer — user ကို ထပ်ကူးထည့်ခိုင်းမထားပါ)
 function goVideoBranch(){
   if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  stopTypewriter();
   syncContent();
   shopState.view='video';
   var vta=document.getElementById('videoText');
@@ -341,12 +341,14 @@ function goVideoBranch(){
 // Product Content Result → Audio Branch (Data Auto Transfer)
 function goAudioBranch(){
   if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  stopTypewriter();
   syncContent();
   shopState.view='audio';
   var ata=document.getElementById('audioText');
   if(ata){ata.value=shopState.content.result;autoExpand(ata);}
   shopState.audio.input.text=shopState.content.result;
+        if(!shopState.audio.result || !shopState.audio.result.data){
+        shopState.audio.step=1;
+      }
   showBranchViews();
   setActionsForCurrent();
   autoSave();
@@ -354,7 +356,6 @@ function goAudioBranch(){
 // Product Content Result + Product Reference ပုံများ → Image Branch (Data Auto Transfer)
 function goImageBranch(){
   if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  stopTypewriter();
   syncContent();
   shopState.view='image';
   var ita=document.getElementById('imageText');

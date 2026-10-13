@@ -72,26 +72,20 @@ function hideStepError(id,rid){
   var r=document.getElementById(rid);if(r)r.classList.remove('show');
 }
 
-// ===================== Typewriter + Auto-expand =====================
-function typewrite(ta,text){
-  stopTypewriter();
-  if(!ta)return;
-  var i=0,total=text.length;
-  var step=Math.max(1,Math.round(total/150));
-  twRunning=true;
-  ta.value='';
-  twTimer=setInterval(function(){
-    i+=step;
-    if(i>=total){ta.value=text;twRunning=false;stopTypewriter();autoExpand(ta);return;}
-    ta.value=text.slice(0,i);
-    autoExpand(ta);
-  },16);
-}
-function stopTypewriter(){if(twTimer){clearInterval(twTimer);twTimer=null;}twRunning=false;}
+// ===================== Auto-expand (Global Result Box handles streaming display) =====================
 function autoExpand(ta){
   if(!ta)return;
   ta.style.height='auto';
   ta.style.height=(ta.scrollHeight+2)+'px';
+}
+// ===== GLOBAL RESULT UI — Shop Result Box (state machine lives in shared-ui.js) =====
+function shopResultBox(){
+  return window.aicsResultBox.create({ id:'resultContent', type:'text', collapsible:true, previewMax:280 });
+}
+function streamCall(url,body,handlers){
+  var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;
+  if(!window.aicsStreamCall)return Promise.reject(new Error('streaming_not_available'));
+  return window.aicsStreamCall(url,body,handlers);
 }
 
 // ===================== Draft Save (autoSave — Refresh ပြီးနောက် မပျောက်ရ) =====================
