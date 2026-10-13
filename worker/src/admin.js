@@ -78,6 +78,7 @@ button{cursor:pointer}
     <button class="nav-btn inactive" id="tabModels" onclick="switchTab('models');closeNav()"><span class="nav-icon">◈</span><span class="nav-label">AI Models</span></button>
     <button class="nav-btn inactive" id="tabFeatures" onclick="switchTab('features');closeNav()"><span class="nav-icon">⚙</span><span class="nav-label">Plans & Features</span></button>
     <button class="nav-btn inactive" id="tabCms" onclick="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
+    <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
     <div class="nav-section">Analytics</div>
     <button class="nav-btn inactive" id="tabUsage" onclick="switchTab('usage');closeNav()"><span class="nav-icon">⌁</span><span class="nav-label">Usage</span></button>
     <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
@@ -96,6 +97,7 @@ button{cursor:pointer}
         <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" onclick="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
       </section>
       <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
+      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (11-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
       <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><button class="btn" onclick="loadStudios()">↻ Refresh</button></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
@@ -110,7 +112,7 @@ button{cursor:pointer}
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
 function closeNav(){var s=document.getElementById('sidebar');if(s)s.classList.remove('open');}
-function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',users:'Users',studios:'AI Studios',features:'Plans & Features',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
+function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',users:'Users',studios:'AI Studios',features:'Plans & Features',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
 </script>
 <script>
 window.onerror = function(msg, url, line) {
@@ -178,7 +180,7 @@ function fillStudios(){
 function switchTab(tab){
   currentTab=tab;
   setCrumb(tab);
-  ['dashboard','cms','users','studios','features','models','usage','logs'].forEach(function(t){
+  ['dashboard','cms','brain','users','studios','features','models','usage','logs'].forEach(function(t){
     $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='btn '+(tab===t?'active':'inactive');
     $(t+'View').classList.toggle('hidden',tab!==t);
   });
@@ -462,6 +464,68 @@ function del(id){
   }).catch(function(e){alert('Network error: '+(e&&e.message||e));});
 }
 
+// ===== Brain CMS (11-Layer — additive) =====
+var brainItems=[];var brainEditId=null;
+function loadBrain(){
+  api('/api/brain').then(function(d){
+    if(d.error==='forbidden'){location.href='/app';return;}
+    if(d.error){$('brainList').innerHTML='<div class="card"><span class="err">'+(d.detail||d.error)+'</span></div>';return;}
+    brainItems=d.items||[];renderBrain();
+  }).catch(function(e){
+    $('brainList').innerHTML='<div class="card"><span class="err">Network error: '+esc(String(e&&e.message||e))+'</span></div>';
+  });
+}
+function brainFilter(){
+  var s=$('bScopeF').value,m=$('bModuleF').value,t=$('bTypeF').value.trim();
+  return brainItems.filter(function(it){
+    if(s&&it.scope!==s)return false;
+    if(m&&it.module!==m)return false;
+    if(t&&it.type!==t)return false;
+    return true;
+  });
+}
+function renderBrain(){
+  var list=$('brainList');list.innerHTML='';
+  var rows=brainFilter();
+  if(rows.length===0){list.innerHTML='<div class="card">(no brain rows yet — အပေါ်မှ Add / Edit လုပ်ပါ)</div>';return;}
+  rows.forEach(function(it){
+    var c=document.createElement('div');c.className='card';
+    c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
+      '<div><b>'+esc(it.scope)+'</b> / <b>'+esc(it.module)+'</b> / <b>'+esc(it.type)+'</b> · <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · key <code>'+esc(it.key)+'</code> · v'+esc(it.version)+' · '+((it.active===0)?'<span class="badge free">inactive</span>':'<span class="badge pro">active</span>')+'</div>'+
+      '<span><button class="btn sm" onclick="editBrain('+it.id+')">✏️</button> <button class="btn sm red" onclick="delBrain('+it.id+')">🗑️</button></span></div>'+
+      '<div style="font-size:12px;color:#6B7280;margin-top:6px;white-space:pre-wrap;">'+esc((it.value||'').slice(0,160))+'</div>';
+    list.appendChild(c);
+  });
+}
+function editBrain(id){
+  var it=brainItems.filter(function(x){return x.id==id;})[0];if(!it)return;
+  brainEditId=id;
+  $('bScope').value=it.scope||'STORY_TYPES';$('bModule').value=it.module||'STORY_TYPE';$('bType').value=it.type||'BASE';
+  $('bPlan').value=it.plan||'FREE';$('bKey').value=it.key||'knowledge';$('bVersion').value=it.version||1;$('bValue').value=it.value||'';
+  $('brainMsg').textContent='Editing #'+id;
+}
+function brainReset(){
+  brainEditId=null;
+  $('bScope').value='STORY_TYPES';$('bModule').value='STORY_TYPE';$('bType').value='TYPE_1';
+  $('bPlan').value='FREE';$('bKey').value='knowledge';$('bVersion').value=1;$('bValue').value='';
+  $('brainMsg').textContent='';
+}
+function saveBrain(){
+  var data={scope:$('bScope').value,module:$('bModule').value,type:$('bType').value.trim()||'BASE',plan:$('bPlan').value,key:$('bKey').value.trim(),value:$('bValue').value,version:parseInt($('bVersion').value,10)||1};
+  if(!data.scope||!data.module||!data.key){$('brainMsg').textContent='Error: scope/module/key required';return;}
+  var url='/api/brain'+(brainEditId?'/'+brainEditId:'');
+  api(url,brainEditId?'PUT':'POST',data).then(function(d){
+    if(d.ok){$('brainMsg').textContent='Saved ✓';brainReset();loadBrain();}
+    else{$('brainMsg').textContent='ERROR: '+(d.detail||d.error||'unknown');}
+  }).catch(function(e){$('brainMsg').textContent='Network error: '+(e&&e.message||e);});
+}
+function delBrain(id){
+  if(!confirm('Delete this brain row?'))return;
+  api('/api/brain/'+id,'DELETE').then(function(d){
+    if(d.ok){loadBrain();}else{alert('ERROR: '+(d.detail||d.error||'unknown'));}
+  }).catch(function(e){alert('Network error: '+(e&&e.message||e));});
+}
+
 function loadUsers(){
   api('/api/admin/users').then(function(d){
     if(d.error==='forbidden'){location.href='/app';return;}
@@ -582,7 +646,8 @@ export async function adminApi(request, path, env, verifyToken) {
   const isDashboard = (path === '/api/admin/dashboard');
   const isUsage = (path === '/api/admin/usage');
   const isLogs = (path === '/api/admin/logs');
-  if (!isCms && !isUsers && !isStudios && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs) return null;
+  const isBrain = (path === '/api/brain' || path.indexOf('/api/brain/') === 0);
+  if (!isCms && !isUsers && !isStudios && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain) return null;
 
   const method = request.method;
   const authHeader = request.headers.get('Authorization') || '';
@@ -638,6 +703,58 @@ export async function adminApi(request, path, env, verifyToken) {
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM cms_prompts WHERE id=?').bind(id).run();
       await logAdminAction(env, user.email, 'cms_delete', 'id=' + id);
+      return json({ ok: true });
+    }
+  }
+
+  // ===== Brain CMS (11-Layer — additive; cms_prompts ကို မထိ) =====
+  if (path === '/api/brain' && method === 'GET') {
+    try {
+      const { results } = await env.DB.prepare('SELECT * FROM cms_brain ORDER BY scope, module, type, key').all();
+      return json({ ok: true, items: results });
+    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+  }
+  if (path === '/api/brain' && method === 'POST') {
+    const body = await readBody(request);
+    if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
+    const scope = String(body.scope).toUpperCase();
+    const module = String(body.module).toUpperCase();
+    const type = String(body.type || 'BASE').toUpperCase();
+    const plan = String(body.plan || 'FREE').toUpperCase();
+    const key = String(body.key).trim();
+    const val = (body.value === undefined || body.value === null) ? '' : String(body.value);
+    const version = parseInt(body.version, 10) > 0 ? parseInt(body.version, 10) : 1;
+    try {
+      await env.DB.prepare(
+        'INSERT INTO cms_brain (scope,module,type,plan,key,value,active,version,updated_at) VALUES (?,?,?,?,?,?,1,?,datetime(\'now\')) ' +
+        'ON CONFLICT(scope,module,type,plan,key) DO UPDATE SET value=excluded.value, active=1, version=excluded.version, updated_at=excluded.updated_at'
+      ).bind(scope, module, type, plan, key, val, version).run();
+      await logAdminAction(env, user.email, 'brain_create', scope + '/' + module + '/' + type + '/' + key);
+      return json({ ok: true });
+    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+  }
+  if (path.indexOf('/api/brain/') === 0) {
+    const id = decodeURIComponent(path.slice('/api/brain/'.length));
+    if (method === 'PUT') {
+      const body = await readBody(request);
+      if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
+      try {
+        await env.DB.prepare(
+          'UPDATE cms_brain SET scope=?, module=?, type=?, plan=?, key=?, value=?, version=?, updated_at=datetime(\'now\') WHERE id=?'
+        ).bind(
+          String(body.scope).toUpperCase(), String(body.module).toUpperCase(), String(body.type || 'BASE').toUpperCase(),
+          String(body.plan || 'FREE').toUpperCase(), String(body.key).trim(),
+          (body.value === undefined || body.value === null) ? '' : String(body.value),
+          parseInt(body.version, 10) > 0 ? parseInt(body.version, 10) : 1,
+          id
+        ).run();
+        await logAdminAction(env, user.email, 'brain_update', 'id=' + id);
+        return json({ ok: true });
+      } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    }
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM cms_brain WHERE id=?').bind(id).run();
+      await logAdminAction(env, user.email, 'brain_delete', 'id=' + id);
       return json({ ok: true });
     }
   }

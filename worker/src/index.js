@@ -1,6 +1,7 @@
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
 import { callGeminiText } from './core/ai.js';
+import { ndjsonResponse } from './core/streaming.js';
 import { getCMSData, buildSystemPrompt } from './core/cms.js';
 import { generateStudio } from './studio.js';
 import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from './studios/content.js';
@@ -671,6 +672,27 @@ export default {
         const plan = await resolvePlan(env, payload);
         const genLevel = String(body.generationLevel || body.type || '1');
         { const denied = await requireFeature(env, 'content.generate', plan, genLevel, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateContent(env, {
+              model: body.model,
+              idea: body.idea,
+              generationLevel: genLevel,
+              contentType: String(body.contentType || 'Other'),
+              platform: body.platform,
+              product: body.product,
+              goal: body.goal,
+              cta: body.cta,
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -703,6 +725,25 @@ export default {
         const plan = await resolvePlan(env, payload);
         const genLevel = String(body.generationLevel || body.type || '1');
         { const denied = await requireFeature(env, 'content.revise', plan, genLevel, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseContent(env, {
+              model: body.model,
+              originalContent: body.originalContent || '',
+              originalSpeaking: body.originalSpeaking || '',
+              originalVoice: body.originalVoice || '',
+              feedback: body.feedback,
+              generationLevel: genLevel,
+              contentType: String(body.contentType || 'Other'),
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -848,6 +889,19 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'story.generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateStory(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -871,6 +925,23 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'story.revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseStory(env, {
+              model: body.model,
+              idea: body.idea || '',
+              type: reqType,
+              currentStory: body.currentStory,
+              instruction: body.instruction,
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -889,6 +960,8 @@ export default {
 
       // ===== Story Studio — Tab 2: Video Plan (04 Form → 05/06) =====
       // Backward Compat: ယခင် body.idea ကိုလည်း ဆက်လက်လက်ခံသည်။
+      // Story Video = Feature-level PRO gate (§3) — Visual Style + Video Workflow သည်
+      // Story Video အတွင်းရှိ configuration သာ (type-based gate မသုံးတော့ပါ)။
       if (path === '/api/studio/story/video' && request.method === 'POST') {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
@@ -897,8 +970,7 @@ export default {
         const body = await request.json().catch(() => null);
         if (!body || (!body.idea && !body.story)) return json({ error: 'missing_idea' }, 400, cors);
         const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'story.video', plan, reqType, cors); if (denied) return denied; }
+        { const denied = await requireFeature(env, 'story.video', plan, '1', cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -906,12 +978,14 @@ export default {
             model: body.model,
             story: body.story || body.idea || '',
             idea: body.idea || body.story || '',
-            type: reqType,
+            type: body.type || '1',
             videoType: body.videoType,
+            workflow: body.workflow,
+            visualStyle: body.visualStyle,
+            storyFacts: body.storyFacts,
             duration: body.duration,
             sceneDuration: body.sceneDuration,
             aspectRatio: body.aspectRatio,
-            visualStyle: body.visualStyle,
             cameraStyle: body.cameraStyle,
             language: body.language,
             environmentStyle: body.environmentStyle,
@@ -936,6 +1010,7 @@ export default {
       }
 
       // ===== Story Studio — Tab 2: Video Scene/Character Image =====
+      // Story Video ၏ အစိတ်အပိုင်း — Feature-level PRO gate အတိုင်း လိုက်နာသည်
       if (path === '/api/studio/story/video-image' && request.method === 'POST') {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
@@ -943,6 +1018,8 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'story.video_image', plan, '1', cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -964,6 +1041,19 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'short.generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateShort(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -987,6 +1077,20 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'short.revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseShort(env, {
+              model: body.model,
+              idea: body.idea || '', type: reqType, currentShort: body.currentShort,
+              instruction: body.instruction, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1064,6 +1168,20 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'image.prompt', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateImagePrompt(env, {
+              model: body.model,
+              idea: body.idea, type: reqType, plan, apiKey,
+              images: body.images,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1088,6 +1206,20 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'image.ad_prompt', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateAdImagePrompt(env, {
+              model: body.model,
+              idea: body.idea, type: reqType, plan, apiKey,
+              images: body.images,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1187,6 +1319,7 @@ export default {
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
           const out = await generateVoiceSrt(env, { model: body.model, 
             audioBase64: body.audioBase64,
+            knownText: typeof body.knownText === 'string' ? body.knownText : '',
             mimeType: body.mimeType || 'audio/mpeg',
             type: String(body.type || '2'), plan, apiKey,
           });
@@ -1233,6 +1366,19 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'shop.content_generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateShopContent(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey, images: body.images || [],
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1256,6 +1402,20 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'shop.content_revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseShopContent(env, {
+              model: body.model,
+              idea: body.idea || '', type: reqType, currentContent: body.currentContent,
+              instruction: body.instruction, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
