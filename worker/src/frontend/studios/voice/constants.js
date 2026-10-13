@@ -18,18 +18,16 @@ const VOICES = [
   ['Vindemiatrix','နူးညံ့သိမ်မွေ့ (Gentle)'],['Sadachbia','တက်ကြွရှင်သန် (Lively)'],
   ['Sadaltager','ဗဟုသုတရှိ (Knowledgeable)'],['Sulafat','နွေးထွေး (Warm)']
 ];
-// Unified Result Loading — AI processing-status steps များကို Stepper ထဲတွင် မပြတော့ဘဲ Result section အတွင်း၌သာ ပြသည်
-const VOICE_STEPPER = [
-  {n:1,label:'စာသား'},{n:2,label:'အသံရလဒ်'}
+// V2.1 Unified Workflow — Stepper ၄ ဆင့်တည်း (mode မည်သည်ဖြစ်စေ)
+// Input → Format → Generate → Result Hub  (SRT / ဘာသာပြန် ဆက်လုပ်ခြင်းကို Result Hub ထဲတွင်သာ ပြသည်)
+const VOICE_STEPS = [
+  {n:1,label:'Input'},{n:2,label:'Format'},{n:3,label:'Generate'},{n:4,label:'Result'}
 ];
-const MEDIA_STEPPER = [
-  {n:1,label:'အသံ / Video'},{n:2,label:'စာသားရလဒ်'}
-];
-const SRT_STEPPER = [
-  {n:1,label:'SRT'},{n:2,label:'SRT ရလဒ်'}
-];
-const TRANSLATE_STEPPER = [
-  {n:1,label:'SRT'},{n:2,label:'ဘာသာပြန်ရလဒ်'}
+// Mode chips (စာမျက်နှာတစ်ခုတည်း)
+const VOICE_MODES = [
+  {id:'text-to-voice',icon:'📝',label:'စာ → အသံ'},
+  {id:'media-to-text',icon:'🎧',label:'အသံ → စာ'},
+  {id:'translate',icon:'🌐',label:'ဘာသာပြန်',pro:true}
 ];
 function esc(s) {
   const value = s == null ? '' : String(s);

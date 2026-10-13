@@ -1,7 +1,8 @@
 // AI Creative Studio — Voice Studio / page.js (V2 refactor)
-// Final HTML composition — head/CSS/body from voice.js (v1) + browser <script> assembled
-// from the segment modules in the ORIGINAL source order. Byte-identical output vs v1.
+// Final HTML composition — head/CSS/body + browser <script> assembled from the segment modules.
+// V2.1 Unified Workflow: mode chips + 4-step flow + shared Result Hub (no longer byte-identical to v1).
 import { renderSidebar, sidebarScript, renderStudioShell, aicsResultLoadingHtml } from '../../shared.js';
+import { AICS_RESULT_HUB_CSS, AICS_RESULT_HUB_SCRIPT } from '../../shared-ui.js';
 import { HOME_HTML } from './ui.js';
 import { CONSTANTS_SCRIPT } from './constants.js';
 import { STATE_SCRIPT } from './state.js';
@@ -34,6 +35,16 @@ export const VOICE_HTML = `<!DOCTYPE html>
 @media(max-width:700px){.aics-work .mode-grid,.aics-work .choice-grid{grid-template-columns:1fr}.aics-work .mode-card{min-height:155px}.aics-work .vcard{padding:15px}.aics-work .voice-stepper{justify-content:flex-start;padding:6px 8px}.aics-work .vstep{padding:7px 10px;font-size:12.5px}.aics-work .vlink{width:18px;flex-basis:18px}.btn{flex:0 1 auto}.aics-work .top-actions .btn{width:100%}}
 @media(min-width:701px) and (max-width:900px){.aics-work .mode-grid{grid-template-columns:1fr;max-width:620px}}
 @media(min-width:901px) and (max-width:1000px){.aics-work .mode-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:760px}}
+.aics-work .voice-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:820px;margin:0 auto 12px}
+.aics-work .vchip{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.aics-work .vchip:hover{border-color:var(--cyan);color:var(--text)}
+.aics-work .vchip.active{background:linear-gradient(90deg,rgba(123,92,255,.18),rgba(0,229,255,.08));border-color:rgba(123,92,255,.55);color:#fff}
+.aics-work .lock{font-size:11px;color:var(--warn);font-weight:600}
+.aics-work .seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.aics-work .choice-card.active{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.25)}
+@media(max-width:700px){.aics-work .seg{grid-template-columns:1fr}.aics-work .vchip{flex:1 1 auto}}
+@media(max-width:480px){.aics-work .vlink{width:8px;flex-basis:8px}.aics-work .vstep{padding:6px 7px;font-size:12px}}
+${AICS_RESULT_HUB_CSS}
 </style>
 </head>
 <body>
@@ -41,7 +52,7 @@ export const VOICE_HTML = `<!DOCTYPE html>
 ${renderStudioShell({id:'voice',activeId:'voice',nameMy:'အသံ Studio',desc:'Text to voice, voice to text',icon:'🎙️',modelCat:'voice',steps:[],content:HOME_HTML})}
 <div class="toast" id="toast"></div>
 ${sidebarScript()}
-<script>${CONSTANTS_SCRIPT}${STATE_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}</script>
+<script>${CONSTANTS_SCRIPT}${STATE_SCRIPT}${HELPERS_SCRIPT}${AICS_RESULT_HUB_SCRIPT}${ACTIONS_SCRIPT}</script>
 </body></html>`;
 
 export default VOICE_HTML;

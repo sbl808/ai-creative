@@ -18,6 +18,7 @@ function friendlyError(d,fallback){
     transcribe_error:'စာသားဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
     srt_error:'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
     translate_error:'ဘာသာပြန်ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
+    empty_transcription:'ရလဒ် ဗလာဖြစ်နေပါသည် — AI က အကြောင်းအရာ မပြန်ပါ။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
     feature_denied:'ဒီ Feature ကို သင့် Plan နဲ့ အသုံးပြုခွင့်မရှိသေးပါ။',
     pro_only:'ဒီ Feature ကို Pro User သာ အသုံးပြုနိုင်ပါသည်။',
     feature_disabled:'ဒီ Feature ကို ယခု ပိတ်ထားပါသည်။',
@@ -28,8 +29,9 @@ function friendlyError(d,fallback){
 }
 function api(path,body){
   body=body||{};
-  var sel=document.getElementById((path.indexOf('/transcribe')>-1||path.indexOf('/srt')>-1)?'aiModelSel2':'aiModelSel')||document.getElementById('aiModelSel');
-  if(sel&&sel.value)body.model=sel.value;
+  // Model dropdown ၂ ခု: TTS → aiModelSel (category=voice) · transcribe/SRT/translate → aiModelSel2 (category=transcribe)
+  var selId=(path.indexOf('/tts')>-1)?'aiModelSel':'aiModelSel2';
+  var sel=document.getElementById(selId);if(sel&&sel.value)body.model=sel.value;
   var h={'Content-Type':'application/json'};if(TOKEN)h.Authorization='Bearer '+TOKEN;
   return fetch(path,{method:'POST',headers:h,body:JSON.stringify(body)}).then(function(r){
     return r.json().catch(function(){return {error:'request_error'};}).then(function(d){if(!r.ok&&!d.error)d.error='request_error';return d;});
@@ -39,7 +41,7 @@ function base64Blob(b,m){var bin=atob(b),a=new Uint8Array(bin.length);for(var i=
 var VOICE_LOADING_STEP=0;
 // Loading UI ကို Result section အတွင်း၌သာ ပြသည် — full-screen overlay မသုံးတော့ပါ
 function showLoading(text){
-  VOICE_LOADING_STEP=2;
+  VOICE_LOADING_STEP=3;
   if(window.studioSetLoading)window.studioSetLoading({on:true,step:VOICE_LOADING_STEP,text:text,buttonSelector:'#voiceStepper .vstep[data-step="'+VOICE_LOADING_STEP+'"]',containerSelector:'#voiceStepper'});
 }
 function hideLoading(){
@@ -64,10 +66,7 @@ function resultLoadingCard(msg,hint){
 }
 function saveDraft(){
   try{localStorage.setItem(voiceDraftKey,JSON.stringify({
-    state:VOICE_STATE,tts:val('ttsText'),speaking:val('speakingStyle'),voice:val('voiceName'),
-    instruction:val('voiceInstruction'),audience:val('audience'),srt:val('srtEditor'),
-    mediaType:val('mediaOutput'),mediaFileName:MEDIA_AUDIO.fileName,transcript:val('textResult'),
-    translation:translatedSrt,dir:VOICE_STATE.translationDirection
+    state:VOICE_STATE,inputs:VOICE_INPUTS,mediaFileName:MEDIA_AUDIO.fileName,translation:translatedSrt
   }));}catch(e){}
 }
 function val(id){var x=document.getElementById(id);return x?(x.value||''):'';}
@@ -75,28 +74,13 @@ function restoreDraft(){
   try{
     var raw=localStorage.getItem(voiceDraftKey);if(!raw)return false;
     var d=JSON.parse(raw)||{},s=d.state||{};
-    VOICE_DRAFT_VALUES={tts:d.tts||'',speaking:d.speaking||'',voice:d.voice||'Kore',instruction:d.instruction||'',audience:d.audience||'လူတိုင်း',srt:d.srt||'',transcript:d.transcript||''};
-    if(s.voiceMode)VOICE_STATE=s;
-    VOICE_STATE.translationDirection=d.dir||VOICE_STATE.translationDirection||'MY_TO_CN';
+    if(!s.voiceMode)return false;
+    VOICE_STATE=Object.assign(newVoiceState(s.voiceMode,s.source),s);
+    if(d.inputs)VOICE_INPUTS=Object.assign(VOICE_INPUTS,d.inputs);
     if(d.translation)translatedSrt=d.translation;
     if(s.audioResult&&s.audioResult.data){LAST_AUDIO.base64=s.audioResult.data;LAST_AUDIO.mime=s.audioResult.mimeType||'audio/wav';}
     return true;
-  }catch(e){VOICE_DRAFT_VALUES=null;return false;}
-}
-function applyDraftToForm(){
-  var d=VOICE_DRAFT_VALUES;
-  var vi=VOICE_STATE.voiceInput||null;
-  // Error → Auto Back ဖြစ်သောအခါ နောက်ဆုံး ထည့်ထားသော Input များ မပျောက်စေရန် voiceInput ကို ဦးစားပေး ပြန်ဖြည့်သည်
-  var tts=(d&&d.tts)||(vi&&vi.text)||'';
-  var speaking=(d&&d.speaking)||(vi&&vi.speakingStyle)||'';
-  var voice=(d&&d.voice)||(vi&&vi.voiceStyle)||'Kore';
-  var instruction=(d&&d.instruction)||(vi&&vi.instruction)||'';
-  var audience=(d&&d.audience)||(vi&&vi.audience)||'လူတိုင်း';
-  var map={ttsText:tts,speakingStyle:speaking,voiceName:voice,voiceInstruction:instruction,audience:audience};
-  Object.keys(map).forEach(function(id){var x=document.getElementById(id);if(x&&map[id]!==undefined&&map[id]!==null)x.value=map[id];});
-  var s=document.getElementById('srtEditor');if(s&&d.srt)s.value=d.srt;
-  var t=document.getElementById('textResult');if(t&&d.transcript)t.value=d.transcript;
-  autoGrow(document.getElementById('ttsText'));autoGrow(document.getElementById('speakingStyle'));autoGrow(document.getElementById('voiceInstruction'));
+  }catch(e){return false;}
 }
 function renderStepper(items,current){
   var c=document.getElementById('voiceStepper'),h='';
@@ -108,6 +92,4 @@ function renderStepper(items,current){
   var active=c.querySelector('.vstep.active');
   if(active&&window.studioScrollElementIntoView)window.studioScrollElementIntoView(active,'#voiceStepper',true);
 }
-// Main + Branch = Stepper တစ်ခုတည်း —
-// Main workflow (3 steps) ပြီးနောက် SRT / ဘာသာပြန် Branch steps များကို ဆက်ပေါင်းပြသည်
 `;
