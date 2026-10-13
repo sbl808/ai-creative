@@ -66,8 +66,14 @@ const STUDIOS = [
   {
     slug: 'voice', path: '/app/voice', title: 'Voice Studio',
     setup: async (page) => {
-      await page.click('#voiceHome .mode-card >> nth=0'); // text-to-voice
+      // V2.1: single page with mode chips - text-to-voice is the default chip
+      await page.click('#voiceChips .vchip >> nth=0');
       await page.waitForSelector('#ttsText', { timeout: 5000 });
+    },
+    // Step 1 (Input) -> Step 2 (Format): sticky primary button is "Next", then "Generate"
+    advance: async (page) => {
+      await page.click('#aicsActionsInner .aics-act.primary', { timeout: 8000 });
+      await page.waitForSelector('#voiceName', { timeout: 5000 });
     },
     idea: ['#ttsText', 'မင်္ဂလာပါ။ ဒီအသံဟာ E2E စမ်းသပ်မှုအတွက် ဖြစ်ပါတယ်။'],
     action: '#aicsActionsInner .aics-act.primary', loading: '.aics-result-loading.show', error: '#voiceWorkflowBody .error-box',
@@ -127,6 +133,9 @@ async function checkStudio(browser, base, token, spec) {
   // 6. input works
   await page.fill(spec.idea[0], spec.idea[1]);
   record('input works', (await page.inputValue(spec.idea[0])).trim() === spec.idea[1]);
+
+  // 6b. multi-step studios (voice V2.1): move to the step that owns the main action
+  if (spec.advance) await spec.advance(page);
 
   // 5. main action + loading state (MutationObserver catches brief loading)
   await page.evaluate(() => {
