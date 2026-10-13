@@ -1,7 +1,43 @@
-// AI Creative Studio — AI Router (Gemini) — Phase 3d (text + image)
+// AI Creative Studio — AI Router (Gemini) — Phase 3d (text + image) + Phase GLOBAL RESULT STREAMING
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-async function callGeminiText(env, { model, system, prompt, apiKey }) {
+// ===== Real-Time Streaming (GLOBAL RESULT UI) =====
+// Reads Gemini :streamGenerateContent?alt=sse response body incrementally and
+// calls onChunk(deltaText) for EVERY text part as it arrives from the model.
+// Returns the fully accumulated text. No fake typing — this is real streaming.
+async function readGeminiSseStream(res, onChunk) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let full = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf('\n')) !== -1) {
+      const line = buf.slice(0, idx).trim();
+      buf = buf.slice(idx + 1);
+      if (line.indexOf('data:') !== 0) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      let data;
+      try { data = JSON.parse(payload); } catch (e) { continue; }
+      const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+      if (Array.isArray(parts)) {
+        for (const p of parts) {
+          if (p && typeof p.text === 'string' && p.text) {
+            full += p.text;
+            if (typeof onChunk === 'function') onChunk(p.text);
+          }
+        }
+      }
+    }
+  }
+  return full;
+}
+
+async function callGeminiText(env, { model, system, prompt, apiKey, onChunk }) {
   const key = apiKey || env.GEMINI_API_KEY;
   if (!key) throw new Error('no_api_key');
   const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
@@ -9,6 +45,41 @@ async function callGeminiText(env, { model, system, prompt, apiKey }) {
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      // ===== STREAMING PATH — real progressive chunks from the model =====
+      // Used when the caller supplies onChunk (Global Result UI streaming).
+      // Non-streaming callers are byte-identical to the legacy path below.
+      if (typeof onChunk === 'function') {
+        const res = await fetch(GEMINI_BASE + '/models/' + model + ':streamGenerateContent?alt=sse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify(body),
+        });
+        let reading = false;
+        try {
+          if (!res.ok) {
+            const errText = await res.text();
+            let data = null;
+            try { data = JSON.parse(errText); } catch (e) {}
+            lastErr = new Error((data && data.error && data.error.message) || ('gemini_error_' + res.status));
+            if (res.status === 429 || res.status >= 500) continue;
+            break;
+          }
+          reading = true;
+          const full = await readGeminiSseStream(res, onChunk);
+          const outText = full.trim();
+          if (!outText) {
+            const err = new Error('gemini_empty_response');
+            err.noRetry = true;
+            throw err;
+          }
+          return outText;
+        } catch (e) {
+          // Mid-stream failure — never retry (would duplicate chunks to the UI)
+          if (reading) { lastErr = e; break; }
+          throw e;
+        }
+      }
+      // ===== LEGACY PATH — full response at once (unchanged) =====
       const res = await fetch(GEMINI_BASE + '/models/' + model + ':generateContent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
@@ -24,9 +95,19 @@ async function callGeminiText(env, { model, system, prompt, apiKey }) {
         break;
       }
       const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-      return parts ? parts.map(p => p.text || '').join('').trim() : '';
+      const outText = (parts || []).map(p => p.text || '').join('').trim();
+      const finishReason = data.candidates && data.candidates[0] && data.candidates[0].finishReason;
+      const blockReason = data.promptFeedback && data.promptFeedback.blockReason;
+      if (!outText) {
+        const err = new Error('gemini_empty_response' + (finishReason ? ' finishReason=' + finishReason : '') + (blockReason ? ' blockReason=' + blockReason : ''));
+        err.noRetry = true;
+        try { console.error('[AICS] gemini empty response', JSON.stringify({ model, finishReason, blockReason, modelVersion: data.modelVersion, usage: data.usageMetadata })); } catch (_) {}
+        throw err;
+      }
+      return outText;
     } catch (e) {
       lastErr = e;
+      if (e && e.noRetry) break;
       await new Promise(r => setTimeout(r, 800));
     }
   }
@@ -91,9 +172,19 @@ async function callGeminiMultimodal(env, { model, prompt, images, apiKey }) {
         break;
       }
       const outParts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-      return outParts ? outParts.map(p => p.text || '').join('').trim() : '';
+      const outText = (outParts || []).map(p => p.text || '').join('').trim();
+      const finishReason = data.candidates && data.candidates[0] && data.candidates[0].finishReason;
+      const blockReason = data.promptFeedback && data.promptFeedback.blockReason;
+      if (!outText) {
+        const err = new Error('gemini_empty_response' + (finishReason ? ' finishReason=' + finishReason : '') + (blockReason ? ' blockReason=' + blockReason : ''));
+        err.noRetry = true;
+        try { console.error('[AICS] gemini empty response', JSON.stringify({ model, finishReason, blockReason, modelVersion: data.modelVersion, usage: data.usageMetadata })); } catch (_) {}
+        throw err;
+      }
+      return outText;
     } catch (e) {
       lastErr = e;
+      if (e && e.noRetry) break;
       await new Promise(r => setTimeout(r, 800));
     }
   }
