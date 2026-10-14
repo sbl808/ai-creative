@@ -23,5 +23,5 @@ database_id = "7c663452-6270-4c73-9a2c-6cd1dee977f5"
 vars = { ENVIRONMENT = "prod", ALLOWED_ORIGINS = "https://aics-frontend-prod.pages.dev" }
 [[env.prod.d1_databases]]
 binding = "DB"
-database_name = "ai-creative-db-prod-v2"
+database_name = "ai-creative-db-prod"
 database_id = "4f85d6d6-fef7-42ba-bbca-1c2bd177986b"
