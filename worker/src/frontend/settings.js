@@ -212,9 +212,12 @@ function loadKeyStatus(){
   api('/api/user/apikey/status').then(function(d){
     var has=!d.error&&d.hasKey;
     document.getElementById('tab-apikey').innerHTML=
-      '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ရှိပါသည် (Server တွင် လုံခြုံစွာ သိမ်းထားသည်)</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
-      '<button class="btn btn-primary" onclick="setApiKeyAndRefresh()">🔑 '+(has?'API Key အသစ် ထည့်ရန်':'API Key ထည့်ရန်')+'</button>'+
-      '<div class="hint">API Key ကို Frontend တွင် မပြပါ — Server-side ၌ AES စာဝှက်ဖြင့် သိမ်းဆည်းပြီး AI ခေါ်ယူရာတွင်သာ အသုံးပြုပါသည်။</div>';
+      '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+      '<button class="btn btn-primary" onclick="setApiKeyAndRefresh()">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
+      (has?'<button class="btn btn-secondary" onclick="testApiKey()">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" onclick="removeApiKey()">🗑️ API Key ဖျက်ရန်</button>':'')+
+      '</div>'+
+      '<div class="hint">သိမ်းထားသော Key အစစ်ကို UI မှာ ပြန်မပြပါ။ Server က စာဝှက်ထားသော Key ကို AI ခေါ်ယူချိန်တွင်သာ အသုံးပြုပါသည်။ Key အသစ် အစားထိုးလိုပါက အရင် Key ကို ဖျက်စရာမလိုပါ။</div>';
   }).catch(function(){
     document.getElementById('tab-apikey').innerHTML='<div class="empty-state">Network problem</div>';
   });
@@ -222,6 +225,28 @@ function loadKeyStatus(){
 function setApiKeyAndRefresh(){
   if(typeof window.setApiKey==='function'){window.setApiKey();setTimeout(loadKeyStatus,2000);}
   else{showToast('Script loading...','error');}
+}
+function testApiKey(){
+  var panel=document.getElementById('tab-apikey');
+  var buttons=panel.querySelectorAll('button');
+  buttons.forEach(function(b){b.disabled=true;});
+  showToast('API Connection စမ်းသပ်နေသည်…');
+  api('/api/ai/test',{method:'POST',body:{prompt:'Reply with OK',model:(document.getElementById('pref_model')||{}).value||undefined}}).then(function(d){
+    buttons.forEach(function(b){b.disabled=false;});
+    if(d.error){showToast('Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
+    showToast('✓ API Connection အောင်မြင်ပါသည်','success');
+  }).catch(function(){
+    buttons.forEach(function(b){b.disabled=false;});
+    showToast('Network error','error');
+  });
+}
+function removeApiKey(){
+  if(!confirm('သိမ်းထားသော API Key ကို ဖျက်မှာ သေချာပါသလား?')) return;
+  api('/api/user/apikey',{method:'DELETE'}).then(function(d){
+    if(d.error){showToast('API Key ဖျက်၍ မရပါ','error');return;}
+    showToast('API Key ဖျက်ပြီးပါပြီ','success');
+    loadKeyStatus();
+  }).catch(function(){showToast('Network error','error');});
 }
 </script>
 </body>
