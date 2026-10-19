@@ -187,7 +187,8 @@ const dec = new TextDecoder();
 // Secret → 32-byte AES-GCM Key (SHA-256 Digest)
 // ⚠️ Production တွင် KEY_ENCRYPTION_SECRET ကို မဖြစ်မနေ ထည့်ရန် (wrangler secret put)
 async function getCryptoKey(env) {
-  const secret = env.KEY_ENCRYPTION_SECRET || env.SESSION_SIGNING_KEY || 'dev-key-encryption-secret';
+  const secret = String(env.KEY_ENCRYPTION_SECRET || '').trim();
+  if (!secret) throw new Error('missing_key_encryption_secret');
   const hash = await crypto.subtle.digest('SHA-256', enc.encode(secret));
   return crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
@@ -235,5 +236,13 @@ export async function saveUserApiKey(env, userId, key) {
     "INSERT INTO user_keys (user_id, gemini_key, updated_at) VALUES (?, ?, datetime('now')) " +
     "ON CONFLICT(user_id) DO UPDATE SET gemini_key = excluded.gemini_key, updated_at = datetime('now')"
   ).bind(userId, encrypted).run();
+  return { ok: true };
+}
+
+
+// Remove the authenticated user's stored BYOK key.
+export async function deleteUserApiKey(env, userId) {
+  if (!env.DB || !userId) throw new Error('no_db_or_user');
+  await env.DB.prepare('DELETE FROM user_keys WHERE user_id = ?').bind(userId).run();
   return { ok: true };
 }
