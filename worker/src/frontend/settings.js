@@ -215,7 +215,7 @@ function loadKeyStatus(){
       '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
       '<button class="btn btn-primary" onclick="setApiKeyAndRefresh()">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
-      (has?'<button class="btn btn-secondary" onclick="removeApiKey()">🗑️ API Key ဖျက်ရန်</button>':'')+
+      (has?'<button class="btn btn-secondary" onclick="testApiKey()">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" onclick="removeApiKey()">🗑️ API Key ဖျက်ရန်</button>':'')+
       '</div>'+
       '<div class="hint">သိမ်းထားသော Key အစစ်ကို UI မှာ ပြန်မပြပါ။ Server က စာဝှက်ထားသော Key ကို AI ခေါ်ယူချိန်တွင်သာ အသုံးပြုပါသည်။ Key အသစ် အစားထိုးလိုပါက အရင် Key ကို ဖျက်စရာမလိုပါ။</div>';
   }).catch(function(){
@@ -225,6 +225,20 @@ function loadKeyStatus(){
 function setApiKeyAndRefresh(){
   if(typeof window.setApiKey==='function'){window.setApiKey();setTimeout(loadKeyStatus,2000);}
   else{showToast('Script loading...','error');}
+}
+function testApiKey(){
+  var panel=document.getElementById('tab-apikey');
+  var buttons=panel.querySelectorAll('button');
+  buttons.forEach(function(b){b.disabled=true;});
+  showToast('API Connection စမ်းသပ်နေသည်…');
+  api('/api/ai/test',{method:'POST',body:{prompt:'Reply with OK',model:(document.getElementById('pref_model')||{}).value||undefined}}).then(function(d){
+    buttons.forEach(function(b){b.disabled=false;});
+    if(d.error){showToast('Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
+    showToast('✓ API Connection အောင်မြင်ပါသည်','success');
+  }).catch(function(){
+    buttons.forEach(function(b){b.disabled=false;});
+    showToast('Network error','error');
+  });
 }
 function removeApiKey(){
   if(!confirm('သိမ်းထားသော API Key ကို ဖျက်မှာ သေချာပါသလား?')) return;
