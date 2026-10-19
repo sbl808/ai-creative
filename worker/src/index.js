@@ -17,7 +17,7 @@ import { trackUsage } from './core/usage.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
 import { getStudio } from './config/studios.js';
-import { getUserApiKey, saveUserApiKey } from './core/utilities.js';
+import { getUserApiKey, saveUserApiKey, deleteUserApiKey } from './core/utilities.js';
 import { APP_HTML } from './frontend.js';
 // V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
@@ -589,21 +589,38 @@ export default {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
         const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
         const key = await getUserApiKey(env, payload.sub);
         return json({ hasKey: !!key }, 200, cors);
       }
 
+      if (path === '/api/user/apikey' && request.method === 'DELETE') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        try {
+          await deleteUserApiKey(env, payload.sub);
+          return json({ ok: true }, 200, cors);
+        } catch (e) {
+          return json({ error: 'apikey_delete_failed', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // API key connection test is authenticated; callers may test a new key before saving it.
       if (path === '/api/ai/test' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body) return json({ error: 'bad_request' }, 400, cors);
+        const prompt = String(body.prompt || 'Reply with OK').slice(0, 500);
+        const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
         try {
-          const out = await callGeminiText(env, {
-            model: body.model || 'gemini-3.5-flash-lite',
-            prompt: body.prompt || 'Hello',
-            apiKey: body.apiKey,
-          });
-          return json({ output: out }, 200, cors);
+          const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
+          const out = await callGeminiText(env, { model, prompt, apiKey });
+          return json({ ok: true, output: out }, 200, cors);
         } catch (e) {
           return json({ error: 'ai_error', detail: friendlyError(e) }, 500, cors);
         }
