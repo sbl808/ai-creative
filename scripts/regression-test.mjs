@@ -163,7 +163,15 @@ await check('POST /api/user/apikey → 400 for blank key (authenticated)', async
   return { ok: r.status === 400 && body.error === 'missing_key', msg: `status=${r.status} error=${body.error}` };
 });
 await check('POST /api/user/apikey → fails closed if encryption secret is missing', async () => {
-  const r = await send('/api/user/apikey', 'POST', await withToken(), { key: 'test-key' });
+  // Make this contract explicit instead of relying on the shared test env
+  // continuing to omit KEY_ENCRYPTION_SECRET in future test setup changes.
+  const headers = await withToken();
+  const missingSecretEnv = { ...env, KEY_ENCRYPTION_SECRET: '' };
+  const r = await worker.fetch(new Request('https://test.local/api/user/apikey', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'test-key' }),
+  }), missingSecretEnv, {});
   const body = await r.json();
   return { ok: r.status === 500 && body.error === 'db_error', msg: `status=${r.status} error=${body.error}` };
 });
