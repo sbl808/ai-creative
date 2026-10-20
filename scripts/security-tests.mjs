@@ -223,5 +223,24 @@ console.log('\n--- D) API test rate-limit migration contract ---');
   console.log('  ↷ remote D1 migration execution NOT TESTED — no database changes performed');
 }
 
+
+console.log('\\n--- E) API key settings UI save/status contract ---');
+{
+  const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  check('API key save returns a Promise for async completion',
+    /function setApiKey\\(\\) \\{[\\s\\S]*?return fetch\\(['"]\\/api\\/user\\/apikey['"]/.test(shared));
+  check('API key save reports cancellation/failure as false',
+    /if \\(!key\\) return Promise\\.resolve\\(false\\)/.test(shared) &&
+    /if \\(d\\.error\\) \\{ __sbToast\\(['"]Save မအောင်မြင်['"], true\\); return false; \\}/.test(shared));
+  check('settings refreshes status only after save resolves successfully',
+    /Promise\\.resolve\\(window\\.setApiKey\\(\\)\\)\\.then\\(function\\(saved\\)\\s*\\{\\s*if\\(saved\\) loadKeyStatus\\(\\);/.test(settings));
+  check('API key status refresh does not depend on fixed two-second timer',
+    !/setTimeout\\(loadKeyStatus,\\s*2000\\)/.test(settings));
+  check('API key deletion refreshes status after successful response',
+    /function removeApiKey\\(\\)[\\s\\S]*?showToast\\(['"]API Key ဖျက်ပြီးပါပြီ['"],'success'\\);\\s*loadKeyStatus\\(\\);/.test(settings));
+}
+
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
