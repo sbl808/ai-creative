@@ -238,6 +238,8 @@ console.log('\n--- E) API key settings UI save/status contract ---');
   check('API key save reports cancellation/failure as false',
     setApiKey.includes('if (!key) return Promise.resolve(false)') &&
     setApiKey.includes('return false;'));
+  check('API key save treats non-2xx HTTP responses as failures',
+    setApiKey.includes('ok: r.ok') && setApiKey.includes('!result.ok || d.error'));
   check('settings refreshes status only after save resolves successfully',
     settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
     settings.includes('if(saved) loadKeyStatus();'));
