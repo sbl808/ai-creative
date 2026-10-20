@@ -298,16 +298,17 @@ export function sidebarScript() {
     '}\n' +
     'function setApiKey() {\n' +
     '  var key = prompt(\'မင်းရဲ့ Gemini API Key ကို ထည့်ပါ (aistudio.google.com ကနေ ရနိုင်ပါတယ်):\');\n' +
-    '  if (!key) return;\n' +
-    '  if (!SB_TOKEN) { __sbToast(\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\', true); return; }\n' +
-    '  fetch(\'/api/user/apikey\', {\n' +
+    '  if (!key) return Promise.resolve(false);\n' +
+    '  if (!SB_TOKEN) { __sbToast(\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\', true); return Promise.resolve(false); }\n' +
+    '  return fetch(\'/api/user/apikey\', {\n' +
     '    method: \'POST\',\n' +
     '    headers: { \'Content-Type\': \'application/json\', \'Authorization\': \'Bearer \' + SB_TOKEN },\n' +
     '    body: JSON.stringify({ key: key })\n' +
     '  }).then(function (r) { return r.json(); }).then(function (d) {\n' +
-    '    if (d.error) { __sbToast(\'Save မအောင်မြင်\', true); return; }\n' +
+    '    if (d.error) { __sbToast(\'Save မအောင်မြင်\', true); return false; }\n' +
     '    __sbToast(\'✓ API Key သိမ်းပြီးပါပြီ\', false);\n' +
-    '  }).catch(function () { __sbToast(\'Network error\', true); });\n' +
+    '    return true;\n' +
+    '  }).catch(function () { __sbToast(\'Network error\', true); return false; });\n' +
     '}\n' +
     '(function () {\n' +
     '  if (!SB_TOKEN) return;\n' +
