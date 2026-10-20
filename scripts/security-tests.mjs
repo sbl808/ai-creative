@@ -124,16 +124,28 @@ console.log('\n--- C) Deployment config validation ---');
   check('wrangler.toml binds D1 DB per env', (toml.match(/binding = "DB"/g) || []).length === 3);
   check('no secrets hardcoded in wrangler.toml', !/SESSION_SIGNING_KEY\s*=/.test(toml));
 
-  const wf = readFileSync(new URL('../.github/workflows/deploy.yml', import.meta.url), 'utf8');
-  check('workflow gates prod behind workflow_dispatch',
-    /inputs:\s*environment:/.test(wf) && /environment == 'prod'/.test(wf));
-  check('workflow auto-deploys main → staging (not prod)',
-    /refs\/heads\/main/.test(wf) && /deploy-staging/.test(wf));
-  check('workflow has NO matrix over [dev,staging,prod] on push',
-    !/matrix:[\s\S]*dev, staging, prod/.test(wf));
-  check('workflow protects prod with GitHub environment',
-    /environment: production/.test(wf));
-  check('workflow runs test gate before deploy', /needs: test/.test(wf) && /regression-test/.test(wf));
+  const workflowPath = new URL('../.github/workflows/deploy.yml', import.meta.url);
+  if (!existsSync(workflowPath)) {
+    const missing = 'missing .github/workflows/deploy.yml';
+    check('deployment workflow file exists', false, missing);
+    check('workflow gates prod behind workflow_dispatch', false, missing);
+    check('workflow auto-deploys main → staging (not prod)', false, missing);
+    check('workflow has NO matrix over [dev,staging,prod] on push', false, missing);
+    check('workflow protects prod with GitHub environment', false, missing);
+    check('workflow runs test gate before deploy', false, missing);
+  } else {
+    const wf = readFileSync(workflowPath, 'utf8');
+    check('deployment workflow file exists', true);
+    check('workflow gates prod behind workflow_dispatch',
+      /inputs:\s*environment:/.test(wf) && /environment == 'prod'/.test(wf));
+    check('workflow auto-deploys main → staging (not prod)',
+      /refs\/heads\/main/.test(wf) && /deploy-staging/.test(wf));
+    check('workflow has NO matrix over [dev,staging,prod] on push',
+      !/matrix:[\s\S]*dev, staging, prod/.test(wf));
+    check('workflow protects prod with GitHub environment',
+      /environment: production/.test(wf));
+    check('workflow runs test gate before deploy', /needs: test/.test(wf) && /regression-test/.test(wf));
+  }
 }
 
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
