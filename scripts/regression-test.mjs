@@ -135,6 +135,39 @@ await check('GET /api/users/me → 401 (no token)', async () => {
   return { ok: r.status === 401, msg: `status=${r.status}` };
 });
 
+console.log('— BYOK API security contracts —');
+const send = (path, method, headers = {}, body) => worker.fetch(new Request('https://test.local' + path, {
+  method,
+  headers: { ...headers, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+}), env, {});
+await check('POST /api/user/apikey → 401 without token', async () => {
+  const r = await send('/api/user/apikey', 'POST', {}, { key: 'test-key' });
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('GET /api/user/apikey/status → 401 without token', async () => {
+  const r = await send('/api/user/apikey/status', 'GET');
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('DELETE /api/user/apikey → 401 without token', async () => {
+  const r = await send('/api/user/apikey', 'DELETE');
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('POST /api/ai/test → 401 without token', async () => {
+  const r = await send('/api/ai/test', 'POST', {}, { prompt: 'Reply OK' });
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('POST /api/user/apikey → 400 for blank key (authenticated)', async () => {
+  const r = await send('/api/user/apikey', 'POST', await withToken(), { key: '   ' });
+  const body = await r.json();
+  return { ok: r.status === 400 && body.error === 'missing_key', msg: `status=${r.status} error=${body.error}` };
+});
+await check('POST /api/user/apikey → fails closed if encryption secret is missing', async () => {
+  const r = await send('/api/user/apikey', 'POST', await withToken(), { key: 'test-key' });
+  const body = await r.json();
+  return { ok: r.status === 500 && body.error === 'db_error', msg: `status=${r.status} error=${body.error}` };
+});
+
 console.log('— Admin page —');
 await check('GET /admin → 200 admin page', async () => {
   const r = await get('/admin', await withToken());
