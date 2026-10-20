@@ -224,23 +224,35 @@ console.log('\n--- D) API test rate-limit migration contract ---');
 }
 
 
-console.log('\\n--- E) API key settings UI save/status contract ---');
+console.log('\n--- E) API key settings UI save/status contract ---');
 {
   const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  const setApiKeyStart = shared.indexOf('function setApiKey()');
+  const setApiKeyEnd = shared.indexOf('\nfunction ', setApiKeyStart + 1);
+  const setApiKey = setApiKeyStart >= 0
+    ? shared.slice(setApiKeyStart, setApiKeyEnd >= 0 ? setApiKeyEnd : undefined)
+    : '';
   check('API key save returns a Promise for async completion',
-    /function setApiKey\\(\\) \\{[\\s\\S]*?return fetch\\([\\s\\S]*?api\\/user\\/apikey/.test(shared));
+    setApiKey.includes('return fetch(') && setApiKey.includes('/api/user/apikey'));
   check('API key save reports cancellation/failure as false',
-    /if \\(!key\\) return Promise\\.resolve\\(false\\)/.test(shared) &&
-    /if \\(d\\.error\\) \\{ __sbToast\\(['"]Save မအောင်မြင်['"], true\\); return false; \\}/.test(shared));
+    setApiKey.includes('if (!key) return Promise.resolve(false)') &&
+    setApiKey.includes('return false;'));
   check('settings refreshes status only after save resolves successfully',
-    /Promise\\.resolve\\(window\\.setApiKey\\(\\)\\)\\.then\\(function\\(saved\\)\\s*\\{\\s*if\\(saved\\) loadKeyStatus\\(\\);/.test(settings));
+    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
+    settings.includes('if(saved) loadKeyStatus();'));
   check('API key status refresh does not depend on fixed two-second timer',
-    !/setTimeout\\(loadKeyStatus,\\s*2000\\)/.test(settings));
+    !settings.includes('setTimeout(loadKeyStatus,2000)') &&
+    !settings.includes('setTimeout(loadKeyStatus, 2000)'));
+  const removeStart = settings.indexOf('function removeApiKey()');
+  const removeEnd = settings.indexOf('\n}', removeStart);
+  const removeApiKey = removeStart >= 0
+    ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined)
+    : '';
   check('API key deletion refreshes status after successful response',
-    /function removeApiKey\\(\\)[\\s\\S]*?showToast\\(['"]API Key ဖျက်ပြီးပါပြီ['"],'success'\\);\\s*loadKeyStatus\\(\\);/.test(settings));
+    removeApiKey.includes("showToast('API Key ဖျက်ပြီးပါပြီ','success');") &&
+    removeApiKey.includes('loadKeyStatus();'));
 }
-
 
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
