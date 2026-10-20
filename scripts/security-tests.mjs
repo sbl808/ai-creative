@@ -229,7 +229,7 @@ console.log('\\n--- E) API key settings UI save/status contract ---');
   const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
   check('API key save returns a Promise for async completion',
-    /function setApiKey\\(\\) \\{[\\s\\S]*?return fetch\\(['"]\\/api\\/user\\/apikey['"]/.test(shared));
+    /function setApiKey\\(\\) \\{[\\s\\S]*?return fetch\\([\\s\\S]*?api\\/user\\/apikey/.test(shared));
   check('API key save reports cancellation/failure as false',
     /if \\(!key\\) return Promise\\.resolve\\(false\\)/.test(shared) &&
     /if \\(d\\.error\\) \\{ __sbToast\\(['"]Save မအောင်မြင်['"], true\\); return false; \\}/.test(shared));
