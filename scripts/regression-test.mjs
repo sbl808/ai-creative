@@ -20,11 +20,11 @@ class MockD1 {
     return {
       bind(...args) { this._args = args; return this; },
       async first() {
-        if (/SELECT plan, expiry FROM users WHERE id = \\?/.test(sql)) {
+        if (sql.startsWith('SELECT plan, expiry FROM users WHERE id = ?')) {
           const id = this._args && this._args[0];
           return (self.rows.users || {})[id] || null;
         }
-        if (/SELECT attempts FROM api_test_limits WHERE user_id = \\? AND window_id = \\?/.test(sql)) {
+        if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
