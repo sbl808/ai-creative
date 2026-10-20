@@ -178,6 +178,7 @@ function aiTestPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title></head>' +
     '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
     '<h2 style="color:#1b6d96">🤖 AI Router Test</h2>' +
+    '<label style="font-size:13px;font-weight:600">Session Token</label><br><input id="tok" type="password" style="width:100%;padding:8px;box-sizing:border-box"><br>' +
     '<label style="font-size:13px;font-weight:600">Prompt</label><br>' +
     '<textarea id="p" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Hello</textarea>' +
     '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
@@ -186,7 +187,7 @@ function aiTestPage() {
     '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
-    'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json"},' +
+    'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim()},' +
     'body:JSON.stringify({prompt:document.getElementById("p").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){o.textContent=d.output?("✅ "+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
     '.catch(function(e){o.textContent="Network error: "+e;});}' +
@@ -574,7 +575,7 @@ export default {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
         const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.key || !String(body.key).trim()) return json({ error: 'missing_key' }, 400, cors);
         try {
@@ -590,8 +591,12 @@ export default {
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
         const payload = await verifyTokenSafe(env, token);
         if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        const key = await getUserApiKey(env, payload.sub);
-        return json({ hasKey: !!key }, 200, cors);
+        try {
+          const key = await getUserApiKey(env, payload.sub);
+          return json({ hasKey: !!key }, 200, cors);
+        } catch (e) {
+          return json({ error: 'apikey_status_failed', detail: friendlyError(e) }, 500, cors);
+        }
       }
 
       if (path === '/api/user/apikey' && request.method === 'DELETE') {
