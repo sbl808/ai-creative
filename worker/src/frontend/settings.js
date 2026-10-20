@@ -224,8 +224,11 @@ function loadKeyStatus(){
   });
 }
 function setApiKeyAndRefresh(){
-  if(typeof window.setApiKey==='function'){window.setApiKey();}
-  else{showToast('Script loading...','error');}
+  if(typeof window.setApiKey==='function'){
+    window.setApiKey();
+    // setApiKey saves asynchronously; refresh the status after its request settles.
+    setTimeout(loadKeyStatus,2000);
+  } else { showToast('Script loading...','error'); }
 }
 function testApiKey(){
   var panel=document.getElementById('tab-apikey');
