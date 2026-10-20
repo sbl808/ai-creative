@@ -46,3 +46,14 @@ jobs:
           node-version: 22
       - name: Check browser scripts
         run: node --experimental-default-type=module scripts/check-browser-scripts.mjs
+
+  migration-contract:
+    name: D1 migration schema contract (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate rate-limit migration with SQLite
+        run: python scripts/test-api-test-limits-migration.py
