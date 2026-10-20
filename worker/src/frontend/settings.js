@@ -210,7 +210,8 @@ function savePrefs(ev){
 }
 function loadKeyStatus(){
   api('/api/user/apikey/status').then(function(d){
-    var has=!d.error&&d.hasKey;
+    if(d.error){document.getElementById('tab-apikey').innerHTML='<div class="empty-state">API Key အခြေအနေ မစစ်နိုင်ပါ။ နောက်မှ ပြန်ကြိုးစားပါ။ <button class="btn btn-secondary" onclick="loadKeyStatus()">Retry</button></div>';return;}
+    var has=!!d.hasKey;
     document.getElementById('tab-apikey').innerHTML=
       '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
@@ -223,8 +224,11 @@ function loadKeyStatus(){
   });
 }
 function setApiKeyAndRefresh(){
-  if(typeof window.setApiKey==='function'){window.setApiKey();setTimeout(loadKeyStatus,2000);}
-  else{showToast('Script loading...','error');}
+  if(typeof window.setApiKey==='function'){
+    window.setApiKey();
+    // setApiKey saves asynchronously; refresh the status after its request settles.
+    setTimeout(loadKeyStatus,2000);
+  } else { showToast('Script loading...','error'); }
 }
 function testApiKey(){
   var panel=document.getElementById('tab-apikey');
@@ -233,7 +237,7 @@ function testApiKey(){
   showToast('API Connection စမ်းသပ်နေသည်…');
   api('/api/ai/test',{method:'POST',body:{prompt:'Reply with OK',model:(document.getElementById('pref_model')||{}).value||undefined}}).then(function(d){
     buttons.forEach(function(b){b.disabled=false;});
-    if(d.error){showToast('Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
+    if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၁၀ မိနစ်အတွင်း ၅ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
     showToast('✓ API Connection အောင်မြင်ပါသည်','success');
   }).catch(function(){
     buttons.forEach(function(b){b.disabled=false;});

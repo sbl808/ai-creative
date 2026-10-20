@@ -186,8 +186,8 @@ const dec = new TextDecoder();
 
 // Secret → 32-byte AES-GCM Key (SHA-256 Digest)
 // ⚠️ Production တွင် KEY_ENCRYPTION_SECRET ကို မဖြစ်မနေ ထည့်ရန် (wrangler secret put)
-async function getCryptoKey(env) {
-  const secret = String(env.KEY_ENCRYPTION_SECRET || '').trim();
+async function getCryptoKey(env, overrideSecret) {
+  const secret = String(overrideSecret || env.KEY_ENCRYPTION_SECRET || '').trim();
   if (!secret) throw new Error('missing_key_encryption_secret');
   const hash = await crypto.subtle.digest('SHA-256', enc.encode(secret));
   return crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
@@ -207,8 +207,8 @@ async function encryptSecret(env, plaintext) {
 }
 
 // Base64 → Plaintext (Decrypt — Worker အတွင်းမှသာ)
-async function decryptSecret(env, blob) {
-  const key = await getCryptoKey(env);
+async function decryptSecret(env, blob, legacySecret) {
+  const key = await getCryptoKey(env, legacySecret);
   const bin = atob(blob);
   const raw = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
@@ -218,14 +218,27 @@ async function decryptSecret(env, blob) {
   return dec.decode(pt);
 }
 
+// Legacy migration is opt-in: provide the exact old secret as a temporary Worker secret.
+// Never guess a fallback or expose decrypted keys to the client.
 export async function getUserApiKey(env, userId) {
-  if (!env.DB || !userId) return null;
+  if (!env.DB || !userId) throw new Error('no_db_or_user');
+  const row = await env.DB.prepare('SELECT gemini_key FROM user_keys WHERE user_id = ?').bind(userId).first();
+  if (!row || !row.gemini_key) return null;
   try {
-    const row = await env.DB.prepare('SELECT gemini_key FROM user_keys WHERE user_id = ?').bind(userId).first();
-    if (!row || !row.gemini_key) return null;
     return await decryptSecret(env, row.gemini_key);
-  } catch (e) {
-    return null;
+  } catch (error) {
+    // Missing primary secret is a configuration error, not an absent key.
+    if (!env.KEY_ENCRYPTION_SECRET) throw error;
+    const legacy = String(env.LEGACY_KEY_ENCRYPTION_SECRET || '').trim();
+    if (!legacy || legacy === String(env.KEY_ENCRYPTION_SECRET).trim()) throw new Error('apikey_decryption_failed');
+    let plaintext;
+    try { plaintext = await decryptSecret(env, row.gemini_key, legacy); }
+    catch (_) { throw new Error('apikey_decryption_failed'); }
+    const encrypted = await encryptSecret(env, plaintext);
+    // Compare-and-swap prevents overwriting a concurrent Replace/Delete.
+    await env.DB.prepare("UPDATE user_keys SET gemini_key = ?, updated_at = datetime('now') WHERE user_id = ? AND gemini_key = ?")
+      .bind(encrypted, userId, row.gemini_key).run();
+    return plaintext;
   }
 }
 

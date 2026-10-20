@@ -14,15 +14,18 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = rows; }
+  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); }
   prepare(sql) {
     const self = this;
     return {
       bind(...args) { this._args = args; return this; },
       async first() {
-        if (/SELECT plan, expiry FROM users WHERE id = \?/.test(sql)) {
+        if (sql.startsWith('SELECT plan, expiry FROM users WHERE id = ?')) {
           const id = this._args && this._args[0];
           return (self.rows.users || {})[id] || null;
+        }
+        if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
+          return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -32,7 +35,13 @@ class MockD1 {
         if (/FROM projects/.test(sql)) return { results: [] };
         return { results: [] };
       },
-      async run() { return { success: true }; },
+      async run() {
+        if (/INSERT INTO api_test_limits/.test(sql)) {
+          const key = String(this._args[0]) + ':' + this._args[1];
+          self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
+        }
+        return { success: true };
+      },
     };
   }
 }
@@ -133,6 +142,73 @@ await check('GET /api/users/me → 200 user (token)', async () => {
 await check('GET /api/users/me → 401 (no token)', async () => {
   const r = await get('/api/users/me');
   return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+
+console.log('— BYOK API security contracts —');
+const send = (path, method, headers = {}, body) => worker.fetch(new Request('https://test.local' + path, {
+  method,
+  headers: { ...headers, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+}), env, {});
+await check('POST /api/user/apikey → 401 without token', async () => {
+  const r = await send('/api/user/apikey', 'POST', {}, { key: 'test-key' });
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('GET /api/user/apikey/status → 401 without token', async () => {
+  const r = await send('/api/user/apikey/status', 'GET');
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('DELETE /api/user/apikey → 401 without token', async () => {
+  const r = await send('/api/user/apikey', 'DELETE');
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('POST /api/ai/test → 401 without token', async () => {
+  const r = await send('/api/ai/test', 'POST', {}, { prompt: 'Reply OK' });
+  return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+await check('POST /api/user/apikey → 400 for blank key (authenticated)', async () => {
+  const r = await send('/api/user/apikey', 'POST', await withToken(), { key: '   ' });
+  const body = await r.json();
+  return { ok: r.status === 400 && body.error === 'missing_key', msg: `status=${r.status} error=${body.error}` };
+});
+await check('POST /api/user/apikey → fails closed if encryption secret is missing', async () => {
+  // Make this contract explicit instead of relying on the shared test env
+  // continuing to omit KEY_ENCRYPTION_SECRET in future test setup changes.
+  const headers = await withToken();
+  const missingSecretEnv = { ...env, KEY_ENCRYPTION_SECRET: '' };
+  const r = await worker.fetch(new Request('https://test.local/api/user/apikey', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'test-key' }),
+  }), missingSecretEnv, {});
+  const body = await r.json();
+  return { ok: r.status === 500 && body.error === 'db_error', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— API connection-test rate limit —');
+await check('POST /api/ai/test → 503 when rate-limit DB is unavailable', async () => {
+  const headers = await withToken();
+  const noDbEnv = { ...env, DB: null };
+  const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), noDbEnv, {});
+  const body = await r.json();
+  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+});
+await check('POST /api/ai/test → allows five attempts, blocks sixth in same window', async () => {
+  const rateEnv = { ...env, DB: new MockD1({}) };
+  const headers = await withToken();
+  const statuses = [];
+  // Invalid JSON intentionally stops after the rate-limit check, so this test
+  // never calls Gemini or makes an external network request.
+  for (let i = 0; i < 6; i++) {
+    const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
+    }), rateEnv, {});
+    statuses.push(r.status);
+  }
+  return { ok: statuses.slice(0, 5).every(status => status === 400) && statuses[5] === 429,
+    msg: `statuses=${statuses.join(',')}` };
 });
 
 console.log('— Admin page —');
