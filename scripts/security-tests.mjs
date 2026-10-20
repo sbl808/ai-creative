@@ -197,5 +197,31 @@ console.log('\n--- D) BYOK encrypted storage lifecycle ---');
     missingSecretErr && missingSecretErr.message);
 }
 
+console.log('\n--- D) API test rate-limit migration contract ---');
+{
+  const migrationPath = new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url);
+  const migrationExists = existsSync(migrationPath);
+  check('API rate-limit migration file exists', migrationExists);
+  if (migrationExists) {
+    const migration = readFileSync(migrationPath, 'utf8');
+    check('migration creates api_test_limits table',
+      /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
+    check('migration defines per-user/per-window primary key',
+      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
+    check('migration indexes window_id for cleanup queries',
+      /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
+    const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+    check('rate-limit route SQL matches migration table and columns',
+      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
+      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
+  }
+  const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
+  check('migration target can be identified as dev D1 only',
+    /database_name = "ai-creative-db-dev"/.test(dev) &&
+    /database_id = "3f747286-9531-4b92-96a7-f0144387bd91"/.test(dev));
+  console.log('  ↷ remote D1 migration execution NOT TESTED — no database changes performed');
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
