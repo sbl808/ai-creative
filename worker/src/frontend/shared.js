@@ -304,8 +304,9 @@ export function sidebarScript() {
     '    method: \'POST\',\n' +
     '    headers: { \'Content-Type\': \'application/json\', \'Authorization\': \'Bearer \' + SB_TOKEN },\n' +
     '    body: JSON.stringify({ key: key })\n' +
-    '  }).then(function (r) { return r.json(); }).then(function (d) {\n' +
-    '    if (d.error) { __sbToast(\'Save မအောင်မြင်\', true); return false; }\n' +
+    '  }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); }).then(function (result) {\n' +
+    '    var d = result.data;\n' +
+    '    if (!result.ok || d.error) { __sbToast(\'Save မအောင်မြင်\', true); return false; }\n' +
     '    __sbToast(\'✓ API Key သိမ်းပြီးပါပြီ\', false);\n' +
     '    return true;\n' +
     '  }).catch(function () { __sbToast(\'Network error\', true); return false; });\n' +
