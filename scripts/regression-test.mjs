@@ -14,7 +14,7 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); }
+  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); }
   prepare(sql) {
     const self = this;
     return {
@@ -26,6 +26,9 @@ class MockD1 {
         }
         if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
+        }
+        if (sql.startsWith('SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?')) {
+          return { attempts: self.apiGenerationLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -39,6 +42,10 @@ class MockD1 {
         if (/INSERT INTO api_test_limits/.test(sql)) {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
+        }
+        if (/INSERT INTO api_generation_limits/.test(sql)) {
+          const key = String(this._args[0]) + ':' + this._args[1];
+          self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
         }
         return { success: true };
       },
@@ -209,6 +216,73 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
   }
   return { ok: statuses.slice(0, 5).every(status => status === 400) && statuses[5] === 429,
     msg: `statuses=${statuses.join(',')}` };
+});
+
+console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
+await check('Six Studios share one 30-request bucket; request 31 is blocked', async () => {
+  const rateEnv = { ...env, DB: new MockD1({}) };
+  const headers = await withToken();
+  const paths = [
+    '/api/studio/story/generate',
+    '/api/studio/content/generate',
+    '/api/studio/short/video',
+    '/api/studio/image/prompt',
+    '/api/studio/voice/tts',
+    '/api/studio/shop/content/generate',
+  ];
+  const statuses = [];
+  // Empty but valid JSON reaches each route's input validation after rate limiting.
+  // No Gemini/provider call can occur because every route returns a missing-input error.
+  for (let i = 0; i < 30; i++) {
+    const path = paths[i % paths.length];
+    const r = await worker.fetch(new Request('https://test.local' + path, {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+    }), rateEnv, {});
+    statuses.push(r.status);
+  }
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/tts', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), rateEnv, {});
+  const blockedBody = await blocked.json();
+  return {
+    ok: statuses.every(status => status === 400) &&
+      blocked.status === 429 &&
+      blockedBody.error === 'rate_limited' &&
+      Number(blocked.headers.get('Retry-After')) > 0,
+    msg: `first30=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error} retry=${blocked.headers.get('Retry-After')}`,
+  };
+});
+await check('shared generation limit is isolated per authenticated user', async () => {
+  const rateEnv = { ...env, DB: new MockD1({}) };
+  const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
+  const userTwo = await signToken(env, { sub: 'rate-user-two', email: 'two@example.test' });
+  for (let i = 0; i < 30; i++) {
+    await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + userOne, 'Content-Type': 'application/json' }, body: '{}',
+    }), rateEnv, {});
+  }
+  const r = await worker.fetch(new Request('https://test.local/api/studio/image/prompt', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + userTwo, 'Content-Type': 'application/json' }, body: '{}',
+  }), rateEnv, {});
+  return { ok: r.status === 400, msg: `second user status=${r.status} (expected route validation 400)` };
+});
+await check('shared generation limit fails closed when D1 is unavailable', async () => {
+  const headers = await withToken();
+  const noDbEnv = { ...env, DB: null };
+  const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), noDbEnv, {});
+  const body = await r.json();
+  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+});
+await check('shared generation limit fails closed when D1 query throws', async () => {
+  const headers = await withToken();
+  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), { ...env, DB: brokenDb }, {});
+  const body = await r.json();
+  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });
 
 console.log('— Admin page —');
