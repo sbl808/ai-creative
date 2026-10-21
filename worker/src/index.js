@@ -344,6 +344,7 @@ export default {
     try {
       const url = new URL(request.url);
       const path = url.pathname;
+      const isProdEnv = String(env.ENVIRONMENT || '').toLowerCase() === 'prod';
       // 204 must carry no body (per Fetch spec); headers still carry the allowlist result.
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
@@ -520,8 +521,8 @@ export default {
           }
           return json({ error: 'not_found' }, 404, cors);
         }
-        const adminEmail = env.ADMIN_EMAIL || 'saialin808@gmail.com';
-        if (String(payload.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
+        const adminEmail = env.ADMIN_EMAIL || '';
+        if (!adminEmail || String(payload.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
           return json({ error: 'not_found' }, 404, cors);
         }
         return htmlPage(ADMIN_HTML);
@@ -583,10 +584,10 @@ export default {
 
       const adminResp = await adminApi(request, path, env, verifyToken);
       if (adminResp) return adminResp;
-      if (path === '/ai-test') return htmlPage(aiTestPage());
-      if (path === '/cms-test') return htmlPage(cmsTestPage());
-      if (path === '/studio-test') return htmlPage(studioTestPage());
-      if (path === '/creations-test') return htmlPage(creationsTestPage());
+      if (!isProdEnv && path === '/ai-test') return htmlPage(aiTestPage());
+      if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage());
+      if (!isProdEnv && path === '/studio-test') return htmlPage(studioTestPage());
+      if (!isProdEnv && path === '/creations-test') return htmlPage(creationsTestPage());
 
       if (path === '/api/users/me' && request.method === 'GET') {
         const token = bearer(request);
@@ -594,8 +595,8 @@ export default {
         const payload = await verifyTokenSafe(env, token);
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const plan = await resolvePlan(env, payload);
-        const adminEmail = env.ADMIN_EMAIL || 'saialin808@gmail.com';
-        const isAdmin = String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
+        const adminEmail = env.ADMIN_EMAIL || '';
+        const isAdmin = Boolean(adminEmail) && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
         // Phase 3 — User ၏ Settings / Preferences များကိုပါ ပြန်ပို့သည်
         const settings = await getUserSettings(env, payload.sub);
         const preferences = await getUserPreferences(env, payload.sub);
