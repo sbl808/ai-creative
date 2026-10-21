@@ -114,6 +114,37 @@ console.log('\n--- B) Auth signing key (no dev fallback) ---');
   let mismatchErr = null;
   try { await a5.verifyToken({ SESSION_SIGNING_KEY: 'keyB' }, tokA); } catch (e) { mismatchErr = e; }
   check('token signed with key A rejected by key B', mismatchErr && /bad_signature/.test(mismatchErr.message));
+
+  // Regression tests for JWT exp enforcement. Build correctly signed tokens with
+  // controlled payloads so these cases exercise verification, not bad signatures.
+  const makeSignedToken = async (secret, payload) => {
+    const toB64Url = (value) => btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const header = toB64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const body = toB64Url(JSON.stringify(payload));
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(header + '.' + body));
+    const sig = toB64Url(String.fromCharCode(...new Uint8Array(signature)));
+    return header + '.' + body + '.' + sig;
+  };
+  const expiryCases = [
+    { label: 'expired JWT is rejected', payload: { sub: 'u-expired', exp: Math.floor(Date.now() / 1000) - 1 } },
+    { label: 'JWT without exp is rejected', payload: { sub: 'u-no-exp' } },
+    { label: 'JWT with string exp is rejected', payload: { sub: 'u-string-exp', exp: String(Math.floor(Date.now() / 1000) + 3600) } },
+    { label: 'JWT with unsafe integer exp is rejected', payload: { sub: 'u-unsafe-exp', exp: Number.MAX_SAFE_INTEGER + 1 } },
+  ];
+  for (const testCase of expiryCases) {
+    const auth = await loadAuth();
+    const signed = await makeSignedToken('jwt-expiry-test-key', testCase.payload);
+    let verifyErr = null;
+    try {
+      await auth.verifyToken({ SESSION_SIGNING_KEY: 'jwt-expiry-test-key' }, signed);
+    } catch (e) {
+      verifyErr = e;
+    }
+    check(testCase.label, !!verifyErr && /expired/.test(verifyErr.message), verifyErr && verifyErr.message);
+  }
 }
 
 console.log('\n--- C) Deployment config validation ---');
