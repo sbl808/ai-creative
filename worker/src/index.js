@@ -78,6 +78,48 @@ async function readBody(request) {
 // oversized bodies before they reach route parsing or Gemini/D1 work.
 const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
 
+
+const SHARED_AI_RATE_LIMIT = 30;
+const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
+
+function isAiGenerationRoute(path, method) {
+  if (method !== 'POST') return false;
+  if (path === '/api/cms/prompt') return true;
+  return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
+    /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
+}
+
+async function enforceSharedAiRateLimit(request, env, path) {
+  if (!isAiGenerationRoute(path, request.method)) return null;
+  const authHeader = request.headers.get('Authorization') || '';
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
+  const token = bearer || cookieToken(request);
+  const payload = token ? await verifyTokenSafe(env, token) : null;
+  if (!payload?.sub) return null; // Let route auth preserve its established response.
+  if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503);
+
+  const windowId = Math.floor(Date.now() / SHARED_AI_RATE_WINDOW_MS);
+  try {
+    await env.DB.prepare(
+      'INSERT INTO api_generation_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ' +
+      'ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1'
+    ).bind(payload.sub, windowId).run();
+    const row = await env.DB.prepare(
+      'SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?'
+    ).bind(payload.sub, windowId).first();
+    if (!row || row.attempts > SHARED_AI_RATE_LIMIT) {
+      const retryAfter = Math.max(1, Math.ceil(((windowId + 1) * SHARED_AI_RATE_WINDOW_MS - Date.now()) / 1000));
+      return json({ error: 'rate_limited', limit: SHARED_AI_RATE_LIMIT, window_seconds: 600 }, 429, {
+        'Retry-After': String(retryAfter),
+      });
+    }
+    return null;
+  } catch (e) {
+    friendlyError(e);
+    return json({ error: 'rate_limit_unavailable' }, 503);
+  }
+}
+
 async function isApiRequestBodyTooLarge(request) {
   if (!request.url || !new URL(request.url).pathname.startsWith('/api/') || request.method !== 'POST') {
     return false;
@@ -309,6 +351,18 @@ export default {
       // database access, or AI provider calls.
       if (await isApiRequestBodyTooLarge(request)) {
         return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
+      }
+
+      // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
+      const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path);
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        for (const [key, value] of Object.entries(cors)) headers.set(key, value);
+        return new Response(rateLimitResponse.body, {
+          status: rateLimitResponse.status,
+          statusText: rateLimitResponse.statusText,
+          headers,
+        });
       }
 
       if (path === '/' && request.method === 'GET') return htmlPage(homePage());
