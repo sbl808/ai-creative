@@ -255,6 +255,31 @@ console.log('\n--- D) API test rate-limit migration contract ---');
 }
 
 
+console.log('\n--- E) Shared AI generation rate-limit contract ---');
+{
+  const migrationPath = new URL('../worker/migrations/007_create_api_generation_limits.sql', import.meta.url);
+  const migrationExists = existsSync(migrationPath);
+  check('shared AI rate-limit migration exists', migrationExists);
+  if (migrationExists) {
+    const migration = readFileSync(migrationPath, 'utf8');
+    check('migration creates per-user/per-window generation counters',
+      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
+      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
+    check('migration indexes window_id for cleanup',
+      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
+  }
+  const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  check('generation routes share a 30-per-10-minute user limit',
+    /const SHARED_AI_RATE_LIMIT = 30/.test(route) &&
+    /api_generation_limits/.test(route) &&
+    /enforceSharedAiRateLimit\(request, env, path\)/.test(route) &&
+    /rate_limited/.test(route));
+  check('rate-limit covers six Studio families and CMS prompt',
+    /path === '\/api\/cms\/prompt'/.test(route) &&
+    /content\|story\|short\|image\|voice\|shop/.test(route));
+  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+}
+
 console.log('\n--- E) API key settings UI save/status contract ---');
 {
   const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
