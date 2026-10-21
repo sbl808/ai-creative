@@ -183,7 +183,7 @@ async function callGeminiMultimodal(env, { model, prompt, images, apiKey }) {
   const parts = [{ text: prompt }];
   validatedImages.forEach((img) => {
     parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 || img.data } });
-  }););
+  });
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
