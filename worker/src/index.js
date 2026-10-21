@@ -1,911 +1,1679 @@
-// AI Creative Studio — Worker (Cloudflare Workers + D1)
-// Phase 1 — Core AI API server (Google Gemini) + static frontend
-// Phase 2 — Google OAuth login + sessions (users table)
-// Phase 3 — Plan limits, API key server-side only, WAF protection
-// Phase 4 — Studio Control (ON/OFF) + content CMS + project save
-// Phase 5 — Free/Pro feature access + usage quotas + admin panel
-// Phase 6 — Admin Dashboard, Usage, Audit Logs, AI Models management
-// Phase 7 — Brain CMS (11-Layer), creative mode, voice/video studios
-// Phase 8 — Pro-status handling, expiry, project drafts, prompt v2
-// Phase 9 — Fallback models, first-time index, security tests, CI
-// Phase 10 — Dependency-free module splitting (Studio/V2 lazy load)
-// Phase 11 — Cookie-based session (login stays alive in new tabs)
-// Phase 12 — Image (AI Image Studio) + voice generation
-// Phase 13 — Creations saved in browser IndexedDB (Option 2)
-// Phase 14 — API test limits (rate limiting) table + admin limits
+// AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
+import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
+import { callGeminiText } from './core/ai.js';
+import { ndjsonResponse } from './core/streaming.js';
+import { getCMSData, buildSystemPrompt } from './core/cms.js';
+import { generateStudio } from './studio.js';
+import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from './studios/content.js';
+import { generateStory, reviseStory, generateStoryVideoPlan, generateStoryVideoImage } from './studios/story.js';
+import { generateShort, reviseShort, generateShortVideoPlan, generateShortVideoImage } from './studios/short.js';
+import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } from './studios/image.js';
+import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from './studios/voice.js';
+import { generateShopContent, reviseShopContent, generateShopVideo, generateShopVideoImage } from './studios/shop.js';
+import { listEnabledModels } from './core/aiModels.js';
+import { getUserSettings, updateUserSettings, getUserPreferences, updateUserPreferences } from './core/settings.js';
+import { createProject, listProjects, deleteProject } from './core/projects.js';
+import { trackUsage } from './core/usage.js';
+import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
+import { checkFeature } from './core/featureSettings.js';
+import { getStudio } from './config/studios.js';
+import { getUserApiKey, saveUserApiKey, deleteUserApiKey } from './core/utilities.js';
+import { APP_HTML } from './frontend.js';
+// V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
+// (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
+import { getStudioPage } from './frontend/studioPages.js';
+import { CREATIONS_HTML } from './frontend/creations.js';
+import { SETTINGS_HTML } from './frontend/settings.js';
+import { PROJECTS_HTML } from './frontend/projects.js';
+import { LOGIN_HTML } from './frontend/login.js';
+import { ADMIN_HTML, adminApi } from './admin.js';
 
-import { handleStudioRequest } from './studios.js';
-import { adminApi, ADMIN_HTML } from './admin.js';
-import { handleTestRoutes } from './test-routes.js';
-import { checkFeatureEnabled, checkLimit, incrementUsage, getDailyLimit } from './core/limits.js';
-import { verifyJwt, signJwt, safeDecode } from './core/jwt.js';
-import { getGoogleUser } from './core/google.js';
-import { getStudioSettings } from './core/studioSettings.js';
-import { FEATURE_REGISTRY } from './config/features.js';
-import { getFeatureSettings } from './core/featureSettings.js';
-import { STUDIO_REGISTRY } from './config/studios.js';
-import { getAiModels } from './core/aiModels.js';
-import { checkApiLimit } from './core/apiTestLimits.js';
+// Production-readiness (CORS): per-request allowed-origin enforcement.
+// We never fall back to '*' for cross-origin requests. Only origins listed in
+// the environment's ALLOWED_ORIGINS (wrangler.toml per env.dev/staging/prod)
+// are echoed back; same-origin / no-Origin requests simply get no ACAO header.
+function buildCors(request, env) {
+  const reqOrigin = request.headers.get('Origin') || '';
+  const allowed = String((env && env.ALLOWED_ORIGINS) || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const out = {
+    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    Vary: 'Origin',
+  };
+  if (reqOrigin && allowed.includes(reqOrigin)) {
+    out['Access-Control-Allow-Origin'] = reqOrigin;
+  }
+  return out;
+}
 
-const htmlPage = (body) => new Response('<!DOCTYPE html>\n<html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>AI Creative Studio</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#080C18;color:#F8FAFC;margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;box-sizing:border-box}code{background:#111A2C;padding:2px 6px;border-radius:6px;font-size:.9em}.card{max-width:640px;width:100%;background:#0D1424;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;box-shadow:0 18px 60px rgba(0,0,0,.28)}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}</style></head><body><div class="card">' + body + '</div></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+function json(data, status, c) {
+  return new Response(JSON.stringify(data), { status: status || 200, headers: { 'Content-Type': 'application/json', ...c } });
+}
 
-const json = (data, status = 200, cors = null) => {
-  const h = { 'Content-Type': 'application/json; charset=utf-8' };
-  if (cors) Object.assign(h, cors);
-  return new Response(JSON.stringify(data), { status, headers: h });
-};
+// Rule 22 — Error Handling: User ကို Technical Error အပြည့်မပြပါ။
+// အသေးစိတ် Error ကို Server Log ထဲတွင် သိမ်းပြီး User ကို ဖော်ရွေသော Message သာ ပြသည်
+function friendlyError(e) {
+  try { console.error('[AICS]', (e && e.stack) || e); } catch (_) {}
+  return 'Something went wrong. Please try again.';
+}
 
-const CORS_ALL = (origin) => ({
-  'Access-Control-Allow-Origin': origin || '*',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-});
+function htmlPage(html) {
+  return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
 
-const corsFor = (request, env) => {
-  const origin = request.headers.get('Origin') || '';
-  const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (allowed.some((a) => a === origin)) return { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Credentials': 'true' };
-  return {};
-};
+function bearer(req) {
+  const h = req.headers.get('Authorization') || '';
+  return h.startsWith('Bearer ') ? h.slice(7).trim() : '';
+}
 
-function isStudioApiPath(path) {
+async function readBody(request) {
+  try { return await request.json(); } catch (e) { return null; }
+}
+
+// STEP 8 — Bound API JSON request bodies before any route calls request.json().
+// Keep enough room for the existing base64 image/audio workflows, while rejecting
+// oversized bodies before they reach route parsing or Gemini/D1 work.
+const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
+
+
+const SHARED_AI_RATE_LIMIT = 30;
+const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
+
+function isAiGenerationRoute(path, method) {
+  if (method !== 'POST') return false;
+  if (path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
   return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
     /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
 
-function getBearer(request) {
+async function enforceSharedAiRateLimit(request, env, path) {
+  if (!isAiGenerationRoute(path, request.method)) return null;
   const authHeader = request.headers.get('Authorization') || '';
   const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
-  return bearer;
-}
+  const token = bearer || cookieToken(request);
+  const payload = token ? await verifyTokenSafe(env, token) : null;
+  if (!payload?.sub) return null; // Let route auth preserve its established response.
+  if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503);
 
-async function getSessionUser(env, request) {
-  const token = getBearer(request);
-  if (token) {
-    const user = await verifyJwt(env, token);
-    if (user && user.email) return user;
-  }
-  const c = request.headers.get('Cookie') || '';
-  const m = c.match(/(?:^|;\s*)aics_token=([^;]+)/);
-  if (m) {
-    try {
-      const user = await verifyJwt(env, decodeURIComponent(m[1]));
-      if (user && user.email) return user;
-    } catch (e) {}
-  }
-  return null;
-}
-
-function validToken(token) {
-  if (!token || typeof token !== 'string' || token.length < 20) return false;
-  if (token.length > 8000) return false;
-  if (/^[a-z0-9._-]+$/i.test(token) || /^[a-zA-Z0-9+/=_-]+$/.test(token)) return true;
-  return false;
-}
-
-async function getOrCreateUser(env, user, request) {
-  const cors = corsFor(request, env);
-  const email = String(user.email || '').toLowerCase().trim();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return null;
-  }
-  const userId = user.sub;
-  const existing = await env.DB.prepare('SELECT id, email, plan, expiry FROM users WHERE email = ?').bind(email).first();
-  if (existing) {
-    const ins = await env.DB.prepare('UPDATE users SET name = CASE WHEN name = \'\' THEN ? ELSE name END, updated_at = datetime(\'now\') WHERE id = ?').bind(String(user.name || '').slice(0, 60), userId).run();
-    const expiry = existing.expiry;
-    const effective = expiry && String(expiry).length >= 10 ? expiry : (existing.plan === 'PRO' ? null : null);
-    return { id: existing.id, email: existing.email, name: existing.name, plan: existing.plan, expiry: existing.expiry, sub: userId };
-  }
-  const ins = await env.DB.prepare('INSERT INTO users (email, name, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, String(user.name || '').slice(0, 60)).run();
-  return { id: ins.meta.last_row_id, email, name: String(user.name || '').slice(0, 60), plan: 'FREE', expiry: null, sub: userId };
-}
-
-const makeToken = async (env, user) => {
-  const now = Math.floor(Date.now() / 1000);
-  return signJwt(env, {
-    sub: String(user.id),
-    email: String(user.email),
-    plan: user.plan,
-    exp: now + 60 * 60 * 24 * 30,
-  });
-};
-
-async function getCmsForStudio(env, studio) {
+  const windowId = Math.floor(Date.now() / SHARED_AI_RATE_WINDOW_MS);
   try {
-    const { results } = await env.DB.prepare('SELECT * FROM cms_prompts WHERE studio=? ORDER BY plan, type').bind(studio).all();
-    return results || [];
+    await env.DB.prepare(
+      'INSERT INTO api_generation_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ' +
+      'ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1'
+    ).bind(payload.sub, windowId).run();
+    const row = await env.DB.prepare(
+      'SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?'
+    ).bind(payload.sub, windowId).first();
+    if (!row || row.attempts > SHARED_AI_RATE_LIMIT) {
+      const retryAfter = Math.max(1, Math.ceil(((windowId + 1) * SHARED_AI_RATE_WINDOW_MS - Date.now()) / 1000));
+      return json({ error: 'rate_limited', limit: SHARED_AI_RATE_LIMIT, window_seconds: 600 }, 429, {
+        'Retry-After': String(retryAfter),
+      });
+    }
+    return null;
   } catch (e) {
-    return [];
+    friendlyError(e);
+    return json({ error: 'rate_limit_unavailable' }, 503);
   }
 }
 
-function pickCms(rows, plan, type) {
-  const exact = rows.find((r) => r.plan === plan && String(r.type) === String(type));
-  if (exact) return exact;
-  const planAny = rows.find((r) => r.plan === plan && !r.type);
-  if (planAny) return planAny;
-  const typeAny = rows.find((r) => r.plan !== plan && String(r.type) === String(type));
-  if (typeAny) return typeAny;
-  return rows.find((r) => !r.plan && !r.type) || null;
-}
-
-const ALLOWED_TYPES = ['text', 'image', 'voice', 'transcribe'];
-
-function summarizeImagePrompt(prompt) {
-  const p = String(prompt || '');
-  const max = 2200;
-  return p.length <= max ? p : p.slice(0, max) + ' …(truncated for image model)';
-}
-
-function summarizeForSystem(prompt) {
-  const p = String(prompt || '');
-  const max = 3500;
-  return p.length <= max ? p : p.slice(0, max) + '…';
-}
-
-function getFallbackModel(env, category) {
-  const list = (env.AI_MODEL_FALLBACKS || '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (category === 'image') {
-    const img = list.find((m) => m.startsWith('imagen-') || m.startsWith('gemini-2.0-flash-preview-image') || m.includes('image'));
-    if (img) return img;
+async function isApiRequestBodyTooLarge(request) {
+  if (!request.url || !new URL(request.url).pathname.startsWith('/api/') || request.method !== 'POST') {
+    return false;
   }
+  const declaredLength = request.headers.get('Content-Length');
+  if (declaredLength !== null) {
+    const length = Number(declaredLength);
+    if (!Number.isSafeInteger(length) || length < 0) return true;
+    if (length > MAX_API_REQUEST_BODY_BYTES) return true;
+    // HTTP runtimes validate framing; the declared length allows a cheap early reject.
+    return false;
+  }
+  if (!request.body) return false;
+
+  // Content-Length may be absent for streamed/chunked requests. Inspect a clone with
+  // a bounded reader so the original request body remains available to route handlers.
+  const reader = request.clone().body.getReader();
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return false;
+      total += value.byteLength;
+      if (total > MAX_API_REQUEST_BODY_BYTES) {
+        try { await reader.cancel('request_body_too_large'); } catch (_) {}
+        return true;
+      }
+    }
+  } catch (_) {
+    try { await reader.cancel('request_body_read_failed'); } catch (_) {}
+    return true;
+  }
+}
+
+// Admin Panel ကို Browser မှ တိုက်ရိုက် နှိပ်ဝင်နိုင်ရန် Cookie Session (Phase 11 — Rule 13)
+// HttpOnly Cookie — Frontend JS မှ မဖတ်နိုင်၊ CSRF ကာကွယ်ရန် SameSite=Lax
+function cookieToken(req) {
+  const c = req.headers.get('Cookie') || '';
+  const m = c.match(/(?:^|;\s*)aics_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+function clearSessionCookie() {
+  return 'aics_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
+}
+
+async function verifyTokenSafe(env, token) {
+  try { return await verifyToken(env, token); } catch (e) { return null; }
+}
+
+// Phase 12-fix — App Page တိုင်းအတွက် Server-side Session Guard:
+// Cookie (သို့) Authorization မရှိလျှင် → Professional Login Page (/login) သို့ ပို့သည်
+// (Login မဝင်ဘဲ Home/Studio စာမျက်နှာများ မမြင်ရအောင် — "Login လိုအပ်ပါသည်" ကို မပြဘဲ /login သို့ တန်းသွားသည်)
+async function appSessionGuard(request, env, origin) {
+  const c = cookieToken(request);
+  if (!c) return { redirect: origin + '/login' };
+  const p = await verifyTokenSafe(env, c);
+  if (!p) return { redirect: origin + '/login', clear: true };
   return null;
 }
 
-function inferCategory(modelId) {
-  const id = String(modelId || '');
-  if (id.startsWith('imagen-') || id.includes('-image') || id === 'gemini-2.0-flash-preview-image-generation') return 'image';
-  if (id.startsWith('gemini-2.5-flash') || id.startsWith('gemini-2.0-flash') || id.startsWith('gemini-1.5')) return 'text';
-  return 'text';
+// Phase 12-fix — /login သို့ ရောက်လာသူသည် Session ရှိပြီးသားဆိုလျှင်
+// Login Screen ကို မပြဘဲ Personal Workspace (/app) သို့ တိုက်ရိုက်ပို့သည် (Remember Session — Rule 14)
+async function loginGuardRedirect(request, env, origin) {
+  const c = cookieToken(request);
+  if (!c) return null;
+  const p = await verifyTokenSafe(env, c);
+  if (!p) return new Response(null, { status: 302, headers: { Location: origin + '/login', 'Set-Cookie': clearSessionCookie() } });
+  return new Response(null, { status: 302, headers: { Location: origin + '/app' } });
 }
 
-async function runGemini(env, body) {
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(body.model) + ':generateContent';
-  const key = env.GEMINI_API_KEY || '';
-  if (!key) throw new Error('GEMINI_API_KEY missing');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: body.contents, generationConfig: body.generationConfig, safetySettings: body.safetySettings }),
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Gemini bad response: ' + text.slice(0, 200)); }
-  if (!res.ok) {
-    const msg = (data && data.error && data.error.message) || 'Gemini error ' + res.status;
-    throw new Error(msg);
-  }
-  const textPart = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || []).filter((p) => p.text).map((p) => p.text).join('\n');
-  return { text: textPart, raw: data };
+async function resolvePlan(env, payload) {
+  if (!payload || !payload.sub || !env.DB) return 'FREE';
+  try {
+    const row = await env.DB.prepare('SELECT plan, expiry FROM users WHERE id = ?').bind(payload.sub).first();
+    if (!row) return 'FREE';
+    if (row.plan === 'PRO' && row.expiry && new Date(row.expiry) < new Date()) return 'FREE';
+    return row.plan || 'FREE';
+  } catch (e) { return 'FREE'; }
 }
 
-async function runImage(env, body) {
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(body.model) + ':predict';
-  const key = env.GEMINI_API_KEY || '';
-  if (!key) throw new Error('GEMINI_API_KEY missing');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ instances: [{ prompt: summarizeImagePrompt(body.prompt) }], parameters: { sampleCount: 1, aspectRatio: body.aspectRatio || '1:1' } }),
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Image bad response: ' + text.slice(0, 200)); }
-  if (!res.ok) {
-    const msg = (data && data.error && data.error.message) || 'Image error ' + res.status;
-    throw new Error(msg);
-  }
-  const img = (data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) || '';
-  const mime = (data.predictions && data.predictions[0] && data.predictions[0].mimeType) || 'image/png';
-  if (!img) throw new Error('No image bytes returned');
-  return { b64: img, mime };
+// Usage Tracking — Track လုပ်ရာတွင် မှားယွင်းမှု ရှိလျှင်ပင် အဓိက API မထိခိုက်စေရန် Safe Wrapper (Phase 3)
+async function trackUsageSafe(env, userId, category) {
+  try { await trackUsage(env, userId, category); } catch (e) {}
 }
 
-async function runTts(env, body) {
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(body.model) + ':generateContent';
-  const key = env.GEMINI_API_KEY || '';
-  if (!key) throw new Error('GEMINI_API_KEY missing');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: body.text || body.prompt || '' }] }], generationConfig: { responseModalities: ['AUDIO'], voice: body.voice || 'Kaya' } }),
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('TTS bad response: ' + text.slice(0, 200)); }
-  if (!res.ok) {
-    const msg = (data && data.error && data.error.message) || 'TTS error ' + res.status;
-    throw new Error(msg);
-  }
-  const part = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || []).find((p) => p.inlineData);
-  if (!part || !part.inlineData) throw new Error('No audio returned');
-  return { b64: part.inlineData.data, mime: part.inlineData.mimeType || 'audio/mpeg' };
+// Phase 5 — Feature Check (Rule 15): Free/Pro ကို Admin Config (feature_settings) ဖြင့် ထိန်းချုပ်သည်
+// မသင့်လျော်ပါက json 403 Response ကို ပြန်ပေးသည် (မှန်လျှင် null)
+async function requireFeature(env, featureId, plan, reqType, corsHeaders) {
+  const r = await checkFeature(env, featureId, plan, reqType);
+  if (r.ok) return null;
+  const msg = r.reason === 'pro_type'
+    ? 'ဒီ feature က PRO အတွက်ပါ။ Type 1 ကို သုံးပါ၊ သို့မဟုတ် upgrade လုပ်ပါ။'
+    : (r.reason === 'disabled' ? 'ဒီ feature ကို ယခု ပိတ်ထားပါသည်။' : 'ဒီ feature က PRO အတွက်ပါ။');
+  return json({ error: r.reason === 'disabled' ? 'feature_disabled' : 'pro_only', detail: msg }, 403, corsHeaders);
 }
 
-async function runTranscribe(env, body) {
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(body.model) + ':generateContent';
-  const key = env.GEMINI_API_KEY || '';
-  if (!key) throw new Error('GEMINI_API_KEY missing');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: body.prompt || '' }, { inlineData: { mimeType: body.mimeType || 'audio/mpeg', data: body.audioB64 || '' } }] }], generationConfig: body.generationConfig }),
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Transcribe bad response: ' + text.slice(0, 200)); }
-  if (!res.ok) {
-    const msg = (data && data.error && data.error.message) || 'Transcribe error ' + res.status;
-    throw new Error(msg);
-  }
-  const textPart = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || []).filter((p) => p.text).map((p) => p.text).join('\n');
-  return { text: textPart, raw: data };
+// Studio Disabled ဖြစ်ပါက ပြမည့် Friendly စာမျက်နှာ (Phase 4 — Rule 14)
+function studioDisabledPage(studioId) {
+  const s = getStudio(studioId);
+  const name = s ? s.nameMy : studioId;
+  return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title></head>' +
+    '<body style="font-family:sans-serif;background:#080c18;color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px">' +
+    '<div style="max-width:420px;text-align:center;background:#151b2b;border:1px solid #26324a;border-radius:14px;padding:32px">' +
+    '<div style="font-size:40px">🔒</div>' +
+    '<h2 style="margin:12px 0;color:#00e5ff">' + name + ' ကို ယခု ပိတ်ထားပါသည်</h2>' +
+    '<p style="color:#94a3b8;font-size:14px;line-height:1.7">ဤ Studio ကို Admin မှ ခေတ္တ ပိတ်ထားပါသည်။ နောက်မှ ပြန်ဖွင့်ပါမည်။</p>' +
+    '<a href="/app" style="display:inline-block;margin-top:16px;padding:11px 22px;background:#00e5ff;color:#001014;border-radius:10px;text-decoration:none;font-weight:bold">🏠 ပင်မသို့ ပြန်သွားရန်</a>' +
+    '</div></body></html>';
 }
 
-async function generateImageFromPrompt(env, studio, plan, payload, user) {
-  const models = await getAiModels(env);
-  const imageModels = models.filter((m) => m.category === 'image' && m.enabled !== false);
-  const primary = imageModels.find((m) => m.is_default) || imageModels[0];
-  const model = primary ? primary.id : 'imagen-3.0-generate-002';
-  return runImage(env, { model, prompt: payload.prompt, aspectRatio: payload.aspectRatio });
+function homePage() {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Creative Studio</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h1 style="color:#1b6d96">🎨 AI Creative Studio</h1>' +
+    '<p>API is running.</p>' +
+    '<ul><li><a href="/auth/result">Login (Google)</a></li><li><a href="/ai-test">AI Router Test</a></li><li><a href="/cms-test">CMS Test</a></li><li><a href="/studio-test">Studio Test</a></li><li><a href="/creations-test">Creations Test</a></li></ul>' +
+    '</body></html>';
 }
 
-async function generateVoiceFromPrompt(env, studio, plan, payload, user) {
-  const models = await getAiModels(env);
-  const voiceModels = models.filter((m) => m.category === 'voice' && m.enabled !== false);
-  const primary = voiceModels.find((m) => m.is_default) || voiceModels[0];
-  const model = primary ? primary.id : 'gemini-2.0-flash-exp-voice';
-  return runTts(env, { model, text: payload.text, voice: payload.voice });
+function loginResultPage() {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h2 style="color:#52C41A">✅ Login OK</h2>' +
+    '<p>Copy your token below.</p>' +
+    '<textarea id="tok" rows="4" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
+    '<br><button onclick="cp()" style="margin-top:8px;padding:10px 22px;font-size:14px">📋 Copy Token</button>' +
+    '<div id="status" style="margin-top:8px;font-size:13px"></div>' +
+    '<script>' +
+    'var h=location.hash.replace("#token=","");' +
+    'document.getElementById("tok").value=decodeURIComponent(h);' +
+    'function cp(){var t=document.getElementById("tok");t.select();document.execCommand("copy");document.getElementById("status").textContent="Copied ✅";}' +
+    '<\/script></body></html>';
 }
 
-async function transcribeVoice(env, studio, plan, payload, user) {
-  const models = await getAiModels(env);
-  const txModels = models.filter((m) => m.category === 'transcribe' && m.enabled !== false);
-  const primary = txModels.find((m) => m.is_default) || txModels[0];
-  const model = primary ? primary.id : 'gemini-2.0-flash';
-  return runTranscribe(env, { model, prompt: payload.prompt, audioB64: payload.audioB64, mimeType: payload.mimeType, generationConfig: { temperature: 0.2 } });
+function aiTestPage() {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h2 style="color:#1b6d96">🤖 AI Router Test</h2>' +
+    '<label style="font-size:13px;font-weight:600">Session Token</label><br><input id="tok" type="password" style="width:100%;padding:8px;box-sizing:border-box"><br>' +
+    '<label style="font-size:13px;font-weight:600">Prompt</label><br>' +
+    '<textarea id="p" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Hello</textarea>' +
+    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run</button>' +
+    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+    '<script>' +
+    'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
+    'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim()},' +
+    'body:JSON.stringify({prompt:document.getElementById("p").value,apiKey:document.getElementById("key").value})})' +
+    '.then(function(r){return r.json();}).then(function(d){o.textContent=d.output?("✅ "+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '<\/script></body></html>';
 }
 
-async function runModel(env, body) {
-  const category = inferCategory(body.model);
-  if (category === 'image') return runImage(env, body);
-  if (category === 'voice') return runTts(env, body);
-  if (category === 'transcribe') return runTranscribe(env, body);
-  return runGemini(env, body);
+function cmsTestPage() {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h2 style="color:#1b6d96">📋 CMS Test</h2>' +
+    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
+    '<label style="font-size:13px;font-weight:600">Studio</label><br>' +
+    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">📥 Get Prompt</button>' +
+    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+    '<script>' +
+    'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
+    'fetch("/api/cms/prompt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
+    'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value})})' +
+    '.then(function(r){return r.json();}).then(function(d){' +
+    'if(d.found){o.textContent="FOUND ✅ "+d.studio+"/"+d.plan+"/"+d.type+"\\n\\n"+d.system_prompt;}' +
+    'else{o.textContent="NOT FOUND — "+document.getElementById("st").value+"/"+document.getElementById("ty").value;}})' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '<\/script></body></html>';
 }
 
-function escapeHtml(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function studioTestPage() {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h2 style="color:#1b6d96">🎨 Studio Engine Test</h2>' +
+    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
+    '<label style="font-size:13px;font-weight:600">Studio (STORY / IMAGE / CONTENT ...)</label><br>' +
+    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<label style="font-size:13px;font-weight:600">User Idea</label><br>' +
+    '<textarea id="id" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Write a short story about a boy and his dog.</textarea>' +
+    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
+    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run Studio</button>' +
+    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:80px">Result will show here.</div>' +
+    '<script>' +
+    'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
+    'fetch("/api/studio/generate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
+    'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value,idea:document.getElementById("id").value,apiKey:document.getElementById("key").value})})' +
+    '.then(function(r){return r.json();}).then(function(d){' +
+    'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.style.maxWidth="100%";im.style.borderRadius="8px";o.appendChild(im);return;}' +
+    'o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\\n\\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '<\/script></body></html>';
 }
 
-const aiTestPage = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Test</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 14px;background:#0d1117;color:#e6edf3}
-input,select,textarea,button{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e6edf3}
-button{background:#238636;border:none;cursor:pointer;font-weight:bold}
-pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-label{font-size:12px;color:#8b949e}
-h1{font-size:22px}
-</style>
-</head>
-<body>
-<h1>🤖 AI Test — Phase 4 Studio API</h1>
-<p>Test token (paste from browser DevTools → Application → Local Storage → aics_token):</p>
-<input id="tok" placeholder="aics_token">
-<button onclick="run()">Run Test</button>
-<pre id="out">Result…</pre>
-<script>
-function run(){
-  var t=document.getElementById('tok').value.trim();
-  var o=document.getElementById('out');
-  o.textContent='Loading…';
-  fetch('/api/studio/story/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({prompt:'hello in myanmar',model:'gemini-2.5-flash'})})
-  .then(r=>r.json()).then(d=>{
-    if(d.found){o.textContent="FOUND ✅ "+d.studio+"/"+d.plan+"/"+d.type+"\n\n"+d.system_prompt;}
-    else{o.textContent="NOT FOUND — "+JSON.stringify(d);}
-  }).catch(e=>{o.textContent='ERROR: '+e;});
-}
-</script>
-</body>
-</html>`;
-
-const cmsTestPage = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CMS Test</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 14px;background:#0d1117;color:#e6edf3}
-input,select,textarea,button{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e6edf3}
-button{background:#238636;border:none;cursor:pointer;font-weight:bold}
-pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-label{font-size:12px;color:#8b949e}
-h1{font-size:22px}
-</style>
-</head>
-<body>
-<h1>📋 CMS Test</h1>
-<p>Test token (paste from browser DevTools → Application → Local Storage → aics_token):</p>
-<input id="tok" placeholder="aics_token">
-<button onclick="run()">Run Test</button>
-<pre id="out">Result…</pre>
-<script>
-function run(){
-  var t=document.getElementById('tok').value.trim();
-  var o=document.getElementById('out');
-  o.textContent='Loading…';
-  fetch('/api/cms',{method:'GET',headers:{'Authorization':'Bearer '+t}})
-  .then(r=>r.json()).then(d=>{
-    o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\n\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})';
-    else{o.textContent='NO CMS rows — '+JSON.stringify(d);}
-  }).catch(e=>{o.textContent='ERROR: '+e;});
-}
-</script>
-</body>
-</html>`;
-
-const studioTestPage = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Studio Test</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 14px;background:#0d1117;color:#e6edf3}
-input,select,textarea,button{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e6edf3}
-button{background:#238636;border:none;cursor:pointer;font-weight:bold}
-pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-label{font-size:12px;color:#8b949e}
-h1{font-size:22px}
-</style>
-</head>
-<body>
-<h1>🧪 Studio Test</h1>
-<p>Test token:</p>
-<input id="tok" placeholder="aics_token">
-<button onclick="run()">Run</button>
-<pre id="out">Result…</pre>
-<script>
-function run(){
-  var t=document.getElementById('tok').value.trim();
-  var o=document.getElementById('out');
-  o.textContent='Loading…';
-  fetch('/api/studio/shop/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({prompt:'test'})})
-  .then(r=>r.json()).then(d=>{o.textContent=JSON.stringify(d,null,2);})
-  .catch(e=>{o.textContent='ERROR: '+e;});
-}
-</script>
-</body>
-</html>`;
-
-const creationsTestPage = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Creations Test</title>
-<style>
-body{font-family:system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 14px;background:#0d1117;color:#e6edf3}
-input,select,textarea,button{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#e6edf3}
-button{background:#238636;border:none;cursor:pointer;font-weight:bold}
-pre{background:#161b22;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-label{font-size:12px;color:#8b949e}
-h1{font-size:22px}
-</style>
-</head>
-<body>
-<h1>🖼️ Creations Test</h1>
-<p>Test token:</p>
-<input id="tok" placeholder="aics_token">
-<button onclick="run()">Run</button>
-<pre id="out">Result…</pre>
-<script>
-function run(){
-  var t=document.getElementById('tok').value.trim();
-  var o=document.getElementById('out');
-  o.textContent='Loading…';
-  fetch('/api/studio/voice/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},body:JSON.stringify({prompt:'test voice'})})
-  .then(r=>r.json()).then(d=>{o.textContent=JSON.stringify(d,null,2);})
-  .catch(e=>{o.textContent='ERROR: '+e;});
-}
-</script>
-</body>
-</html>`;
-
-const notFoundPage = () => `<div style="text-align:center"><h1>404</h1><p style="color:#8b949e">Page not found</p><a href="/app" style="color:#58a6ff">Go home</a></div>`;
-
-async function oauthRedirectPage() {
-  return `<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login…</title><style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;background:#0d1117;color:#e6edf3}code{background:#161b22;padding:2px 8px;border-radius:6px}</style></head><body><div style="max-width:420px;padding:24px"><h2>🔐 Login…</h2><p>Google login redirecting…</p></div><script>
-try{
-  const q = new URLSearchParams(location.search);
-  const next = q.get('next') || '/app';
-  const allowed = ['/app', '/admin'];
-  const ok = allowed.some((a) => next === a || next.startsWith(a + '/'));
-  const dest = ok ? next : '/app';
-  location.href = dest;
-}catch(e){ location.href='/app'; }
-</script></body></html>`;
+function creationsTestPage() {
+  // Phase 13 — Option 2: Creations ကို Server/D1 တွင် မသိမ်းတော့ပါ (Browser IndexedDB သာ)
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title></head>' +
+    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
+    '<h2 style="color:#1b6d96">💾 My Creations</h2>' +
+    '<p style="font-size:14px;line-height:1.6">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
+    'Server/D1 တွင် User Content မသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
+    '<p style="font-size:14px">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
+    '</body></html>';
 }
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const cors = corsFor(request, env);
-    const origin = request.headers.get('Origin') || '';
+    // Per-request CORS headers (allowed-origin enforced via env.ALLOWED_ORIGINS).
+    // Declared outside try so the outer error handler can use them too.
+    const cors = buildCors(request, env);
+    try {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const isProdEnv = String(env.ENVIRONMENT || '').toLowerCase() === 'prod';
+      // 204 must carry no body (per Fetch spec); headers still carry the allowlist result.
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
-    if (request.method === 'OPTIONS') {
-      return new Response('ok', { headers: { 'Access-Control-Allow-Origin': origin || '*', 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' } });
-    }
+      // Reject oversized API POST bodies before JSON parsing, auth-side effects,
+      // database access, or AI provider calls.
+      if (await isApiRequestBodyTooLarge(request)) {
+        return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
+      }
 
-    // ── Static routes ──────────────────────────────────────────────
-    if (path === '/' || path === '/index.html') return new Response('AI Creative Studio API is running', { status: 200, headers: { 'Content-Type': 'text/plain' } });
-    if (path === '/health') return json({ ok: true, status: 'ok', time: new Date().toISOString() }, 200, cors);
-    if (path === '/app') return htmlPage(frontendSsrHtml());
-    if (path === '/admin') return htmlPage(adminSsrHtml(env));
-    if (path === '/app/creations') return htmlPage(creationsPageHtml());
-    if (path === '/login') return oauthRedirectPage();
-    if (path === '/logout') return htmlPage(logoutPage());
-
-    // ── Test pages (dev only) ─────────────────────────────────────
-    if (path === '/ai-test') return htmlPage(aiTestPage());
-    if (path === '/cms-test') return htmlPage(cmsTestPage());
-    if (path === '/studio-test') return htmlPage(studioTestPage());
-    if (path === '/creations-test') return htmlPage(creationsTestPage());
-
-    // ── Auth routes ────────────────────────────────────────────────
-    if (path === '/api/auth/login') {
-      const next = url.searchParams.get('next') || '/app';
-      const allowed = ['/app', '/admin'];
-      const okNext = allowed.some((a) => next === a || next.startsWith(a + '/'));
-      const dest = okNext ? next : '/app';
-      const redirectUri = url.origin + '/api/auth/callback';
-      const clientId = env.GOOGLE_CLIENT_ID || '';
-      if (!clientId) return json({ error: 'google_not_configured', detail: 'GOOGLE_CLIENT_ID missing' }, 500, cors);
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: 'openid email profile',
-        access_type: 'offline',
-        prompt: 'consent select_account',
-        state: dest,
-      });
-      return Response.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString(), 302);
-    }
-
-    if (path === '/api/auth/callback') {
-      const code = url.searchParams.get('code');
-      const state = url.searchParams.get('state') || '/app';
-      if (!code) return json({ error: 'missing_code' }, 400, cors);
-      const redirectUri = url.origin + '/api/auth/callback';
-      const clientId = env.GOOGLE_CLIENT_ID || '';
-      const clientSecret = env.GOOGLE_CLIENT_SECRET || '';
-      if (!clientId || !clientSecret) return json({ error: 'google_not_configured', detail: 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing' }, 500, cors);
-      try {
-        const tok = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' }),
+      // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
+      const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path);
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        for (const [key, value] of Object.entries(cors)) headers.set(key, value);
+        return new Response(rateLimitResponse.body, {
+          status: rateLimitResponse.status,
+          statusText: rateLimitResponse.statusText,
+          headers,
         });
-        const tokJson = await tok.json();
-        if (!tok.ok || !tokJson.access_token) return json({ error: 'google_token_failed', detail: tokJson.error_description || 'token exchange failed' }, 400, cors);
-        const user = await getGoogleUser(tokJson.access_token);
-        const saved = await getOrCreateUser(env, user, request);
-        if (!saved) return json({ error: 'invalid_email' }, 400, cors);
-        const token = await makeToken(env, saved);
-        const allowed = ['/app', '/admin'];
-        const dest = allowed.some((a) => state === a || state.startsWith(a + '/')) ? state : '/app';
-        const html = `<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><title>Login OK</title></head><body><script>
-        const dest = ${JSON.stringify(dest)};
-        const allowed = ${JSON.stringify(allowed)};
-        const ok = allowed.some((a) => dest === a || dest.startsWith(a + '/'));
-        localStorage.setItem('aics_token', ${JSON.stringify(token)});
-        document.cookie = 'aics_token=' + encodeURIComponent(${JSON.stringify(token)}) + '; Path=/; Max-Age=' + (60*60*24*30) + '; SameSite=Lax; ' + (location.protocol === 'https:' ? 'Secure;' : '');
-        location.href = ok ? dest : '/app';
-        </script></body></html>`;
-        return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-      } catch (e) {
-        return json({ error: 'callback_error', detail: String(e && e.message || e) }, 500, cors);
       }
-    }
 
-    // ── API: users ────────────────────────────────────────────────
-    if (path === '/api/users/me') {
-      const payload = await getSessionUser(env, request);
-      if (!payload || !payload.email) return json({ error: 'unauthorized' }, 401, cors);
-      const adminEmail = env.ADMIN_EMAIL || '';
-      const isAdmin = Boolean(adminEmail) && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
-      return json({ ok: true, email: payload.email, plan: payload.plan || 'FREE', isAdmin }, 200, cors);
-    }
+      if (path === '/' && request.method === 'GET') return htmlPage(homePage());
 
-    if (path === '/api/auth/status') {
-      const payload = await getSessionUser(env, request);
-      if (!payload || !payload.email) return json({ ok: false, loggedIn: false }, 200, cors);
-      return json({ ok: true, loggedIn: true, email: payload.email, plan: payload.plan || 'FREE' }, 200, cors);
-    }
-
-    if (path === '/api/logout') {
-      const html = `<html><body><script>localStorage.removeItem('aics_token');document.cookie='aics_token=; Max-Age=0; Path=/; SameSite=Lax';location.href='/app';</script></body></html>`;
-      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-    }
-
-    // ── API: studios ──────────────────────────────────────────────
-    if (path === '/api/studios') {
-      const settings = await getStudioSettings(env);
-      const enabled = {};
-      Object.keys(STUDIO_REGISTRY).forEach((id) => { enabled[id] = settings[id] !== false; });
-      return json({ ok: true, items: Object.keys(STUDIO_REGISTRY).map((id) => ({ id, name: STUDIO_REGISTRY[id].name, nameMy: STUDIO_REGISTRY[id].nameMy, enabled: enabled[id] })) }, 200, cors);
-    }
-
-    if (path === '/api/features') {
-      const settings = await getFeatureSettings(env);
-      return json({ ok: true, items: Object.keys(FEATURE_REGISTRY).map((id) => ({ id, enabled: settings[id].enabled, access: settings[id].access, limit_value: settings[id].limit_value })) }, 200, cors);
-    }
-
-    if (path === '/api/models') {
-      const models = await getAiModels(env);
-      return json({ ok: true, items: models.map((m) => ({ id: m.id, name: m.name, category: m.category, plan_access: m.plan_access, is_default: m.is_default })) }, 200, cors);
-    }
-
-    if (isStudioApiPath(path)) {
-      return handleStudioRequest(request, path, env, getSessionUser, getCmsForStudio, pickCms, runModel, escapeHtml, checkFeatureEnabled, checkLimit, incrementUsage, getDailyLimit, FEATURE_REGISTRY, getFeatureSettings, checkApiLimit);
-    }
-
-    const adminResult = await adminApi(request, path, env, getSessionUser);
-    if (adminResult) return adminResult;
-
-    // ── API: projects (Phase 5) ───────────────────────────────────
-    if (path === '/api/projects' && request.method === 'GET') {
-      const user = await getSessionUser(env, request);
-      if (!user) return json({ error: 'unauthorized' }, 401, cors);
-      const { results } = await env.DB.prepare('SELECT id, title, data, updated_at FROM projects WHERE user_id=? ORDER BY updated_at DESC').bind(user.id).all();
-      return json({ ok: true, items: results }, 200, cors);
-    }
-
-    if (path === '/api/projects' && request.method === 'POST') {
-      const user = await getSessionUser(env, request);
-      if (!user) return json({ error: 'unauthorized' }, 401, cors);
-      const body = await request.json().catch(() => null);
-      if (!body || !body.title) return json({ error: 'title_required' }, 400, cors);
-      const r = await env.DB.prepare('INSERT INTO projects (user_id, title, data, created_at, updated_at) VALUES (?, ?, ?, datetime(\'now\'), datetime(\'now\'))').bind(user.id, String(body.title).slice(0, 120), JSON.stringify(body.data || {})).run();
-      return json({ ok: true, id: r.meta.last_row_id }, 200, cors);
-    }
-
-    if (path.indexOf('/api/projects/') === 0 && request.method === 'PUT') {
-      const id = decodeURIComponent(path.slice('/api/projects/'.length));
-      const user = await getSessionUser(env, request);
-      if (!user) return json({ error: 'unauthorized' }, 401, cors);
-      const body = await request.json().catch(() => null);
-      await env.DB.prepare('UPDATE projects SET title=?, data=?, updated_at=datetime(\'now\') WHERE id=? AND user_id=?').bind(String((body && body.title) || '').slice(0, 120), JSON.stringify((body && body.data) || {}), id, user.id).run();
-      return json({ ok: true }, 200, cors);
-    }
-
-    if (path.indexOf('/api/projects/') === 0 && request.method === 'DELETE') {
-      const id = decodeURIComponent(path.slice('/api/projects/'.length));
-      const user = await getSessionUser(env, request);
-      if (!user) return json({ error: 'unauthorized' }, 401, cors);
-      await env.DB.prepare('DELETE FROM projects WHERE id=? AND user_id=?').bind(id, user.id).run();
-      return json({ ok: true }, 200, cors);
-    }
-
-    if (path === '/api/admin' || path === '/api/admin/') {
-      const user = await getSessionUser(env, request);
-      if (!user) return json({ error: 'unauthorized' }, 401, cors);
-      const adminEmail = env.ADMIN_EMAIL || '';
-      if (!adminEmail || String(user.email).toLowerCase() !== String(adminEmail).toLowerCase()) return json({ error: 'forbidden' }, 403, cors);
-      return json({ ok: true }, 200, cors);
-    }
-
-    // ── Admin panel page ──────────────────────────────────────────
-    if (path === '/admin') {
-      const user = await getSessionUser(env, request);
-      if (!user || !user.email) return new Response('Redirecting to login…', { status: 302, headers: { Location: '/api/auth/login?next=' + encodeURIComponent('/admin') } });
-      const adminEmail = env.ADMIN_EMAIL || '';
-      if (!adminEmail || String(user.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
-        return new Response('Admin only', { status: 403, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      if (path === '/api/auth/login' && request.method === 'GET') {
+        const origin = url.origin;
+        let next = url.searchParams.get('next') || (origin + '/auth/result');
+        const okNext = next.indexOf(origin) === 0 || /^https:\/\/aics-frontend-/.test(next) || /^http:\/\/localhost/.test(next);
+        if (!okNext) next = origin + '/auth/result';
+        const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + env.GOOGLE_OAUTH_CLIENT_ID +
+          '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
+          '&response_type=code&scope=openid%20email%20profile' +
+          '&state=' + encodeURIComponent(next) + '&access_type=online';
+        return Response.redirect(authUrl, 302);
       }
-      return htmlPage(ADMIN_HTML);
+
+      if (path === '/api/auth/callback' && request.method === 'GET') {
+        try {
+          const code = url.searchParams.get('code');
+          if (!code) return json({ error: 'no_code' }, 400, cors);
+          const origin = url.origin;
+          const res = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'code=' + encodeURIComponent(code) +
+              '&client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID) +
+              '&client_secret=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_SECRET) +
+              '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
+              '&grant_type=authorization_code',
+          });
+          const tokenData = await res.json().catch(() => ({}));
+          if (!tokenData.access_token) {
+            try { console.error('[AICS] oauth token failed', JSON.stringify(tokenData).slice(0, 300)); } catch (_) {}
+            return json({ error: 'auth_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
+          }
+          const ures = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: 'Bearer ' + tokenData.access_token },
+          });
+          const user = await ures.json().catch(() => ({}));
+          if (!user.id || !user.email) {
+            try { console.error('[AICS] oauth userinfo failed', JSON.stringify(user).slice(0, 300)); } catch (_) {}
+            return json({ error: 'userinfo_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
+          }
+
+          const existing = env.DB ? await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(user.email).first() : null;
+          let userId;
+          if (existing) {
+            userId = existing.id;
+            // Phase 12 — Google မှ Name ပါလာပါက User နာမည် ဖြည့်ပေးသည် (Name ရှိပြီးသားဆိုလျှင် မပြောင်း)
+            if (user.name) {
+              try {
+                await env.DB.prepare('UPDATE users SET name = CASE WHEN name = \'\' THEN ? ELSE name END, updated_at = datetime(\'now\') WHERE id = ?').bind(String(user.name).slice(0, 60), userId).run();
+              } catch (e) { console.error('[AICS] update google name failed', String(e)); }
+            } else {
+              await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run();
+            }
+          } else {
+            const ins = await env.DB.prepare('INSERT INTO users (email, name, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(user.email, String(user.name || '').slice(0, 60)).run();
+            userId = ins.meta.last_row_id;
+          }
+
+          const token = await signToken(env, { sub: String(userId), email: user.email, plan: 'FREE' });
+          // Phase 12 — Default ကို Personal Workspace (/app) သို့ ပြောင်းသည်
+          const state = url.searchParams.get('state') || (origin + '/app');
+          // Phase 11 — Browser မှ Page Navigation များတွင် Header မပါသော်လည်း Admin Panel ဝင်နိုင်ရန်
+          // HttpOnly Cookie ကိုပါ ထည့်ပေးသည် (Authorization Header ကို မူလအတိုင်း ထားသည်)
+          const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
+          return new Response(null, {
+            status: 302,
+            headers: { Location: state + '#token=' + encodeURIComponent(token), 'Set-Cookie': sessionCookie },
+          });
+        } catch (e) {
+          return json({ error: 'auth_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path === '/auth/result' && request.method === 'GET') return htmlPage(loginResultPage());
+      // Phase 12 — Professional Personal Login UI (/login)
+      if (path === '/login' || path === '/login/') {
+        const loggedIn = await loginGuardRedirect(request, env, url.origin);
+        if (loggedIn) return loggedIn;
+        return htmlPage(LOGIN_HTML);
+      }
+      // Phase 12-fix — Login မဝင်ဘဲ App Page များကို မမြင်ရအောင် Session Guard
+      // (Sidebar + "Login လိုအပ်ပါသည်" ကို ပြမည့်အစား /login သို့ ပို့သည်)
+      if (path === '/app' || path === '/app/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(APP_HTML);
+      }
+      // ===== Studio Pages (Phase 4 — Registry + Admin ON/OFF နှင့် ချိတ်သည်) =====
+      // Studio Disabled ဖြစ်ပါက Friendly Message ပြပြီး Access ပိတ်သည် (Rule 14 — Server-side)
+      // Phase 7 — /app/ မဟုတ်သော Path (ဥပမာ /api/admin/studios/shop) ကို Studio Page နှင့် မရောမှတ်ရန် ပြင်သည်
+      // Phase 1 — Loader error contract (Production hardening):
+      //   unknown studio        → 404  STUDIO_NOT_FOUND
+      //   known, module failed  → 500  STUDIO_PAGE_LOAD_FAILED (module error ကို 404 အဖြစ် မပြ)
+      //   user ကို stack trace မပြ; server log တွင် slug + message + error id ထည့်သည်
+      {
+        // V2 — Lazy Loading: Studio page ကို ထို Studio slug ရှိမှသာ ခေါ်သည် (rule 10)
+        const studioSlug = path.startsWith('/app/') ? path.replace(/\/+$/, '').split('/').pop() : '';
+        let studioHtml = null;
+        try {
+          studioHtml = await getStudioPage(studioSlug);
+        } catch (e) {
+          const errId = Math.random().toString(36).slice(2, 10);
+          try {
+            console.error('[AICS] studio page load failed ' + JSON.stringify({
+              slug: studioSlug,
+              errId: errId,
+              message: (e && e.message) ? String(e.message) : String(e),
+            }));
+          } catch (_) {}
+          return new Response('STUDIO_PAGE_LOAD_FAILED', {
+            status: 500,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          });
+        }
+        if (studioHtml) {
+          const g = await appSessionGuard(request, env, url.origin);
+          if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+          const enabled = await isStudioEnabled(env, studioSlug);
+          if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
+          return htmlPage(studioHtml);
+        }
+      }
+      if (path === '/app/creations' || path === '/app/creations/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(CREATIONS_HTML);
+      }
+      if (path === '/app/settings' || path === '/app/settings/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(SETTINGS_HTML);
+      }
+      if (path === '/app/projects' || path === '/app/projects/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(PROJECTS_HTML);
+      }
+      if (path === '/admin' || path === '/admin/') {
+        // Admin Panel — admin မဟုတ်သူတွေ မမြင်ရအောင် Server-side Role Check (Rule 13)
+        // Phase 11 — Browser မှ နှိပ်ဝင်သည့်အခါ Authorization Header မပါတတ်သောကြောင့်
+        // Cookie Session ကိုပါ လက်ခံသည် (Header က ဦးစားပေး)
+        const token = bearer(request) || cookieToken(request);
+        if (!token) return Response.redirect(url.origin + '/api/auth/login?next=' + encodeURIComponent(url.origin + '/admin'), 302);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) {
+          // Cookie ပျက်သွားပါက Login သို့ ပြန်ပို့ပြီး Cookie ကို ရှင်းသည် (Header ဖြင့်လာပါက 404 ဖြစ်သည်)
+          if (cookieToken(request)) {
+            return new Response(null, {
+              status: 302,
+              headers: { Location: url.origin + '/api/auth/login?next=' + encodeURIComponent(url.origin + '/admin'), 'Set-Cookie': clearSessionCookie() },
+            });
+          }
+          return json({ error: 'not_found' }, 404, cors);
+        }
+        const adminEmail = env.ADMIN_EMAIL || '';
+        if (!adminEmail || String(payload.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
+          return json({ error: 'not_found' }, 404, cors);
+        }
+        return htmlPage(ADMIN_HTML);
+      }
+      // Phase 11 — Logout: HttpOnly Cookie ကို ရှင်းပြီး ပင်မသို့ ပြန်ပို့သည်
+      if (path === '/api/auth/logout' && request.method === 'GET') {
+        return new Response(null, {
+          status: 302,
+          headers: { Location: url.origin + '/app', 'Set-Cookie': clearSessionCookie() },
+        });
+      }
+
+      // ===== Phase 12-fix — Remember Session: Cookie ရှိလျှင် Token ပြန်ပေးသည် =====
+      // (App ပြန်ဖွင့်လျှင် localStorage မရှိသော်လည်း Cookie ဖြင့် Session ပြန်ရသည် — Rule 14)
+      if (path === '/api/auth/session' && request.method === 'GET') {
+        const c = cookieToken(request);
+        if (!c) return json({ error: 'no_session' }, 401, cors);
+        const p = await verifyTokenSafe(env, c);
+        if (!p) return json({ error: 'invalid_session' }, 401, cors);
+        return json({ ok: true, token: c, email: p.email, plan: p.plan || 'FREE', user_id: p.sub }, 200, cors);
+      }
+
+      // ===== Phase 12 — Email/Password Sign Up (PBKDF2 — Plain Text မသိမ်းပါ) =====
+      if (path === '/api/auth/signup' && request.method === 'POST') {
+        const body = await readBody(request).catch(() => null);
+        const name = String((body && body.name) || '').trim().slice(0, 60);
+        const email = String((body && body.email) || '').trim().toLowerCase();
+        const password = String((body && body.password) || '');
+        if (!name) return json({ error: 'missing_name', detail: 'Name ထည့်ပါ။' }, 400, cors);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email', detail: 'Email ပုံစံ မမှန်ပါ။' }, 400, cors);
+        if (password.length < 6) return json({ error: 'weak_password', detail: 'Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။' }, 400, cors);
+        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
+        const dup = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+        if (dup) return json({ error: 'email_taken', detail: 'ဒီ Email နဲ့ Account ရှိပြီးသားပါ။ Google Login သုံးပါ သို့မဟုတ် Sign in လုပ်ပါ။' }, 409, cors);
+        const hash = await hashPassword(password);
+        const ins = await env.DB.prepare('INSERT INTO users (email, name, password_hash, plan, created_at, updated_at) VALUES (?, ?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, name, hash).run();
+        const userId = ins.meta.last_row_id;
+        const token = await signToken(env, { sub: String(userId), email, plan: 'FREE' });
+        // Phase 12-fix — /app သို့ Browser Navigation မှာပါ Session ရှိစေရန် Cookie ကိုပါ ထည့်ပေးသည်
+        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
+        return json({ ok: true, token, email, name, plan: 'FREE', user_id: String(userId) }, 201, { ...cors, 'Set-Cookie': sessionCookie });
+      }
+
+      // ===== Phase 12 — Email/Password Sign In =====
+      if (path === '/api/auth/signin' && request.method === 'POST') {
+        const body = await readBody(request).catch(() => null);
+        const email = String((body && body.email) || '').trim().toLowerCase();
+        const password = String((body && body.password) || '');
+        if (!email || !password || !env.DB) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
+        const row = await env.DB.prepare('SELECT id, name, plan, expiry, password_hash FROM users WHERE email = ?').bind(email).first();
+        if (!row || !row.password_hash) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
+        const okPass = await verifyPassword(password, row.password_hash);
+        if (!okPass) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
+        const token = await signToken(env, { sub: String(row.id), email, plan: row.plan || 'FREE' });
+        // Phase 12-fix — Sign In ပြီးနောက် /app သို့ Browser Navigation အတွက် Cookie ပါ ထည့်ပေးသည်
+        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
+        return json({ ok: true, token, email, name: row.name || '', plan: row.plan || 'FREE', user_id: String(row.id) }, 200, { ...cors, 'Set-Cookie': sessionCookie });
+      }
+
+      const adminResp = await adminApi(request, path, env, verifyToken);
+      if (adminResp) return adminResp;
+      if (!isProdEnv && path === '/ai-test') return htmlPage(aiTestPage());
+      if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage());
+      if (!isProdEnv && path === '/studio-test') return htmlPage(studioTestPage());
+      if (!isProdEnv && path === '/creations-test') return htmlPage(creationsTestPage());
+
+      if (path === '/api/users/me' && request.method === 'GET') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const plan = await resolvePlan(env, payload);
+        const adminEmail = env.ADMIN_EMAIL || '';
+        const isAdmin = Boolean(adminEmail) && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
+        // Phase 3 — User ၏ Settings / Preferences များကိုပါ ပြန်ပို့သည်
+        const settings = await getUserSettings(env, payload.sub);
+        const preferences = await getUserPreferences(env, payload.sub);
+        // Phase 4 — Studio ON/OFF အနေအထားကိုပါ ပြန်ပို့သည် (Sidebar မှ ပိတ်ထားသော Studio ကို ဖျောက်ရန်)
+        const studio_settings = await getStudioSettings(env);
+        // Phase 12 — Name + Usage Summary (Personal Profile အတွက်)
+        let name = '';
+        let usage = { ai_requests: 0, image_generations: 0, voice_generations: 0 };
+        try {
+          const row = env.DB ? await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(payload.sub).first() : null;
+          name = (row && row.name) || '';
+          const usageRows = env.DB ? await env.DB.prepare('SELECT category, COUNT(*) AS n FROM usage WHERE user_id = ? GROUP BY category').bind(payload.sub).all() : null;
+          if (usageRows && usageRows.results) {
+            usageRows.results.forEach(function (r) {
+              const cat = String(r.category || '').toUpperCase();
+              const n = Number(r.n) || 0;
+              if (cat.indexOf('IMAGE') > -1) usage.image_generations += n;
+              else if (cat.indexOf('VOICE') > -1) usage.voice_generations += n;
+              else usage.ai_requests += n;
+            });
+          }
+        } catch (e) { console.error('[AICS] me usage failed', String(e)); }
+        return json({ email: payload.email, name, plan, user_id: payload.sub, is_admin: isAdmin, usage, settings, preferences, studio_settings }, 200, cors);
+      }
+
+      // ===== Phase C — AI Models List (User အတွက် Studio Dropdown) =====
+      // ဖွင့်ထားသော + User ၏ Plan နှင့် ကိုက်ညီသော Model များကိုသာ ပြန်ပို့သည်
+      if (path === '/api/ai-models' && request.method === 'GET') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const plan = await resolvePlan(env, payload);
+        const cat = url.searchParams.get('category') || '';
+        const items = await listEnabledModels(env, cat || undefined, plan);
+        return json({
+          ok: true,
+          items: items.map((m) => ({ id: m.id, name: m.name, category: m.category, plan_access: m.plan_access })),
+        }, 200, cors);
+      }
+
+      // ===== Phase 12 — Personal Profile Name ပြောင်းခြင်း (Server-side Whitelist) =====
+      if (path === '/api/users/me/profile' && request.method === 'PUT') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await readBody(request).catch(() => null);
+        const name = String((body && body.name) || '').trim().slice(0, 60);
+        if (!name) return json({ error: 'missing_name', detail: 'Name မထည့်နိုင်ပါ။' }, 400, cors);
+        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
+        await env.DB.prepare('UPDATE users SET name = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(name, payload.sub).run();
+        return json({ ok: true, name }, 200, cors);
+      }
+
+      // ===== Personal Settings — Profile/Preferences သိမ်းခြင်း (Phase 3) =====
+      // Server-side တွင် Whitelist စစ်ပြီးမှသာ သိမ်းသည် (Frontend ကို မယုံပါ)
+      if (path === '/api/users/me/settings' && request.method === 'PUT') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || typeof body !== 'object') return json({ error: 'bad_request' }, 400, cors);
+        try {
+          const settings = await updateUserSettings(env, payload.sub, body.settings || {});
+          const preferences = await updateUserPreferences(env, payload.sub, body.preferences || {});
+          return json({ ok: true, settings, preferences }, 200, cors);
+        } catch (e) {
+          return json({ error: 'settings_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== BYOK — User ကိုယ်ပိုင် Gemini Key သိမ်းခြင်း / အခြေအနေ စစ်ခြင်း =====
+      if (path === '/api/user/apikey' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.key || !String(body.key).trim()) return json({ error: 'missing_key' }, 400, cors);
+        try {
+          await saveUserApiKey(env, payload.sub, String(body.key).trim());
+          return json({ ok: true }, 200, cors);
+        } catch (e) {
+          return json({ error: 'db_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path === '/api/user/apikey/status' && request.method === 'GET') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        try {
+          const key = await getUserApiKey(env, payload.sub);
+          return json({ hasKey: !!key }, 200, cors);
+        } catch (e) {
+          return json({ error: 'apikey_status_failed', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path === '/api/user/apikey' && request.method === 'DELETE') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        try {
+          await deleteUserApiKey(env, payload.sub);
+          return json({ ok: true }, 200, cors);
+        } catch (e) {
+          return json({ error: 'apikey_delete_failed', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // D1-backed fixed-window limit: five connection tests per user per ten minutes.
+      // A shared database provides consistent limits across Worker isolates.
+      // API key connection test is authenticated; callers may test a new key before saving it.
+      if (path === '/api/ai/test' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503, cors);
+        try {
+          const windowId = Math.floor(Date.now() / 600000);
+          await env.DB.prepare('INSERT INTO api_test_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1').bind(payload.sub, windowId).run();
+          const usage = await env.DB.prepare('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?').bind(payload.sub, windowId).first();
+          if (!usage || usage.attempts > 5) return json({ error: 'rate_limited' }, 429, { ...cors, 'Retry-After': String(Math.ceil(((windowId + 1) * 600000 - Date.now()) / 1000)) });
+        } catch (e) { friendlyError(e); return json({ error: 'rate_limit_unavailable' }, 503, cors); }
+        const body = await request.json().catch(() => null);
+        if (!body) return json({ error: 'bad_request' }, 400, cors);
+        const prompt = String(body.prompt || 'Reply with OK').slice(0, 500);
+        const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
+        try {
+          const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
+          const out = await callGeminiText(env, { model, prompt, apiKey });
+          return json({ ok: true, output: out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'ai_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path === '/api/cms/prompt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body) return json({ error: 'bad_request' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const c = await getCMSData(env, body.studio || 'STORY', plan, body.type || '1');
+        if (!c) return json({ found: false }, 200, cors);
+        return json({ found: true, studio: c.studio, plan: c.plan, type: c.type, system_prompt: buildSystemPrompt(c) }, 200, cors);
+      }
+
+      if (path === '/api/studio/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.studio || !body.idea) return json({ error: 'missing_studio_or_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
+        try {
+          // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateStudio(env, {
+            studio: String(body.studio).toUpperCase(),
+            type: String(body.type || '1'),
+            idea: body.idea,
+            plan,
+            apiKey,
+            model: body.model,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json(out, 200, cors);
+        } catch (e) {
+          return json({ error: 'studio_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 1: Generate =====
+      // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
+      // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
+      {
+        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop)\//) || [])[1];
+        if (studioApiId) {
+          const enabled = await isStudioEnabled(env, studioApiId);
+          if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+        }
+      }
+
+      if (path === '/api/studio/content/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const genLevel = String(body.generationLevel || body.type || '1');
+        { const denied = await requireFeature(env, 'content.generate', plan, genLevel, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateContent(env, {
+              model: body.model,
+              idea: body.idea,
+              generationLevel: genLevel,
+              contentType: String(body.contentType || 'Other'),
+              platform: body.platform,
+              product: body.product,
+              goal: body.goal,
+              cta: body.cta,
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateContent(env, {
+            model: body.model,
+            idea: body.idea,
+            generationLevel: genLevel,
+            contentType: String(body.contentType || 'Other'),
+            platform: body.platform,
+            product: body.product,
+            goal: body.goal,
+            cta: body.cta,
+            plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'content_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 1: Revise (Chat) =====
+      if (path === '/api/studio/content/revise' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.feedback) return json({ error: 'missing_feedback' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const genLevel = String(body.generationLevel || body.type || '1');
+        { const denied = await requireFeature(env, 'content.revise', plan, genLevel, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseContent(env, {
+              model: body.model,
+              originalContent: body.originalContent || '',
+              originalSpeaking: body.originalSpeaking || '',
+              originalVoice: body.originalVoice || '',
+              feedback: body.feedback,
+              generationLevel: genLevel,
+              contentType: String(body.contentType || 'Other'),
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await reviseContent(env, { model: body.model, 
+            originalContent: body.originalContent || '',
+            originalSpeaking: body.originalSpeaking || '',
+            originalVoice: body.originalVoice || '',
+            feedback: body.feedback,
+            generationLevel: genLevel,
+            contentType: String(body.contentType || 'Other'),
+            plan, apiKey,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 1: Text → Voice (TTS) =====
+      if (path === '/api/studio/content/tts' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.text) return json({ error: 'missing_text' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const genLevel = String(body.generationLevel || body.type || '1');
+        { const denied = await requireFeature(env, 'content.tts', plan, genLevel, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateContentVoice(env, { model: body.model,
+            text: body.text,
+            voiceName: body.voiceName || 'Kore',
+            plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'voice');
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 2: Video Plan =====
+      if (path === '/api/studio/content/video' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const genLevel = String(body.generationLevel || body.type || '1');
+        { const denied = await requireFeature(env, 'content.video', plan, genLevel, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateContentVideo(env, {
+            model: body.model,
+            idea: body.idea,
+            generationLevel: genLevel,
+            contentType: String(body.contentType || 'Other'),
+            plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 2: Video Scene Image =====
+      if (path === '/api/studio/content/video-image' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateContentVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 3: SRT from Audio =====
+      if (path === '/api/studio/content/srt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateContentSrt(env, { model: body.model, 
+            audioBase64: body.audioBase64,
+            mimeType: body.mimeType || 'audio/mpeg',
+            apiKey,
+          });
+          return json({ ok: true, srt: out.srt }, 200, cors);
+        } catch (e) {
+          return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Content Studio — Tab 3: Translate SRT =====
+      if (path === '/api/studio/content/translate-srt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await translateContentSrt(env, { model: body.model, 
+            srtText: body.srtText,
+            direction: body.direction || 'my-to-cn',
+            apiKey,
+          });
+          return json({ ok: true, srt: out.srt }, 200, cors);
+        } catch (e) {
+          return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Story Studio — Tab 1: Generate =====
+      if (path === '/api/studio/story/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'story.generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateStory(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateStory(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'story_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Story Studio — Tab 1: Revise (Chat) =====
+      if (path === '/api/studio/story/revise' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
+        if (!body.currentStory) return json({ error: 'missing_current_story' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'story.revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseStory(env, {
+              model: body.model,
+              idea: body.idea || '',
+              type: reqType,
+              currentStory: body.currentStory,
+              instruction: body.instruction,
+              plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await reviseStory(env, { model: body.model, 
+            idea: body.idea || '',
+            type: reqType,
+            currentStory: body.currentStory,
+            instruction: body.instruction,
+            plan, apiKey,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Story Studio — Tab 2: Video Plan (04 Form → 05/06) =====
+      // Backward Compat: ယခင် body.idea ကိုလည်း ဆက်လက်လက်ခံသည်။
+      // Story Video = Feature-level PRO gate (§3) — Visual Style + Video Workflow သည်
+      // Story Video အတွင်းရှိ configuration သာ (type-based gate မသုံးတော့ပါ)။
+      if (path === '/api/studio/story/video' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || (!body.idea && !body.story)) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'story.video', plan, '1', cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateStoryVideoPlan(env, {
+            model: body.model,
+            story: body.story || body.idea || '',
+            idea: body.idea || body.story || '',
+            type: body.type || '1',
+            videoType: body.videoType,
+            workflow: body.workflow,
+            visualStyle: body.visualStyle,
+            storyFacts: body.storyFacts,
+            duration: body.duration,
+            sceneDuration: body.sceneDuration,
+            aspectRatio: body.aspectRatio,
+            cameraStyle: body.cameraStyle,
+            language: body.language,
+            environmentStyle: body.environmentStyle,
+            characterContinuity: body.characterContinuity,
+            characterConsistency: body.characterConsistency,
+            referenceImage: body.referenceImage,
+            characterDirection: body.characterDirection || '',
+            cameraDirection: body.cameraDirection || '',
+            lighting: body.lighting || '',
+            environmentDetails: body.environmentDetails || '',
+            colorMood: body.colorMood || '',
+            transitionPacing: body.transitionPacing || '',
+            audioDirection: body.audioDirection || '',
+            additionalInstructions: body.additionalInstructions,
+            plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Story Studio — Tab 2: Video Scene/Character Image =====
+      // Story Video ၏ အစိတ်အပိုင်း — Feature-level PRO gate အတိုင်း လိုက်နာသည်
+      if (path === '/api/studio/story/video-image' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'story.video_image', plan, '1', cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateStoryVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Short Studio — Tab 1: Generate =====
+      if (path === '/api/studio/short/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'short.generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateShort(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShort(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'short_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Short Studio — Tab 1: Revise (Chat) =====
+      if (path === '/api/studio/short/revise' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
+        if (!body.currentShort) return json({ error: 'missing_current_short' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'short.revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseShort(env, {
+              model: body.model,
+              idea: body.idea || '', type: reqType, currentShort: body.currentShort,
+              instruction: body.instruction, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await reviseShort(env, { model: body.model, 
+            idea: body.idea || '', type: reqType, currentShort: body.currentShort,
+            instruction: body.instruction, plan, apiKey,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Short Studio — Tab 2: Video Plan (with Reference Images) =====
+      if (path === '/api/studio/short/video' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'short.video', plan, reqType, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShortVideoPlan(env, { model: body.model, 
+            idea: body.idea, type: reqType, plan, apiKey,
+            images: body.images || [],
+            // Short Video Production Setup (Step 04) — additive, backward compatible
+            videoStyle: body.videoStyle || '',
+            aspectRatio: body.aspectRatio || '9:16',
+            duration: body.duration || '30 sec',
+            sceneDuration: body.sceneDuration || '5 sec',
+            visualStyle: body.visualStyle || '',
+            cameraStyle: body.cameraStyle || '',
+            language: body.language || 'မြန်မာ',
+            characterContinuity: body.characterContinuity || 'true',
+            additionalInstructions: body.additionalInstructions || '',
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Short Studio — Tab 2: Video Scene/Character Image =====
+      if (path === '/api/studio/short/video-image' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShortVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Image Studio — Tab 1: Image Prompt Generate =====
+      if (path === '/api/studio/image/prompt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'image.prompt', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateImagePrompt(env, {
+              model: body.model,
+              idea: body.idea, type: reqType, plan, apiKey,
+              images: body.images,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateImagePrompt(env, { model: body.model, 
+            idea: body.idea, type: reqType, plan, apiKey,
+            images: body.images,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_prompt_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Image Studio — Tab 2: Ad Image Prompt Generate =====
+      if (path === '/api/studio/image/ad-prompt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'image.ad_prompt', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateAdImagePrompt(env, {
+              model: body.model,
+              idea: body.idea, type: reqType, plan, apiKey,
+              images: body.images,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateAdImagePrompt(env, { model: body.model, 
+            idea: body.idea, type: reqType, plan, apiKey,
+            images: body.images,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'ad_prompt_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Image Studio — Tab 1 & 2: Generate Actual Image from Prompt =====
+      if (path === '/api/studio/image/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateImageFromPrompt(env, { model: body.model, prompt: body.prompt, plan, apiKey });
+          await trackUsageSafe(env, payload.sub, 'image');
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_generate_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Voice Studio — Tab 1: Text → Voice (TTS) =====
+      if (path === '/api/studio/voice/tts' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.text) return json({ error: 'missing_text' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'voice.tts', plan, reqType, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateVoiceAudio(env, { model: body.model,
+            text: body.text,
+            voiceName: body.voiceName || 'Kore',
+            plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'voice');
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Voice Studio — Tab 2: Audio → Text (Transcribe) =====
+      if (path === '/api/studio/voice/transcribe' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'voice.transcribe', plan, reqType, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await transcribeAudio(env, { model: body.model, 
+            audioBase64: body.audioBase64,
+            mimeType: body.mimeType || 'audio/mpeg',
+            type: reqType, plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'transcribe_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Voice Studio — Tab 1 & 2: SRT from Audio (PRO only) =====
+      if (path === '/api/studio/voice/srt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'voice.srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateVoiceSrt(env, { model: body.model, 
+            audioBase64: body.audioBase64,
+            knownText: typeof body.knownText === 'string' ? body.knownText : '',
+            mimeType: body.mimeType || 'audio/mpeg',
+            type: String(body.type || '2'), plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Voice Studio — Tab 1 & 2: Translate SRT (PRO only) =====
+      if (path === '/api/studio/voice/translate-srt' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'voice.translate_srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await translateVoiceSrt(env, { model: body.model, 
+            srtText: body.srtText,
+            direction: body.direction || 'MY_TO_CN',
+            type: String(body.type || '2'), plan, apiKey,
+          });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Shop Studio — Tab 1: Generate =====
+      if (path === '/api/studio/shop/content/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'shop.content_generate', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await generateShopContent(env, {
+              model: body.model, idea: body.idea, type: reqType, plan, apiKey, images: body.images || [],
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            await trackUsageSafe(env, payload.sub, 'ai');
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShopContent(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'shop_content_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Shop Studio — Tab 1: Revise (Chat) =====
+      if (path === '/api/studio/shop/content/revise' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
+        if (!body.currentContent) return json({ error: 'missing_current_content' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'shop.content_revise', plan, reqType, cors); if (denied) return denied; }
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
+        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
+          return ndjsonResponse(async (send) => {
+            let apiKey = body.apiKey;
+            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const out = await reviseShopContent(env, {
+              model: body.model,
+              idea: body.idea || '', type: reqType, currentContent: body.currentContent,
+              instruction: body.instruction, plan, apiKey,
+              onChunk: (t) => send({ type: 'chunk', text: t }),
+            });
+            send({ type: 'done', result: out });
+          }, cors);
+        }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await reviseShopContent(env, { model: body.model, 
+            idea: body.idea || '', type: reqType, currentContent: body.currentContent,
+            instruction: body.instruction, plan, apiKey,
+          });
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Shop Studio — Tab 2: Video Plan =====
+      if (path === '/api/studio/shop/video/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'shop.video_generate', plan, reqType, cors); if (denied) return denied; }
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShopVideo(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, ...out }, 200, cors);
+        } catch (e) {
+          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Shop Studio — Tab 2: Video Scene/Character/Product Image =====
+      if (path === '/api/studio/shop/video-image' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const out = await generateShopVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey, images: body.images || [] });
+          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
+        } catch (e) {
+          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Projects — User ကိုယ်ပိုင် Project များ (Phase 3) =====
+      // Server-side တွင် user_id ကို အမြဲ စစ်သည် — အခြားသူ၏ Project ကို မမြင်ရ/မဖျက်ရပါ
+      if (path === '/api/projects' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        if (!body || !body.title) return json({ error: 'missing_title' }, 400, cors);
+        try {
+          const p = await createProject(env, payload.sub, String(body.title), body.description || '');
+          return json({ ok: true, project: p }, 200, cors);
+        } catch (e) {
+          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path === '/api/projects' && request.method === 'GET') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        try {
+          const items = await listProjects(env, payload.sub);
+          return json({ items }, 200, cors);
+        } catch (e) {
+          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      if (path.startsWith('/api/projects/') && request.method === 'DELETE') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+        const id = path.split('/').pop();
+        if (!id) return json({ error: 'missing_id' }, 400, cors);
+        try {
+          await deleteProject(env, payload.sub, id);
+          return json({ ok: true }, 200, cors);
+        } catch (e) {
+          return json({ error: 'delete_error', detail: friendlyError(e) }, 500, cors);
+        }
+      }
+
+      // ===== Creations (Phase 13 — Option 2) =====
+      // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
+      // Server-side /api/creations endpoints များကို ဖယ်ရှားပြီးပြီ — D1 တွင် User Content မသိမ်းတော့ပါ။
+
+      // Favicon — Console 404 noise ကို ဖယ်ရှားရန် inline SVG icon ပြန်ပေးသည်
+      if (path === '/favicon.ico' && request.method === 'GET') {
+        const icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#0d1424"/><text x="16" y="23" font-size="19" text-anchor="middle">🎨</text></svg>';
+        return new Response(icon, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/svg+xml',
+            'Cache-Control': 'public, max-age=86400',
+            ...cors,
+          },
+        });
+      }
+
+      // Phase 1 — Unknown /app/* path (studio မရှိ) → 404 STUDIO_NOT_FOUND
+      // (creations/settings/projects စစ်ပြီးမှသာ ဤနေရာသို့ ရောက်သည် — ထို routes များ မထိခိုက်)
+      if (path.startsWith('/app/')) {
+        return new Response('STUDIO_NOT_FOUND', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      }
+
+      return json({ error: 'not_found', path }, 404, cors);
+    } catch (e) {
+      return json({ error: 'internal', detail: friendlyError(e) }, 500, cors);
     }
-
-    // ── Static asset serving (per-page) ───────────────────────────
-    if (path.indexOf('/app/') === 0) {
-      const slug = path.startsWith('/app/') ? path.replace(/\/+$/, '').split('/').pop() : '';
-      if (slug === 'creations') return htmlPage(creationsPageHtml());
-      if (slug === 'story') return htmlPage(storyPageHtml());
-      if (slug === 'content') return htmlPage(contentPageHtml());
-      if (slug === 'short') return htmlPage(shortPageHtml());
-      if (slug === 'image') return htmlPage(imagePageHtml());
-      if (slug === 'voice') return htmlPage(voicePageHtml());
-      if (slug === 'shop') return htmlPage(shopPageHtml());
-    }
-
-    // ── Test routes (imported, Phase 9) ───────────────────────────
-    const testResult = await handleTestRoutes(request, path, env);
-    if (testResult) return testResult;
-
-    return json({ error: 'not_found', path }, 404, cors);
   },
 };
-
-// ═══ SSR HTML (Phase 10: Studio pages lazy-load from /api/frontend/studio/…js) ═══
-
-const frontendSsrHtml = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>AI Creative Studio — ဖန်တီးကြည့်ရအောင်</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
-<style>
-:root{--bg:#080C18;--panel:#0D1424;--card:#111A2C;--card2:#151F33;--line:rgba(255,255,255,.08);--text:#F8FAFC;--muted:#8D98AB;--cyan:#00E5FF;--purple:#7B5CFF;--green:#4ADE80;--orange:#FF9F2B;--red:#FF6672;--shadow:0 18px 60px rgba(0,0,0,.28);--radius:16px}
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Myanmar",sans-serif}
-body{background:radial-gradient(900px 500px at 85% -10%,rgba(123,92,255,.13),transparent 55%),radial-gradient(700px 500px at 10% 0%,rgba(0,229,255,.07),transparent 52%),var(--bg)}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
-.hidden{display:none!important}
-#loading{min-height:100vh;display:grid;place-items:center;color:var(--muted);font-size:14px;padding:30px;text-align:center}
-#app{min-height:100vh}
-.topbar{position:sticky;top:0;z-index:50;height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:rgba(8,12,24,.82);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:11px;cursor:pointer}
-.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--cyan));box-shadow:0 8px 28px rgba(0,229,255,.15);font-size:18px}
-.brand-title{font-weight:800;font-size:13px;letter-spacing:.04em}.brand-sub{font-size:10px;color:var(--muted);margin-top:2px}
-.top-actions{display:flex;align-items:center;gap:12px}
-.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;font-size:13px;font-weight:800;cursor:pointer;border:1px solid rgba(255,255,255,.12)}
-.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
-.hero{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;align-items:center;padding:34px 26px;border-radius:20px;background:linear-gradient(135deg,rgba(21,31,51,.95),rgba(13,20,36,.95));border:1px solid var(--line);box-shadow:var(--shadow)}
-.hero h1{font-size:30px;line-height:1.22;margin:0 0 10px;letter-spacing:-.02em}
-.hero h1 b{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.7}
-.hero .cta{margin-top:20px}
-.hero-card{position:relative;min-height:150px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(123,92,255,.16));border:1px solid rgba(0,229,255,.14);padding:20px;font-size:12px;line-height:1.8}
-.section{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:30px 0 14px}
-.section h2{font-size:19px;margin:0;letter-spacing:-.01em}.section .sub{font-size:11px;color:var(--muted)}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(4,minmax(0,1fr))}
-.studio{position:relative;padding:20px;border-radius:16px;background:linear-gradient(180deg,rgba(21,31,51,.96),rgba(15,24,41,.96));border:1px solid var(--line);cursor:pointer;transition:.22s;overflow:hidden}
-.studio:hover{transform:translateY(-3px);border-color:rgba(0,229,255,.28);box-shadow:0 18px 44px rgba(0,0,0,.24)}
-.studio .icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px;margin-bottom:13px;background:rgba(0,229,255,.09);border:1px solid rgba(0,229,255,.12)}
-.studio h3{margin:0 0 5px;font-size:15px}.studio p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.6}
-.studio .go{position:absolute;right:14px;bottom:12px;font-size:11px;color:var(--cyan);opacity:0;transition:.2s}
-.studio:hover .go{opacity:1}
-.studio.disabled{opacity:.4;pointer-events:none;filter:grayscale(.5)}
-.pro-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;padding:3px 7px;border-radius:999px;background:rgba(123,92,255,.16);color:#C9BCFF;border:1px solid rgba(123,92,255,.28);text-transform:uppercase}
-.footer{border-top:1px solid var(--line);margin-top:44px;padding:20px 0 30px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
-@media(max-width:980px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.grid{grid-template-columns:1fr}.hero h1{font-size:25px}.wrap{padding:16px 14px 48px}}
-</style>
-</head>
-<body>
-<div id="loading">✦ AI Creative Studio — ဖွင့်နေပါသည်…</div>
-<div id="app" class="hidden">
-<header class="topbar">
-  <div class="brand" onclick="location.href='/app'"><div class="brand-mark">✦</div><div><div class="brand-title">AI CREATIVE STUDIO</div><div class="brand-sub">Premium Myanmar AI</div></div></div>
-  <div class="top-actions">
-    <span style="font-size:11px;color:var(--muted)" id="planBadge"></span>
-    <div class="avatar" id="avatarBtn" title="Account">?</div>
-  </div>
-</header>
-<div class="wrap">
-  <div class="hero">
-    <div>
-      <h1>Myanmar ကို ဦးတည်တဲ့ <b>AI Creative Studio</b></h1>
-      <p>စာသား (Story/Content/Short)၊ ဗီဒီယို (AI Video)၊ ပုံ (Image)၊ အသံ (Voice) တွေကို မြန်မာလို ဖန်တီးပါ။ Prompt ရိုက်ရုံနဲ့ ချက်ချင်း အဆင်သင့်။</p>
-      <div class="cta"><button class="btn primary" id="ctaBtn">စတင်ဖန်တီးမယ် →</button></div>
-    </div>
-    <div class="hero-card">✦ + ✦ + ✦<br>Story · Video · Content · Short · Image · Voice · Shop<br>Premium AI Features — Myanmar First</div>
-  </div>
-  <div class="section"><div><h2>AI Studios</h2><div class="sub">ရွေးချယ်ပြီး စတင်ပါ</div></div></div>
-  <div class="grid" id="studioGrid">…</div>
-</div>
-<div class="footer"><span>© 2026 AI Creative Studio</span><span>Made in Myanmar 🇲🇲</span></div>
-</div>
-<script>
-// Phase 10 — Studio modules lazy-load
-const STUDIOS=[
-  {id:'STORY',name:'AI Story',my:'📖',desc:'မြန်မာစာသားဖြင့် ဇာတ်လမ်းဖန်တီးပါ',path:'/api/frontend/studio/story.js',plan:'FREE'},
-  {id:'CONTENT',name:'AI Content',my:'📝',desc:'Marketing / Article စာသားများ ဖန်တီးပါ',path:'/api/frontend/studio/content.js',plan:'FREE'},
-  {id:'SHORT',name:'AI Short',my:'⚡',desc:'ဇာတ်လမ်းတို (Short Story) ဖန်တီးပါ',path:'/api/frontend/studio/short.js',plan:'FREE'},
-  {id:'IMAGE',name:'AI Image',my:'🖼️',desc:'ပုံဖန်တီးပါ — မြန်မာလို ရေးရုံပဲ',path:'/api/frontend/studio/image.js',plan:'FREE'},
-  {id:'VOICE',name:'AI Voice',my:'🎙️',desc:'စာသားကို အသံအဖြစ် ဖန်တီးပါ',path:'/api/frontend/studio/voice.js',plan:'FREE'},
-  {id:'SHOP',name:'AI Shop',my:'🛍️',desc:'ဆိုရှယ်မီဒီယာ Post / Ad စာသားများ',path:'/api/frontend/studio/shop.js',plan:'FREE'}
-];
-var token=localStorage.getItem('aics_token')||'';
-function boot(){
-  fetch('/api/studios').then(function(r){return r.json();}).then(function(d){
-    var enabled={};(d.items||[]).forEach(function(s){enabled[s.id]=s.enabled;});
-    var grid=document.getElementById('studioGrid');
-    grid.innerHTML=STUDIOS.map(function(s){
-      var on=enabled[s.id]!==false;
-      return '<div class="studio '+(on?'':'disabled')+'" onclick="'+((token&&on)?'go(\''+s.id+'\')':'login()')+'">'+
-        '<div class="icon">'+s.my+'</div><h3>'+s.name+'</h3><p>'+s.desc+'</p>'+
-        '<span class="go">ဖွင့်မယ် →</span></div>';
-    }).join('')||'<div class="studio">Studio list unavailable</div>';
-    document.getElementById('app').classList.remove('hidden');
-    document.getElementById('loading').style.display='none';
-    document.getElementById('ctaBtn').onclick=function(){ if(token){go('STORY');}else{login();} };
-  }).catch(function(){document.getElementById('app').classList.remove('hidden');document.getElementById('loading').style.display='none';});
-  fetch('/api/users/me').then(function(r){return r.json();}).then(function(d){
-    if(d&&d.email){
-      document.getElementById('planBadge').textContent='Plan: '+(d.plan||'FREE');
-      document.getElementById('avatarBtn').textContent=(d.email||'?').slice(0,1).toUpperCase();
-    }else{ document.getElementById('planBadge').textContent=''; document.getElementById('avatarBtn').textContent='?'; }
-  }).catch(function(){});
-}
-function login(){location.href='/api/auth/login?next='+encodeURIComponent(location.pathname||'/app');}
-function go(id){location.href='/app/'+id.toLowerCase();}
-boot();
-</script>
-</body>
-</html>`;
-
-const adminSsrHtml = (env) => {
-  const adminEmail = env.ADMIN_EMAIL || '';
-  if (!adminEmail) return `<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><title>Admin</title></head><body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;background:#080C18;color:#F8FAFC"><div style="text-align:center"><h2>Admin Center</h2><p>ADMIN_EMAIL မထားရသေးပါ။ Cloudflare Secret ထဲ ထည့်ပါ။</p></div></body></html>`;
-  return `<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — AI Creative Studio</title><style>body{font-family:system-ui,sans-serif;background:#080C18;color:#F8FAFC;display:grid;place-items:center;min-height:100vh;padding:20px;box-sizing:border-box}code{background:#111A2C;padding:2px 8px;border-radius:6px;font-size:.9em}</style></head><body><div style="max-width:560px;text-align:center;background:#0D1424;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:30px"><h2>🔐 Admin login</h2><p style="color:#8D98AB">Admin အကောင့်နဲ့ ဝင်ရောက်ပါ။</p><a href="/api/auth/login?next=%2Fadmin" style="display:inline-block;margin-top:14px;background:linear-gradient(135deg,#00BFD6,#008FA4);color:#fff;padding:11px 18px;border-radius:10px;text-decoration:none">Google နဲ့ ဝင်မည်</a></div></body></html>`;
-};
-
-const creationsPageHtml = () => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Creations — AI Creative Studio</title>
-<style>
-body{font-family:system-ui,sans-serif;background:#080C18;color:#F8FAFC;margin:0;min-height:100vh}
-.wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(8,12,24,.8);backdrop-filter:blur(16px);position:sticky;top:0}
-.card{background:#0D1424;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:12px}
-button{cursor:pointer;border:none;border-radius:9px;padding:8px 13px;font-size:13px}
-.btn{background:#00BFD6;color:#fff}
-.muted{color:#8D98AB;font-size:12px}
-.empty{text-align:center;padding:60px 20px;color:#8D98AB}
-</style>
-</head>
-<body>
-<div class="topbar"><div style="font-weight:800">✦ My Creations</div><button class="btn" onclick="location.href='/app'">← App</button></div>
-<div class="wrap"><div id="list" class="empty">Loading…</div></div>
-<script>
-function load(){
-  var t=localStorage.getItem('aics_token')||'';
-  var box=document.getElementById('list');
-  fetch('/api/creations',{headers:{'Authorization':'Bearer '+t}}).then(function(r){return r.json();}).then(function(d){
-    var items=d.items||[];
-    if(!items.length){box.className='empty';box.innerHTML='<b>မဖန်တီးရသေးပါ။</b><br><br><button class="btn" onclick="location.href=\'/app\'">စတင်ဖန်တီးမယ်</button>';return;}
-    box.className='';
-    box.innerHTML=items.map(function(c){
-      return '<div class="card"><b>'+esc(c.title||'Untitled')+'</b><div class="muted" style="margin-top:6px">'+esc(c.type||'')+' · '+esc(c.created_at||'')+'</div></div>';
-    }).join('');
-  }).catch(function(e){box.innerHTML='<div class="card">Error: '+esc(String(e&&e.message||e))+'</div>';});
-}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-load();
-</script>
-</body>
-</html>`;
-
-const storyPageHtml = () => studioPageTemplate('STORY', 'Story', '📖', 'story');
-const contentPageHtml = () => studioPageTemplate('CONTENT', 'Content', '📝', 'content');
-const shortPageHtml = () => studioPageTemplate('SHORT', 'Short', '⚡', 'short');
-const imagePageHtml = () => studioPageTemplate('IMAGE', 'Image', '🖼️', 'image');
-const voicePageHtml = () => studioPageTemplate('VOICE', 'Voice', '🎙️', 'voice');
-const shopPageHtml = () => studioPageTemplate('SHOP', 'Shop', '🛍️', 'shop');
-
-const studioPageTemplate = (id, name, icon, slug) => `<!DOCTYPE html>
-<html lang="my">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>${name} — AI Creative Studio</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${icon}</text></svg>">
-<style>
-:root{--bg:#080C18;--panel:#0D1424;--card:#111A2C;--card2:#151F33;--line:rgba(255,255,255,.08);--text:#F8FAFC;--muted:#8D98AB;--cyan:#00E5FF;--purple:#7B5CFF;--green:#4ADE80;--orange:#FF9F2B;--red:#FF6672;--radius:16px}
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Myanmar",sans-serif}
-body{background:radial-gradient(900px 500px at 85% -10%,rgba(123,92,255,.13),transparent 55%),radial-gradient(700px 500px at 10% 0%,rgba(0,229,255,.07),transparent 52%),var(--bg)}
-button,input,select,textarea{font:inherit}
-button{cursor:pointer}
-.hidden{display:none!important}
-.topbar{position:sticky;top:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(8,12,24,.84);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:10px;cursor:pointer}
-.brand-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--purple),var(--cyan));font-size:16px}
-.brand-title{font-weight:800;font-size:12px}
-.back{color:var(--muted);text-decoration:none;font-size:12px;border:1px solid var(--line);padding:7px 11px;border-radius:9px}
-.wrap{max-width:960px;margin:0 auto;padding:20px 18px 60px}
-.panel{background:linear-gradient(180deg,rgba(21,31,51,.97),rgba(15,24,41,.97));border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 34px rgba(0,0,0,.1)}
-.studio-head{display:flex;align-items:center;gap:13px;margin-bottom:14px}
-.studio-head .icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:20px;background:rgba(0,229,255,.09);border:1px solid rgba(0,229,255,.12)}
-.studio-head h1{font-size:19px;margin:0}
-.studio-head .sub{font-size:11px;color:var(--muted);margin-top:3px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px}
-.tab{font-size:11.5px;padding:7px 11px;border-radius:9px;border:1px solid var(--line);color:var(--muted);cursor:pointer;background:transparent}
-.tab.on{background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.2);color:#fff}
-textarea{width:100%;min-height:110px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:#0C1525;color:#EAF0F7;padding:11px;font-size:13px;outline:none;resize:vertical;box-sizing:border-box}
-textarea:focus{border-color:rgba(0,229,255,.42);box-shadow:0 0 0 3px rgba(0,229,255,.06)}
-.gen-btn{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,#00BFD6,#008FA4);color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 10px 26px rgba(0,229,255,.14)}
-.gen-btn:disabled{opacity:.55;cursor:not-allowed}
-.model-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
-.model-row select{background:#0C1525;border:1px solid rgba(255,255,255,.1);color:#EAF0F7;border-radius:9px;padding:8px 10px;font-size:12px;outline:none}
-.out{background:#0A111E;border:1px solid var(--line);border-radius:12px;padding:14px;white-space:pre-wrap;font-size:13px;line-height:1.7;min-height:80px;margin-top:14px}
-.progress{height:3px;background:rgba(0,229,255,.15);border-radius:3px;overflow:hidden;margin-top:10px;display:none}
-.progress>div{height:100%;width:40%;background:linear-gradient(90deg,var(--cyan),var(--purple));animation:slide 1.1s ease-in-out infinite}
-@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
-.plan-tag{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 7px;border-radius:999px;background:rgba(123,92,255,.16);color:#C9BCFF;border:1px solid rgba(123,92,255,.28);text-transform:uppercase}
-.muted{color:var(--muted);font-size:11px}
-.err{color:#FF8E98;font-size:12px;margin-top:8px}
-.footer{margin-top:30px;text-align:center;color:var(--muted);font-size:10.5px}
-@media(max-width:560px){.wrap{padding:14px 12px 50px}.studio-head h1{font-size:17px}}
-</style>
-</head>
-<body>
-<div class="topbar"><div class="brand" onclick="location.href='/app'"><div class="brand-mark">${icon}</div><div class="brand-title">${name}</div></div><a class="back" href="/app">← Home</a></div>
-<div class="wrap">
-  <div class="panel">
-    <div class="studio-head"><div class="icon">${icon}</div><div><h1>${name} — AI ဖန်တီးမှု</h1><div class="sub">${id} Studio · Premium Myanmar AI</div></div></div>
-    <div class="tabs" id="tabs"><button class="tab on" data-t="1">စာသား</button><button class="tab" data-t="2">ဗီဒီယို</button></div>
-    <textarea id="prompt" placeholder="ဥပမာ — ${name} အတွက် သင့်ရဲ့စာသားကို ရေးပါ…"></textarea>
-    <div class="model-row"><select id="model"></select><span id="planTag" class="plan-tag">FREE</span></div>
-    <button class="gen-btn" id="genBtn">✦ ${name} ဖန်တီးမယ်</button>
-    <div class="progress" id="prog"><div></div></div>
-    <div class="err" id="err"></div>
-    <div class="out" id="out">Result က ဒီမှာ ပေါ်ပါမယ်…</div>
-  </div>
-  <div class="footer">✦ ${name} Studio — AI Creative Studio © 2026</div>
-</div>
-<script>
-var STUDIO='${id}';var TOKEN=localStorage.getItem('aics_token')||'';
-var tabs=[['1','စာသား'],['2','ဗီဒီယို']];
-function init(){
-  if(!TOKEN){location.href='/api/auth/login?next='+encodeURIComponent('/app/'+'${slug}');return;}
-  var tabsBox=document.getElementById('tabs');tabsBox.innerHTML='';
-  tabs.forEach(function(t){var b=document.createElement('button');b.className='tab'+(t[0]==='1'?' on':'');b.textContent=t[1];b.onclick=function(){setTab(t[0]);};tabsBox.appendChild(b);});
-  loadModels();
-  document.getElementById('genBtn').onclick=generate;
-  fetch('/api/users/me').then(function(r){return r.json();}).then(function(d){
-    if(d&&d.email){document.getElementById('planTag').textContent='Plan: '+(d.plan||'FREE');if(d.isAdmin){var a=document.createElement('a');a.href='/admin';a.textContent=' · Admin';a.style.color='#00E5FF';a.style.marginLeft='6px';document.getElementById('planTag').appendChild(a);}}
-  }).catch(function(){});
-}
-function setTab(t){document.querySelectorAll('#tabs .tab').forEach(function(b){b.className='tab'+(b.getAttribute('data-t')===t?' on':'');});}
-function loadModels(){
-  fetch('/api/models').then(function(r){return r.json();}).then(function(d){
-    var sel=document.getElementById('model');sel.innerHTML='';
-    (d.items||[]).forEach(function(m){
-      if(m.category!=='${slug==='image'?'image':(slug==='voice'?'voice':'text')}')return;
-      var o=document.createElement('option');o.value=m.id;o.textContent=m.name||m.id;sel.appendChild(o);
-    });
-    if(!sel.options.length){var o=document.createElement('option');o.value='gemini-2.5-flash';o.textContent='gemini-2.5-flash (default)';sel.appendChild(o);}
-  }).catch(function(){});
-}
-function generate(){
-  var prompt=document.getElementById('prompt').value.trim();
-  if(!prompt){document.getElementById('err').textContent='Prompt ရိုက်ပါ။';return;}
-  document.getElementById('err').textContent='';
-  var t=document.querySelector('#tabs .tab.on');var mode=t?t.getAttribute('data-t'):'1';
-  var btn=document.getElementById('genBtn');btn.disabled=true;btn.textContent='⏳ ဖန်တီးနေသည်…';
-  document.getElementById('prog').style.display='block';
-  var out=document.getElementById('out');out.textContent='…';
-  fetch('/api/studio/${slug}/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},body:JSON.stringify({prompt:prompt,model:document.getElementById('model').value,mode:mode})})
-  .then(function(r){return r.json();}).then(function(d){
-    document.getElementById('prog').style.display='none';btn.disabled=false;btn.textContent='✦ ${name} ဖန်တီးမယ်';
-    if(d.error&&d.detail){out.textContent='ERROR: '+d.detail;return;}
-    out.textContent=d.output||d.text||JSON.stringify(d);
-  }).catch(function(e){document.getElementById('prog').style.display='none';btn.disabled=false;btn.textContent='✦ ${name} ဖန်တီးမယ်';out.textContent='Network error: '+String(e&&e.message||e);});
-}
-init();
-</script>
-</body>
-</html>`;
-
-const logoutPage = () => `<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><title>Logged out</title></head><body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;background:#080C18;color:#F8FAFC"><div style="text-align:center"><h2>ထွက်လိုက်ပါပြီ</h2><p class="muted">ပြန်ဝင်ရန် → <a href="/api/auth/login?next=%2Fapp" style="color:#00E5FF">Login</a></p></div></body></html>`;
