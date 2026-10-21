@@ -235,8 +235,8 @@ function loadFeatures(){
         '<div class="row" style="gap:6px;">'+
         '<select id="acc-'+esc(f.id)+'"><option value="FREE"'+(f.access!=='PRO'?' selected':'')+'>FREE</option><option value="PRO"'+(f.access==='PRO'?' selected':'')+'>PRO</option></select>'+
         '<input id="lim-'+esc(f.id)+'" type="number" min="0" value="'+esc(f.limit_value||0)+'" title="Limit" style="width:70px;">'+
-        '<button class="btn sm '+(f.enabled?'red':'green')+'" data-on="'+(f.enabled?'1':'0')+'" onclick="toggleFeature(\''+esc(f.id)+'\',this)">'+(f.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
-        '<button class="btn sm" onclick="saveFeature(\''+esc(f.id)+'\')">💾 Save</button>'+
+        '<button class="btn sm '+(f.enabled?'red':'green')+'" data-on="'+(f.enabled?'1':'0')+'" onclick="toggleFeature(\\''+esc(f.id)+'\\',this)">'+(f.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
+        '<button class="btn sm" onclick="saveFeature(\\''+esc(f.id)+'\\')">💾 Save</button>'+
         '</div></div>';
       list.appendChild(c);
     });
@@ -302,10 +302,10 @@ function renderModels(){
       '<div class="row" style="gap:6px;margin-top:6px;">'+
       '<input id="nm_'+mid+'" value="'+esc(m.name||m.id)+'" placeholder="ပြမည့်နာမည်" style="flex:2;min-width:110px;">'+
       '<select id="pm_'+mid+'"><option value="FREE"'+(m.plan_access!=='PRO'?' selected':'')+'>လူတိုင်း</option><option value="PRO"'+(m.plan_access==='PRO'?' selected':'')+'>PRO သာ</option></select>'+
-      '<button class="btn sm" onclick="saveModel(\''+mid+'\')">💾 Save</button>'+
-      '<button class="btn sm '+(m.enabled?'red':'green')+'" data-on="'+(m.enabled?'1':'0')+'" onclick="toggleModel(\''+mid+'\',this)">'+(m.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
-      '<button class="btn sm '+(m.is_default?'gray':'')+'" onclick="setDefault(\''+mid+'\')">★ မူရင်း</button>'+
-      '<button class="btn sm red" onclick="delModel(\''+mid+'\')">🗑 ဖျက်</button>'+
+      '<button class="btn sm" onclick="saveModel(\\''+mid+'\\')">💾 Save</button>'+
+      '<button class="btn sm '+(m.enabled?'red':'green')+'" data-on="'+(m.enabled?'1':'0')+'" onclick="toggleModel(\\''+mid+'\\',this)">'+(m.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
+      '<button class="btn sm '+(m.is_default?'gray':'')+'" onclick="setDefault(\\''+mid+'\\')">★ မူရင်း</button>'+
+      '<button class="btn sm red" onclick="delModel(\\''+mid+'\\')">🗑 ဖျက်</button>'+
       '</div></div></div>';
   });
   $('modelsList').innerHTML=html;
@@ -548,7 +548,7 @@ function loadStudios(){
       c.className='card';
       c.innerHTML='<div class="user-row"><div><b>'+esc(s.nameMy)+'</b> <span style="font-size:11px;color:#6B7280;">('+esc(s.name)+')</span>'+
         '<div class="user-meta">'+(s.enabled?'<span class="badge pro">ON</span>':'<span class="badge free">OFF</span>')+'</div></div>'+
-        '<button class="btn sm '+(s.enabled?'red':'green')+'" data-on="'+(s.enabled?'1':'0')+'" onclick="toggleStudio(\''+esc(s.id)+'\',this)">'+(s.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button></div>';
+        '<button class="btn sm '+(s.enabled?'red':'green')+'" data-on="'+(s.enabled?'1':'0')+'" onclick="toggleStudio(\\''+esc(s.id)+'\\',this)">'+(s.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button></div>';
       list.appendChild(c);
     });
   }).catch(function(e){
