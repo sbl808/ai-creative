@@ -47,8 +47,48 @@ def main():
             db.execute(f"INSERT INTO {table}(user_id, window_id, attempts) VALUES (?, ?, ?)", ("user-b", 123, 1))
             assert db.execute(f"SELECT COUNT(*) FROM {table}").fetchone() == (2,), table
 
+        # Exercise the exact shared-generation upsert against SQLite to
+        # verify atomic increments, user isolation, and window isolation offline.
+        db.execute(
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-a", 456),
+        )
+        for _ in range(30):
+            db.execute(
+                "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+                "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+                ("rate-user-a", 456),
+            )
+        count = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-a", 456),
+        ).fetchone()
+        assert count == (31,), ("shared counter increment", count)
+
+        db.execute(
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-b", 456),
+        )
+        db.execute(
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-a", 457),
+        )
+        isolated = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-b", 456),
+        ).fetchone()
+        next_window = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-a", 457),
+        ).fetchone()
+        assert isolated == (1,), ("user isolation", isolated)
+        assert next_window == (1,), ("window isolation", next_window)
+
         print("=== MIGRATION RESULT: PASS ===")
-        print("Both rate-limit migrations: SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite.")
+        print("Both rate-limit migrations: SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite.\nShared AI counter upsert: 31 increments, user isolation, and window isolation verified in SQLite.")
         print("Cloudflare D1 remote application: NOT TESTED.")
     finally:
         db.close()
