@@ -147,13 +147,43 @@ async function callGeminiImage(env, { model, prompt, apiKey }) {
 }
 
 // ===== Multimodal (Text + Image(s)) — Short Video / Shop / Image Reference =====
+// Shared guard for all image-reference workflows (Shop, Short, Image branches).
+// Limits protect Gemini payload construction without changing frontend request contracts.
+function validateMultimodalInputs(prompt, images) {
+  const MAX_PROMPT_CHARS = 100_000;
+  const MAX_IMAGES = 5;
+  const MAX_IMAGE_CHARS = 12 * 1024 * 1024;
+  const MAX_TOTAL_IMAGE_CHARS = 20 * 1024 * 1024;
+
+  if (typeof prompt !== 'string' || prompt.length > MAX_PROMPT_CHARS) {
+    throw new Error('prompt_too_large');
+  }
+  const list = images == null ? [] : images;
+  if (!Array.isArray(list)) throw new Error('invalid_images');
+  if (list.length > MAX_IMAGES) throw new Error('too_many_images');
+
+  let totalChars = 0;
+  for (const img of list) {
+    if (!img || typeof img !== 'object') throw new Error('invalid_image');
+    const data = img.base64 || img.data;
+    if (typeof data !== 'string' || !data.length || typeof img.mimeType !== 'string' || !img.mimeType.startsWith('image/')) {
+      throw new Error('invalid_image');
+    }
+    if (data.length > MAX_IMAGE_CHARS) throw new Error('image_too_large');
+    totalChars += data.length;
+    if (totalChars > MAX_TOTAL_IMAGE_CHARS) throw new Error('images_too_large');
+  }
+  return list;
+}
+
 async function callGeminiMultimodal(env, { model, prompt, images, apiKey }) {
   const key = apiKey || env.GEMINI_API_KEY;
   if (!key) throw new Error('no_api_key');
+  const validatedImages = validateMultimodalInputs(prompt, images);
   const parts = [{ text: prompt }];
-  (images || []).forEach((img) => {
+  validatedImages.forEach((img) => {
     parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 || img.data } });
-  });
+  }););
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -233,4 +263,4 @@ async function callGeminiTTS(env, { text, voiceName, apiKey, model }) {
   throw lastErr || new Error('tts_failed');
 }
 
-export { callGeminiText, callGeminiImage, callGeminiMultimodal, callGeminiTTS };
+export { callGeminiText, callGeminiImage, callGeminiMultimodal, callGeminiTTS, validateMultimodalInputs };
