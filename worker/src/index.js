@@ -250,7 +250,7 @@ function creationsTestPage() {
     '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
     '<h2 style="color:#1b6d96">💾 My Creations</h2>' +
     '<p style="font-size:14px;line-height:1.6">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
-    'Server/D1 တွင် User Content မသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
+    'Server/D1 တွင် User Contentမသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
     '<p style="font-size:14px">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
     '</body></html>';
 }
@@ -263,10 +263,16 @@ export default {
     try {
       const url = new URL(request.url);
       const path = url.pathname;
+      const isProdEnv = String(env.ENVIRONMENT || '').toLowerCase() === 'prod';
       // 204 must carry no body (per Fetch spec); headers still carry the allowlist result.
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
-      if (path === '/' && request.method === 'GET') return htmlPage(homePage());
+      // Production root returns a minimal health JSON (no debug links).
+      // Debug landing page only outside prod.
+      if (path === '/' && request.method === 'GET') {
+        if (isProdEnv) return json({ ok: true, service: 'ai-creative', time: new Date().toISOString() }, 200, cors);
+        return htmlPage(homePage());
+      }
 
       if (path === '/api/auth/login' && request.method === 'GET') {
         const origin = url.origin;
@@ -421,8 +427,8 @@ export default {
           }
           return json({ error: 'not_found' }, 404, cors);
         }
-        const adminEmail = env.ADMIN_EMAIL || 'saialin808@gmail.com';
-        if (String(payload.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
+        const adminEmail = env.ADMIN_EMAIL || '';
+        if (!adminEmail || String(payload.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
           return json({ error: 'not_found' }, 404, cors);
         }
         return htmlPage(ADMIN_HTML);
@@ -484,10 +490,10 @@ export default {
 
       const adminResp = await adminApi(request, path, env, verifyToken);
       if (adminResp) return adminResp;
-      if (path === '/ai-test') return htmlPage(aiTestPage());
-      if (path === '/cms-test') return htmlPage(cmsTestPage());
-      if (path === '/studio-test') return htmlPage(studioTestPage());
-      if (path === '/creations-test') return htmlPage(creationsTestPage());
+      if (!isProdEnv && path === '/ai-test') return htmlPage(aiTestPage());
+      if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage());
+      if (!isProdEnv && path === '/studio-test') return htmlPage(studioTestPage());
+      if (!isProdEnv && path === '/creations-test') return htmlPage(creationsTestPage());
 
       if (path === '/api/users/me' && request.method === 'GET') {
         const token = bearer(request);
@@ -495,8 +501,8 @@ export default {
         const payload = await verifyTokenSafe(env, token);
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const plan = await resolvePlan(env, payload);
-        const adminEmail = env.ADMIN_EMAIL || 'saialin808@gmail.com';
-        const isAdmin = String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
+        const adminEmail = env.ADMIN_EMAIL || '';
+        const isAdmin = !!adminEmail && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
         // Phase 3 — User ၏ Settings / Preferences များကိုပါ ပြန်ပို့သည်
         const settings = await getUserSettings(env, payload.sub);
         const preferences = await getUserPreferences(env, payload.sub);
@@ -522,7 +528,7 @@ export default {
         return json({ email: payload.email, name, plan, user_id: payload.sub, is_admin: isAdmin, usage, settings, preferences, studio_settings }, 200, cors);
       }
 
-      // ===== Phase C — AI Models List (User အတွက် Studio Dropdown) =====
+      // ===== Phase C — AI Models List (Userအတွက် Studio Dropdown) =====
       // ဖွင့်ထားသော + User ၏ Plan နှင့် ကိုက်ညီသော Model များကိုသာ ပြန်ပို့သည်
       if (path === '/api/ai-models' && request.method === 'GET') {
         const token = bearer(request);
@@ -647,7 +653,7 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body) return json({ error: 'bad_request' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
+        const plan = resolvePlan(env, payload);
         const c = await getCMSData(env, body.studio || 'STORY', plan, body.type || '1');
         if (!c) return json({ found: false }, 200, cors);
         return json({ found: true, studio: c.studio, plan: c.plan, type: c.type, system_prompt: buildSystemPrompt(c) }, 200, cors);
@@ -1547,7 +1553,7 @@ export default {
 
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
-      // Server-side /api/creations endpoints များကို ဖယ်ရှားပြီးပြီ — D1 တွင် User Content မသိမ်းတော့ပါ။
+      // Server-side /api/creations endpoints များကို ဖယ်ရှားပြီးပြီ — D1 တွင် User Contentမသိမ်းတော့ပါ။
 
       // Favicon — Console 404 noise ကို ဖယ်ရှားရန် inline SVG icon ပြန်ပေးသည်
       if (path === '/favicon.ico' && request.method === 'GET') {
@@ -1562,7 +1568,7 @@ export default {
         });
       }
 
-      // Phase 1 — Unknown /app/* path (studio မရှိ) → 404 STUDIO_NOT_FOUND
+      // Phase 1 — Unknown /app/* path (studioမရှိ) → 404 STUDIO_NOT_FOUND
       // (creations/settings/projects စစ်ပြီးမှသာ ဤနေရာသို့ ရောက်သည် — ထို routes များ မထိခိုက်)
       if (path.startsWith('/app/')) {
         return new Response('STUDIO_NOT_FOUND', {
