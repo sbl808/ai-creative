@@ -41,7 +41,6 @@ function studioCollectDraft(){
     mainMessage:val('mainMessage'),
     length:val('lengthSel'),
     additionalInstr:val('additionalInstr'),
-    byok:val('byokInput'),
     videoContent:val('videoContentText'),
     videoGenerationLevel:val('videoGenerationLevelSel')||'1',
     videoTypeSel:val('videoTypeSel'),
@@ -55,7 +54,6 @@ function studioCollectDraft(){
     videoVisualSettings:val('videoVisualSettings'),
     videoReference:val('videoReference'),
     videoAdditionalInstructions:val('videoAdditionalInstructions'),
-    videoByok:val('videoByokInput'),
     ttsText:val('ttsText'),
     voiceGender:currentVoiceGender(),
     voice:val('voiceSel'),
@@ -95,7 +93,8 @@ function studioRestoreDraft(d){
   setVal('mainMessage',d.mainMessage);
   setVal('lengthSel',d.length);
   setVal('additionalInstr',d.additionalInstr);
-  setVal('byokInput',d.byok);
+  // Never restore legacy plaintext API keys from browser drafts.
+  setVal('byokInput','');
   setVal('videoContentText',d.videoContent);
   setVal('videoGenerationLevelSel',d.videoGenerationLevel||d.videoType||'1');
   setVal('videoTypeSel',d.videoTypeSel);
@@ -109,7 +108,7 @@ function studioRestoreDraft(d){
   setVal('videoVisualSettings',d.videoVisualSettings);
   setVal('videoReference',d.videoReference);
   setVal('videoAdditionalInstructions',d.videoAdditionalInstructions);
-  setVal('videoByokInput',d.videoByok);
+  setVal('videoByokInput','');
   setVal('ttsText',d.ttsText);
   var oldEff=d.effectiveVoice||'';
   var gender=d.voiceGender||(oldEff&&FEMALE_VOICE_NAMES.indexOf(oldEff)>=0?'female':'male');
