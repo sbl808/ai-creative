@@ -8,7 +8,7 @@ vars = { ENVIRONMENT = "dev", ALLOWED_ORIGINS = "https://aics-frontend-dev.pages
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "ai-creative-db-dev"
-database_id = "3f747286-9531-4b92-96a7-f0144387bd91"
+database_id = "cloudflare အကောင့် မရှိသေးပါ"
 
 # --- staging ---
 [env.staging]
@@ -16,7 +16,7 @@ vars = { ENVIRONMENT = "staging", ALLOWED_ORIGINS = "https://aics-frontend-stagi
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "ai-creative-db-staging"
-database_id = "xxxxxxxxx"
+database_id = "cloudflare အကောင့် မရှိသေးပါ"
 
 # --- prod ---
 [env.prod]
@@ -24,4 +24,4 @@ vars = { ENVIRONMENT = "prod", ALLOWED_ORIGINS = "https://aics-frontend-prod.pag
 [[env.prod.d1_databases]]
 binding = "DB"
 database_name = "ai-creative-db-prod"
-database_id = "xxxxxxxx"
+database_id = "cloudflare အကောင့် မရှိသေးပါ"
