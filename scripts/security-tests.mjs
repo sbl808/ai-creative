@@ -287,6 +287,44 @@ console.log('\n--- E) API key settings UI save/status contract ---');
     removeApiKey.includes('loadKeyStatus();'));
 }
 
+console.log('\n--- F) API request body size protection ---');
+{
+  const limit = 32 * 1024 * 1024;
+  const oversizedHeaderRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': String(limit + 1) },
+    body: '{}',
+  });
+  const headerResponse = await worker.fetch(oversizedHeaderRequest, envFor(DEV_ORIGIN), {});
+  check('API POST rejects declared Content-Length above 32 MiB with 413',
+    headerResponse.status === 413 &&
+    (await headerResponse.json()).error === 'request_body_too_large');
+
+  const oversizedStream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(limit + 1));
+      controller.close();
+    },
+  });
+  const streamedRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: oversizedStream,
+    duplex: 'half',
+  });
+  check('API POST rejects oversized streamed body when Content-Length is absent',
+    streamedRequest.headers.get('Content-Length') === null &&
+    (await worker.fetch(streamedRequest, envFor(DEV_ORIGIN), {})).status === 413);
+
+  const smallRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ok: true }),
+  });
+  const smallResponse = await worker.fetch(smallRequest, envFor(DEV_ORIGIN), {});
+  check('API POST under the body limit is not rejected by size guard', smallResponse.status !== 413);
+}
+
 console.log('--- F) Content draft secret exclusion ---');
 {
  const shell = readFileSync(new URL('../worker/src/frontend/studios/content/shell.js', import.meta.url), 'utf8');
