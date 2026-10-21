@@ -1337,7 +1337,7 @@ export default {
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'image.ad_prompt', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
+        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
             let apiKey = body.apiKey;
