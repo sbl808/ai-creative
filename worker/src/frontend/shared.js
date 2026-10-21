@@ -873,6 +873,7 @@ export function renderStudioShell(opts) {
     '    var data = null;\n' +
     '    if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }\n' +
     '    try {\n' +
+    '      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }\n' +
     '      localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));\n' +
     '      toast("&#10004; Draft သိမ်းပြီးပါပြီ");\n' +
     '    } catch (e) { toast("Save မအောင်မြင်ပါ", true); }\n' +
@@ -889,6 +890,10 @@ export function renderStudioShell(opts) {
     '    if (raw) {\n' +
     '      try {\n' +
     '        var d = JSON.parse(raw);\n' +
+    '        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {\n' +
+    '          delete d.data.byok; delete d.data.videoByok;\n' +
+    '          localStorage.setItem(draftKey, JSON.stringify(d));\n' +
+    '        }\n' +
     '        if (d && d.data && window.studioRestoreDraft) { window.studioRestoreDraft(d.data); }\n' +
     '        if (d && d.step && allowed(d.step)) cur = d.step;\n' +
     '      } catch (e) {}\n' +
