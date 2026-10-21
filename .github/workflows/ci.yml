@@ -1,0 +1,59 @@
+name: CI
+
+# Runs on main and on every Pull Request (no deploy — deploy workflows come later)
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: Worker route regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run route regression tests
+        run: node --experimental-default-type=module scripts/regression-test.mjs
+
+  security:
+    name: Security contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run security tests
+        run: node --experimental-default-type=module scripts/security-tests.mjs
+
+  browser-static:
+    name: Browser script static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check browser scripts
+        run: node --experimental-default-type=module scripts/check-browser-scripts.mjs
+
+  migration-contract:
+    name: D1 migration schema contract (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate rate-limit migration with SQLite
+        run: python scripts/test-api-test-limits-migration.py
