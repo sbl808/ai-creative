@@ -257,7 +257,7 @@ console.log('\n--- D) API test rate-limit migration contract ---');
 
 console.log('\n--- E) Shared AI generation rate-limit contract ---');
 {
-  const migrationPath = new URL('../worker/migrations/007_create_api_generation_limits.sql', import.meta.url);
+  const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
   const migrationExists = existsSync(migrationPath);
   check('shared AI rate-limit migration exists', migrationExists);
   if (migrationExists) {
