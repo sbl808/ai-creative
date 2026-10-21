@@ -9,52 +9,86 @@ import sqlite3
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = ROOT / "worker" / "migrations" / "006_create_api_test_limits.sql"
+MIGRATIONS = [
+    (ROOT / "worker" / "migrations" / "006_create_api_test_limits.sql", "api_test_limits",
+     {"user_id", "window_id", "attempts"}, "idx_api_test_limits_window"),
+    (ROOT / "worker" / "migrations" / "015_create_api_generation_limits.sql", "api_generation_limits",
+     {"user_id", "window_id", "attempts"}, "idx_api_generation_limits_window"),
+]
 
 def main():
-    sql = MIGRATION.read_text(encoding="utf-8")
     db = sqlite3.connect(":memory:")
     try:
-        db.executescript(sql)
-        # Migration must be safe to apply a second time.
-        db.executescript(sql)
+        for migration_path, table, expected_columns, expected_index in MIGRATIONS:
+            sql = migration_path.read_text(encoding="utf-8")
+            db.executescript(sql)
+            db.executescript(sql)
 
-        columns = {row[1]: row for row in db.execute("PRAGMA table_info(api_test_limits)")}
-        assert set(columns) == {"user_id", "window_id", "attempts"}, columns
-        assert columns["user_id"][3] == 1, "user_id must be NOT NULL"
-        assert columns["window_id"][3] == 1, "window_id must be NOT NULL"
-        assert columns["attempts"][4] == "0", "attempts default must be 0"
+            columns = {row[1]: row for row in db.execute(f"PRAGMA table_info({table})")}
+            assert set(columns) == expected_columns, (table, columns)
+            assert columns["user_id"][3] == 1, f"{table}: user_id must be NOT NULL"
+            assert columns["window_id"][3] == 1, f"{table}: window_id must be NOT NULL"
+            assert columns["attempts"][4] == "0", f"{table}: attempts default must be 0"
+            indexes = {row[1] for row in db.execute(f"PRAGMA index_list({table})")}
+            assert expected_index in indexes, (table, indexes)
 
-        indexes = {row[1] for row in db.execute("PRAGMA index_list(api_test_limits)")}
-        assert "idx_api_test_limits_window" in indexes, indexes
-
-        db.execute(
-            "INSERT INTO api_test_limits(user_id, window_id) VALUES (?, ?)",
-            ("user-a", 123),
-        )
-        row = db.execute(
-            "SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?",
-            ("user-a", 123),
-        ).fetchone()
-        assert row == (0,), row
-
-        duplicate_rejected = False
-        try:
-            db.execute(
-                "INSERT INTO api_test_limits(user_id, window_id) VALUES (?, ?)",
+            db.execute(f"INSERT INTO {table}(user_id, window_id) VALUES (?, ?)", ("user-a", 123))
+            row = db.execute(
+                f"SELECT attempts FROM {table} WHERE user_id = ? AND window_id = ?",
                 ("user-a", 123),
+            ).fetchone()
+            assert row == (0,), (table, row)
+            duplicate_rejected = False
+            try:
+                db.execute(f"INSERT INTO {table}(user_id, window_id) VALUES (?, ?)", ("user-a", 123))
+            except sqlite3.IntegrityError:
+                duplicate_rejected = True
+            assert duplicate_rejected, f"{table}: composite key must reject duplicates"
+            db.execute(f"INSERT INTO {table}(user_id, window_id, attempts) VALUES (?, ?, ?)", ("user-b", 123, 1))
+            assert db.execute(f"SELECT COUNT(*) FROM {table}").fetchone() == (2,), table
+
+        # Exercise the exact shared-generation upsert against SQLite to
+        # verify atomic increments, user isolation, and window isolation offline.
+        db.execute(
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-a", 456),
+        )
+        for _ in range(30):
+            db.execute(
+                "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+                "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+                ("rate-user-a", 456),
             )
-        except sqlite3.IntegrityError:
-            duplicate_rejected = True
-        assert duplicate_rejected, "composite primary key must reject duplicate user/window rows"
+        count = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-a", 456),
+        ).fetchone()
+        assert count == (31,), ("shared counter increment", count)
 
         db.execute(
-            "INSERT INTO api_test_limits(user_id, window_id, attempts) VALUES (?, ?, ?)",
-            ("user-b", 123, 1),
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-b", 456),
         )
-        assert db.execute("SELECT COUNT(*) FROM api_test_limits").fetchone() == (2,)
+        db.execute(
+            "INSERT INTO api_generation_limits(user_id, window_id, attempts) VALUES (?, ?, 1) "
+            "ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1",
+            ("rate-user-a", 457),
+        )
+        isolated = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-b", 456),
+        ).fetchone()
+        next_window = db.execute(
+            "SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?",
+            ("rate-user-a", 457),
+        ).fetchone()
+        assert isolated == (1,), ("user isolation", isolated)
+        assert next_window == (1,), ("window isolation", next_window)
+
         print("=== MIGRATION RESULT: PASS ===")
-        print("SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite.")
+        print("Both rate-limit migrations: SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite.\nShared AI counter upsert: 31 increments, user isolation, and window isolation verified in SQLite.")
         print("Cloudflare D1 remote application: NOT TESTED.")
     finally:
         db.close()

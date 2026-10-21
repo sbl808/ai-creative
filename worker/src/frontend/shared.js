@@ -298,16 +298,18 @@ export function sidebarScript() {
     '}\n' +
     'function setApiKey() {\n' +
     '  var key = prompt(\'မင်းရဲ့ Gemini API Key ကို ထည့်ပါ (aistudio.google.com ကနေ ရနိုင်ပါတယ်):\');\n' +
-    '  if (!key) return;\n' +
-    '  if (!SB_TOKEN) { __sbToast(\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\', true); return; }\n' +
-    '  fetch(\'/api/user/apikey\', {\n' +
+    '  if (!key) return Promise.resolve(false);\n' +
+    '  if (!SB_TOKEN) { __sbToast(\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\', true); return Promise.resolve(false); }\n' +
+    '  return fetch(\'/api/user/apikey\', {\n' +
     '    method: \'POST\',\n' +
     '    headers: { \'Content-Type\': \'application/json\', \'Authorization\': \'Bearer \' + SB_TOKEN },\n' +
     '    body: JSON.stringify({ key: key })\n' +
-    '  }).then(function (r) { return r.json(); }).then(function (d) {\n' +
-    '    if (d.error) { __sbToast(\'Save မအောင်မြင်\', true); return; }\n' +
+    '  }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); }).then(function (result) {\n' +
+    '    var d = result.data;\n' +
+    '    if (!result.ok || d.error) { __sbToast(\'Save မအောင်မြင်\', true); return false; }\n' +
     '    __sbToast(\'✓ API Key သိမ်းပြီးပါပြီ\', false);\n' +
-    '  }).catch(function () { __sbToast(\'Network error\', true); });\n' +
+    '    return true;\n' +
+    '  }).catch(function () { __sbToast(\'Network error\', true); return false; });\n' +
     '}\n' +
     '(function () {\n' +
     '  if (!SB_TOKEN) return;\n' +
@@ -871,6 +873,7 @@ export function renderStudioShell(opts) {
     '    var data = null;\n' +
     '    if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }\n' +
     '    try {\n' +
+    '      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }\n' +
     '      localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));\n' +
     '      toast("&#10004; Draft သိမ်းပြီးပါပြီ");\n' +
     '    } catch (e) { toast("Save မအောင်မြင်ပါ", true); }\n' +
@@ -887,6 +890,10 @@ export function renderStudioShell(opts) {
     '    if (raw) {\n' +
     '      try {\n' +
     '        var d = JSON.parse(raw);\n' +
+    '        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {\n' +
+    '          delete d.data.byok; delete d.data.videoByok;\n' +
+    '          localStorage.setItem(draftKey, JSON.stringify(d));\n' +
+    '        }\n' +
     '        if (d && d.data && window.studioRestoreDraft) { window.studioRestoreDraft(d.data); }\n' +
     '        if (d && d.step && allowed(d.step)) cur = d.step;\n' +
     '      } catch (e) {}\n' +

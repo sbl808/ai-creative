@@ -54,7 +54,7 @@ async function verifyToken(env, token) {
   const ok = await crypto.subtle.verify('HMAC', key, b64urlDecode(parts[2]), enc.encode(parts[0] + '.' + parts[1]));
   if (!ok) throw new Error('bad_signature');
   const data = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
-  if (data.exp && data.exp < Math.floor(Date.now() / 1000)) throw new Error('expired');
+  if (!Number.isSafeInteger(data.exp) || data.exp <= Math.floor(Date.now() / 1000)) throw new Error('expired');
   return data;
 }
 

@@ -114,6 +114,37 @@ console.log('\n--- B) Auth signing key (no dev fallback) ---');
   let mismatchErr = null;
   try { await a5.verifyToken({ SESSION_SIGNING_KEY: 'keyB' }, tokA); } catch (e) { mismatchErr = e; }
   check('token signed with key A rejected by key B', mismatchErr && /bad_signature/.test(mismatchErr.message));
+
+  // Regression tests for JWT exp enforcement. Build correctly signed tokens with
+  // controlled payloads so these cases exercise verification, not bad signatures.
+  const makeSignedToken = async (secret, payload) => {
+    const toB64Url = (value) => btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const header = toB64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const body = toB64Url(JSON.stringify(payload));
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(header + '.' + body));
+    const sig = toB64Url(String.fromCharCode(...new Uint8Array(signature)));
+    return header + '.' + body + '.' + sig;
+  };
+  const expiryCases = [
+    { label: 'expired JWT is rejected', payload: { sub: 'u-expired', exp: Math.floor(Date.now() / 1000) - 1 } },
+    { label: 'JWT without exp is rejected', payload: { sub: 'u-no-exp' } },
+    { label: 'JWT with string exp is rejected', payload: { sub: 'u-string-exp', exp: String(Math.floor(Date.now() / 1000) + 3600) } },
+    { label: 'JWT with unsafe integer exp is rejected', payload: { sub: 'u-unsafe-exp', exp: Number.MAX_SAFE_INTEGER + 1 } },
+  ];
+  for (const testCase of expiryCases) {
+    const auth = await loadAuth();
+    const signed = await makeSignedToken('jwt-expiry-test-key', testCase.payload);
+    let verifyErr = null;
+    try {
+      await auth.verifyToken({ SESSION_SIGNING_KEY: 'jwt-expiry-test-key' }, signed);
+    } catch (e) {
+      verifyErr = e;
+    }
+    check(testCase.label, !!verifyErr && /expired/.test(verifyErr.message), verifyErr && verifyErr.message);
+  }
 }
 
 console.log('\n--- C) Deployment config validation ---');
@@ -195,6 +226,171 @@ console.log('\n--- D) BYOK encrypted storage lifecycle ---');
   check('missing encryption secret fails closed before DB write',
     !!missingSecretErr && /missing_key_encryption_secret/.test(missingSecretErr.message) && rows.size === writesBefore,
     missingSecretErr && missingSecretErr.message);
+}
+
+console.log('\n--- D) API test rate-limit migration contract ---');
+{
+  const migrationPath = new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url);
+  const migrationExists = existsSync(migrationPath);
+  check('API rate-limit migration file exists', migrationExists);
+  if (migrationExists) {
+    const migration = readFileSync(migrationPath, 'utf8');
+    check('migration creates api_test_limits table',
+      /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
+    check('migration defines per-user/per-window primary key',
+      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
+    check('migration indexes window_id for cleanup queries',
+      /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
+    const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+    check('rate-limit route SQL matches migration table and columns',
+      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
+      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
+  }
+  const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
+  check('migration target can be identified as dev D1 only',
+    /database_name = "ai-creative-db-dev"/.test(dev) &&
+    /database_id = "3f747286-9531-4b92-96a7-f0144387bd91"/.test(dev));
+  console.log('  ↷ remote D1 migration execution NOT TESTED — no database changes performed');
+}
+
+
+console.log('\n--- E) Shared AI generation rate-limit contract ---');
+{
+  const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
+  const migrationExists = existsSync(migrationPath);
+  check('shared AI rate-limit migration exists', migrationExists);
+  if (migrationExists) {
+    const migration = readFileSync(migrationPath, 'utf8');
+    check('migration creates per-user/per-window generation counters',
+      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
+      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
+    check('migration indexes window_id for cleanup',
+      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
+  }
+  const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  check('generation routes share a 30-per-10-minute user limit',
+    /const SHARED_AI_RATE_LIMIT = 30/.test(route) &&
+    /api_generation_limits/.test(route) &&
+    /enforceSharedAiRateLimit\(request, env, path\)/.test(route) &&
+    /rate_limited/.test(route));
+  check('rate-limit covers six Studio families and CMS prompt',
+    /path === '\/api\/cms\/prompt'/.test(route) &&
+    /content\|story\|short\|image\|voice\|shop/.test(route));
+  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+}
+
+console.log('\n--- E) API key settings UI save/status contract ---');
+{
+  const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  const setApiKeyStart = shared.indexOf('function setApiKey()');
+  const setApiKeyEnd = shared.indexOf('\nfunction ', setApiKeyStart + 1);
+  const setApiKey = setApiKeyStart >= 0
+    ? shared.slice(setApiKeyStart, setApiKeyEnd >= 0 ? setApiKeyEnd : undefined)
+    : '';
+  check('API key save returns a Promise for async completion',
+    setApiKey.includes('return fetch(') && setApiKey.includes('/api/user/apikey'));
+  check('API key save reports cancellation/failure as false',
+    setApiKey.includes('if (!key) return Promise.resolve(false)') &&
+    setApiKey.includes('return false;'));
+  check('API key save treats non-2xx HTTP responses as failures',
+    setApiKey.includes('ok: r.ok') && setApiKey.includes('!result.ok || d.error'));
+  check('settings refreshes status only after save resolves successfully',
+    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
+    settings.includes('if(saved) loadKeyStatus();'));
+  check('API key status refresh does not depend on fixed two-second timer',
+    !settings.includes('setTimeout(loadKeyStatus,2000)') &&
+    !settings.includes('setTimeout(loadKeyStatus, 2000)'));
+  const removeStart = settings.indexOf('function removeApiKey()');
+  const removeEnd = settings.indexOf('\n}', removeStart);
+  const removeApiKey = removeStart >= 0
+    ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined)
+    : '';
+  check('API key deletion refreshes status after successful response',
+    removeApiKey.includes("showToast('API Key ဖျက်ပြီးပါပြီ','success');") &&
+    removeApiKey.includes('loadKeyStatus();'));
+}
+
+console.log('\n--- F) API request body size protection ---');
+{
+  const limit = 32 * 1024 * 1024;
+  const oversizedHeaderRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': String(limit + 1) },
+    body: '{}',
+  });
+  const headerResponse = await worker.fetch(oversizedHeaderRequest, envFor(DEV_ORIGIN), {});
+  check('API POST rejects declared Content-Length above 32 MiB with 413',
+    headerResponse.status === 413 &&
+    (await headerResponse.json()).error === 'request_body_too_large');
+
+  const oversizedStream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(limit + 1));
+      controller.close();
+    },
+  });
+  const streamedRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: oversizedStream,
+    duplex: 'half',
+  });
+  check('API POST rejects oversized streamed body when Content-Length is absent',
+    streamedRequest.headers.get('Content-Length') === null &&
+    (await worker.fetch(streamedRequest, envFor(DEV_ORIGIN), {})).status === 413);
+
+  const smallRequest = new Request('https://w.dev/api/test-body-limit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ok: true }),
+  });
+  const smallResponse = await worker.fetch(smallRequest, envFor(DEV_ORIGIN), {});
+  check('API POST under the body limit is not rejected by size guard', smallResponse.status !== 413);
+}
+
+console.log('--- F) Content draft secret exclusion ---');
+{
+ const shell = readFileSync(new URL('../worker/src/frontend/studios/content/shell.js', import.meta.url), 'utf8');
+ const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+ const collect = shell.split('function studioCollectDraft(){')[1].split('window.studioCollectDraft=')[0];
+ check('Content draft excludes key inputs', !collect.includes("byok:val(") && !collect.includes("videoByok:val("));
+ check('Legacy draft fields sanitized', shared.includes('delete d.data.byok; delete d.data.videoByok;'));
+ check('New draft fields sanitized', shared.includes('delete data.byok; delete data.videoByok;'));
+}
+
+console.log('\n--- G) Multimodal request input limits ---');
+{
+  const { validateMultimodalInputs } = await import('../worker/src/core/ai.js?limits=' + Date.now());
+  const validImage = { mimeType: 'image/png', base64: 'YWJj' };
+  check('multimodal accepts a valid image input',
+    validateMultimodalInputs('Describe this image', [validImage]).length === 1);
+  let tooManyImages = '';
+  try { validateMultimodalInputs('prompt', Array.from({ length: 6 }, () => validImage)); }
+  catch (e) { tooManyImages = e.message; }
+  check('multimodal rejects more than five images', tooManyImages === 'too_many_images');
+  let invalidMime = '';
+  try { validateMultimodalInputs('prompt', [{ mimeType: 'text/plain', base64: 'YWJj' }]); }
+  catch (e) { invalidMime = e.message; }
+  check('multimodal rejects non-image MIME types', invalidMime === 'invalid_image');
+  let oversizedPrompt = '';
+  try { validateMultimodalInputs('p'.repeat(100001), []); }
+  catch (e) { oversizedPrompt = e.message; }
+  check('multimodal rejects prompts over 100000 characters', oversizedPrompt === 'prompt_too_large');
+  let oversizedImage = '';
+  try { validateMultimodalInputs('prompt', [{ mimeType: 'image/png', base64: 'x'.repeat(12 * 1024 * 1024 + 1) }]); }
+  catch (e) { oversizedImage = e.message; }
+  check('multimodal rejects a single image over 12 MiB encoded characters', oversizedImage === 'image_too_large');
+  let oversizedTotal = '';
+  try {
+    const part = 'x'.repeat(10 * 1024 * 1024 + 1);
+    validateMultimodalInputs('prompt', [
+      { mimeType: 'image/png', base64: part },
+      { mimeType: 'image/png', base64: part },
+    ]);
+  } catch (e) { oversizedTotal = e.message; }
+  check('multimodal rejects combined image payload over 20 MiB encoded characters', oversizedTotal === 'images_too_large');
 }
 
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');

@@ -225,9 +225,11 @@ function loadKeyStatus(){
 }
 function setApiKeyAndRefresh(){
   if(typeof window.setApiKey==='function'){
-    window.setApiKey();
-    // setApiKey saves asynchronously; refresh the status after its request settles.
-    setTimeout(loadKeyStatus,2000);
+    Promise.resolve(window.setApiKey()).then(function(saved){
+      if(saved) loadKeyStatus();
+    }).catch(function(){
+      showToast('API Key သိမ်း၍ မရပါ','error');
+    });
   } else { showToast('Script loading...','error'); }
 }
 function testApiKey(){

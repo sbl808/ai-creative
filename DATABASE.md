@@ -1,6 +1,6 @@
 # DATABASE.md
 
-Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, **in order 001 → 014**. Each migration is incremental and additive — existing tables are never dropped.
+Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, following the numbered sequence through **015**. Two older migrations use the `006` prefix; do not rename historical migration files without checking the target D1 migration history. Each migration is incremental and additive — existing tables are never dropped.
 
 ## Migrations
 
@@ -20,6 +20,7 @@ Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migration
 | 012 | `012_upgrade_cms_workflow.sql` | CMS workflow upgrade (see file) |
 | 013 | `013_switch_transcribe_model.sql` | transcribe model switch (idempotent) |
 | 014 | `014_create_cms_brain.sql` | `cms_brain` (11-Layer Brain — Story Studio) |
+| 015 | `015_create_api_generation_limits.sql` | `api_generation_limits` (shared per-user AI generation rate limit) |
 
 ## Tables
 
@@ -100,7 +101,7 @@ Scoped key-value knowledge/config store for the Story 11-Layer architecture. `cm
 
 ## Adding a new migration
 
-Create `worker/migrations/015_xxx.sql` (additive `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN`), apply it, and update this file. Do **not** drop or rename existing tables/columns without a documented plan.
+Create the next unused numbered migration (additive `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN`) and update this file. Before applying remotely, verify the intended environment/database ID and inspect `wrangler d1 migrations list <database-name> --remote --env dev`; never infer remote migration state from local SQLite tests. Apply only after the development target is independently verified and explicitly approved. Do **not** drop or rename existing tables/columns without a documented plan.
 
 ### users — Phase 12 additions (009)
 `name` TEXT NOT NULL DEFAULT '' (personal display name, set from Google profile or Sign Up), `password_hash` TEXT NOT NULL DEFAULT '' (PBKDF2-SHA256 hash of optional email/password login — **never** plaintext). Existing Google-only accounts keep `name=''` / `password_hash=''`; the app falls back to the email prefix for display.
