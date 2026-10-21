@@ -297,5 +297,38 @@ console.log('--- F) Content draft secret exclusion ---');
  check('New draft fields sanitized', shared.includes('delete data.byok; delete data.videoByok;'));
 }
 
+console.log('\n--- G) Multimodal request input limits ---');
+{
+  const { validateMultimodalInputs } = await import('../worker/src/core/ai.js?limits=' + Date.now());
+  const validImage = { mimeType: 'image/png', base64: 'YWJj' };
+  check('multimodal accepts a valid image input',
+    validateMultimodalInputs('Describe this image', [validImage]).length === 1);
+  let tooManyImages = '';
+  try { validateMultimodalInputs('prompt', Array.from({ length: 6 }, () => validImage)); }
+  catch (e) { tooManyImages = e.message; }
+  check('multimodal rejects more than five images', tooManyImages === 'too_many_images');
+  let invalidMime = '';
+  try { validateMultimodalInputs('prompt', [{ mimeType: 'text/plain', base64: 'YWJj' }]); }
+  catch (e) { invalidMime = e.message; }
+  check('multimodal rejects non-image MIME types', invalidMime === 'invalid_image');
+  let oversizedPrompt = '';
+  try { validateMultimodalInputs('p'.repeat(100001), []); }
+  catch (e) { oversizedPrompt = e.message; }
+  check('multimodal rejects prompts over 100000 characters', oversizedPrompt === 'prompt_too_large');
+  let oversizedImage = '';
+  try { validateMultimodalInputs('prompt', [{ mimeType: 'image/png', base64: 'x'.repeat(12 * 1024 * 1024 + 1) }]); }
+  catch (e) { oversizedImage = e.message; }
+  check('multimodal rejects a single image over 12 MiB encoded characters', oversizedImage === 'image_too_large');
+  let oversizedTotal = '';
+  try {
+    const part = 'x'.repeat(10 * 1024 * 1024 + 1);
+    validateMultimodalInputs('prompt', [
+      { mimeType: 'image/png', base64: part },
+      { mimeType: 'image/png', base64: part },
+    ]);
+  } catch (e) { oversizedTotal = e.message; }
+  check('multimodal rejects combined image payload over 20 MiB encoded characters', oversizedTotal === 'images_too_large');
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
