@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = [
     (ROOT / "worker" / "migrations" / "006_create_api_test_limits.sql", "api_test_limits",
      {"user_id", "window_id", "attempts"}, "idx_api_test_limits_window"),
-    (ROOT / "worker" / "migrations" / "007_create_api_generation_limits.sql", "api_generation_limits",
+    (ROOT / "worker" / "migrations" / "015_create_api_generation_limits.sql", "api_generation_limits",
      {"user_id", "window_id", "attempts"}, "idx_api_generation_limits_window"),
 ]
 
