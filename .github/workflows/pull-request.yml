@@ -1,16 +1,16 @@
-name: Feature Branch Tests
+name: Pull Request Checks
 
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches:
-      - feature/secure-api-key-settings
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: feature-tests-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
