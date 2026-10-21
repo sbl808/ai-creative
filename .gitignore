@@ -1,0 +1,15 @@
+# Local secrets — must never be committed
+.dev.vars
+.dev.vars.*
+
+# Node / tooling
+node_modules/
+npm-debug.log*
+
+# Wrangler local state
+.wrangler/
+.dev-worker/
+
+# OS / editor
+.DS_Store
+*.log

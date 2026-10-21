@@ -8,7 +8,7 @@ vars = { ENVIRONMENT = "dev", ALLOWED_ORIGINS = "https://aics-frontend-dev.pages
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "ai-creative-db-dev"
-database_id = "xxxxxxxxxx"
+database_id = "3f747286-9531-4b92-96a7-f0144387bd91"
 
 # --- staging ---
 [env.staging]
