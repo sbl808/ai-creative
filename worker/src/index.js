@@ -73,6 +73,45 @@ async function readBody(request) {
   try { return await request.json(); } catch (e) { return null; }
 }
 
+// STEP 8 — Bound API JSON request bodies before any route calls request.json().
+// Keep enough room for the existing base64 image/audio workflows, while rejecting
+// oversized bodies before they reach route parsing or Gemini/D1 work.
+const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
+
+async function isApiRequestBodyTooLarge(request) {
+  if (!request.url || !new URL(request.url).pathname.startsWith('/api/') || request.method !== 'POST') {
+    return false;
+  }
+  const declaredLength = request.headers.get('Content-Length');
+  if (declaredLength !== null) {
+    const length = Number(declaredLength);
+    if (!Number.isSafeInteger(length) || length < 0) return true;
+    if (length > MAX_API_REQUEST_BODY_BYTES) return true;
+    // HTTP runtimes validate framing; the declared length allows a cheap early reject.
+    return false;
+  }
+  if (!request.body) return false;
+
+  // Content-Length may be absent for streamed/chunked requests. Inspect a clone with
+  // a bounded reader so the original request body remains available to route handlers.
+  const reader = request.clone().body.getReader();
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return false;
+      total += value.byteLength;
+      if (total > MAX_API_REQUEST_BODY_BYTES) {
+        try { await reader.cancel('request_body_too_large'); } catch (_) {}
+        return true;
+      }
+    }
+  } catch (_) {
+    try { await reader.cancel('request_body_read_failed'); } catch (_) {}
+    return true;
+  }
+}
+
 // Admin Panel ကို Browser မှ တိုက်ရိုက် နှိပ်ဝင်နိုင်ရန် Cookie Session (Phase 11 — Rule 13)
 // HttpOnly Cookie — Frontend JS မှ မဖတ်နိုင်၊ CSRF ကာကွယ်ရန် SameSite=Lax
 function cookieToken(req) {
@@ -265,6 +304,12 @@ export default {
       const path = url.pathname;
       // 204 must carry no body (per Fetch spec); headers still carry the allowlist result.
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+
+      // Reject oversized API POST bodies before JSON parsing, auth-side effects,
+      // database access, or AI provider calls.
+      if (await isApiRequestBodyTooLarge(request)) {
+        return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
+      }
 
       if (path === '/' && request.method === 'GET') return htmlPage(homePage());
 
