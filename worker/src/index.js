@@ -1,4 +1,3 @@
-// AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
 import { callGeminiText } from './core/ai.js';
 import { ndjsonResponse } from './core/streaming.js';
@@ -71,6 +70,87 @@ function bearer(req) {
 
 async function readBody(request) {
   try { return await request.json(); } catch (e) { return null; }
+}
+
+// STEP 8 — Bound API JSON request bodies before any route calls request.json().
+// Keep enough room for the existing base64 image/audio workflows, while rejecting
+// oversized bodies before they reach route parsing or Gemini/D1 work.
+const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
+
+
+const SHARED_AI_RATE_LIMIT = 30;
+const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
+
+function isAiGenerationRoute(path, method) {
+  if (method !== 'POST') return false;
+  if (path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
+  return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
+    /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
+}
+
+async function enforceSharedAiRateLimit(request, env, path) {
+  if (!isAiGenerationRoute(path, request.method)) return null;
+  const authHeader = request.headers.get('Authorization') || '';
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
+  const token = bearer || cookieToken(request);
+  const payload = token ? await verifyTokenSafe(env, token) : null;
+  if (!payload?.sub) return null; // Let route auth preserve its established response.
+  if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503);
+
+  const windowId = Math.floor(Date.now() / SHARED_AI_RATE_WINDOW_MS);
+  try {
+    await env.DB.prepare(
+      'INSERT INTO api_generation_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ' +
+      'ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1'
+    ).bind(payload.sub, windowId).run();
+    const row = await env.DB.prepare(
+      'SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?'
+    ).bind(payload.sub, windowId).first();
+    if (!row || row.attempts > SHARED_AI_RATE_LIMIT) {
+      const retryAfter = Math.max(1, Math.ceil(((windowId + 1) * SHARED_AI_RATE_WINDOW_MS - Date.now()) / 1000));
+      return json({ error: 'rate_limited', limit: SHARED_AI_RATE_LIMIT, window_seconds: 600 }, 429, {
+        'Retry-After': String(retryAfter),
+      });
+    }
+    return null;
+  } catch (e) {
+    friendlyError(e);
+    return json({ error: 'rate_limit_unavailable' }, 503);
+  }
+}
+
+async function isApiRequestBodyTooLarge(request) {
+  if (!request.url || !new URL(request.url).pathname.startsWith('/api/') || request.method !== 'POST') {
+    return false;
+  }
+  const declaredLength = request.headers.get('Content-Length');
+  if (declaredLength !== null) {
+    const length = Number(declaredLength);
+    if (!Number.isSafeInteger(length) || length < 0) return true;
+    if (length > MAX_API_REQUEST_BODY_BYTES) return true;
+    // HTTP runtimes validate framing; the declared length allows a cheap early reject.
+    return false;
+  }
+  if (!request.body) return false;
+
+  // Content-Length may be absent for streamed/chunked requests. Inspect a clone with
+  // a bounded reader so the original request body remains available to route handlers.
+  const reader = request.clone().body.getReader();
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return false;
+      total += value.byteLength;
+      if (total > MAX_API_REQUEST_BODY_BYTES) {
+        try { await reader.cancel('request_body_too_large'); } catch (_) {}
+        return true;
+      }
+    }
+  } catch (_) {
+    try { await reader.cancel('request_body_read_failed'); } catch (_) {}
+    return true;
+  }
 }
 
 // Admin Panel ကို Browser မှ တိုက်ရိုက် နှိပ်ဝင်နိုင်ရန် Cookie Session (Phase 11 — Rule 13)
@@ -211,7 +291,7 @@ function cmsTestPage() {
     'fetch("/api/cms/prompt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
     'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value})})' +
     '.then(function(r){return r.json();}).then(function(d){' +
-    'if(d.found){o.textContent="FOUND ✅ "+d.studio+"/"+d.plan+"/"+d.type+"\\n\\n"+d.system_prompt;}' +
+    'if(d.found){o.textContent="FOUND ✅ "+d.studio+"/"+d.plan+"/"+d.type+"\n\n"+d.system_prompt;}' +
     'else{o.textContent="NOT FOUND — "+document.getElementById("st").value+"/"+document.getElementById("ty").value;}})' +
     '.catch(function(e){o.textContent="Network error: "+e;});}' +
     '<\/script></body></html>';
@@ -228,7 +308,7 @@ function studioTestPage() {
     '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
     '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
     '<label style="font-size:13px;font-weight:600">User Idea</label><br>' +
-    '<textarea id="id" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Write a short story about a boy and his dog.</textarea>' +
+    '<textarea id="id" rows="3" style="width:100%;box-sizing:border-box">Write a short story about a boy and his dog.</textarea>' +
     '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
     '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
     '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run Studio</button>' +
@@ -239,7 +319,7 @@ function studioTestPage() {
     'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value,idea:document.getElementById("id").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){' +
     'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.style.maxWidth="100%";im.style.borderRadius="8px";o.appendChild(im);return;}' +
-    'o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\\n\\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
+    'o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\n\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
     '.catch(function(e){o.textContent="Network error: "+e;});}' +
     '<\/script></body></html>';
 }
@@ -250,7 +330,7 @@ function creationsTestPage() {
     '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
     '<h2 style="color:#1b6d96">💾 My Creations</h2>' +
     '<p style="font-size:14px;line-height:1.6">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
-    'Server/D1 တွင် User Content မသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
+    'Server/D1 တွင် User Contentမသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
     '<p style="font-size:14px">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
     '</body></html>';
 }
@@ -267,10 +347,26 @@ export default {
       // 204 must carry no body (per Fetch spec); headers still carry the allowlist result.
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
-      // Production root returns a minimal health JSON (no debug links).
-      // Debug landing page only outside prod.
+      // Reject oversized API POST bodies before JSON parsing, auth-side effects,
+      // database access, or AI provider calls.
+      if (await isApiRequestBodyTooLarge(request)) {
+        return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
+      }
+
+      // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
+      const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path);
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        for (const [key, value] of Object.entries(cors)) headers.set(key, value);
+        return new Response(rateLimitResponse.body, {
+          status: rateLimitResponse.status,
+          statusText: rateLimitResponse.statusText,
+          headers,
+        });
+      }
+
       if (path === '/' && request.method === 'GET') {
-        if (isProdEnv) return json({ ok: true, service: 'ai-creative', time: new Date().toISOString() }, 200, cors);
+        if (isProdEnv) return json({ ok: true, service: 'ai-creative-studio', time: new Date().toISOString() }, 200, cors);
         return htmlPage(homePage());
       }
 
@@ -784,7 +880,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseContent(env, { model: body.model, 
+          const out = await reviseContent(env, { model: body.model,
             originalContent: body.originalContent || '',
             originalSpeaking: body.originalSpeaking || '',
             originalVoice: body.originalVoice || '',
@@ -882,7 +978,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentSrt(env, { model: body.model, 
+          const out = await generateContentSrt(env, { model: body.model,
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
             apiKey,
@@ -904,7 +1000,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await translateContentSrt(env, { model: body.model, 
+          const out = await translateContentSrt(env, { model: body.model,
             srtText: body.srtText,
             direction: body.direction || 'my-to-cn',
             apiKey,
@@ -982,7 +1078,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseStory(env, { model: body.model, 
+          const out = await reviseStory(env, { model: body.model,
             idea: body.idea || '',
             type: reqType,
             currentStory: body.currentStory,
@@ -1131,7 +1227,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseShort(env, { model: body.model, 
+          const out = await reviseShort(env, { model: body.model,
             idea: body.idea || '', type: reqType, currentShort: body.currentShort,
             instruction: body.instruction, plan, apiKey,
           });
@@ -1155,7 +1251,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShortVideoPlan(env, { model: body.model, 
+          const out = await generateShortVideoPlan(env, { model: body.model,
             idea: body.idea, type: reqType, plan, apiKey,
             images: body.images || [],
             // Short Video Production Setup (Step 04) — additive, backward compatible
@@ -1222,7 +1318,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateImagePrompt(env, { model: body.model, 
+          const out = await generateImagePrompt(env, { model: body.model,
             idea: body.idea, type: reqType, plan, apiKey,
             images: body.images,
           });
@@ -1260,7 +1356,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateAdImagePrompt(env, { model: body.model, 
+          const out = await generateAdImagePrompt(env, { model: body.model,
             idea: body.idea, type: reqType, plan, apiKey,
             images: body.images,
           });
@@ -1329,7 +1425,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await transcribeAudio(env, { model: body.model, 
+          const out = await transcribeAudio(env, { model: body.model,
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
             type: reqType, plan, apiKey,
@@ -1354,7 +1450,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateVoiceSrt(env, { model: body.model, 
+          const out = await generateVoiceSrt(env, { model: body.model,
             audioBase64: body.audioBase64,
             knownText: typeof body.knownText === 'string' ? body.knownText : '',
             mimeType: body.mimeType || 'audio/mpeg',
@@ -1380,7 +1476,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await translateVoiceSrt(env, { model: body.model, 
+          const out = await translateVoiceSrt(env, { model: body.model,
             srtText: body.srtText,
             direction: body.direction || 'MY_TO_CN',
             type: String(body.type || '2'), plan, apiKey,
@@ -1456,7 +1552,7 @@ export default {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseShopContent(env, { model: body.model, 
+          const out = await reviseShopContent(env, { model: body.model,
             idea: body.idea || '', type: reqType, currentContent: body.currentContent,
             instruction: body.instruction, plan, apiKey,
           });
@@ -1568,7 +1664,7 @@ export default {
         });
       }
 
-      // Phase 1 — Unknown /app/* path (studioမရှိ) → 404 STUDIO_NOT_FOUND
+      // Phase 1 — Unknown /app/* path (studio မရှိ) → 404 STUDIO_NOT_FOUND
       // (creations/settings/projects စစ်ပြီးမှသာ ဤနေရာသို့ ရောက်သည် — ထို routes များ မထိခိုက်)
       if (path.startsWith('/app/')) {
         return new Response('STUDIO_NOT_FOUND', {
