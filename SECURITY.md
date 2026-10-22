@@ -55,7 +55,7 @@
 
 - [ ] Replace `SITE_LINKS` placeholders.
 - [ ] Set `ADMIN_EMAIL` + all secrets in production.
-- [ ] Apply all 9 migrations to prod D1.
+- [ ] Verify the intended production D1 database and inspect its applied migration history; apply only pending migrations after review and explicit approval.
 - [ ] Re-test with a second account: User A cannot see User B data; a non-admin cannot open `/admin`; a disabled studio returns 403.
 
 ## 11. Password policy (Phase 12)
