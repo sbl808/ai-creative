@@ -2,7 +2,7 @@
 
 ## 1. System overview
 
-Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product — it handles routing, renders HTML pages, exposes the JSON API, checks auth/roles/plans/features, and talks to **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). GitHub Actions deploys the Worker and applies D1 migrations.
+Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product — it handles routing, renders HTML pages, exposes the JSON API, checks auth/roles/plans/features, and talks to **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). The repository contains GitHub Actions CI and pull-request workflows, but no `deploy.yml` was found. The active Worker deployment method and migration automation must be verified before they are described as automatic.
 
 ```
 Browser ──▶ Cloudflare Worker (index.js)
@@ -11,7 +11,7 @@ Browser ──▶ Cloudflare Worker (index.js)
                 │         settings, usage, studioSettings, featureSettings, adminLogs)
                 ├── studios/ (story, content, short, image, voice, shop)
                 └── config/ (STUDIO_REGISTRY, FEATURE_REGISTRY, AI_MODEL_REGISTRY)
-                │  ──▶ D1 (migrations 001–012)
+                │  ──▶ D1 (migration files numbered 001–015; two files use the 006 prefix)
                 │  ──▶ Gemini API (built-in key OR user BYOK key)
 ```
 
