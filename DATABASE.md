@@ -1,6 +1,6 @@
 # DATABASE.md
 
-Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, following the numbered sequence through **015**. Two older migrations use the `006` prefix; do not rename historical migration files without checking the target D1 migration history. Each migration is incremental and additive — existing tables are never dropped.
+Cloudflare **D1** (SQLite). The repository currently contains 16 SQL migration files numbered from `001` through `015`; two files share the `006` prefix. The table below lists both `006` files. Do not rename or manually apply historical migration files based only on their numeric prefixes. First inspect the target D1 migration history and the Wrangler migration configuration. Each migration should be reviewed for its actual effects before applying it to a remote database.
 
 ## Migrations
 
@@ -11,6 +11,7 @@ Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migration
 | 003 | `003_create_creations.sql` | `creations` (+ index) |
 | 004 | `004_create_user_keys.sql` | `user_keys` (BYOK) |
 | 005 | `005_create_user_settings.sql` | `user_settings`, `user_preferences` |
+| 006 | `006_create_api_test_limits.sql` | `api_test_limits` (rate limit for API connection tests) |
 | 006 | `006_create_projects_usage.sql` | `projects`, `usage`, `creations.is_favorite` |
 | 007 | `007_create_studio_settings.sql` | `studio_settings` (Admin ON/OFF) |
 | 008 | `008_create_feature_settings_logs.sql` | `feature_settings`, `admin_logs` |
