@@ -14,7 +14,7 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); }
+  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); }
   prepare(sql) {
     const self = this;
     return {
@@ -23,6 +23,9 @@ class MockD1 {
         if (sql.startsWith('SELECT plan, expiry FROM users WHERE id = ?')) {
           const id = this._args && this._args[0];
           return (self.rows.users || {})[id] || null;
+        }
+        if (sql.startsWith('SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?')) {
+          return self.featureSettings.get(String(this._args && this._args[0])) || null;
         }
         if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
@@ -283,6 +286,38 @@ await check('shared generation limit fails closed when D1 query throws', async (
   }), { ...env, DB: brokenDb }, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Feature gate regression —');
+await check('FREE user is blocked from PRO-only Story Video Image before AI call', async () => {
+  env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  env.DB.featureSettings.delete('story.video_image');
+  const r = await send('/api/studio/story/video-image', 'POST', await withToken(), { prompt: 'test prompt' });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Expired PRO account is treated as FREE for PRO-only Story Video Image', async () => {
+  env.DB.rows.users['user-1'] = { plan: 'PRO', expiry: '2000-01-01T00:00:00.000Z' };
+  env.DB.featureSettings.delete('story.video_image');
+  const r = await send('/api/studio/story/video-image', 'POST', await withToken(), { prompt: 'test prompt' });
+  const body = await r.json();
+  env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Admin-disabled Content Generate feature returns 403 before AI call', async () => {
+  env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  env.DB.featureSettings.set('content.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '1' });
+  const body = await r.json();
+  env.DB.featureSettings.delete('content.generate');
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+await check('FREE user cannot use Type 2 on a FREE-registry Content Generate feature', async () => {
+  env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  env.DB.featureSettings.delete('content.generate');
+  const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '2' });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
 });
 
 console.log('— Admin page —');
