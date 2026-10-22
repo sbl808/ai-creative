@@ -14,7 +14,7 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = rows; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); }
+  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); }
   prepare(sql) {
     const self = this;
     return {
