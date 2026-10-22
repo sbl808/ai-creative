@@ -248,9 +248,34 @@ console.log('\n--- D) API test rate-limit migration contract ---');
   }
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
-  check('migration target can be identified as dev D1 only',
-    /database_name = "ai-creative-db-dev"/.test(dev) &&
-    /database_id = "3f747286-9531-4b92-96a7-f0144387bd91"/.test(dev));
+  const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
+  const prod = toml.split('[env.prod]')[1] || '';
+  const readTomlValue = (section, key) =>
+    section.match(new RegExp('^\\s*' + key + '\\s*=\\s*"([^"]+)"', 'm'))?.[1] || '';
+  const devName = readTomlValue(dev, 'database_name');
+  const devId = readTomlValue(dev, 'database_id');
+  const stagingId = readTomlValue(staging, 'database_id');
+  const prodId = readTomlValue(prod, 'database_id');
+  const isUuid = (value) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const devIdIsPlaceholder = devId === 'cloudflare အကောင့် မရှိသေးပါ';
+
+  check('dev D1 configuration names the dev database only',
+    devName === 'ai-creative-db-dev',
+    'database_name=' + JSON.stringify(devName));
+  check('dev D1 ID is either an explicit unconfigured placeholder or a valid UUID',
+    devIdIsPlaceholder || isUuid(devId),
+    'database_id=' + JSON.stringify(devId));
+
+  if (devIdIsPlaceholder) {
+    // A placeholder is not a usable migration target. Keep CI useful without
+    // pretending a remote database exists or allowing a migration to run.
+    console.log('  ↷ dev D1 target identification NOT TESTED — database_id is an explicit placeholder; create D1 before remote migrations');
+  } else {
+    check('configured dev D1 ID is distinct from staging and production IDs',
+      devId !== stagingId && devId !== prodId,
+      'dev=' + JSON.stringify(devId) + ', staging=' + JSON.stringify(stagingId) + ', prod=' + JSON.stringify(prodId));
+  }
   console.log('  ↷ remote D1 migration execution NOT TESTED — no database changes performed');
 }
 
