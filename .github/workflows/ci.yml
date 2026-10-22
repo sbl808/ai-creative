@@ -56,5 +56,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Validate rate-limit migration with SQLite
+      - name: Validate all migrations with SQLite (offline)
+        run: python scripts/test-all-migrations.py
+      - name: Validate rate-limit migration behavior (offline)
         run: python scripts/test-api-test-limits-migration.py
