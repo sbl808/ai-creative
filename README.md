@@ -1,7 +1,7 @@
 # AI Creative Studio
 
 **Personal + Modular + Maintainable + Secure + Responsive + Scalable + Admin-Controlled**
-AI Creative Studio — a multi-studio content creation platform (Story / Content / Short / Image / Voice / Shop), rebuilt from a Google Apps Script + Google Sheets + Gemini web app onto **Cloudflare Worker + D1 + GitHub Actions**.
+AI Creative Studio — a multi-studio content creation platform (Story / Content / Short / Image / Voice / Shop), rebuilt from a Google Apps Script + Google Sheets + Gemini web app onto **Cloudflare Worker + D1**, with source managed in GitHub. The active deployment method must be verified separately; the currently listed workflows do not include a `deploy.yml` file.
 
 This is the fully re-architected version produced under the **Master Development Instruction** (Phases 1–7): App Shell → Personal User System → Studio System → Admin Panel → Responsive → Testing & Documentation.
 
@@ -26,31 +26,32 @@ npm i -g wrangler
 # 2. Authenticate
 wrangler login
 
-# 3. Create D1 database & bind it (see wrangler.toml; binding name: DB)
-#    Then apply all migrations in order:
-wrangler d1 execute DB --local --file=worker/migrations/001_create_users.sql
-# ... repeat for 002..014
+# 3. Review worker/wrangler.toml and configure valid D1 database IDs
+#    The committed config currently contains placeholders; do not deploy yet.
+# 4. Review DATABASE.md and inspect migration status before applying migrations.
+#    Do not apply SQL files manually by number; two files use the 006 prefix.
 
-# 4. Local dev (the project has no package.json — use wrangler directly)
+# 5. Local development (after local config is ready)
 cd worker && npx wrangler@4 dev
 
-# 5. Deploy (GitHub Actions does this automatically on push to main)
-npx wrangler@4 deploy
+# Deployment is not documented as automatic here. Verify Cloudflare/GitHub
+# deployment configuration and the target environment before deploying.
 ```
 
-> `wrangler.toml` defines `dev / staging / prod` environments. GitHub Actions `.github/workflows/deploy.yml` runs deploy + D1 migrations.
+> `worker/wrangler.toml` declares `dev / staging / prod` environments, but the committed D1 IDs are placeholders. The repository currently lists `.github/workflows/ci.yml` and `.github/workflows/pull-request.yml`; no `.github/workflows/deploy.yml` was found. Verify the actual deployment setup before deploying.
 
 ## 📁 Structure (top level)
 
 ```
 ai-creative-studio-main/
-├── .github/workflows/deploy.yml   # CI/CD — Worker deploy + D1 migrations
+├── .github/workflows/ci.yml       # CI checks
+├── .github/workflows/pull-request.yml # Pull-request checks
 ├── README.md / ARCHITECTURE.md / DATABASE.md / STUDIOS.md / ADMIN.md / SECURITY.md
 ├── V2_AUDIT.md                    # Phase 0 production-readiness audit (V2)
 ├── IMPLEMENTATION_REPORT.md       # Phase 1–10 change/test report (V2)
 ├── worker/
 │   ├── wrangler.toml              # environments + D1 binding
-│   ├── migrations/                # 001–014 D1 schema (see DATABASE.md)
+│   ├── migrations/                # numbered D1 SQL migrations (see DATABASE.md; duplicate 006 prefix)
 │   └── src/
 │       ├── index.js               # entry: routing, auth, plan/feature gates, pages
 │       ├── admin.js               # Admin panel HTML + admin API
