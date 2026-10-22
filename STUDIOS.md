@@ -2,7 +2,7 @@
 
 ## Studio Registry (config/studios.js)
 
-All studios are declared in a single **registry**. Adding a new studio means adding one registry entry + one module — no changes to routing, sidebar, admin, or other studios.
+All six current studios are declared in a shared **registry**. A new studio can often reuse shared infrastructure, but adding one may also require frontend loader registration, backend route handling, feature/plan gates, tests, and documentation updates. Follow the checklist below and verify each dependency against the current code rather than assuming a registry entry alone is sufficient.
 
 ```js
 const STUDIO_REGISTRY = {
@@ -43,8 +43,8 @@ Hiding in the UI is never the only control; the API enforces it too.
 1. Create `worker/src/studios/music.js` (business logic).
 2. Create `worker/src/frontend/studios/music/` package (page/ui/… modules exporting the assembled `MUSIC_HTML`), register it in `frontend/studioPages.js` `STUDIO_LOADERS`, and (if you keep root shims) re-export it from `frontend/music.js`.
 3. Add `music` entry to `STUDIO_REGISTRY` (+ `STUDIO_ORDER`).
-4. In `index.js`: add `/api/studio/music/*` routes (the existing disabled-studio regex already covers any registry id you add to the pattern).
-5. Add `music` to the studio-disabled regex if needed, and to Home quick-grid.
+4. Review `index.js` and the route-matching logic; add the required `/api/studio/music/*` handlers and ensure disabled-studio enforcement covers the new ID.
+5. Check whether the disabled-studio matcher and Home quick-grid are registry-driven or manually maintained; update only the parts that actually require it, then add regression coverage.
 
 Existing six studios are unaffected.
 
