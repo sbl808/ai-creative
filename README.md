@@ -96,7 +96,7 @@ See **ARCHITECTURE.md**, **DATABASE.md**, **STUDIOS.md**, **ADMIN.md**, **SECURI
 
 ## ✅ How to extend
 
-- **Add a Studio** → see `STUDIOS.md` (Registry + module, no core changes).
+- **Add a Studio** → see `STUDIOS.md` for the full dependency checklist; routing, loader, gates, tests, or shared code may also need changes.
 - **Toggle Free/Pro** → Admin → Features, or edit `config/features.js`.
 - **Enable/disable a Studio** → Admin → Studios (server-side enforced).
 
@@ -113,4 +113,4 @@ See **ARCHITECTURE.md**, **DATABASE.md**, **STUDIOS.md**, **ADMIN.md**, **SECURI
   - `core/aiModels.js` — `getAiModels` (registry + DB merge), `listEnabledModels` (enabled + plan filter), `resolveModel` (user choice → admin default → fallback), `setAiModel` / `deleteAiModel` (with last-model protection).
   - **Admin → AI Models** — add / rename / enable / disable / set default / delete any Google Gemini model **without touching code**.
   - **User side** — every Studio shows an **AI Model dropdown** (filtered by category + plan); Settings → ပုံမှန် AI Model is now a real dropdown; the selected model is sent with every request (`body.model`) and used by the server.
-- **Deploy for this phase:** `wrangler d1 migrations apply <DB_NAME> --remote` **then** `wrangler deploy --env prod` (two steps — this phase adds a migration).
+- **Deployment note:** before applying a migration or deploying, verify the correct Cloudflare environment, configured D1 database ID, and remote migration history. The repository's current deployment workflow has not been confirmed; do not run these commands against production based only on this note.
