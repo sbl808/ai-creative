@@ -13,7 +13,7 @@ export async function handleUserProfileRoutes(request, env, cors, deps) {
     const name = String((body && body.name) || '').trim().slice(0, 60);
     if (!name) return deps.json({ error: 'missing_name', detail: 'Name မထည့်နိုင်ပါ။' }, 400, cors);
     if (!env.DB) return deps.json({ error: 'db_missing' }, 500, cors);
-    await env.DB.prepare('UPDATE users SET name = ?, updated_at = datetime(\\'now\\') WHERE id = ?').bind(name, payload.sub).run();
+    await env.DB.prepare('UPDATE users SET name = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(name, payload.sub).run();
     return deps.json({ ok: true, name }, 200, cors);
   }
 
