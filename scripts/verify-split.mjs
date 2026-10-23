@@ -1,58 +1,73 @@
 #!/usr/bin/env node
 /**
- * AI Creative Studio V2 — Split verification
- * Byte-identity check: for each studio, the reassembled page.js HTML export must
- * equal the ORIGINAL v1 export exactly (char-for-char). Run with:
+ * AI Creative Studio — Studio page/export verification.
+ *
+ * Checks that all six backward-compatible frontend entry points and their
+ * modular page implementations exist, export the expected HTML string, and
+ * expose the same value. This verifies the current module wiring; it does NOT
+ * claim byte identity with historical v1 source files.
+ *
+ * Run:
  *   node --experimental-default-type=module scripts/verify-split.mjs
  */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FRONTEND = path.join(ROOT, 'worker', 'src', 'frontend');
-
 const STUDIOS = [
-  { slug: 'story',   src: 'story.js',   exp: 'STORY_HTML' },
-  { slug: 'content', src: 'content.js', exp: 'CONTENT_HTML' },
-  { slug: 'short',   src: 'short.js',   exp: 'SHORT_HTML' },
-  { slug: 'image',   src: 'image.js',   exp: 'IMAGE_HTML' },
-  { slug: 'voice',   src: 'voice.js',   exp: 'VOICE_HTML' },
-  { slug: 'shop',    src: 'shop.js',    exp: 'SHOP_HTML' },
+  { slug: 'story', exp: 'STORY_HTML' },
+  { slug: 'content', exp: 'CONTENT_HTML' },
+  { slug: 'short', exp: 'SHORT_HTML' },
+  { slug: 'image', exp: 'IMAGE_HTML' },
+  { slug: 'voice', exp: 'VOICE_HTML' },
+  { slug: 'shop', exp: 'SHOP_HTML' },
 ];
 
-let allPass = true;
-let detail = [];
-for (const s of STUDIOS) {
-  const original = await import(path.join(FRONTEND, '_legacy', `${s.slug}_v1_full.js`) + `?t=${Date.now()}`);
-  const rebuilt = await import(path.join(FRONTEND, 'studios', s.slug, 'page.js') + `?t=${Date.now()}`);
-  const a = original[s.exp];
-  const b = rebuilt[s.exp];
-  const ok = typeof a === 'string' && typeof b === 'string' && a === b;
-  if (!ok) {
-    allPass = false;
-    const la = typeof a === 'string' ? a.length : -1;
-    const lb = typeof b === 'string' ? b.length : -1;
-    let firstDiff = -1;
-    if (typeof a === 'string' && typeof b === 'string') {
-      const n = Math.min(la, lb);
-      for (let i = 0; i < n; i++) if (a[i] !== b[i]) { firstDiff = i; break; }
+let failed = 0;
+for (const studio of STUDIOS) {
+  const shimPath = path.join(FRONTEND, `${studio.slug}.js`);
+  const pagePath = path.join(FRONTEND, 'studios', studio.slug, 'page.js');
+  const problems = [];
+
+  if (!fs.existsSync(shimPath)) problems.push(`missing entry point: ${path.relative(ROOT, shimPath)}`);
+  if (!fs.existsSync(pagePath)) problems.push(`missing page module: ${path.relative(ROOT, pagePath)}`);
+
+  if (problems.length === 0) {
+    try {
+      const cacheKey = `?verify=${Date.now()}-${studio.slug}`;
+      const shim = await import(pathToFileURL(shimPath).href + cacheKey);
+      const page = await import(pathToFileURL(pagePath).href + cacheKey);
+      const shimValue = shim[studio.exp];
+      const pageValue = page[studio.exp];
+
+      if (typeof pageValue !== 'string') {
+        problems.push(`page module does not export string ${studio.exp}`);
+      }
+      if (typeof shimValue !== 'string') {
+        problems.push(`entry point does not export string ${studio.exp}`);
+      }
+      if (typeof shimValue === 'string' && typeof pageValue === 'string' && shimValue !== pageValue) {
+        problems.push(`entry-point export differs from page export ${studio.exp}`);
+      }
+      if (problems.length === 0) {
+        console.log(`PASS ${studio.slug}: ${studio.exp} exists and entry point matches modular page (${pageValue.length} chars)`);
+      }
+    } catch (error) {
+      problems.push(`module import failed: ${error?.stack || error}`);
     }
-    detail.push(`${s.slug}: FAIL (orig=${la}B rebuilt=${lb}B firstDiff@${firstDiff})`);
-    console.error(`--- ${s.slug} first difference context ---`);
-    if (firstDiff >= 0) {
-      console.error('ORIG  :', JSON.stringify(a.slice(Math.max(0, firstDiff - 60), firstDiff + 60)));
-      console.error('REBUILT:', JSON.stringify(b.slice(Math.max(0, firstDiff - 60), firstDiff + 60)));
-    }
-  } else {
-    detail.push(`${s.slug}: PASS (${a.length} chars byte-identical)`);
-    console.log(`✔ ${s.slug}: PASS — ${a.length} chars byte-identical`);
+  }
+
+  if (problems.length) {
+    failed++;
+    console.error(`FAIL ${studio.slug}:\n  - ${problems.join('\n  - ')}`);
   }
 }
 
-if (!allPass) {
-  console.error('\nVERIFY FAILED:\n' + detail.join('\n'));
-  process.exit(1);
+if (failed > 0) {
+  console.error(`\nVerification failed for ${failed} of ${STUDIOS.length} studios.`);
+  process.exitCode = 1;
+} else {
+  console.log(`\nAll ${STUDIOS.length} studio entry points match their modular page exports. Historical byte identity was not tested.`);
 }
-console.log('\nALL STUDIOS BYTE-IDENTICAL ✔ — safe to apply shims (write-shims.mjs).');

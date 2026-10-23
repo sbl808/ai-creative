@@ -1,7 +1,7 @@
 # AI Creative Studio
 
 **Personal + Modular + Maintainable + Secure + Responsive + Scalable + Admin-Controlled**
-AI Creative Studio — a multi-studio content creation platform (Story / Content / Short / Image / Voice / Shop), rebuilt from a Google Apps Script + Google Sheets + Gemini web app onto **Cloudflare Worker + D1 + GitHub Actions**.
+AI Creative Studio — a multi-studio content creation platform (Story / Content / Short / Image / Voice / Shop), rebuilt from a Google Apps Script + Google Sheets + Gemini web app for **Cloudflare Worker + D1**. GitHub Actions currently provides CI checks; automated deployment is not configured in the inspected repository.
 
 This is the fully re-architected version produced under the **Master Development Instruction** (Phases 1–7): App Shell → Personal User System → Studio System → Admin Panel → Responsive → Testing & Documentation.
 
@@ -29,28 +29,31 @@ wrangler login
 # 3. Create D1 database & bind it (see wrangler.toml; binding name: DB)
 #    Then apply all migrations in order:
 wrangler d1 execute DB --local --file=worker/migrations/001_create_users.sql
-# ... repeat for 002..014
+# Migration files are numbered through 015; see DATABASE.md for the inventory.
+# Configure and verify the target environment before applying migrations.
 
 # 4. Local dev (the project has no package.json — use wrangler directly)
 cd worker && npx wrangler@4 dev
 
-# 5. Deploy (GitHub Actions does this automatically on push to main)
-npx wrangler@4 deploy
+# 5. Manual deployment only after Cloudflare account, D1 IDs, and environment config are ready.
+# No automated deployment workflow was found in the inspected repository.
+npx wrangler@4 deploy --env dev
 ```
 
-> `wrangler.toml` defines `dev / staging / prod` environments. GitHub Actions `.github/workflows/deploy.yml` runs deploy + D1 migrations.
+> `worker/wrangler.toml` defines `dev / staging / prod` environments, but its D1 `database_id` values are placeholders in the current repository. The inspected workflows (`ci.yml` and `pull-request.yml`) run CI checks; no `.github/workflows/deploy.yml` was found. Worker deployment and remote D1 migrations are therefore not automated by those workflows.
 
 ## 📁 Structure (top level)
 
 ```
 ai-creative-studio-main/
-├── .github/workflows/deploy.yml   # CI/CD — Worker deploy + D1 migrations
+├── .github/workflows/ci.yml       # CI checks (no deployment)
+├── .github/workflows/pull-request.yml # CI checks on PRs and main pushes
 ├── README.md / ARCHITECTURE.md / DATABASE.md / STUDIOS.md / ADMIN.md / SECURITY.md
 ├── V2_AUDIT.md                    # Phase 0 production-readiness audit (V2)
 ├── IMPLEMENTATION_REPORT.md       # Phase 1–10 change/test report (V2)
 ├── worker/
 │   ├── wrangler.toml              # environments + D1 binding
-│   ├── migrations/                # 001–014 D1 schema (see DATABASE.md)
+│   ├── migrations/                # 001–015 D1 schema (see DATABASE.md)
 │   └── src/
 │       ├── index.js               # entry: routing, auth, plan/feature gates, pages
 │       ├── admin.js               # Admin panel HTML + admin API
