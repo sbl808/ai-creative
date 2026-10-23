@@ -4,7 +4,7 @@
  *
  * Safe default: dry-run only.
  * To write, pass --write. Even then, this refuses to replace any existing
- * frontend entry point unless it already matches the expected shim exactly.
+ * frontend entry point unless it is already a recognized shim for that studio.
  * This prevents accidentally overwriting a full/legacy implementation.
  *
  * This script does not create or archive _legacy source files.
@@ -33,7 +33,13 @@ export { ${exp} } from './studios/${slug}/page.js';
 `;
 }
 
-function isExpectedShim(current, slug, exp) {\n  // Accept the older generated shim comments while requiring the only executable\n  // statement to be the exact expected re-export.\n  const statements = current.split(/\\r?\\n/).map(line => line.trim()).filter(line => line && !line.startsWith('//'));\n  return statements.length === 1 && statements[0] === `export { ${exp} } from './studios/${slug}/page.js';`;\n}\n\nconst plan = [];
+function isExpectedShim(current, slug, exp) {
+  // Accept older generated shim comments, but require exactly one executable statement.
+  const statements = current.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('//'));
+  return statements.length === 1 && statements[0] === `export { ${exp} } from './studios/${slug}/page.js';`;
+}
+
+const plan = [];
 const errors = [];
 for (const studio of STUDIOS) {
   const target = path.join(FRONTEND, `${studio.slug}.js`);
@@ -44,14 +50,15 @@ for (const studio of STUDIOS) {
   }
 
   const content = expectedShim(studio.slug, studio.exp);
-  if (fs.existsSync(target)) {
+  const existed = fs.existsSync(target);
+  if (existed) {
     const current = fs.readFileSync(target, 'utf8');
     if (!isExpectedShim(current, studio.slug, studio.exp)) {
       errors.push(`Refusing to overwrite non-shim file: ${path.relative(ROOT, target)}`);
       continue;
     }
   }
-  plan.push({ target, content, slug: studio.slug, existed: fs.existsSync(target) });
+  plan.push({ target, content, slug: studio.slug, existed });
 }
 
 if (errors.length) {
@@ -61,13 +68,14 @@ if (errors.length) {
 }
 
 for (const item of plan) {
-  console.log(`${WRITE ? 'READY' : 'DRY-RUN'} ${item.slug}: ${path.relative(ROOT, item.target)} ${item.existed ? '(already correct)' : '(would create)'}`);
+  console.log(`${WRITE ? 'READY' : 'DRY-RUN'} ${item.slug}: ${path.relative(ROOT, item.target)} ${item.existed ? '(recognized shim)' : '(would create)'}`);
 }
 
 if (!WRITE) {
-  console.log('\nDry run only; no files changed. Pass --write to apply, after reviewing this output.');
+  console.log('\nDry run only; no files changed. Pass --write to apply after reviewing this output.');
 } else {
   for (const item of plan) {
+    // Never replace an existing file; only create missing entry points.
     if (!item.existed) fs.writeFileSync(item.target, item.content, { flag: 'wx' });
   }
   console.log('\nShim checks complete. No existing file was overwritten.');
