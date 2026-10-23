@@ -2,7 +2,7 @@
 // User ကိုယ်ပိုင် Project များ — Create / List / Delete
 // Sidebar + Helper Script များကို Shared Component (frontend/shared.js) မှ ယူသည်
 
-import { renderSidebar, sidebarScript } from './shared.js';
+import { renderSidebar, sidebarScript, shellIcon } from './shared.js';
 
 export const PROJECTS_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -11,55 +11,47 @@ export const PROJECTS_HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Projects — AI Creative Studio</title>
 <style>
-:root{--bg:#080c18;--bg-sidebar:#0d1220;--card:#151b2b;--card2:#111827;--cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--text2:#94a3b8;--text3:#5b6785;--border:#26324a;--success:#2bff9f;--error:#ff4d4d;}
+:root{--bg:var(--aics-bg,#f6f8fb);--card:var(--aics-surface,#fff);--card2:var(--aics-surface-subtle,#f8fafc);--text:var(--aics-text,#172033);--text2:var(--aics-text-muted,#667085);--text3:var(--aics-text-soft,#667085);--border:var(--aics-border,#e5eaf1);--border-strong:var(--aics-border-strong,#d7dee8);--primary:var(--aics-primary,#5b5bd6);--primary-hover:var(--aics-primary-hover,#4b4bc4);--primary-soft:var(--aics-primary-soft,#f0efff);--success:var(--aics-success,#16845b);--error:var(--aics-danger,#c4323a);--focus:var(--aics-focus,rgba(91,91,214,.28));}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans Myanmar','Roboto','Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
-a{color:var(--cyan);text-decoration:none;}
-.brand{margin-bottom:22px;}
-.brand-title{font-weight:800;font-size:18px;letter-spacing:0.5px;background:linear-gradient(90deg,var(--purple),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.nav-label{font-size:11px;color:var(--text3);letter-spacing:1.5px;margin:18px 0 8px 10px;text-transform:uppercase;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;color:#ccc;text-decoration:none;cursor:pointer;font-size:14px;margin-bottom:4px;border:1px solid transparent;transition:all 0.2s;}
-.nav-item:hover{background:#161d30;transform:translateX(2px);}
-.nav-item.active{background:linear-gradient(90deg,rgba(123,92,255,0.18),rgba(0,229,255,0.08));color:#fff;border:1px solid var(--purple);box-shadow:0 0 14px rgba(123,92,255,0.35);}
-.nav-icon-circle{width:30px;height:30px;border-radius:9px;background:#1a2138;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.sidebar-bottom{margin-top:24px;padding-top:18px;border-top:1px solid var(--border);}
-.license-badge{display:inline-block;font-size:12px;padding:5px 12px;border-radius:20px;margin-bottom:12px;background:#333;color:#aaa;}
-.license-badge.pro{background:#103a2a;color:var(--success);}
-.side-btn{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:#161d30;color:#ccc;border:1px solid var(--border);font-size:13px;cursor:pointer;margin-bottom:6px;text-decoration:none;transition:all 0.2s;}
-.side-btn:hover{background:#1e2740;border-color:var(--cyan);}
-.page-title{font-size:22px;font-weight:700;color:var(--cyan);margin-bottom:8px;}
+body{font-family:var(--aics-font,Inter,"Noto Sans Myanmar",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+a{color:var(--primary);text-decoration:none;}
+.page-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.25px;}
+.page-title .lucide-icon{display:inline-block;width:20px;height:20px;vertical-align:-3px;margin-right:5px;color:var(--primary);}
 .page-subtitle{color:var(--text2);font-size:13.5px;margin-bottom:22px;}
 .create-box{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;}
-.create-input{flex:1 1 240px;min-width:0;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px;outline:none;}
-.create-input:focus{border-color:var(--cyan);}
-.btn{padding:11px 22px;border:none;border-radius:10px;cursor:pointer;font-weight:bold;font-size:14px;min-height:42px;transition:opacity 0.2s;}
-.btn:hover{opacity:0.85;}
-.btn-primary{background:var(--cyan);color:#001014;}
-.btn-danger{background:#4a2626;color:#ff8080;padding:7px 14px;font-size:12.5px;min-height:32px;}
-.project-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.create-input{flex:1 1 240px;min-width:0;padding:11px 14px;border-radius:var(--aics-radius-sm,8px);border:1px solid var(--border-strong);background:var(--card);color:var(--text);font:inherit;font-size:14px;outline:none;}
+.create-input::placeholder{color:var(--text3);}
+.create-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus);}
+.btn{padding:10px 18px;border:1px solid transparent;border-radius:var(--aics-radius-sm,8px);cursor:pointer;font-weight:650;font-size:13.5px;min-height:42px;transition:background .16s,color .16s,border-color .16s,box-shadow .16s;}
+.btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px;}
+.btn:disabled{opacity:.6;cursor:wait;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--primary-hover);}
+.btn-danger{background:#fff1f1;color:var(--error);border-color:#f3c7ca;padding:6px 12px;font-size:12.5px;min-height:36px;}
+.btn-danger:hover:not(:disabled){background:#ffe5e6;}
+.project-card{background:var(--card);border:1px solid var(--border);border-radius:var(--aics-radius-md,12px);padding:16px 18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:var(--aics-shadow-sm,0 1px 2px rgba(16,24,40,.06));}
 .project-info{flex:1 1 260px;min-width:0;}
-.project-title{font-weight:bold;font-size:15.5px;color:var(--text);}
-.project-desc{color:var(--text3);font-size:12.5px;margin-top:3px;}
+.project-title{font-weight:650;font-size:15px;color:var(--text);}
+.project-desc{color:var(--text2);font-size:12.5px;margin-top:3px;}
 .project-meta{color:var(--text3);font-size:12px;margin-top:3px;}
-.empty-state{text-align:center;color:var(--text3);padding:60px 20px;}
-.loading-state{text-align:center;color:var(--cyan);padding:40px 20px;}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:9999;display:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);}
-.toast.show{display:block;}
-.toast.success{border-color:var(--success);}
-.toast.error{border-color:var(--error);}
+.empty-state{text-align:center;color:var(--text2);padding:60px 20px;}
+.loading-state{text-align:center;color:var(--primary);padding:40px 20px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:var(--aics-radius-md,12px);font-size:14px;z-index:9999;display:none;box-shadow:var(--aics-shadow-md,0 8px 24px rgba(16,24,40,.08));}
+.toast.show{display:block;}.toast.success{border-color:var(--success);}.toast.error{border-color:var(--error);}
+@media(prefers-reduced-motion:reduce){.btn{transition:none;}}
 </style>
 </head>
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
-<div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
+<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">${shellIcon('menu')}</button>
+<div class="aics-brand"><span class="aics-brand-icon">${shellIcon('sparkles')}</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
 <div class="layout">
 ${renderSidebar('projects',{variant:'studio'})}
 <main class="main-content aics-main">
-  <h1 class="page-title">📁 Projects</h1>
+  <h1 class="page-title">${shellIcon('folder')} Projects</h1>
   <p class="page-subtitle">သင့်ဖန်တီးမှုများကို Project များအတွင်း စုစည်းနိုင်ရန် — နောက်ဆင့်များတွင် Creation များနှင့် ချိတ်ဆက်ပါမည်။</p>
   <div class="create-box">
     <input id="projectTitle" class="create-input" type="text" placeholder="Project အမည် ရိုက်ထည့်ပါ..." onkeydown="if(event.key==='Enter')createProject()">

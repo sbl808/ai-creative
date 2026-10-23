@@ -9,6 +9,30 @@
 import { listEnabledStudios, SITE_LINKS } from '../config/studios.js';
 import { AICS_RESULT_BOX_CSS, AICS_RESULT_BOX_SCRIPT, AICS_STREAM_SCRIPT } from './shared-ui.js';
 
+// Dependency-free Lucide-compatible outline SVGs for shared navigation.
+const SHELL_ICONS = {
+  home: '<path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/>',
+  book: '<path d="M12 7v14"/><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-4a3 3 0 0 0-3 2 3 3 0 0 0-3-2H5a2 2 0 0 1-2-2Z"/>',
+  pen: '<path d="m18 2 4 4"/><path d="M7 13 3 21l8-4L21 7l-4-4L7 13Z"/><path d="m14 6 4 4"/>',
+  clapperboard: '<path d="M4 4h16v16H4z"/><path d="m4 9 16-5"/><path d="m9 4 3 5"/><path d="m15 4 3 5"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>',
+  shoppingBag: '<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+  folder: '<path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6Z"/>',
+  star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a7 7 0 0 1-.1 1.8Z" transform="translate(-1 -1)"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7 2 2-2 2 2 2-2.5 2.5-2-2-3.4 3.4"/>',
+  shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  message: '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/>',
+  logOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+  sparkles: '<path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z"/><path d="m19 14 1.2 2.8L23 18l-2.8 1.2L19 22l-1.2-2.8L15 18l2.8-1.2L19 14Z"/>'
+};
+export function shellIcon(name) {
+  return '<svg class="lucide-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (SHELL_ICONS[name] || SHELL_ICONS.sparkles) + '</svg>';
+}
+const STUDIO_SHELL_ICONS = { story: 'book', content: 'pen', short: 'clapperboard', image: 'image', voice: 'mic', shop: 'shoppingBag' };
+
 // ---- Sidebar အတွင်း Studio Link များ (Registry မှ ထုတ်သည်) ----
 // data-studio attribute — Admin မှ Studio ပိတ်ထားပါက Script က ဤ Link ကို ဖျောက်သည် (Phase 4)
 function studioLinks(activeId) {
@@ -17,7 +41,7 @@ function studioLinks(activeId) {
       const act = s.id === activeId ? ' active' : '';
       return (
         '<a class="nav-item' + act + '" href="' + s.route + '" data-studio="' + s.id + '">' +
-        '<span class="nav-icon-circle">' + s.icon + '</span> ' + s.nameMy + '</a>'
+        '<span class="nav-icon-circle">' + shellIcon(STUDIO_SHELL_ICONS[s.id] || 'sparkles') + '</span><span class="nav-text">' + s.nameMy + '</span></a>'
       );
     })
     .join('\n  ');
@@ -30,8 +54,8 @@ function myWorkLinks(activeId) {
   const favActive = activeId === 'favorites' ? ' active' : '';
   const setActive = activeId === 'settings' ? ' active' : '';
   return (
-    '<a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">📁</span> ဖန်တီးမှုများ</a>\n' +
-    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">⭐</span> အနှစ်သက်ဆုံး</a>'
+    '<a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
+    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>'
   );
 }
 
@@ -42,7 +66,7 @@ function appShellSidebar(activeId) {
     '<div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>\n' +
     '<nav class="sidebar" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
-    '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">🏠</span> ပင်မ</a>\n' +
+    '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
     '  ' + studioLinks(activeId) + '\n' +
     '  <div class="nav-label">MY WORK</div>\n' +
@@ -50,12 +74,12 @@ function appShellSidebar(activeId) {
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +
     '    <div class="nav-label">SETTINGS</div>\n' +
-    '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">🛠️ ဆက်တင်များ</a>\n' +
-    '    <button class="side-btn" onclick="setApiKey()">🔑 API Key Setting</button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">⚙️ Admin Panel</a>\n' +
-    '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank">📨 Telegram</a>\n' +
-    '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank">📘 Facebook</a>\n' +
-    '    <button class="side-btn" onclick="logout()">🚪 Logout</button>\n' +
+    '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
+    '    <button class="side-btn" onclick="setApiKey()">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
+    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
+    '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
+    '    <button class="side-btn" onclick="logout()">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
     '  </div>\n' +
     '</nav>'
   );
@@ -71,20 +95,20 @@ function studioPageSidebar(activeId) {
     '<div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>\n' +
     '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
     '  <div class="sidebar-nav">\n' +
-    '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">🏠</span> ပင်မ</a>\n' +
+    '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
     '  ' + studioLinks(activeId) + '\n' +
     '  <div class="nav-label">MY WORK</div>\n' +
-    '  <a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">📁</span> ဖန်တီးမှုများ</a>\n' +
-    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">⭐</span> အနှစ်သက်ဆုံး</a>\n' +
+    '  <a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
+    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>\n' +
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +
-    '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">🛠️ ဆက်တင်များ</a>\n' +
-    '  <a class="side-btn" onclick="setApiKey()">🔑 API Key Setting</a>\n' +
-    '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank">📨 Telegram</a>\n' +
-    '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank">📘 Facebook</a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">⚙️ Admin Panel</a>\n' +
-    '  <a class="side-btn" onclick="logout()">🚪 Logout</a>\n' +
+    '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
+    '  <a class="side-btn" onclick="setApiKey()">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
+    '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
+    '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
+    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn" onclick="logout()">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
   );
@@ -104,34 +128,40 @@ export function renderSidebar(activeId, opts) {
 function responsiveStyles() {
   return '<style>\n' +
     '/* ===== AI Creative Studio — SINGLE RESPONSIVE SHELL ===== */\n' +
+    ':root{--aics-bg:#f6f8fb;--aics-surface:#ffffff;--aics-surface-subtle:#f8fafc;--aics-border:#e5eaf1;--aics-border-strong:#d7dee8;--aics-text:#172033;--aics-text-muted:#667085;--aics-text-soft:#667085;--aics-primary:#5b5bd6;--aics-primary-hover:#4b4bc4;--aics-primary-soft:#f0efff;--aics-primary-border:#d9d6fe;--aics-success:#16845b;--aics-warning:#b54708;--aics-danger:#c4323a;--aics-focus:rgba(91,91,214,.28);--aics-shadow-sm:0 1px 2px rgba(16,24,40,.06);--aics-shadow-md:0 8px 24px rgba(16,24,40,.08);--aics-radius-sm:8px;--aics-radius-md:12px;--aics-radius-lg:16px;--aics-font:Inter,\"Noto Sans Myanmar\",-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;}\n' +
     'html,body{margin:0;padding:0;min-height:100%;}\n' +
     'body{overflow-x:hidden;}\n' +
-    '.aics-app{min-height:100vh;background:#080c18;}\n' +
+    '.aics-app{min-height:100vh;background:var(--aics-bg);color:var(--aics-text);font-family:var(--aics-font);}\n' +
     '.aics-app .layout{display:flex;align-items:stretch;min-height:calc(100vh - 63px);width:100%;}\n' +
-    '.aics-app .layout > .sidebar{width:220px;flex:0 0 220px;background:#0d1425;border:1px solid rgba(0,229,255,.10);border-radius:16px;margin:14px 12px;padding:14px 12px;box-sizing:border-box;height:calc(100vh - 91px);position:sticky;top:77px;z-index:90;overflow:hidden;}\n' +
+    '.aics-app .layout > .sidebar{display:flex;flex-direction:column;width:232px;flex:0 0 232px;background:var(--aics-surface);border:1px solid var(--aics-border);border-radius:var(--aics-radius-lg);margin:16px 12px;padding:14px 12px;box-sizing:border-box;height:calc(100vh - 95px);position:sticky;top:79px;z-index:90;overflow:hidden;box-shadow:var(--aics-shadow-sm);}\n' +
     '.aics-app .layout > .sidebar .sidebar-nav{width:100%;box-sizing:border-box;}\n' +
-    '.aics-app .nav-label{font-size:11px;color:#5a6478;letter-spacing:1.5px;margin:16px 0 6px 8px;text-transform:uppercase;}\n' +
-    '.aics-app .nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;box-sizing:border-box;border-radius:10px;color:#c6cede;text-decoration:none;cursor:pointer;font-size:13.5px;margin-bottom:2px;border:1px solid transparent;transition:all .2s;line-height:1.35;}\n' +
-    '.aics-app .nav-item:hover{background:#161d30;color:#fff;}\n' +
-    '.aics-app .nav-item.active{background:linear-gradient(90deg,rgba(123,92,255,.18),rgba(0,229,255,.08));color:#fff;border-color:#7b5cff;box-shadow:0 0 14px rgba(123,92,255,.22);}\n' +
-    '.aics-app .nav-icon-circle{width:30px;height:30px;min-width:30px;border-radius:9px;background:#1a2138;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}\n' +
+    '.aics-app .nav-label{font-size:10px;font-weight:650;color:var(--aics-text-soft);letter-spacing:1.1px;margin:18px 0 7px 10px;text-transform:uppercase;}\n' +
+    '.aics-app .nav-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;box-sizing:border-box;border-radius:var(--aics-radius-sm);color:var(--aics-text-muted);text-decoration:none;cursor:pointer;font-size:13px;margin-bottom:2px;border:1px solid transparent;transition:background .16s,color .16s,border-color .16s;line-height:1.45;}\n' +
+    '.aics-app .nav-item:hover{background:var(--aics-surface-subtle);color:var(--aics-text);}\n' +
+    '.aics-app .nav-item.active{background:var(--aics-primary-soft);color:var(--aics-primary);border-color:var(--aics-primary-border);font-weight:600;}\n' +
+    '.aics-app .nav-item.active:hover{color:var(--aics-primary-hover);}\n' +
+    '.aics-app .nav-item:focus-visible,.aics-app .side-btn:focus-visible,.aics-menu-btn:focus-visible,.hamburger:focus-visible,.menu-btn:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;}\n' +
+    '.aics-app .nav-icon-circle{width:20px;height:20px;min-width:20px;border-radius:0;background:transparent;display:flex;align-items:center;justify-content:center;color:currentColor;flex-shrink:0;}\n' +
+    '.aics-app .lucide-icon{display:block;width:18px;height:18px;flex:0 0 18px;}\n' +
+    '.aics-app .nav-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
     '.aics-app .sidebar-nav{flex:1 1 auto;overflow-y:auto;min-height:0;}\n' +
-    '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:14px;border-top:1px solid rgba(0,229,255,.15);width:100%;box-sizing:border-box;}\n' +
-    '.aics-app .side-btn{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;text-align:left;padding:8px 10px;min-height:38px;border-radius:10px;background:#161d30;color:#c6cede;border:1px solid rgba(0,229,255,.12);font-size:12.5px;cursor:pointer;margin-bottom:5px;text-decoration:none;transition:all .2s;font-family:inherit;}\n' +
-    '.aics-app .side-btn:hover{background:#1e2740;border-color:#00e5ff;color:#fff;}\n' +
+    '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:12px;border-top:1px solid var(--aics-border);width:100%;box-sizing:border-box;}\n' +
+    '.aics-app .side-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;padding:8px 10px;min-height:40px;border-radius:var(--aics-radius-sm);background:transparent;color:var(--aics-text-muted);border:1px solid transparent;font-size:12.5px;cursor:pointer;margin-bottom:3px;text-decoration:none;transition:background .16s,color .16s,border-color .16s;font-family:inherit;}\n' +
+    '.aics-app .side-btn:hover,.aics-app .side-btn.active{background:var(--aics-surface-subtle);border-color:var(--aics-border);color:var(--aics-text);}\n' +
     '.aics-app .aics-main{flex:1 1 auto;min-width:0;max-width:none;margin:0;padding:20px 24px;box-sizing:border-box;}\n' +
     '.aics-app .main-content{flex:1 1 auto;min-width:0;max-width:none;margin:0;padding:20px 24px;box-sizing:border-box;}\n' +
-    '.aics-app .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:298;}\n' +
+    '.aics-app .backdrop{display:none;position:fixed;inset:0;background:rgba(16,24,40,.38);z-index:298;backdrop-filter:blur(2px);}\n' +
     '.aics-app .backdrop.show{display:block;}\n' +
-    '.aics-menu-btn,.hamburger,.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:300;width:44px;height:44px;border-radius:10px;background:#151b2b;border:1px solid #2a3350;color:#fff;font-size:20px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.45);padding:0;line-height:1;}\n' +
-    '.aics-app .aics-header{display:flex;align-items:center;gap:14px;padding:10px 20px;min-height:63px;background:linear-gradient(135deg,#0a1628,#0d1f3c);border-bottom:1px solid rgba(0,229,255,.12);position:sticky;top:0;z-index:150;width:100%;box-sizing:border-box;}\n' +
+    '.aics-menu-btn,.hamburger,.menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:300;width:42px;height:42px;border-radius:var(--aics-radius-sm);background:var(--aics-surface);border:1px solid var(--aics-border);color:var(--aics-text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;box-shadow:var(--aics-shadow-sm);padding:0;line-height:1;}\n' +
+    '.aics-app .aics-header{display:flex;align-items:center;gap:14px;padding:10px 20px;min-height:63px;background:var(--aics-surface);border-bottom:1px solid var(--aics-border);position:sticky;top:0;z-index:150;width:100%;box-sizing:border-box;}\n' +
     '.aics-app .aics-brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}\n' +
-    '.aics-app .aics-title{font-size:17px;font-weight:800;letter-spacing:.3px;background:linear-gradient(90deg,#00e5ff,#7b5cff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
-    '.aics-app .aics-brand-icon{font-size:20px;flex-shrink:0;}\n' +
-    '.aics-app .aics-pro{padding:6px 16px;border-radius:999px;background:linear-gradient(135deg,#7b5cff,#00e5ff);color:#fff;font-size:12px;font-weight:700;letter-spacing:.5px;flex-shrink:0;box-shadow:0 2px 12px rgba(123,92,255,.35);}\n' +
+    '.aics-app .aics-title{font-size:16px;font-weight:700;letter-spacing:-.2px;color:var(--aics-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}\n' +
+    '.aics-app .aics-brand-icon{display:flex;align-items:center;font-size:20px;flex-shrink:0;color:var(--aics-primary);width:22px;height:22px;}\n' +
+    '.aics-app .aics-brand-icon .lucide-icon{width:22px;height:22px;flex-basis:22px;}\n' +
+    '.aics-app .aics-pro{padding:5px 11px;border-radius:999px;background:var(--aics-primary-soft);color:var(--aics-primary);font-size:11px;font-weight:700;letter-spacing:.4px;flex-shrink:0;border:1px solid var(--aics-primary-border);}\n' +
     '.aics-app .quick-grid,.aics-app .recent-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}\n' +
     '@media (min-width:768px) and (max-width:1199px){\n' +
-    '  .aics-app .layout > .sidebar{width:210px;flex-basis:210px;margin:12px 10px;padding:12px 10px;top:75px;height:calc(100vh - 87px);}\n' +
+    '  .aics-app .layout > .sidebar{width:216px;flex-basis:216px;margin:12px 10px;padding:12px 10px;top:75px;height:calc(100vh - 87px);}\n' +
     '  .aics-app .aics-main,.aics-app .main-content{padding:18px 18px;}\n' +
     '  .aics-app .quick-grid,.aics-app .recent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}\n' +
     '}\n' +
@@ -147,6 +177,7 @@ function responsiveStyles() {
     '  .aics-app .aics-main,.aics-app .main-content{width:100%;max-width:none;margin:0;padding:14px;}\n' +
     '  .aics-app .quick-grid,.aics-app .recent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}\n' +
     '}\n' +
+    '@media (prefers-reduced-motion:reduce){.aics-app .nav-item,.aics-app .side-btn,.aics-app .layout > .sidebar{transition:none;}}\n' +
     '</style>';
 }
 
@@ -689,8 +720,8 @@ export function renderStudioShell(opts) {
     aicsDesignPatchCss() +
     '<div class="aics-app" id="aicsApp">\n' +
     '<header class="header aics-header">\n' +
-    '<button class="aics-menu-btn" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" title="Menu" onclick="toggleSidebar()">&#9776;</button>\n' +
-    '<div class="aics-brand"><span class="aics-brand-icon">' + icon + '</span><span class="aics-title">' + nameMy + '</span></div>\n' +
+    '<button class="aics-menu-btn" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" title="Menu" onclick="toggleSidebar()">' + shellIcon('menu') + '</button>\n' +
+    '<div class="aics-brand"><span class="aics-brand-icon">' + shellIcon('sparkles') + '</span><span class="aics-title">' + nameMy + '</span></div>\n' +
     '<div class="aics-pro" id="sidePlan">FREE</div>\n' +
     '</header>\n' +
     '<div class="layout">\n' +
