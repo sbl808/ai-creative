@@ -19,6 +19,7 @@ import { handleUserApiKeyRoutes } from './routes/user-apikey.routes.js';
 import { handleCmsRoutes } from './routes/cms.routes.js';
 import { handleAuthRoutes } from './routes/auth.routes.js';
 import { handleStudioGenerateRoutes } from './routes/studio-generate.routes.js';
+import { handleContentGenerateRoute } from './routes/content-generate.routes.js';
 import { trackUsage } from './core/usage.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
@@ -620,57 +621,20 @@ export default {
         }
       }
 
-      if (path === '/api/studio/content/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const genLevel = String(body.generationLevel || body.type || '1');
-        { const denied = await requireFeature(env, 'content.generate', plan, genLevel, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateContent(env, {
-              model: body.model,
-              idea: body.idea,
-              generationLevel: genLevel,
-              contentType: String(body.contentType || 'Other'),
-              platform: body.platform,
-              product: body.product,
-              goal: body.goal,
-              cta: body.cta,
-              plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            await trackUsageSafe(env, payload.sub, 'ai');
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContent(env, {
-            model: body.model,
-            idea: body.idea,
-            generationLevel: genLevel,
-            contentType: String(body.contentType || 'Other'),
-            platform: body.platform,
-            product: body.product,
-            goal: body.goal,
-            cta: body.cta,
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'content_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      // Content Studio generation endpoint is handled by its isolated route module.
+      const contentGenerateResponse = await handleContentGenerateRoute(request, env, cors, {
+        bearer,
+        json,
+        verifyTokenSafe,
+        resolvePlan,
+        requireFeature,
+        getUserApiKey,
+        generateContent,
+        trackUsageSafe,
+        ndjsonResponse,
+        friendlyError,
+      });
+      if (contentGenerateResponse) return contentGenerateResponse;
 
       // ===== Content Studio — Tab 1: Revise (Chat) =====
       if (path === '/api/studio/content/revise' && request.method === 'POST') {
