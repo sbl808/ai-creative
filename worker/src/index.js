@@ -14,6 +14,7 @@ import { listEnabledModels } from './core/aiModels.js';
 import { getUserSettings, updateUserSettings, getUserPreferences, updateUserPreferences } from './core/settings.js';
 import { createProject, listProjects, deleteProject } from './core/projects.js';
 import { handleProjectRoutes } from './routes/projects.routes.js';
+import { handleUserProfileRoutes } from './routes/user-profile.routes.js';
 import { trackUsage } from './core/usage.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
@@ -639,37 +640,17 @@ export default {
         }, 200, cors);
       }
 
-      // ===== Phase 12 — Personal Profile Name ပြောင်းခြင်း (Server-side Whitelist) =====
-      if (path === '/api/users/me/profile' && request.method === 'PUT') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await readBody(request).catch(() => null);
-        const name = String((body && body.name) || '').trim().slice(0, 60);
-        if (!name) return json({ error: 'missing_name', detail: 'Name မထည့်နိုင်ပါ။' }, 400, cors);
-        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
-        await env.DB.prepare('UPDATE users SET name = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(name, payload.sub).run();
-        return json({ ok: true, name }, 200, cors);
-      }
-
-      // ===== Personal Settings — Profile/Preferences သိမ်းခြင်း (Phase 3) =====
-      // Server-side တွင် Whitelist စစ်ပြီးမှသာ သိမ်းသည် (Frontend ကို မယုံပါ)
-      if (path === '/api/users/me/settings' && request.method === 'PUT') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || typeof body !== 'object') return json({ error: 'bad_request' }, 400, cors);
-        try {
-          const settings = await updateUserSettings(env, payload.sub, body.settings || {});
-          const preferences = await updateUserPreferences(env, payload.sub, body.preferences || {});
-          return json({ ok: true, settings, preferences }, 200, cors);
-        } catch (e) {
-          return json({ error: 'settings_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      // User profile and settings endpoints are handled by their isolated route module.
+      const userProfileResponse = await handleUserProfileRoutes(request, env, cors, {
+        bearer,
+        json,
+        verifyTokenSafe,
+        readBody,
+        updateUserSettings,
+        updateUserPreferences,
+        friendlyError,
+      });
+      if (userProfileResponse) return userProfileResponse;
 
       // ===== BYOK — User ကိုယ်ပိုင် Gemini Key သိမ်းခြင်း / အခြေအနေ စစ်ခြင်း =====
       if (path === '/api/user/apikey' && request.method === 'POST') {
