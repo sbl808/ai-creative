@@ -33,7 +33,7 @@ export { ${exp} } from './studios/${slug}/page.js';
 `;
 }
 
-const plan = [];
+function isExpectedShim(current, slug, exp) {\n  // Accept the older generated shim comments while requiring the only executable\n  // statement to be the exact expected re-export.\n  const statements = current.split(/\\r?\\n/).map(line => line.trim()).filter(line => line && !line.startsWith('//'));\n  return statements.length === 1 && statements[0] === `export { ${exp} } from './studios/${slug}/page.js';`;\n}\n\nconst plan = [];
 const errors = [];
 for (const studio of STUDIOS) {
   const target = path.join(FRONTEND, `${studio.slug}.js`);
@@ -46,7 +46,7 @@ for (const studio of STUDIOS) {
   const content = expectedShim(studio.slug, studio.exp);
   if (fs.existsSync(target)) {
     const current = fs.readFileSync(target, 'utf8');
-    if (current !== content) {
+    if (!isExpectedShim(current, studio.slug, studio.exp)) {
       errors.push(`Refusing to overwrite non-shim file: ${path.relative(ROOT, target)}`);
       continue;
     }
