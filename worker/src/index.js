@@ -16,6 +16,7 @@ import { createProject, listProjects, deleteProject } from './core/projects.js';
 import { handleProjectRoutes } from './routes/projects.routes.js';
 import { handleUserProfileRoutes } from './routes/user-profile.routes.js';
 import { handleUserApiKeyRoutes } from './routes/user-apikey.routes.js';
+import { handleCmsRoutes } from './routes/cms.routes.js';
 import { trackUsage } from './core/usage.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
@@ -693,18 +694,16 @@ export default {
         }
       }
 
-      if (path === '/api/cms/prompt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body) return json({ error: 'bad_request' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const c = await getCMSData(env, body.studio || 'STORY', plan, body.type || '1');
-        if (!c) return json({ found: false }, 200, cors);
-        return json({ found: true, studio: c.studio, plan: c.plan, type: c.type, system_prompt: buildSystemPrompt(c) }, 200, cors);
-      }
+      // CMS prompt endpoint is handled by its isolated route module.
+      const cmsRouteResponse = await handleCmsRoutes(request, env, cors, {
+        bearer,
+        json,
+        verifyTokenSafe,
+        resolvePlan,
+        getCMSData,
+        buildSystemPrompt,
+      });
+      if (cmsRouteResponse) return cmsRouteResponse;
 
       if (path === '/api/studio/generate' && request.method === 'POST') {
         const token = bearer(request);
