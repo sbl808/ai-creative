@@ -48,6 +48,17 @@ jobs:
       - name: Check browser scripts
         run: node --experimental-default-type=module scripts/check-browser-scripts.mjs
 
+  architecture-verification:
+    name: Studio architecture verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify current Studio entry points and modular page exports
+        run: node --experimental-default-type=module scripts/verify-split.mjs
+
   migration-contract:
     name: D1 migration schema contract (offline)
     runs-on: ubuntu-latest
