@@ -18,6 +18,7 @@ import { handleUserProfileRoutes } from './routes/user-profile.routes.js';
 import { handleUserApiKeyRoutes } from './routes/user-apikey.routes.js';
 import { handleCmsRoutes } from './routes/cms.routes.js';
 import { handleAuthRoutes } from './routes/auth.routes.js';
+import { handleStudioGenerateRoutes } from './routes/studio-generate.routes.js';
 import { trackUsage } from './core/usage.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
@@ -594,34 +595,19 @@ export default {
       });
       if (cmsRouteResponse) return cmsRouteResponse;
 
-      if (path === '/api/studio/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.studio || !body.idea) return json({ error: 'missing_studio_or_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
-        try {
-          // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStudio(env, {
-            studio: String(body.studio).toUpperCase(),
-            type: String(body.type || '1'),
-            idea: body.idea,
-            plan,
-            apiKey,
-            model: body.model,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json(out, 200, cors);
-        } catch (e) {
-          return json({ error: 'studio_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      // Generic Studio generation endpoint is handled by its isolated route module.
+      const studioGenerateResponse = await handleStudioGenerateRoutes(request, env, cors, {
+        bearer,
+        json,
+        verifyTokenSafe,
+        resolvePlan,
+        requireFeature,
+        getUserApiKey,
+        generateStudio,
+        trackUsageSafe,
+        friendlyError,
+      });
+      if (studioGenerateResponse) return studioGenerateResponse;
 
       // ===== Content Studio — Tab 1: Generate =====
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
