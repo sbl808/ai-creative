@@ -2,7 +2,7 @@
 
 ## Studio Registry (config/studios.js)
 
-All studios are declared in a single **registry**. Adding a new studio means adding one registry entry + one module — no changes to routing, sidebar, admin, or other studios.
+All studios are declared in a single **registry**, which records studio identity and integration metadata. A registry entry alone does **not** guarantee a fully working studio. Adding a studio may require a backend module, frontend package and loader, API routes, access gates, Home/navigation integration, CMS/configuration, and tests. Check the current implementation before assuming any step is automatic.
 
 ```js
 const STUDIO_REGISTRY = {
@@ -40,13 +40,18 @@ Hiding in the UI is never the only control; the API enforces it too.
 
 ## How to add a new studio (e.g. Music)
 
-1. Create `worker/src/studios/music.js` (business logic).
-2. Create `worker/src/frontend/studios/music/` package (page/ui/… modules exporting the assembled `MUSIC_HTML`), register it in `frontend/studioPages.js` `STUDIO_LOADERS`, and (if you keep root shims) re-export it from `frontend/music.js`.
-3. Add `music` entry to `STUDIO_REGISTRY` (+ `STUDIO_ORDER`).
-4. In `index.js`: add `/api/studio/music/*` routes (the existing disabled-studio regex already covers any registry id you add to the pattern).
-5. Add `music` to the studio-disabled regex if needed, and to Home quick-grid.
+The following is a **current-repository checklist**, not a claim that studio creation is already automated. Verify the relevant files and tests before making changes:
 
-Existing six studios are unaffected.
+1. Create `worker/src/studios/music.js` (business logic).
+2. Create `worker/src/frontend/studios/music/` package (page/ui/… modules exporting the assembled `MUSIC_HTML`) and register it in `frontend/studioPages.js` `STUDIO_LOADERS`.
+3. If root compatibility shims are still required, add `frontend/music.js` to re-export the studio package page.
+4. Add `music` to `STUDIO_REGISTRY` and `STUDIO_ORDER`.
+5. Add the required `/api/studio/music/*` routes in `index.js` and verify that studio-enabled/disabled gates cover the new id.
+6. Update Home/navigation integration and any explicit studio lists or patterns that are not registry-driven.
+7. Add or verify the studio's configuration/CMS requirements, input/output validation, and tests.
+8. Run the relevant isolation, contract, security, and regression checks.
+
+A future registry-driven loader may reduce these manual integration points, but do not claim that capability until it exists and is tested. Keep unrelated studios unchanged.
 
 ## Studio endpoints (per studio)
 
@@ -61,7 +66,9 @@ Existing six studios are unaffected.
 
 Legacy: `/api/studio/generate` (generic) remains for backward compatibility.
 
-### Story Studio — 11-Layer Brain (v2.1)
+### Story Studio — current Brain/CMS flow (v2.1)
+> ဤနေရာရှိ “11-Layer Brain” အမည်သည် legacy documentation ဖြစ်သည်။ Target standard သည် `ARCHITECTURE_STANDARD.md` တွင် သတ်မှတ်ထားသော 12-layer order ဖြစ်သည်။ Current code နှင့် tests များက layer 12 ခုလုံးကို အမှန်တကယ် အကောင်အထည်ဖော်ထားကြောင်း မစစ်ဆေးရသေးသရွေ့ implemented ဟု မယူဆရ။
+
 - **Story Engine** (`/generate`, `/revise`) — Story Type (1–5) အတိုင်း Free/Pro type-based logic ဆက် သုံးသည်; response `{ story, storyFacts }` (storyFacts additive — legacy `story` မပျက်)။
 - **Video Engine** (`/video`, `/video-image`) — **Feature-level PRO gate** (Story Type နှင့် သီးခြား)။ Body မှာ Visual Style + Video Workflow ကို configuration အဖြစ် ပို့သည်:
   - `visualStyle` — `Realism` / `Anime` / `3D Animation` / `2D Illustration` / `Documentary` / `Film Noir` / `Fantasy` (video ဘယ်လိုမြင်ရမလဲ)
