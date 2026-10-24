@@ -11,6 +11,7 @@
 import { signToken } from '../worker/src/core/auth.js';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
+import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
@@ -331,6 +332,26 @@ await check('Studio Gate denies access when the settings database query throws',
   const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
   const enabled = await isStudioEnabled({ DB: brokenDb }, 'story');
   return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+
+console.log('— AI Brain canonical 12-layer order —');
+await check('Brain prompt follows the canonical 12-layer order regardless of object insertion order', async () => {
+  const config = {};
+  [...BRAIN_LAYER_ORDER].reverse().forEach((layer) => { config[layer] = 'content for ' + layer; });
+  const prompt = buildBrainPrompt(config);
+  const positions = BRAIN_LAYER_ORDER.map((layer) => prompt.indexOf(layer + ':'));
+  return {
+    ok: positions.every((pos, i) => pos >= 0 && (i === 0 || pos > positions[i - 1])),
+    msg: 'layers=' + positions.join(','),
+  };
+});
+await check('Brain prompt preserves legacy CMS key ordering when no canonical layer IDs exist', async () => {
+  const prompt = buildBrainPrompt({ final_output: 'out', prompt: 'prompt', role: 'role', knowledge: 'knowledge' });
+  const positions = ['ROLE:', 'KNOWLEDGE:', 'PROMPT:', 'FINAL_OUTPUT:'].map((label) => prompt.indexOf(label));
+  return {
+    ok: positions.every((pos) => pos >= 0) && positions.every((pos, i) => i === 0 || pos > positions[i - 1]),
+    msg: 'legacy=' + positions.join(','),
+  };
 });
 
 console.log('— Feature gate database failure safety —');
