@@ -955,6 +955,9 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'content.video_image', plan, reqType, cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -973,6 +976,8 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'content.srt', plan, '1', cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -995,6 +1000,8 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        { const denied = await requireFeature(env, 'content.translate_srt', plan, '1', cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1278,6 +1285,9 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'short.video_image', plan, reqType, cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1372,6 +1382,9 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'image.generate', plan, reqType, cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
@@ -1590,6 +1603,9 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const reqType = String(body.type || '1');
+        { const denied = await requireFeature(env, 'shop.video_image', plan, reqType, cors); if (denied) return denied; }
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
