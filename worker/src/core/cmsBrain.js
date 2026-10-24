@@ -1,4 +1,4 @@
-// AI Creative Studio — 11-Layer Brain CMS loader (additive, Story Studio scope)
+// AI Creative Studio — 12-Layer Brain CMS loader (additive, Story Studio scope)
 // Knowledge Isolation Rule (§5 / instruction §13):
 //   - getStoryTypeContext  → GLOBAL_FRAMEWORK + SELECTED Story Type (TYPE_n) rows သာ load
 //   - getStoryVideoContext → GLOBAL_FRAMEWORK + VIDEO_KNOWLEDGE(base) + SELECTED VISUAL_STYLE
@@ -16,6 +16,22 @@ export const BRAIN_MODULE_VIDEO_KNOWLEDGE = 'VIDEO_KNOWLEDGE';
 export const BRAIN_MODULE_VISUAL_STYLE = 'VISUAL_STYLE';
 export const BRAIN_MODULE_VIDEO_WORKFLOW = 'VIDEO_WORKFLOW';
 export const BRAIN_TYPE_BASE = 'BASE';
+/** Canonical, versioned layer order. Layer identifiers are stable CMS contract values. */
+export const BRAIN_LAYER_ORDER = [
+  '00_GATEKEEPER',
+  '01_CORE',
+  '02_MEMORY',
+  '03_KNOWLEDGE',
+  '04_WORKFLOW',
+  '05_TEMPLATE',
+  '06_PROMPT_GEN',
+  '07_QUALITY_CHECK',
+  '08_FEEDBACK_LOOP',
+  '09_SAFETY_GUARD',
+  '10_FINAL_OUTPUT',
+  '11_POST_NOTE',
+];
+
 
 // Selected (scope, module, type, plan) ၏ active rows များကိုသာ key→value map အဖြစ် ပြန်ပေးသည်။
 export async function getBrainConfig(env, { scope, module, type = BRAIN_TYPE_BASE, plan = 'FREE' }) {
@@ -51,19 +67,35 @@ export async function getStoryVideoContext(env, { visualStyle, workflow, plan })
   return { global, videoKnowledge, visualStyle: styleCfg, workflow: workflowCfg };
 }
 
-// config map (key→value) → layered prompt text (GLOBAL → KNOWLEDGE → RULES → STRUCTURE → PROMPT → QC → OUTPUT)
+// config map → canonical 12-layer order when layer IDs are present; legacy order otherwise.
+// Existing legacy CMS keys keep their previous order and output format.
 export function buildBrainPrompt(config) {
   if (!config || typeof config !== 'object') return '';
-  const order = ['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'];
   const sections = [];
-  order.forEach((k) => {
-    const v = config[k];
-    if (v && String(v).trim()) sections.push(k.toUpperCase() + ':\n' + String(v).trim());
-  });
-  Object.keys(config).forEach((k) => {
-    if (order.indexOf(k) !== -1) return;
-    const v = config[k];
-    if (v && String(v).trim()) sections.push(String(k).toUpperCase() + ':\n' + String(v).trim());
+  const keys = Object.keys(config);
+  const layerKey = (layer) => keys.find((key) => key.toUpperCase() === layer);
+  const hasCanonicalLayers = BRAIN_LAYER_ORDER.some((layer) => layerKey(layer) !== undefined);
+
+  if (hasCanonicalLayers) {
+    BRAIN_LAYER_ORDER.forEach((layer) => {
+      const key = layerKey(layer);
+      if (key === undefined) return;
+      const value = config[key];
+      if (value && String(value).trim()) sections.push(layer + ':\n' + String(value).trim());
+    });
+  } else {
+    const legacyOrder = ['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'];
+    legacyOrder.forEach((key) => {
+      const value = config[key];
+      if (value && String(value).trim()) sections.push(key.toUpperCase() + ':\n' + String(value).trim());
+    });
+  }
+
+  keys.forEach((key) => {
+    if (BRAIN_LAYER_ORDER.includes(key.toUpperCase())) return;
+    if (['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'].includes(key)) return;
+    const value = config[key];
+    if (value && String(value).trim()) sections.push(key.toUpperCase() + ':\n' + String(value).trim());
   });
   return sections.join('\n\n');
 }
