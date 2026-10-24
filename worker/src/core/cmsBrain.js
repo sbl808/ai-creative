@@ -83,17 +83,20 @@ export function buildBrainPrompt(config) {
       const value = config[key];
       if (value && String(value).trim()) sections.push(layer + ':\n' + String(value).trim());
     });
-  } else {
-    const legacyOrder = ['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'];
-    legacyOrder.forEach((key) => {
-      const value = config[key];
-      if (value && String(value).trim()) sections.push(key.toUpperCase() + ':\n' + String(value).trim());
-    });
   }
+
+  // Keep legacy CMS fields even when canonical 12-layer fields are also present.
+  const legacyOrder = ['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'];
+  legacyOrder.forEach((legacyKey) => {
+    const key = keys.find((candidate) => candidate.toLowerCase() === legacyKey);
+    if (key === undefined) return;
+    const value = config[key];
+    if (value && String(value).trim()) sections.push(legacyKey.toUpperCase() + ':\n' + String(value).trim());
+  });
 
   keys.forEach((key) => {
     if (BRAIN_LAYER_ORDER.includes(key.toUpperCase())) return;
-    if (['role', 'memory', 'knowledge', 'rules', 'structure', 'prompt', 'quality_check', 'final_output'].includes(key)) return;
+    if (legacyOrder.includes(key.toLowerCase())) return;
     const value = config[key];
     if (value && String(value).trim()) sections.push(key.toUpperCase() + ':\n' + String(value).trim());
   });
