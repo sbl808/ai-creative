@@ -763,6 +763,12 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.studio || !body.idea) return json({ error: 'missing_studio_or_idea' }, 400, cors);
+        // The generic endpoint must honor the same server-side Studio Gate as dedicated routes.
+        const requestedStudio = String(body.studio).toLowerCase();
+        if (getStudio(requestedStudio)) {
+          const studioEnabled = await isStudioEnabled(env, requestedStudio);
+          if (!studioEnabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+        }
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
