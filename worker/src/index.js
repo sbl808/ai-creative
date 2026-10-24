@@ -211,6 +211,9 @@ async function trackUsageSafe(env, userId, category) {
 async function requireFeature(env, featureId, plan, reqType, corsHeaders) {
   const r = await checkFeature(env, featureId, plan, reqType);
   if (r.ok) return null;
+  if (r.reason === 'settings_unavailable') {
+    return json({ error: 'feature_settings_unavailable', detail: 'Feature settings ကို ယခု စစ်ဆေးမရပါ။ ခဏနေမှ ပြန်ကြိုးစားပါ။' }, 503, corsHeaders);
+  }
   const msg = r.reason === 'pro_type'
     ? 'ဒီ feature က PRO အတွက်ပါ။ Type 1 ကို သုံးပါ၊ သို့မဟုတ် upgrade လုပ်ပါ။'
     : (r.reason === 'disabled' ? 'ဒီ feature ကို ယခု ပိတ်ထားပါသည်။' : 'ဒီ feature က PRO အတွက်ပါ။');
