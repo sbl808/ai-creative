@@ -43,7 +43,7 @@ Key admin actions write a row to `admin_logs` (best-effort): CMS create/update/d
 
 ## 🤖 AI Models tab (Phase C — Phase 14)
 
-- **ထည့်ရန် (Add):** fill Model ID (real Google Gemini id), ပြမည့်နာမည်, category (စာသား/ပုံ/အသံ), plan (လူတိုင်း/PRO သာ) → ＋ Add.
+- **ထည့်ရန် (Add):** fill Model ID (real Google Gemini id), ပြမည့်နာမည်, category (Text/စာသား, Image/ပုံ, Text → Voice/အသံ, or Voice → Text/Transcription/အသံ→စာသား), plan (လူတိုင်း/PRO သာ) → ＋ Add.
 - **ပြင်ရန် (Update):** edit the **နာမည် (name)** box and/or the plan dropdown on any row → 💾 Save. The new name is what users see in every Studio's AI Model dropdown (e.g. rename `Gemini 3.6 Flash (စာသား)` to `သာမန်`).
 - **ဖွင့်/ပိတ် (Toggle):** ⏻ button — disabled models disappear from every user dropdown immediately.
 - **မူရင်း (Default):** ★ sets this model as the category default (used when the user doesn't pick one).
