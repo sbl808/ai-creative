@@ -2,7 +2,7 @@
 
 ## 1. System overview
 
-Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product — it handles routing, renders HTML pages, exposes the JSON API, checks auth/roles/plans/features, and talks to **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). GitHub Actions deploys the Worker and applies D1 migrations.
+Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product — it handles routing, renders HTML pages, exposes the JSON API, checks auth/roles/plans/features, and talks to **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). The currently inspected GitHub Actions workflows provide CI checks; do not assume they deploy the Worker or apply D1 migrations. Deployment and remote migration status must be verified separately.
 
 ```
 Browser ──▶ Cloudflare Worker (index.js)
@@ -11,7 +11,7 @@ Browser ──▶ Cloudflare Worker (index.js)
                 │         settings, usage, studioSettings, featureSettings, adminLogs)
                 ├── studios/ (story, content, short, image, voice, shop)
                 └── config/ (STUDIO_REGISTRY, FEATURE_REGISTRY, AI_MODEL_REGISTRY)
-                │  ──▶ D1 (migrations 001–012)
+                │  ──▶ D1 (migrations 001–015; duplicate 006_ prefix)
                 │  ──▶ Gemini API (built-in key OR user BYOK key)
 ```
 
@@ -75,7 +75,9 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 - `config/studios.js` — `STUDIO_REGISTRY` (id, name, nameMy, icon, route, component, enabled), `STUDIO_ORDER`, `SITE_LINKS`, helpers `getStudio` / `isStudioEnabled` / `listEnabledStudios`.
 - `config/features.js` — `FEATURE_REGISTRY` (27 features: access FREE/PRO + limit) — mirrors the legacy hard-coded plan logic.
 
-## 6. Story 11-Layer Brain (v2.1 — Story Studio only)
+## 6. Story Brain — current implementation notes (v2.1)
+
+ဤအပိုင်းသည် လက်ရှိမှတ်တမ်းတင်ထားသော Story Studio ၏ Brain/CMS flow ကို ဖော်ပြသည်။ ယခင် “11-Layer Brain” ဟူသောအမည်သည် target architecture ကို အတည်ပြုထားခြင်း မဟုတ်ပါ။ ရည်ရွယ်ထားသော standard သည် `ARCHITECTURE_STANDARD.md` တွင် သတ်မှတ်ထားသည့် layer 12 ခုဖြစ်ပြီး၊ 12-layer အားလုံး end-to-end အလုပ်လုပ်နေပြီဟု မဆိုလိုပါ။ Code နှင့် tests ကို သီးခြားစစ်ဆေးပြီးမှ implementation status ကို အတည်ပြုရမည်။
 
 Generic Engine တစ်ခုတည်း — Story Type / Video Workflow တစ်ခုချင်းစီအတွက် Engine မဖန်တီး (per-type duplicate engine မရှိ)။ Config / Knowledge / Prompt များကို CMS မှ selected သာ dynamic-load လုပ်သည်။
 
