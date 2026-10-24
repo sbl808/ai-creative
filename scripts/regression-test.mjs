@@ -17,7 +17,7 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); }
+  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); this.studioSettings = new Map(); }
   prepare(sql) {
     const self = this;
     return {
@@ -39,7 +39,7 @@ class MockD1 {
         return null;
       },
       async all() {
-        if (/FROM studio_settings/.test(sql)) return { results: [] };
+        if (/FROM studio_settings/.test(sql)) return { results: [...self.studioSettings.entries()].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
         if (/FROM users/.test(sql)) return { results: Object.values(self.rows.users || {}) };
         if (/FROM projects/.test(sql)) return { results: [] };
         return { results: [] };
@@ -352,6 +352,38 @@ await check('Brain prompt preserves legacy CMS key ordering when no canonical la
     ok: positions.every((pos) => pos >= 0) && positions.every((pos, i) => i === 0 || pos > positions[i - 1]),
     msg: 'legacy=' + positions.join(','),
   };
+});
+
+await check('Brain prompt preserves legacy keys alongside canonical 12-layer keys', async () => {
+  const prompt = buildBrainPrompt({
+    '11_POST_NOTE': 'post-note content',
+    '00_GATEKEEPER': 'gate content',
+    role: 'legacy role content',
+    prompt: 'legacy prompt content',
+  });
+  const canonicalPos = prompt.indexOf('00_GATEKEEPER:');
+  const legacyRolePos = prompt.indexOf('ROLE:');
+  const legacyPromptPos = prompt.indexOf('PROMPT:');
+  const postNotePos = prompt.indexOf('11_POST_NOTE:');
+  return {
+    ok: canonicalPos >= 0 && canonicalPos < postNotePos &&
+      legacyRolePos > postNotePos && legacyPromptPos > legacyRolePos &&
+      prompt.includes('legacy role content') && prompt.includes('legacy prompt content'),
+    msg: `canonical=${canonicalPos},post=${postNotePos},role=${legacyRolePos},prompt=${legacyPromptPos}`,
+  };
+});
+
+await check('Generic generation endpoint blocks a disabled Studio before Feature Gate or AI call', async () => {
+  const headers = await withToken();
+  const testEnv = { ...env, DB: new MockD1({}) };
+  testEnv.DB.studioSettings.set('story', 0);
+  const r = await worker.fetch(new Request('https://test.local/api/studio/generate', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studio: 'STORY', type: '1', idea: 'test idea' }),
+  }), testEnv, {});
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'studio_disabled', msg: `status=${r.status} error=${body.error}` };
 });
 
 console.log('— Feature gate database failure safety —');
