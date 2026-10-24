@@ -10,6 +10,7 @@
  */
 import { signToken } from '../worker/src/core/auth.js';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
+import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
@@ -319,6 +320,17 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '2' });
   const body = await r.json();
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Studio gate database failure safety —');
+await check('Studio Gate denies access when the settings database is missing', async () => {
+  const enabled = await isStudioEnabled({}, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+await check('Studio Gate denies access when the settings database query throws', async () => {
+  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const enabled = await isStudioEnabled({ DB: brokenDb }, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
 });
 
 console.log('— Feature gate database failure safety —');
