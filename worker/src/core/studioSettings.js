@@ -21,7 +21,11 @@ export async function getStudioSettings(env) {
   }
   try {
     const r = await env.DB.prepare('SELECT studio_id, enabled FROM studio_settings').all();
-    (r.results || []).forEach((row) => {
+    const rows = r.results || [];
+    // An empty table is a fresh installation. After any setting is persisted,
+    // a missing Studio row is treated as disabled rather than silently enabled.
+    if (rows.length > 0) Object.keys(out).forEach((id) => { out[id] = false; });
+    rows.forEach((row) => {
       if (out[row.studio_id] !== undefined) out[row.studio_id] = row.enabled === 1;
     });
   } catch (e) {
