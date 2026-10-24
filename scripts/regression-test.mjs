@@ -320,6 +320,38 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
 });
 
+console.log('— Stage 13: feature-gate coverage for image and SRT routes —');
+const stage13Cases = [
+  { path: '/api/studio/content/video-image', feature: 'content.video_image', body: { prompt: 'test prompt', type: '1' } },
+  { path: '/api/studio/content/srt', feature: 'content.srt', body: { audioBase64: 'YWJj' } },
+  { path: '/api/studio/content/translate-srt', feature: 'content.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello' } },
+  { path: '/api/studio/short/video-image', feature: 'short.video_image', body: { prompt: 'test prompt', type: '1' } },
+  { path: '/api/studio/image/generate', feature: 'image.generate', body: { prompt: 'test prompt', type: '1' } },
+  { path: '/api/studio/shop/video-image', feature: 'shop.video_image', body: { prompt: 'test prompt', type: '1' } },
+];
+await check('all six Stage 13 routes reject requests without a valid token', async () => {
+  const statuses = [];
+  for (const item of stage13Cases) {
+    const r = await send(item.path, 'POST', {}, item.body);
+    statuses.push(r.status);
+  }
+  return { ok: statuses.every(status => status === 401), msg: `statuses=${statuses.join(',')}` };
+});
+await check('Admin-disabled Stage 13 features are blocked before any AI/provider call', async () => {
+  env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  const failures = [];
+  for (const item of stage13Cases) {
+    env.DB.featureSettings.set(item.feature, { enabled: 0, access: 'FREE', limit_value: 0 });
+    const r = await send(item.path, 'POST', await withToken(), item.body);
+    const body = await r.json();
+    env.DB.featureSettings.delete(item.feature);
+    if (r.status !== 403 || body.error !== 'feature_disabled') {
+      failures.push(item.path + ': status=' + r.status + ' error=' + body.error);
+    }
+  }
+  return { ok: failures.length === 0, msg: failures.join('; ') || 'all six returned 403 feature_disabled' };
+});
+
 console.log('— Admin page —');
 await check('GET /admin → 200 admin page', async () => {
   const r = await get('/admin', await withToken());
