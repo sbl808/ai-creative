@@ -12,6 +12,8 @@ import { signToken } from '../worker/src/core/auth.js';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
+import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
+import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
@@ -46,6 +48,15 @@ class MockD1 {
         return { results: [] };
       },
       async run() {
+        let changes = 0;
+        if (/INSERT OR IGNORE INTO studio_settings/.test(sql)) {
+          const id = String(this._args[0]);
+          if (!self.studioSettings.has(id)) { self.studioSettings.set(id, Number(this._args[1])); changes = 1; }
+        }
+        if (/INSERT OR IGNORE INTO feature_settings/.test(sql)) {
+          const id = String(this._args[0]);
+          if (!self.featureSettings.has(id)) { self.featureSettings.set(id, { enabled: 1, access: String(this._args[1]), limit_value: 0 }); changes = 1; }
+        }
         if (/INSERT INTO api_test_limits/.test(sql)) {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
@@ -54,7 +65,7 @@ class MockD1 {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
         }
-        return { success: true };
+        return { success: true, meta: { changes } };
       },
     };
   }
@@ -322,6 +333,49 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '2' });
   const body = await r.json();
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Admin settings initialization —');
+await check('Settings initialization requires admin authorization', async () => {
+  const r = await send('/api/admin/settings/initialize', 'POST', {}, {});
+  return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+await check('Initialization fills missing rows and preserves existing OFF overrides; repeat is idempotent', async () => {
+  const db = new MockD1({});
+  db.studioSettings.set('story', 0);
+  db.featureSettings.set('content.generate', { enabled: 0, access: 'PRO', limit_value: 7 });
+  const testEnv = { ...env, DB: db };
+  const headers = await withToken();
+  const first = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), testEnv, {});
+  const firstBody = await first.json();
+  const second = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), testEnv, {});
+  const secondBody = await second.json();
+  const expectedStudioAdds = Object.keys(STUDIO_REGISTRY).length - 1;
+  const expectedFeatureAdds = Object.keys(FEATURE_REGISTRY).length - 1;
+  const preserve = db.studioSettings.get('story') === 0 &&
+    db.featureSettings.get('content.generate').enabled === 0 &&
+    db.featureSettings.get('content.generate').access === 'PRO' &&
+    db.featureSettings.get('content.generate').limit_value === 7;
+  return {
+    ok: first.status === 200 && firstBody.ok === true &&
+      firstBody.studiosAdded === expectedStudioAdds &&
+      firstBody.featuresAdded === expectedFeatureAdds &&
+      second.status === 200 && secondBody.studiosAdded === 0 && secondBody.featuresAdded === 0 &&
+      db.studioSettings.size === Object.keys(STUDIO_REGISTRY).length &&
+      db.featureSettings.size === Object.keys(FEATURE_REGISTRY).length && preserve,
+    msg: 'first=' + JSON.stringify(firstBody) + ' second=' + JSON.stringify(secondBody) + ' preserve=' + preserve,
+  };
+});
+await check('Non-admin cannot initialize settings', async () => {
+  const token = await signToken(env, { sub: 'user-2', email: 'not-admin@example.test' });
+  const r = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: '{}',
+  }), { ...env, DB: new MockD1({}) }, {});
+  return { ok: r.status === 403, msg: 'status=' + r.status };
 });
 
 console.log('— Studio gate missing-row policy —');
