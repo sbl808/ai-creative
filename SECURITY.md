@@ -1,74 +1,58 @@
-# SECURITY.md
+# SECURITY.md — security model and operational cautions
 
-## 1. Authentication
+This document describes intended security boundaries and known implementation caveats. It is not a security certification or proof that production is configured safely.
 
-- **Google OAuth** login → signed JWT (7-day validity).
-- Every protected API reads the Bearer token, verifies it, and derives the user id from `payload.sub`.
-- **Never trust a client-supplied user id.**
-- Browser page navigation cannot send an `Authorization` header, so login also sets an **HttpOnly `aics_token` cookie** (`Path=/; Secure; SameSite=Lax; Max-Age=604800`). Protected routes accept the header first, then the cookie. The cookie is invisible to JavaScript and is cleared on `/api/auth/logout`.
+## 1. Authentication and sessions
 
-## 2. Authorization & roles (Rule 13)
+- The app supports Google OAuth and optional email/password authentication.
+- Protected APIs verify the session/JWT and derive the user identity from the verified token (for example, `payload.sub`); never trust a client-supplied user ID.
+- Browser navigation uses the `aics_token` HttpOnly cookie fallback. The cookie is intended to be Secure and SameSite=Lax.
+- Passwords must never be stored in plaintext. The current schema adds `name` and `password_hash` via migration 009; confirm the implementation and configuration when changing authentication.
 
-- Roles: `USER` / `ADMIN` / `SUPER_ADMIN`.
-- Admin access (`/admin`, `/api/admin/*`) is enforced **server-side** via the verified token + `ADMIN_EMAIL` check.
-- Hiding a button in the UI is never considered security.
+## 2. Roles and admin routes
 
-## 3. Personal data isolation (Rule 3)
+- App roles include `USER`, `ADMIN`, and `SUPER_ADMIN`.
+- Admin APIs and pages must enforce authorization on the server. Hiding a UI button is not an authorization control.
+- Configure the authorized admin identity through secrets/environment configuration; do not commit credentials.
 
-- Every `core/` query (`projects`, `settings`, `usage`, `user_keys`) is scoped by `user_id` from the verified JWT. Creations moved to browser-only storage in Phase 13, so no user content ever reaches D1.
-- User A cannot read or write User B's rows.
-- Frontend never receives another user's data.
+## 3. User data isolation
 
-## 4. Disabled-studio enforcement (Rule 14)
+- User-scoped server-side queries must use the verified session identity and scope records to that user.
+- Creations are stored in browser IndexedDB (`aics_creations_v1`) in the current implementation. Browser-only storage should not be described as a D1 backup or cross-device sync.
+- Do not return another user's settings, projects, usage, or API-key information.
 
-- Studio disabled → `/app/<id>` shows a disabled page **and** `/api/studio/<id>/…` returns **403 `studio_disabled`**.
-- UI hiding is only a convenience; the API is the real gate.
+## 4. Studio and feature gates
 
-## 5. Free/Pro gating (Rule 15)
+- Studio enablement and Free/Pro feature access are checked server-side; frontend hiding alone is insufficient.
+- Feature defaults are declared in `worker/src/config/features.js`; database overrides are stored in `feature_settings`.
+- The configured rule is: a PRO-only feature requires a PRO plan; FREE features may restrict non-default types. Verify each feature's actual registry entry rather than relying on a generic statement about all studios or features.
 
-- Feature access resolved server-side from `FEATURE_REGISTRY` + DB overrides (`feature_settings`).
-- Logic: `access='PRO'` + non-PRO plan → `pro_only`; `access='FREE'` + FREE plan + non-default type → `pro_type`.
-- No feature gate is implemented purely in the client.
+**Known caveat requiring a separate code fix:** the current `worker/src/core/featureSettings.js` returns the registry default (enabled) when a feature-settings database read throws. That is fail-open for an admin-disabled override during a database read error. This documentation-only change does not fix that behavior. Do not describe feature-setting read failures as fail-closed until the implementation and tests are updated.
 
-## 6. API keys / BYOK (Rule 17)
+The registry currently lists Content Studio SRT and SRT translation as FREE, while Voice Studio SRT and translation are PRO. If the product requirement is different, resolve it through a separately approved code-and-test change; this documentation task does not change access behavior.
 
-- User Gemini keys are stored in `user_keys` and used **only server-side**.
-- Keys are **never** returned to the frontend; the browser only ever sends its own key when the user explicitly pastes it (which the server uses for that single request).
+## 5. API keys and secrets (BYOK)
 
-## 7. Output encoding / XSS (Phase 7 fix)
+- Never commit API keys, OAuth secrets, JWT signing keys, encryption secrets, or production credentials.
+- Keep secrets in the hosting provider's secret/configuration system, not in Markdown or source control.
+- API-key storage and retrieval changes require review of encryption, user ownership, and response filtering. Do not assume a secret is safe solely because the UI hides it.
 
-- AI and user-generated text rendered into the page is **HTML-escaped** before `innerHTML` injection (`escapeHtml` in frontend pages, e.g. `shop.js`).
-- URLs are validated (`safeUrl`) to allow only `http(s)` / data-image / relative paths.
+## 6. Output and errors
 
-## 8. Error handling (Rule 22)
+- Escape untrusted user/AI-generated text before inserting it as HTML.
+- Validate URLs before use in links or media.
+- Return generic client-facing errors; keep sensitive internal details out of API responses. Logs must not expose tokens, passwords, or API keys.
 
-- API errors return a **user-friendly message** (`Something went wrong. Please try again.`).
-- The real error detail/stack is written to **server logs** (`console.error('[AICS]', ...)`), never returned to the client (`friendlyError` in `index.js`).
+## 7. Pre-production review checklist
 
-## 9. Secrets & env
+- [ ] Verify real environment bindings, D1 IDs, and secrets independently.
+- [ ] Confirm admin access is server-enforced.
+- [ ] Test user-to-user data isolation with separate test accounts.
+- [ ] Test FREE/PRO, expired-plan, unknown-plan, and admin-disabled feature cases.
+- [ ] Verify database-read failures cannot accidentally bypass a required feature restriction.
+- [ ] Review API-key encryption, ownership, deletion, and response handling.
+- [ ] Replace placeholder `SITE_LINKS` values.
+- [ ] Review migration history before any remote schema operation.
+- [ ] Run the applicable CI checks and separately verify real provider behavior where credentials are available.
 
-- `ADMIN_EMAIL`, `GOOGLE_CLIENT_ID/SECRET`, built-in Gemini key, JWT secret → store in Cloudflare secrets / `wrangler secret put`, not in the repo.
-- `wrangler.toml` and `.gitignore` must never commit real secrets.
-- `SITE_LINKS` placeholders in `config/studios.js` must be replaced with real Telegram/Facebook URLs.
-
-## 10. Recommended deployment checklist
-
-- [ ] Replace `SITE_LINKS` placeholders.
-- [ ] Set `ADMIN_EMAIL` + all secrets in production.
-- [ ] Apply all 9 migrations to prod D1.
-- [ ] Re-test with a second account: User A cannot see User B data; a non-admin cannot open `/admin`; a disabled studio returns 403.
-
-## 11. Password policy (Phase 12)
-
-- Passwords are stored **only** as `pbkdf2$iterations$salt$hash` (PBKDF2-SHA256, per-user random 16-byte salt, 30,000 iterations — balanced for the Cloudflare Workers CPU budget).
-- Verification uses a **timing-safe** constant-time compare; malformed hashes are rejected without crashing.
-- Google OAuth remains the primary authentication path; email/password is an optional convenience. `password_hash` is **never** returned by any API.
-- Session is unchanged: stateless JWT (7-day expiry) in `localStorage` + HttpOnly cookie fallback for browser navigation (`/admin`, `/login` redirects). Logout clears both.
-- Sign in / sign up error messages do not reveal whether an email exists.
-
-## AI Models security (Phase C — Phase 14)
-
-- `GET /api/ai-models` requires a valid JWT; the response is filtered **server-side** by `enabled` and by the user's plan (PRO-only models are never returned to FREE users).
-- `resolveModel` re-validates user-supplied model ids server-side; a disabled/PRO/unknown id falls back to the admin default — the user cannot force a model they aren't allowed to use.
-- Admin model endpoints (`/api/admin/models*`) go through the same server-side admin role check as every other admin route.
-- Model ids are treated as opaque strings (no dynamic imports / code execution); they are only concatenated into the Gemini REST URL path after an allow-list check (`listEnabledModels`).
+CI/static/offline tests alone do not establish that production secrets, remote D1, or a deployment are configured correctly.
