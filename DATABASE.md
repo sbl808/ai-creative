@@ -22,10 +22,12 @@ The current source inventory includes migrations 001–015 and two files with th
 | `011_add_transcribe_model.sql` | Transcription model category/seed update |
 | `012_upgrade_cms_workflow.sql` | CMS workflow schema/data upgrade |
 | `013_switch_transcribe_model.sql` | Transcription model switch |
-| `014_create_cms_brain.sql` | Story 11-Layer Brain CMS |
+| `014_create_cms_brain.sql` | Existing Story Brain CMS schema (historically documented as 11-Layer Brain) |
 | `015_create_api_generation_limits.sql` | Shared per-user AI-generation rate-limit counters |
 
 **Important:** both `006_` files exist. Do not infer the remote application order or migration state from the numeric prefix alone. Use the migration tool's reported history for the specific, verified environment.
+
+The migration 014 filename/purpose records the existing schema's historical description; it does not prove that the separate 12-layer architecture standard is implemented in the current application.
 
 ## Main tables and purpose
 
