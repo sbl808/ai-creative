@@ -40,6 +40,7 @@ class MockD1 {
       },
       async all() {
         if (/FROM studio_settings/.test(sql)) return { results: [...self.studioSettings.entries()].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
+        if (/FROM feature_settings/.test(sql)) return { results: [...self.featureSettings.entries()].map(([feature_id, row]) => ({ feature_id, ...row })) };
         if (/FROM users/.test(sql)) return { results: Object.values(self.rows.users || {}) };
         if (/FROM projects/.test(sql)) return { results: [] };
         return { results: [] };
@@ -323,6 +324,18 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
 });
 
+console.log('— Studio gate missing-row policy —');
+await check('Fresh empty Studio settings table uses registry defaults', async () => {
+  const enabled = await isStudioEnabled({ DB: new MockD1({}) }, 'story');
+  return { ok: enabled === true, msg: 'enabled=' + enabled };
+});
+await check('Missing Studio row fails closed after settings have been persisted', async () => {
+  const db = new MockD1({});
+  db.studioSettings.set('content', 1);
+  const enabled = await isStudioEnabled({ DB: db }, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+
 console.log('— Studio gate database failure safety —');
 await check('Studio Gate denies access when the settings database is missing', async () => {
   const enabled = await isStudioEnabled({}, 'story');
@@ -384,6 +397,18 @@ await check('Generic generation endpoint blocks a disabled Studio before Feature
   }), testEnv, {});
   const body = await r.json();
   return { ok: r.status === 403 && body.error === 'studio_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Feature gate missing-row policy —');
+await check('Fresh empty Feature settings table uses registry defaults', async () => {
+  const result = await checkFeature({ DB: new MockD1({}) }, 'content.generate', 'FREE', '1');
+  return { ok: result.ok === true, msg: JSON.stringify(result) };
+});
+await check('Missing Feature row fails closed after settings have been persisted', async () => {
+  const db = new MockD1({});
+  db.featureSettings.set('content.revise', { enabled: 1, access: 'FREE', limit_value: 0 });
+  const result = await checkFeature({ DB: db }, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'disabled', msg: JSON.stringify(result) };
 });
 
 console.log('— Feature gate database failure safety —');
