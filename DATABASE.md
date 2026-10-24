@@ -1,141 +1,72 @@
-# DATABASE.md
+# DATABASE.md — D1 schema and migration safety
 
-Cloudflare **D1** (SQLite). Schema is applied by migrations in `worker/migrations/`, following the numbered sequence through **015**. Two older migrations use the `006` prefix; do not rename historical migration files without checking the target D1 migration history. Each migration is incremental and additive — existing tables are never dropped.
+The app is configured to use Cloudflare **D1 (SQLite)** through `worker/wrangler.toml`. Migration SQL files live in `worker/migrations/`. The presence of a migration file does **not** mean it has been applied to any remote database.
 
-## Migrations
+## Migration inventory
 
-| # | File | Adds |
-|---|---|---|
-| 001 | `001_create_users.sql` | `users` |
-| 002 | `002_create_cms_prompts.sql` | `cms_prompts` |
-| 003 | `003_create_creations.sql` | `creations` (+ index) |
-| 004 | `004_create_user_keys.sql` | `user_keys` (BYOK) |
-| 005 | `005_create_user_settings.sql` | `user_settings`, `user_preferences` |
-| 006 | `006_create_projects_usage.sql` | `projects`, `usage`, `creations.is_favorite` |
-| 007 | `007_create_studio_settings.sql` | `studio_settings` (Admin ON/OFF) |
-| 008 | `008_create_feature_settings_logs.sql` | `feature_settings`, `admin_logs` |
-| 009 | `009_create_user_auth_columns.sql` | `users.auth_password_hash`, `users.auth_salt` (email/password Phase 12) |
-| 010 | `010_create_ai_models.sql` | `ai_models` (seeded with 3 built-ins) |
-| 011 | `011_add_transcribe_model.sql` | `transcribe` category + `gemini-3.5-transcribe` seed |
-| 012 | `012_upgrade_cms_workflow.sql` | CMS workflow upgrade (see file) |
-| 013 | `013_switch_transcribe_model.sql` | transcribe model switch (idempotent) |
-| 014 | `014_create_cms_brain.sql` | `cms_brain` (11-Layer Brain — Story Studio) |
-| 015 | `015_create_api_generation_limits.sql` | `api_generation_limits` (shared per-user AI generation rate limit) |
+The current source inventory includes migrations 001–015 and two files with the `006_` prefix. Keep historical filenames unchanged unless the actual target database's migration history has been inspected and a separate migration plan is approved.
 
-## Tables
+| File | Purpose |
+|---|---|
+| `001_create_users.sql` | User accounts |
+| `002_create_cms_prompts.sql` | Legacy CMS prompt rows |
+| `003_create_creations.sql` | Legacy creations table |
+| `004_create_user_keys.sql` | Per-user BYOK key storage |
+| `005_create_user_settings.sql` | User settings and preferences |
+| `006_create_api_test_limits.sql` | Per-user API connection-test rate-limit counters |
+| `006_create_projects_usage.sql` | Projects, usage, and legacy creations favorite column |
+| `007_create_studio_settings.sql` | Admin studio enable/disable overrides |
+| `008_create_feature_settings_logs.sql` | Feature overrides and admin logs |
+| `009_create_user_auth_columns.sql` | User display name and password hash columns |
+| `010_create_ai_models.sql` | AI model registry table and initial rows |
+| `011_add_transcribe_model.sql` | Transcription model category/seed update |
+| `012_upgrade_cms_workflow.sql` | CMS workflow schema/data upgrade |
+| `013_switch_transcribe_model.sql` | Transcription model switch |
+| `014_create_cms_brain.sql` | Story 11-Layer Brain CMS |
+| `015_create_api_generation_limits.sql` | Shared per-user AI-generation rate-limit counters |
 
-### users (001)
-| Column | Type | Notes |
-|---|---|---|
-| id | INTEGER PK AUTOINCREMENT | |
-| email | TEXT UNIQUE NOT NULL | Google OAuth email |
-| plan | TEXT DEFAULT 'FREE' | `FREE` / `PRO` |
-| expiry | TEXT | plan expiry |
-| created_at / updated_at | TEXT | |
+**Important:** both `006_` files exist. Do not infer the remote application order or migration state from the numeric prefix alone. Use the migration tool's reported history for the specific, verified environment.
 
-### cms_prompts (002)
-Studio prompt templates — `UNIQUE(studio, plan, type)`; columns `core`, `memory`, `knowledge`, `workflow`, `template`, `prompt`, `quality_check`, `final_output`, `updated_at`.
+## Main tables and purpose
 
-### creations (003)
-> **Phase 13 (Option 2):** this table is **deprecated/unused** — user creations are stored **only in the browser** (IndexedDB `aics_creations_v1`, keyed by JWT `sub`). No new rows are written; old rows remain until cleared manually (`DELETE FROM creations;`). D1 stores **no user content** going forward.
+- `users`: account identity, plan, expiry, and authentication profile fields.
+- `cms_prompts`: legacy studio prompt/configuration records.
+- `creations`: legacy schema. The current app's creations feature uses browser IndexedDB (`aics_creations_v1`); do not assume new creations are written to D1.
+- `user_keys`: per-user Gemini API key record; review the current encryption and key-handling implementation before production use.
+- `user_settings`, `user_preferences`: user-specific settings.
+- `projects`, `usage`: user projects and usage counters/history.
+- `studio_settings`: admin overrides for studio enablement.
+- `feature_settings`: admin overrides for feature enablement, FREE/PRO access, and optional limits.
+- `admin_logs`: administrative action log.
+- `ai_models`: available AI model configuration.
+- `cms_brain`: scoped Story Brain rows; the loader selects rows for the requested scope/module/type/plan.
+- `api_test_limits`: API connection-test rate limiting.
+- `api_generation_limits`: shared AI generation rate limiting.
 
-| Column | Type | Notes |
-|---|---|---|
-| id | TEXT PK | |
-| user_id | INTEGER FK→users | **ownership scope** |
-| studio | TEXT | |
-| title / original_prompt / ai_output / type | TEXT | |
-| is_favorite | INTEGER (added in 006) | 0/1 |
-| created_at | TEXT | index `(user_id, created_at DESC)` |
+## Ownership and data boundaries
 
-### user_keys (004) — BYOK
-| Column | Type | Notes |
-|---|---|---|
-| user_id | INTEGER PK FK→users | |
-| gemini_key | TEXT | stored server-side, never returned to frontend |
-| updated_at | TEXT | |
+Queries for user-scoped server-side records must derive the user identity from a verified session/JWT, not a client-supplied user ID. Creations are currently browser-side; browser storage is not the same as a server-side backup and may not automatically sync across devices.
 
-### user_settings (005)
-Per-user defaults: `default_studio`, `default_voice`, `default_model`, `language` (default `my`), `theme` (default `dark`), `updated_at`. PK = `user_id`.
+## Offline migration checks vs remote D1
 
-### user_preferences (005)
-Key-value extensible preferences: `(user_id, pref_key)` PK, `pref_value`, `updated_at`.
+The CI migration-contract job runs SQLite/offline scripts:
 
-### projects (006)
-`id` TEXT PK, `user_id` FK (ownership), `title`, `description`, `created_at`, `updated_at`; index `(user_id, created_at DESC)`.
+```bash
+python scripts/test-all-migrations.py
+python scripts/test-api-test-limits-migration.py
+```
 
-### usage (006)
-`id` PK, `user_id` FK, `category` (e.g. `ai`, `image`, `voice`), `amount` default 1, `created_at`; index `(user_id, created_at)` — powers Admin usage statistics.
+These tests validate migration/schema contracts in an isolated environment. They do **not** connect to Cloudflare, confirm that a D1 database exists, or prove that any remote migration has been applied.
 
-### studio_settings (007) — Admin control
-`studio_id` TEXT PK, `enabled` INTEGER default 1, `updated_at`. Overrides the `enabled` flag in `config/studios.js` registry.
+## Safe migration procedure — documentation only
 
-### feature_settings (008) — Free/Pro control
-`feature_id` TEXT PK, `enabled` INTEGER default 1, `access` TEXT default `FREE` (`FREE`/`PRO`), `limit_value` INTEGER default 0, `updated_at`. Overrides `config/features.js`.
+Before any remote migration is considered:
 
-### admin_logs (008) — Audit
-`id` PK, `admin_email`, `action`, `detail`, `created_at`. Written (best-effort) on admin actions: CMS create/update/delete, user plan change, studio toggle, feature update.
+1. Confirm that a Cloudflare account and the intended D1 database actually exist.
+2. Inspect `worker/wrangler.toml` and verify the environment name and database ID independently. A placeholder is not a valid database ID.
+3. Inspect the migration history for the exact intended environment; do not infer it from local SQLite results.
+4. Review the migration SQL and expected schema effects.
+5. Obtain explicit approval for the named environment and operation before running a remote command.
+6. Re-check the migration history and application behavior after the approved operation.
 
-### cms_brain (014) — 11-Layer Brain (Story Studio, additive)
-Scoped key-value knowledge/config store for the Story 11-Layer architecture. `cms_prompts` (002) ကို မထိ — Content/Short/Shop/Voice/Image များသည် legacy path ဆက် အလုပ်လုပ်သည်။
-
-| Column | Type | Notes |
-|---|---|---|
-| id | INTEGER PK AUTOINCREMENT | |
-| scope | TEXT NOT NULL | `GLOBAL_BRAIN` / `STORY_TYPES` / `STORY_VIDEO` |
-| module | TEXT NOT NULL | `GLOBAL_FRAMEWORK` / `STORY_TYPE` / `VIDEO_KNOWLEDGE` / `VISUAL_STYLE` / `VIDEO_WORKFLOW` |
-| type | TEXT DEFAULT 'BASE' | `BASE` / `TYPE_1..TYPE_n` / `ANIME` / `CINEMATIC_FEATURE` … |
-| plan | TEXT DEFAULT 'FREE' | `FREE` / `PRO` |
-| key | TEXT NOT NULL | `role` / `memory` / `knowledge` / `rules` / `structure` / `prompt` / `quality_check` / `final_output` … |
-| value | TEXT | prompt/knowledge/rules content |
-| active | INTEGER DEFAULT 1 | 0 = inactive (loader skips) |
-| version | INTEGER DEFAULT 1 | newer version wins (ordered ASC → later overrides) |
-| updated_at | TEXT | |
-| UNIQUE | (scope,module,type,plan,key) | upsert key |
-
-**Knowledge Isolation:** `core/cmsBrain.js` loader သည် selected `(scope, module, type, plan)` rows **သာ** load လုပ်သည် — အခြား Story Type / Visual Style / Video Workflow ၏ rows များကို AI context ထဲ ထည့်မည် မဟုတ်ပါ။ Table မရှိသေးသော env → graceful fallback (legacy `cms_prompts` သို့ ဆင်းသည်)။
-
-## Ownership rule
-
-**Every** query in `core/` (`projects`, `settings`, `usage`, `user_keys`) filters by `user_id` taken from the **verified JWT** (`payload.sub`), never from client-supplied values. This guarantees User A cannot access User B's data. (Creations are no longer server-side — Phase 13, see the `creations` table note above.)
-
-## Adding a new migration
-
-Create the next unused numbered migration (additive `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN`) and update this file. Before applying remotely, verify the intended environment/database ID and inspect `wrangler d1 migrations list <database-name> --remote --env dev`; never infer remote migration state from local SQLite tests. Apply only after the development target is independently verified and explicitly approved. Do **not** drop or rename existing tables/columns without a documented plan.
-
-### users — Phase 12 additions (009)
-`name` TEXT NOT NULL DEFAULT '' (personal display name, set from Google profile or Sign Up), `password_hash` TEXT NOT NULL DEFAULT '' (PBKDF2-SHA256 hash of optional email/password login — **never** plaintext). Existing Google-only accounts keep `name=''` / `password_hash=''`; the app falls back to the email prefix for display.
-
-### Auth routes (Phase 12)
-- `GET /login` — professional personal login UI (Google primary + email/password sign in + sign up).
-- `POST /api/auth/signup` — `{name, email, password}` → creates user (FREE plan), returns JWT. Duplicate email → 409.
-- `POST /api/auth/signin` — `{email, password}` → verifies PBKDF2 hash, returns JWT. Wrong creds → 401 (same message for unknown email / wrong password).
-- `PUT /api/users/me/profile` — `{name}` (whitelist, ≤60 chars) updates display name.
-- `GET /api/users/me` now also returns `name` + `usage {ai_requests, image_generations, voice_generations}`.
-- Google callback default destination changed from `/auth/result` to `/app` (legacy `/auth/result` still served).
-
-### Session guard (Phase 12 fix)
-- `GET /app`, `/app/{studio}`, `/app/creations|settings|projects` — **server-side session guard**: no valid `aics_token` cookie → `302 /login` (users never see the app shell before logging in); bad cookie → cleared + `302 /login`.
-- `GET /login` — valid session → `302 /app` (remember session, Rule 14).
-- `GET /api/auth/session` — returns `{token, email, plan}` when the cookie is valid (lets the sidebar restore a session when `localStorage` is empty).
-- Email/password Sign In & Sign Up now also set the `aics_token` cookie so browser navigation to `/app` works after login.
-
-### ai_models — transcribe Model (011)
-- `011_add_transcribe_model.sql` — `transcribe` (အသံ→စာသား) Category + `gemini-3.5-transcribe` မူလပုံသေ Model ထည့်သည်
-- 010 အစောပိုင်း Seed (`gemini-3.6-flash` / `gemini-3.1-flash-image` / `gemini-3.1-flash-tts-preview`) ရှိခဲ့လျှင် `enabled=0` ပိတ်ပေးသည် (Idempotent)
-
-### ai_models — Phase C (010)
-
-| Column | Type | Notes |
-|---|---|---|
-| id | TEXT PK | Gemini model id, e.g. `gemini-3.5-flash-lite` |
-| name | TEXT | Display name (Myanmar) |
-| category | TEXT | `text` / `image` / `voice` |
-| enabled | INTEGER | 1/0 — disabled models never reach users |
-| is_default | INTEGER | 1 = this category's default |
-| plan_access | TEXT | `FREE` or `PRO` |
-| updated_at | TEXT | |
-
-- Seeded with the 3 original built-ins (`010_create_ai_models.sql`).
-- Admin upserts via `core/aiModels.js`; the registry in `config/models.js` is the code-side fallback if the table is empty.
-- Rule: never allow disabling/deleting the last enabled model of a category.
+Do not create a database, apply remote migrations, rename historical migration files, drop tables, or deploy as part of a documentation or offline-test task.

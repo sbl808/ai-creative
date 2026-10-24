@@ -1,77 +1,49 @@
-# REGRESSION TEST REPORT — AI Creative Studio V2
+# Regression Test Report — AI Creative Studio
 
-> Rule 12: Studio တစ်ခုချင်းစီကို စစ်ပါ — အားလုံး အလုပ်လုပ်ရမည်။
-> Test ကာလ: 2026-09-17 · Node v22.23.2 · Run: `node --experimental-default-type=module scripts/regression-test.mjs` (အခြား suite များ အောက်တွင်)
+## Report scope and freshness
 
----
+This file now documents the current CI test configuration and its limits. The detailed per-studio measurements below in older revisions were historical results from 2026-09-17; they must not be interpreted as a fresh test run for the current commit.
 
-## 1. Verification Suite — Byte-Identity (Split ၏ အဓိက အာမခံ)
+**No regression suite was executed as part of this documentation-only update.** Check the GitHub Actions run for the branch/commit you intend to review before recording a new PASS result.
 
-Reassembled Studio page HTML (v2 packages) vs v1 original — **char-for-char တူညီရမည်**:
+## 1. CI regression and contract checks
 
-| Studio | Result | HTML Size |
+The current `.github/workflows/ci.yml` defines four jobs:
+
+| CI job | Command | Coverage / limitation |
 |---|---|---|
-| story | ✅ PASS — byte-identical | 115,670 chars |
-| content | ✅ PASS — byte-identical | 133,238 chars |
-| short | ✅ PASS — byte-identical | 105,492 chars |
-| image | ✅ PASS — byte-identical | 88,541 chars |
-| voice | ✅ PASS — byte-identical | 88,926 chars |
-| shop | ✅ PASS — byte-identical | 159,065 chars |
+| Worker route regression | `node --experimental-default-type=module scripts/regression-test.mjs` | Route-level checks using test fixtures/mocked D1; not a live provider test |
+| Security contracts | `node --experimental-default-type=module scripts/security-tests.mjs` | Security contracts, static checks, and test doubles |
+| Browser script static checks | `node --experimental-default-type=module scripts/check-browser-scripts.mjs` | Browser script syntax/static contracts |
+| D1 migration schema contract (offline) | `python scripts/test-all-migrations.py` and `python scripts/test-api-test-limits-migration.py` | SQLite/offline schema checks only; no remote D1 connection |
 
-**6/6 PASS** — v1 browser behavior သည် သီအိုရီအရ 100% တူညီသည် (script ကို စာလုံးတစ်လုံးမျှ မပြောင်း)။
+## 2. Additional test scripts
 
-## 2. Browser-side Script Syntax Check
+Other scripts in `scripts/` include Story Brain tests, browser E2E smoke tests, API integration tests, and module-split verification. They are not all included in the four-job CI workflow. Review each script's prerequisites and assertions before relying on its result.
 
-Rebuilt pages မှ `<script>` body ကို ထုတ်၍ `node --check`:
+## 3. What a PASS means
 
-| Studio | Script Size | Result |
-|---|---|---|
-| story | 42,530 chars | ✅ valid |
-| content | 51,570 chars | ✅ valid |
-| short | 41,707 chars | ✅ valid |
-| image | 30,004 chars | ✅ valid |
-| voice | 34,714 chars | ✅ valid |
-| shop | 71,269 chars | ✅ valid |
+A passing CI run means only that the configured jobs completed successfully for that commit. Depending on the script, tests may use mocked D1, test fixtures, static source inspection, or local SQLite.
 
-**6/6 PASS**
+A PASS does **not** prove that:
 
-## 3. Route-level Regression (Mock D1 + real JWT — no network)
+- A Cloudflare account or live D1 database exists
+- Remote migrations have been applied to the intended environment
+- Production secrets or environment variables are correct
+- Real Gemini requests succeed
+- Browser IndexedDB, media playback, and all user interactions work in a deployed browser
+- A production deployment is healthy
 
-| # | Test | Expected | Result |
-|---|---|---|---|
-| 1 | GET `/` | 200 API home | ✅ |
-| 2 | GET `/login` | 200 login page | ✅ |
-| 3 | GET `/app` (no session) | 302 → /login | ✅ |
-| 4 | GET `/app/story` (no session) | 302 → /login | ✅ |
-| 5 | GET `/app/story` (session) — **lazy-loaded** | 200 page | ✅ |
-| 6 | GET `/app/content` (session) — **lazy-loaded** | 200 page | ✅ |
-| 7 | GET `/app/short` (session) — **lazy-loaded** | 200 page | ✅ |
-| 8 | GET `/app/image` (session) — **lazy-loaded** | 200 page | ✅ |
-| 9 | GET `/app/voice` (session) — **lazy-loaded** | 200 page | ✅ |
-| 10 | GET `/app/shop` (session) — **lazy-loaded** | 200 page | ✅ |
-| 11 | GET `/app/bogus` (session) | 404 | ✅ |
-| 12 | GET `/api/users/me` (token) | 200 user | ✅ |
-| 13 | GET `/api/users/me` (no token) | 401 | ✅ |
-| 14 | GET `/admin` (admin session) | 200 admin | ✅ |
-| 15–20 | Old import paths `frontend/<studio>.js` → HTML export (shim back-compat) | export === package export | ✅ ×6 |
+## 4. Important coverage gaps to track
 
-**20/20 PASS, 0 FAILED**
+- Full FREE/PRO matrix: FREE Type 1, FREE Type 2–5, PRO, expired PRO, and unknown/malformed plan values
+- Admin-disabled features and database-read failures
+- Real browser interactions and IndexedDB behavior
+- Real AI-provider success paths with approved test credentials
+- Remote D1 schema/history and deployment verification (only when separately approved)
 
-## 4. Per-Studio Feature Checklist (rule 12)
+The feature-gate gaps above are test coverage items, not evidence that the cases currently pass. In particular, `featureSettings.js` currently falls back to an enabled registry default when reading a feature override fails; see [SECURITY.md](SECURITY.md). A documentation change does not fix or test this behavior.
 
-> Backend endpoints များကို AI/network မလိုအပ်ဘဲ route/contract အနေဖြင့် စစ်ဆေးသည် (request/response contract မပြောင်းသောကြောင့်). Browser အတွင်း feature flow (generate→revise→scene) သည် byte-identical script ကြောင့် v1 နှင့် တူညီသည်။
+## 5. How to record a new run
 
-| Studio | Features | Contract Verified | v2 Script Identical |
-|---|---|---|---|
-| Story | Generate · Revise · Scene · Video Prompt | `/api/studio/story/{generate,revise,video,video-image}` — route တည်ရှိ, backend import မပြောင်း | ✅ 42,530 chars |
-| Content | Generate · Revise · TTS · SRT · Translate | `/api/studio/content/{generate,revise,tts,srt,translate-srt,video,video-image}` | ✅ 51,570 chars |
-| Short | Generate · Revise · Scene | `/api/studio/short/{generate,revise,video,video-image}` | ✅ 41,707 chars |
-| Image | Prompt · Generate · Regenerate | `/api/studio/image/{prompt,generate,ad-prompt}` | ✅ 30,004 chars |
-| Voice | TTS · Transcribe · Subtitle · Translate Subtitle | `/api/studio/voice/{tts,transcribe,srt,translate-srt}` | ✅ 34,714 chars |
-| Shop | Product Content · Video Prompt · Voice · Image | `/api/studio/shop/content/{generate,revise}`, `/api/studio/shop/video/{generate,video-image}` | ✅ 71,269 chars |
-
-## 5. Coverage & Limits
-
-**Covered:** Split byte-identity (full) · Browser script syntax (full) · Page routing incl. lazy loading (full) · Auth guard (no-session / session / admin role) · Back-compat shims (full) · JS syntax of all 44 package files + shims + index.js + new modules.
-
-**Not covered (ဆက်လုပ်ရန်):** 真实 browser E2E (Playwright) — inline script behavior, drag/drop, IndexedDB, TTS playback; AI provider responses (network). These require a deployed environment; the byte-identical guarantee makes v1 behavior preservation provable at the source level.
+For a new test report, record the commit SHA, branch, date/time, exact commands or GitHub Actions run URL, pass/fail counts, skipped/not-tested cases, and whether D1/provider dependencies were mocked or real. Do not copy historical counts into a new report without rerunning the tests.

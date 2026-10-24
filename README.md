@@ -1,115 +1,87 @@
 # AI Creative Studio
 
-**Personal + Modular + Maintainable + Secure + Responsive + Scalable + Admin-Controlled**
-AI Creative Studio — a multi-studio content creation platform (Story / Content / Short / Image / Voice / Shop), rebuilt from a Google Apps Script + Google Sheets + Gemini web app onto **Cloudflare Worker + D1 + GitHub Actions**.
+**Modular · Maintainable · Secure · Responsive · Admin-controlled**
 
-This is the fully re-architected version produced under the **Master Development Instruction** (Phases 1–7): App Shell → Personal User System → Studio System → Admin Panel → Responsive → Testing & Documentation.
+AI Creative Studio is a multi-studio content-creation app built with a Cloudflare Worker backend and D1 database configuration. The repository contains six studios: **Story, Content, Short, Image, Voice, and Shop**.
 
-## ✨ Features
+> **Current environment status:** the repository is under development. D1 database IDs may still be placeholders, and a live Cloudflare D1 database or production deployment must not be assumed to exist. CI checks do not create a database, run remote migrations, or deploy the Worker.
 
-- **6 Studios** — Story, Content, Short, Image, Voice, Shop (Studio Registry — new studios plug in without touching core).
-- **Story 11-Layer Brain** — generic Story Engine + generic Video Engine (no per-type duplicate engines); Story Type / Visual Style / Video Workflow များကို `cms_brain` (Brain CMS, migration 014) မှ knowledge/rules/prompts သီးခြား dynamic-load လုပ်သည် (Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်သည်)။
-- **Personal User System** — every user sees only their own Profile, Settings, Preferences, Projects, Creations, API Keys, Usage. Accounts/config are enforced **server-side**; creations are stored **in the user's own browser** (IndexedDB, Phase 13 — D1 stores no user content).
-- **Global Shared Sidebar** — one component, responsive across Desktop / iPad / Phone.
-- **Free / Pro** — controlled by configuration (feature registry), not hard-coded.
-- **Usage Tracking** — AI requests, images, voice, projects per user, viewable in Admin.
-- **Admin Panel** — Dashboard, Users, Studios, Features, AI Models/API, Usage, Plans, Projects, Announcements, Logs, System Settings (role-protected: `USER` / `ADMIN` / `SUPER_ADMIN`).
-- **BYOK** — user API keys stored & used only server-side (never returned to the frontend).
-- **Dark theme** preserved; shared UI components; responsive layout.
+## Features
 
-## 🚀 Quick Start (local)
+- **Six studios** with studio-specific frontend modules and backend business logic.
+- **Story 11-Layer Brain** with scoped CMS knowledge for Story types, visual styles, and video workflows (migration 014).
+- **Personal user system** with server-side authentication and per-user settings, projects, usage, and API-key records.
+- **Creations storage:** browser IndexedDB (`aics_creations_v1`); do not assume creations are backed up to D1.
+- **Free/Pro feature gates** resolved on the server from the feature registry and database overrides.
+- **Admin panel** for users, studios, features, models, usage, plans, and system settings.
+- **BYOK** (Bring Your Own Key); API-key handling is server-side. Check the implementation and configuration before production use.
+- Responsive shared app shell for desktop, iPad, and phone.
+
+## Repository map
+
+```text
+.github/workflows/       CI workflows
+worker/
+  wrangler.toml           Worker environments and D1 bindings
+  migrations/             D1 migration SQL files
+  src/index.js            Router, auth, gates, and page routes
+  src/config/             Studio, feature, and model registries
+  src/core/               Auth, AI, CMS, settings, usage, and services
+  src/studios/            Studio backend modules
+  src/frontend/           Modular frontend and shared shell
+scripts/                  Regression, security, static, and offline migration tests
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md), [STUDIOS.md](STUDIOS.md), [ADMIN.md](ADMIN.md), [DATABASE.md](DATABASE.md), and [SECURITY.md](SECURITY.md).
+
+## Local development
+
+Requirements: Node.js 22 (the CI version), npm/npx, and Wrangler 4 for Worker development. The repository currently uses Wrangler directly; do not assume a root `package.json` exists.
 
 ```bash
-# 1. Install Wrangler
-npm i -g wrangler
-
-# 2. Authenticate
-wrangler login
-
-# 3. Create D1 database & bind it (see wrangler.toml; binding name: DB)
-#    Then apply all migrations in order:
-wrangler d1 execute DB --local --file=worker/migrations/001_create_users.sql
-# ... repeat for 002..014
-
-# 4. Local dev (the project has no package.json — use wrangler directly)
-cd worker && npx wrangler@4 dev
-
-# 5. Deploy (GitHub Actions does this automatically on push to main)
-npx wrangler@4 deploy
+# From the repository root
+npx wrangler@4 --config worker/wrangler.toml dev
 ```
 
-> `wrangler.toml` defines `dev / staging / prod` environments. GitHub Actions `.github/workflows/deploy.yml` runs deploy + D1 migrations.
+This starts the Worker locally. Local development may require configuration and local D1 migrations depending on the route being tested. Read [DATABASE.md](DATABASE.md) before running migrations.
 
-## 📁 Structure (top level)
+**Do not run remote D1 commands or deploy commands as part of local setup.** Before any remote operation, independently verify the target environment and database ID, inspect migration history, and obtain explicit approval. A placeholder database ID is not a valid target.
 
-```
-ai-creative-studio-main/
-├── .github/workflows/deploy.yml   # CI/CD — Worker deploy + D1 migrations
-├── README.md / ARCHITECTURE.md / DATABASE.md / STUDIOS.md / ADMIN.md / SECURITY.md
-├── V2_AUDIT.md                    # Phase 0 production-readiness audit (V2)
-├── IMPLEMENTATION_REPORT.md       # Phase 1–10 change/test report (V2)
-├── worker/
-│   ├── wrangler.toml              # environments + D1 binding
-│   ├── migrations/                # 001–014 D1 schema (see DATABASE.md)
-│   └── src/
-│       ├── index.js               # entry: routing, auth, plan/feature gates, pages
-│       ├── admin.js               # Admin panel HTML + admin API
-│       ├── studio.js              # legacy generic generator (Story/Content)
-│       ├── config/                # STUDIO_REGISTRY, FEATURE_REGISTRY, AI_MODEL_REGISTRY
-│       ├── core/                  # auth, ai, cms, projects, settings, usage,
-│       │                          #   studioSettings, featureSettings, adminLogs, utilities
-│       ├── studios/               # story, content, short, image, voice, shop (business logic)
-│       └── frontend/              # V2 modular UI (see below)
-│           ├── studios/<slug>/    # per-studio packages (page/ui/state/constants/helpers/
-│           │                      #   actions/stepper/shell/audio/video/… — NO cross-studio imports)
-│           ├── studioPages.js     # V2 lazy loader (getStudioPage)
-│           ├── shared.js          # app shell: sidebar, stepper, loading, drafts
-│           ├── shared-ui.js       # canonical aics* UI helpers (merge target, unused)
-│           ├── {story,content,short,image,voice,shop}.js  # back-compat shims
-│           └── _legacy/           # v1 archive (rollback/reference — keep)
-├── scripts/                       # tests (Node ≥ 20):
-│   ├── regression-test.mjs        # route-level regression (mock D1 + real JWT) — 22 checks
-│   ├── story-brain-test.mjs       # 11-Layer brain: knowledge isolation + PRO gate + facts — 22 checks
-│   ├── e2e-smoke.mjs              # Playwright browser E2E — 6 studios, 90 checks
-│   ├── e2e-server.mjs             # worker HTTP test server (real worker + mock D1)
-│   ├── api-integration-test.mjs   # API integration (auth/AI error path/projects) — 16 checks
-│   ├── verify-split.mjs           # byte-identity v2 vs v1 (6/6)
-│   └── check-browser-scripts.mjs  # browser script syntax (6/6)
-```
+## Tests and CI
 
-## 🧪 Tests (V2 production gate)
+The current `.github/workflows/ci.yml` defines these CI jobs:
+
+| Job | Command | What it checks |
+|---|---|---|
+| Worker route regression | `node --experimental-default-type=module scripts/regression-test.mjs` | Route and feature contracts with test fixtures/mocked D1 |
+| Security contracts | `node --experimental-default-type=module scripts/security-tests.mjs` | Static/security contracts and isolated test fixtures |
+| Browser script static checks | `node --experimental-default-type=module scripts/check-browser-scripts.mjs` | Browser script syntax/contracts |
+| D1 migration schema contract (offline) | `python scripts/test-all-migrations.py` and `python scripts/test-api-test-limits-migration.py` | SQLite/offline migration checks; **not** a live D1 test |
+
+Run the CI commands locally from the repository root:
 
 ```bash
-node --experimental-default-type=module scripts/verify-split.mjs
-node --experimental-default-type=module scripts/check-browser-scripts.mjs
 node --experimental-default-type=module scripts/regression-test.mjs
-node --experimental-default-type=module scripts/story-brain-test.mjs
-node --experimental-default-type=module scripts/e2e-smoke.mjs      # needs Playwright + Chromium
-node --experimental-default-type=module scripts/api-integration-test.mjs
+node --experimental-default-type=module scripts/security-tests.mjs
+node --experimental-default-type=module scripts/check-browser-scripts.mjs
+python scripts/test-all-migrations.py
+python scripts/test-api-test-limits-migration.py
 ```
 
-- AI *success* paths are **BLOCKED without staging credentials** (`GEMINI_API_KEY` / staging D1) — tests never fake success.
-- Unknown studio → `404 STUDIO_NOT_FOUND`; known studio module failure → `500 STUDIO_PAGE_LOAD_FAILED` (server log has slug + error id).
+Other scripts (for example Story Brain, browser E2E, and API integration tests) may be useful, but are not all part of the four-job CI workflow. Browser E2E requires its browser dependencies. Real AI-provider success paths require valid credentials and a suitable environment.
 
-See **ARCHITECTURE.md**, **DATABASE.md**, **STUDIOS.md**, **ADMIN.md**, **SECURITY.md** for details.
+**A passing offline CI run does not prove that a live D1 database exists, that remote migrations are applied, that real Gemini requests succeed, or that production deployment works.**
 
-## ✅ How to extend
+## Extending the app
 
-- **Add a Studio** → see `STUDIOS.md` (Registry + module, no core changes).
-- **Toggle Free/Pro** → Admin → Features, or edit `config/features.js`.
-- **Enable/disable a Studio** → Admin → Studios (server-side enforced).
+- Add or update a studio only after reviewing [STUDIOS.md](STUDIOS.md) and the registry/module boundaries.
+- Review [SECURITY.md](SECURITY.md) before changing authentication, user data, API keys, or feature gates.
+- Update [DATABASE.md](DATABASE.md) whenever migration files or schema change.
+- Keep changes on a feature branch and review the exact diff before merging.
+- Never commit real credentials, tokens, or database secrets.
 
-## 📝 Note on placeholders
+## Known placeholders and limitations
 
-`SITE_LINKS` (Telegram / Facebook) in `worker/src/config/studios.js` are placeholders — replace with your real links before launch.
-
-## 🤖 AI Models (Phase C — Phase 14)
-
-- **Before (hard-coded):** every Studio file (`studios/*.js`) had `TEXT_MODEL` / `IMAGE_MODEL` constants and `core/ai.js` hard-coded the TTS model. Changing a model meant editing code + redeploying.
-- **Now (Admin-controlled):**
-  - `config/models.js` — built-in registry (`AI_MODEL_REGISTRY`, 3 models) + fallback defaults.
-  - `worker/migrations/010_create_ai_models.sql` — `ai_models` table, seeded with the 3 built-in models.
-  - `core/aiModels.js` — `getAiModels` (registry + DB merge), `listEnabledModels` (enabled + plan filter), `resolveModel` (user choice → admin default → fallback), `setAiModel` / `deleteAiModel` (with last-model protection).
-  - **Admin → AI Models** — add / rename / enable / disable / set default / delete any Google Gemini model **without touching code**.
-  - **User side** — every Studio shows an **AI Model dropdown** (filtered by category + plan); Settings → ပုံမှန် AI Model is now a real dropdown; the selected model is sent with every request (`body.model`) and used by the server.
-- **Deploy for this phase:** `wrangler d1 migrations apply <DB_NAME> --remote` **then** `wrangler deploy --env prod` (two steps — this phase adds a migration).
+- `SITE_LINKS` in the studio configuration may contain placeholder social links; replace them before launch.
+- Environment-specific D1 IDs and secrets must be independently configured and verified.
+- This documentation does not certify production readiness or a live deployment.
