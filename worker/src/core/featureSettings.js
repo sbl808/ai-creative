@@ -17,7 +17,13 @@ async function getFeatureSetting(env, featureId) {
   if (!env || !env.DB) return { ...base, enabled: false, unavailable: true };
   try {
     const row = await env.DB.prepare('SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?').bind(featureId).first();
-    if (!row) return base;
+    if (!row) {
+      // An entirely empty table is a fresh installation; retain registry defaults.
+      // Once any setting has been persisted, a missing row must fail closed.
+      const existing = await env.DB.prepare('SELECT feature_id FROM feature_settings LIMIT 1').all();
+      if ((existing.results || []).length > 0) return { ...base, enabled: false, missing: true };
+      return base;
+    }
     return {
       enabled: row.enabled !== 0,
       access: (row.access === 'PRO' || row.access === 'FREE') ? row.access : def.access,
