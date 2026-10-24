@@ -9,6 +9,7 @@
  * Run: node --experimental-default-type=module scripts/regression-test.mjs
  */
 import { signToken } from '../worker/src/core/auth.js';
+import { checkFeature } from '../worker/src/core/featureSettings.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
@@ -318,6 +319,17 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '2' });
   const body = await r.json();
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Feature gate database failure safety —');
+await check('Feature Gate denies access when the settings database is missing', async () => {
+  const result = await checkFeature({}, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'settings_unavailable', msg: JSON.stringify(result) };
+});
+await check('Feature Gate denies access when the settings database query throws', async () => {
+  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const result = await checkFeature({ DB: brokenDb }, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'settings_unavailable', msg: JSON.stringify(result) };
 });
 
 console.log('— Stage 13: feature-gate coverage for image and SRT routes —');
