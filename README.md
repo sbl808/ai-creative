@@ -9,7 +9,7 @@ AI Creative Studio is a multi-studio content-creation app built with a Cloudflar
 ## Features
 
 - **Six studios** with studio-specific frontend modules and backend business logic.
-- **Story 11-Layer Brain** with scoped CMS knowledge for Story types, visual styles, and video workflows (migration 014).
+- **Story Brain CMS (current legacy implementation):** scoped CMS knowledge for Story types, visual styles, and video workflows (migration 014). The current Admin UI describes this as an 11-Layer Brain; the separate `ARCHITECTURE_STANDARD.md` defines a 12-layer target standard. Do not assume the target standard is fully implemented.
 - **Personal user system** with server-side authentication and per-user settings, projects, usage, and API-key records.
 - **Creations storage:** browser IndexedDB (`aics_creations_v1`); do not assume creations are backed up to D1.
 - **Free/Pro feature gates** resolved on the server from the feature registry and database overrides.
