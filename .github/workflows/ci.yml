@@ -1,10 +1,11 @@
 name: CI
 
-# Runs on main and on every Pull Request (no deploy — deploy workflows come later)
+# Run checks on every branch push and on pull requests targeting main.
+# This workflow tests code only; it does not deploy.
 on:
   push:
-    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
