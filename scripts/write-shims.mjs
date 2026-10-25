@@ -96,7 +96,7 @@ for (const studio of STUDIOS) {
       }
     }
 
-    plan.push({ studio, target, expected, unchanged });
+    plan.push({ studio, target, expected, current, unchanged });
   } catch (error) {
     failures.push(error.message);
   }
@@ -138,17 +138,20 @@ if (changes.length === 0) {
   process.exit(0);
 }
 
-// Recheck the complete write set immediately before writing to catch changes
-// made after preflight. Do not write any files if a target changed meanwhile.
+// Recheck the complete write set immediately before writing. If any target
+// changed since preflight, abort before the first write.
+const changedDuringPreflight = [];
 for (const item of changes) {
   lstatRegularFile(item.target, 'Shim target');
   const current = fs.readFileSync(item.target, 'utf8');
-  if (current === item.expected) {
-    item.unchanged = true;
-    continue;
+  if (current !== item.current) {
+    changedDuringPreflight.push(path.relative(ROOT, item.target));
   }
-  const backup = path.join(FRONTEND, '_legacy', item.studio.slug + '_v1_full.js');
-  lstatRegularFile(backup, 'Legacy backup');
+}
+if (changedDuringPreflight.length > 0) {
+  console.error('Targets changed after preflight. No files were modified.');
+  for (const target of changedDuringPreflight) console.error('  ✘ ' + target);
+  process.exit(1);
 }
 
 const pendingWrites = changes.filter(item => !item.unchanged);
