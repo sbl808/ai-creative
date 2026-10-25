@@ -14,14 +14,23 @@ export async function getStudioSettings(env) {
   Object.keys(STUDIO_REGISTRY).forEach((k) => {
     out[k] = STUDIO_REGISTRY[k].enabled !== false;
   });
-  if (!env || !env.DB) return out;
+  // Do not let a missing database turn a previously disabled Studio back on.
+  if (!env || !env.DB) {
+    Object.keys(out).forEach((id) => { out[id] = false; });
+    return out;
+  }
   try {
     const r = await env.DB.prepare('SELECT studio_id, enabled FROM studio_settings').all();
-    (r.results || []).forEach((row) => {
+    const rows = r.results || [];
+    // An empty table is a fresh installation. After any setting is persisted,
+    // a missing Studio row is treated as disabled rather than silently enabled.
+    if (rows.length > 0) Object.keys(out).forEach((id) => { out[id] = false; });
+    rows.forEach((row) => {
       if (out[row.studio_id] !== undefined) out[row.studio_id] = row.enabled === 1;
     });
   } catch (e) {
-    // DB error ရှိလျှင်ပင် Registry Default များသာ သုံးသည်
+    // A failed settings read is not proof that the Studio is enabled.
+    Object.keys(out).forEach((id) => { out[id] = false; });
   }
   return out;
 }

@@ -97,9 +97,9 @@ button{cursor:pointer}
         <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" onclick="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
       </section>
       <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
-      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (11-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
+      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
-      <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><button class="btn" onclick="loadStudios()">↻ Refresh</button></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
+      <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="loadStudios()">↻ Refresh</button><button class="btn primary" onclick="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
       <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" onclick="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" onclick="mfPlan('')">All</button><button id="mfFree" class="btn sm" onclick="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" onclick="mfPlan('PRO')">PRO</button><select id="mfCat" onchange="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
       <section id="usageView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Usage</h1><p class="page-desc">AI, Voice နဲ့ Image usage ကို စောင့်ကြည့်ပါ။</p></div><button class="btn" onclick="loadUsage()">↻ Refresh</button></div><div class="grid two-col"><div class="card"><div class="section-head"><div><div class="card-title">Daily Usage</div><div class="card-sub">နောက်ဆုံး 28 ရက်</div></div></div><div id="usageDaily" class="list"></div></div><div class="card"><div class="section-head"><div><div class="card-title">Top Users</div><div class="card-sub">Usage အများဆုံး Users</div></div></div><div id="usageTop" class="list"></div></div></div></section>
@@ -464,7 +464,7 @@ function del(id){
   }).catch(function(e){alert('Network error: '+(e&&e.message||e));});
 }
 
-// ===== Brain CMS (11-Layer — additive) =====
+// ===== Brain CMS (12-Layer — additive) =====
 var brainItems=[];var brainEditId=null;
 function loadBrain(){
   api('/api/brain').then(function(d){
@@ -538,6 +538,16 @@ function loadUsers(){
 }
 
 // ===== Studios Control (Phase 4 — Admin က Studio ON/OFF ပြုလုပ်နိုင်) =====
+function initializeSettings(){
+  if(!confirm('Studio နှင့် Feature setting row များထဲက ပျောက်နေသော row များကိုသာ default ဖြင့် ဖြည့်မည်။ ရှိပြီးသား ON/OFF နှင့် FREE/PRO setting များကို မပြောင်းပါ။ ဆက်လုပ်မလား?')) return;
+  api('/api/admin/settings/initialize','POST',{}).then(function(d){
+    if(d.error){alert('Initialization မအောင်မြင်ပါ: '+(d.detail||d.error));return;}
+    alert('Initialization ပြီးပါပြီ။ Studios: '+d.studiosAdded+' rows, Features: '+d.featuresAdded+' rows အသစ်ဖြည့်ပြီးပါပြီ။');
+    loadStudios();
+    loadFeatures();
+  }).catch(function(e){alert('Network error: '+String(e&&e.message||e));});
+}
+
 function loadStudios(){
   api('/api/admin/studios').then(function(d){
     if(d.error==='forbidden'){location.href='/app';return;}
@@ -641,13 +651,14 @@ export async function adminApi(request, path, env, verifyToken) {
   const isCms = (path === '/api/cms' || path.indexOf('/api/cms/') === 0);
   const isUsers = (path === '/api/admin/users' || path.indexOf('/api/admin/users/') === 0);
   const isStudios = (path === '/api/admin/studios' || path.indexOf('/api/admin/studios/') === 0);
+  const isSettingsInit = (path === '/api/admin/settings/initialize');
   const isFeatures = (path === '/api/admin/features' || path.indexOf('/api/admin/features/') === 0);
   const isModels = (path === '/api/admin/models' || path.indexOf('/api/admin/models/') === 0);
   const isDashboard = (path === '/api/admin/dashboard');
   const isUsage = (path === '/api/admin/usage');
   const isLogs = (path === '/api/admin/logs');
   const isBrain = (path === '/api/brain' || path.indexOf('/api/brain/') === 0);
-  if (!isCms && !isUsers && !isStudios && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain) return null;
+  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain) return null;
 
   const method = request.method;
   const authHeader = request.headers.get('Authorization') || '';
@@ -707,7 +718,7 @@ export async function adminApi(request, path, env, verifyToken) {
     }
   }
 
-  // ===== Brain CMS (11-Layer — additive; cms_prompts ကို မထိ) =====
+  // ===== Brain CMS (12-Layer — additive; cms_prompts ကို မထိ) =====
   if (path === '/api/brain' && method === 'GET') {
     try {
       const { results } = await env.DB.prepare('SELECT * FROM cms_brain ORDER BY scope, module, type, key').all();
@@ -774,6 +785,32 @@ export async function adminApi(request, path, env, verifyToken) {
       await logAdminAction(env, user.email, 'user_plan', 'user_id=' + id + ' → ' + plan);
       return json({ ok: true });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+  }
+
+  // ===== Explicit admin-only settings initialization; existing overrides are never overwritten =====
+  if (path === '/api/admin/settings/initialize' && method === 'POST') {
+    if (!env || !env.DB) return json({ error: 'db_unavailable' }, 503);
+    try {
+      let studiosAdded = 0;
+      let featuresAdded = 0;
+      for (const id of Object.keys(STUDIO_REGISTRY)) {
+        const result = await env.DB.prepare(
+          "INSERT OR IGNORE INTO studio_settings (studio_id, enabled, updated_at) VALUES (?, ?, datetime('now'))"
+        ).bind(id, STUDIO_REGISTRY[id].enabled === false ? 0 : 1).run();
+        studiosAdded += Number(result && result.meta && result.meta.changes || 0);
+      }
+      for (const id of Object.keys(FEATURE_REGISTRY)) {
+        const def = FEATURE_REGISTRY[id];
+        const result = await env.DB.prepare(
+          "INSERT OR IGNORE INTO feature_settings (feature_id, enabled, access, limit_value, updated_at) VALUES (?, 1, ?, 0, datetime('now'))"
+        ).bind(id, def.access).run();
+        featuresAdded += Number(result && result.meta && result.meta.changes || 0);
+      }
+      await logAdminAction(env, user.email, 'settings_initialize', 'studios_added=' + studiosAdded + ', features_added=' + featuresAdded);
+      return json({ ok: true, studiosAdded, featuresAdded });
+    } catch (e) {
+      return json({ error: 'initialization_failed', detail: String(e && e.message || e) }, 500);
+    }
   }
 
   // ===== Studios Control (Phase 4 — Admin က Code မပြင်ဘဲ ON/OFF ပြုလုပ်နိုင်) =====

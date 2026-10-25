@@ -13,16 +13,23 @@ async function getFeatureSetting(env, featureId) {
   const def = FEATURE_REGISTRY[featureId];
   if (!def) return null;
   const base = { enabled: true, access: def.access, limit_value: 0 };
-  if (!env || !env.DB) return base;
+  // A missing/unavailable database must not silently re-enable an Admin-disabled feature.
+  if (!env || !env.DB) return { ...base, enabled: false, unavailable: true };
   try {
     const row = await env.DB.prepare('SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?').bind(featureId).first();
-    if (!row) return base;
+    if (!row) {
+      // An entirely empty table is a fresh installation; retain registry defaults.
+      // Once any setting has been persisted, a missing row must fail closed.
+      const existing = await env.DB.prepare('SELECT feature_id FROM feature_settings LIMIT 1').all();
+      if ((existing.results || []).length > 0) return { ...base, enabled: false, missing: true };
+      return base;
+    }
     return {
       enabled: row.enabled !== 0,
       access: (row.access === 'PRO' || row.access === 'FREE') ? row.access : def.access,
       limit_value: Number(row.limit_value) > 0 ? Number(row.limit_value) : 0,
     };
-  } catch (e) { return base; }
+  } catch (e) { return { ...base, enabled: false, unavailable: true }; }
 }
 
 // Feature အားလုံး၏ လက်ရှိ အနေအထား Map (Admin Panel + UI များအတွက်)
@@ -41,6 +48,7 @@ async function getFeatureSettings(env) {
 async function checkFeature(env, featureId, userPlan, reqType) {
   const f = await getFeatureSetting(env, featureId);
   if (!f) return { ok: false, reason: 'unknown_feature' };
+  if (f.unavailable) return { ok: false, reason: 'settings_unavailable' };
   if (!f.enabled) return { ok: false, reason: 'disabled' };
   if (f.access === 'PRO' && userPlan !== 'PRO') return { ok: false, reason: 'pro_only' };
   if (f.access !== 'PRO' && userPlan === 'FREE' && String(reqType || '1') !== '1') {

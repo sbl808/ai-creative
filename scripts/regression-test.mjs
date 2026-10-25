@@ -9,12 +9,17 @@
  * Run: node --experimental-default-type=module scripts/regression-test.mjs
  */
 import { signToken } from '../worker/src/core/auth.js';
+import { checkFeature } from '../worker/src/core/featureSettings.js';
+import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
+import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
+import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
+import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); }
+  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); this.studioSettings = new Map(); }
   prepare(sql) {
     const self = this;
     return {
@@ -36,12 +41,22 @@ class MockD1 {
         return null;
       },
       async all() {
-        if (/FROM studio_settings/.test(sql)) return { results: [] };
+        if (/FROM studio_settings/.test(sql)) return { results: [...self.studioSettings.entries()].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
+        if (/FROM feature_settings/.test(sql)) return { results: [...self.featureSettings.entries()].map(([feature_id, row]) => ({ feature_id, ...row })) };
         if (/FROM users/.test(sql)) return { results: Object.values(self.rows.users || {}) };
         if (/FROM projects/.test(sql)) return { results: [] };
         return { results: [] };
       },
       async run() {
+        let changes = 0;
+        if (/INSERT OR IGNORE INTO studio_settings/.test(sql)) {
+          const id = String(this._args[0]);
+          if (!self.studioSettings.has(id)) { self.studioSettings.set(id, Number(this._args[1])); changes = 1; }
+        }
+        if (/INSERT OR IGNORE INTO feature_settings/.test(sql)) {
+          const id = String(this._args[0]);
+          if (!self.featureSettings.has(id)) { self.featureSettings.set(id, { enabled: 1, access: String(this._args[1]), limit_value: 0 }); changes = 1; }
+        }
         if (/INSERT INTO api_test_limits/.test(sql)) {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
@@ -50,7 +65,7 @@ class MockD1 {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
         }
-        return { success: true };
+        return { success: true, meta: { changes } };
       },
     };
   }
@@ -289,6 +304,32 @@ await check('shared generation limit fails closed when D1 query throws', async (
 });
 
 console.log('— Feature gate regression —');
+async function makeFullyInitializedSettingsDb() {
+  const db = new MockD1({});
+  for (const studioId of Object.keys(STUDIO_REGISTRY)) db.studioSettings.set(studioId, 1);
+  for (const [featureId, def] of Object.entries(FEATURE_REGISTRY)) {
+    db.featureSettings.set(featureId, { enabled: 1, access: def.access, limit_value: 0 });
+  }
+  return db;
+}
+async function requestWithMockedProvider(envForRequest, path, body) {
+  const headers = await withToken();
+  const originalFetch = globalThis.fetch;
+  // If a missing gate lets the request reach a provider, return a local mock response.
+  // This prevents all external network calls during this regression test.
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: 'mock_provider_block' }), {
+    status: 503, headers: { 'Content-Type': 'application/json' },
+  });
+  try {
+    return await worker.fetch(new Request('https://test.local' + path, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }), envForRequest, {});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
 await check('FREE user is blocked from PRO-only Story Video Image before AI call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
   env.DB.featureSettings.delete('story.video_image');
@@ -304,6 +345,34 @@ await check('Expired PRO account is treated as FREE for PRO-only Story Video Ima
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
 });
+await check('Admin-disabled Story Generate feature returns 403 before AI call', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('story.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/story/generate', { idea: 'test idea', type: '1' });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Generic Generate honors Admin-disabled content.generate when all settings rows exist', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('content.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/generate', {
+    studio: 'CONTENT', type: '1', idea: 'test idea', apiKey: 'mock-key',
+  });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Generic Generate honors Admin-disabled story.generate when all settings rows exist', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('story.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/generate', {
+    studio: 'STORY', type: '1', idea: 'test idea', apiKey: 'mock-key',
+  });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
 await check('Admin-disabled Content Generate feature returns 403 before AI call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
   env.DB.featureSettings.set('content.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
@@ -318,6 +387,147 @@ await check('FREE user cannot use Type 2 on a FREE-registry Content Generate fea
   const r = await send('/api/studio/content/generate', 'POST', await withToken(), { idea: 'test idea', type: '2' });
   const body = await r.json();
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Admin settings initialization —');
+await check('Settings initialization requires admin authorization', async () => {
+  const r = await send('/api/admin/settings/initialize', 'POST', {}, {});
+  return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+await check('Initialization fills missing rows and preserves existing OFF overrides; repeat is idempotent', async () => {
+  const db = new MockD1({});
+  db.studioSettings.set('story', 0);
+  db.featureSettings.set('content.generate', { enabled: 0, access: 'PRO', limit_value: 7 });
+  const testEnv = { ...env, DB: db };
+  const headers = await withToken();
+  const first = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), testEnv, {});
+  const firstBody = await first.json();
+  const second = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), testEnv, {});
+  const secondBody = await second.json();
+  const expectedStudioAdds = Object.keys(STUDIO_REGISTRY).length - 1;
+  const expectedFeatureAdds = Object.keys(FEATURE_REGISTRY).length - 1;
+  const preserve = db.studioSettings.get('story') === 0 &&
+    db.featureSettings.get('content.generate').enabled === 0 &&
+    db.featureSettings.get('content.generate').access === 'PRO' &&
+    db.featureSettings.get('content.generate').limit_value === 7;
+  return {
+    ok: first.status === 200 && firstBody.ok === true &&
+      firstBody.studiosAdded === expectedStudioAdds &&
+      firstBody.featuresAdded === expectedFeatureAdds &&
+      second.status === 200 && secondBody.studiosAdded === 0 && secondBody.featuresAdded === 0 &&
+      db.studioSettings.size === Object.keys(STUDIO_REGISTRY).length &&
+      db.featureSettings.size === Object.keys(FEATURE_REGISTRY).length && preserve,
+    msg: 'first=' + JSON.stringify(firstBody) + ' second=' + JSON.stringify(secondBody) + ' preserve=' + preserve,
+  };
+});
+await check('Non-admin cannot initialize settings', async () => {
+  const token = await signToken(env, { sub: 'user-2', email: 'not-admin@example.test' });
+  const r = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: '{}',
+  }), { ...env, DB: new MockD1({}) }, {});
+  return { ok: r.status === 403, msg: 'status=' + r.status };
+});
+
+console.log('— Studio gate missing-row policy —');
+await check('Fresh empty Studio settings table uses registry defaults', async () => {
+  const enabled = await isStudioEnabled({ DB: new MockD1({}) }, 'story');
+  return { ok: enabled === true, msg: 'enabled=' + enabled };
+});
+await check('Missing Studio row fails closed after settings have been persisted', async () => {
+  const db = new MockD1({});
+  db.studioSettings.set('content', 1);
+  const enabled = await isStudioEnabled({ DB: db }, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+
+console.log('— Studio gate database failure safety —');
+await check('Studio Gate denies access when the settings database is missing', async () => {
+  const enabled = await isStudioEnabled({}, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+await check('Studio Gate denies access when the settings database query throws', async () => {
+  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const enabled = await isStudioEnabled({ DB: brokenDb }, 'story');
+  return { ok: enabled === false, msg: 'enabled=' + enabled };
+});
+
+console.log('— AI Brain canonical 12-layer order —');
+await check('Brain prompt follows the canonical 12-layer order regardless of object insertion order', async () => {
+  const config = {};
+  [...BRAIN_LAYER_ORDER].reverse().forEach((layer) => { config[layer] = 'content for ' + layer; });
+  const prompt = buildBrainPrompt(config);
+  const positions = BRAIN_LAYER_ORDER.map((layer) => prompt.indexOf(layer + ':'));
+  return {
+    ok: positions.every((pos, i) => pos >= 0 && (i === 0 || pos > positions[i - 1])),
+    msg: 'layers=' + positions.join(','),
+  };
+});
+await check('Brain prompt preserves legacy CMS key ordering when no canonical layer IDs exist', async () => {
+  const prompt = buildBrainPrompt({ final_output: 'out', prompt: 'prompt', role: 'role', knowledge: 'knowledge' });
+  const positions = ['ROLE:', 'KNOWLEDGE:', 'PROMPT:', 'FINAL_OUTPUT:'].map((label) => prompt.indexOf(label));
+  return {
+    ok: positions.every((pos) => pos >= 0) && positions.every((pos, i) => i === 0 || pos > positions[i - 1]),
+    msg: 'legacy=' + positions.join(','),
+  };
+});
+
+await check('Brain prompt preserves legacy keys alongside canonical 12-layer keys', async () => {
+  const prompt = buildBrainPrompt({
+    '11_POST_NOTE': 'post-note content',
+    '00_GATEKEEPER': 'gate content',
+    role: 'legacy role content',
+    prompt: 'legacy prompt content',
+  });
+  const canonicalPos = prompt.indexOf('00_GATEKEEPER:');
+  const legacyRolePos = prompt.indexOf('ROLE:');
+  const legacyPromptPos = prompt.indexOf('PROMPT:');
+  const postNotePos = prompt.indexOf('11_POST_NOTE:');
+  return {
+    ok: canonicalPos >= 0 && canonicalPos < postNotePos &&
+      legacyRolePos > postNotePos && legacyPromptPos > legacyRolePos &&
+      prompt.includes('legacy role content') && prompt.includes('legacy prompt content'),
+    msg: `canonical=${canonicalPos},post=${postNotePos},role=${legacyRolePos},prompt=${legacyPromptPos}`,
+  };
+});
+
+await check('Generic generation endpoint blocks a disabled Studio before Feature Gate or AI call', async () => {
+  const headers = await withToken();
+  const testEnv = { ...env, DB: new MockD1({}) };
+  testEnv.DB.studioSettings.set('story', 0);
+  const r = await worker.fetch(new Request('https://test.local/api/studio/generate', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studio: 'STORY', type: '1', idea: 'test idea' }),
+  }), testEnv, {});
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'studio_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+
+console.log('— Feature gate missing-row policy —');
+await check('Fresh empty Feature settings table uses registry defaults', async () => {
+  const result = await checkFeature({ DB: new MockD1({}) }, 'content.generate', 'FREE', '1');
+  return { ok: result.ok === true, msg: JSON.stringify(result) };
+});
+await check('Missing Feature row fails closed after settings have been persisted', async () => {
+  const db = new MockD1({});
+  db.featureSettings.set('content.revise', { enabled: 1, access: 'FREE', limit_value: 0 });
+  const result = await checkFeature({ DB: db }, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'disabled', msg: JSON.stringify(result) };
+});
+
+console.log('— Feature gate database failure safety —');
+await check('Feature Gate denies access when the settings database is missing', async () => {
+  const result = await checkFeature({}, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'settings_unavailable', msg: JSON.stringify(result) };
+});
+await check('Feature Gate denies access when the settings database query throws', async () => {
+  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const result = await checkFeature({ DB: brokenDb }, 'content.generate', 'FREE', '1');
+  return { ok: !result.ok && result.reason === 'settings_unavailable', msg: JSON.stringify(result) };
 });
 
 console.log('— Stage 13: feature-gate coverage for image and SRT routes —');

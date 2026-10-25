@@ -211,6 +211,9 @@ async function trackUsageSafe(env, userId, category) {
 async function requireFeature(env, featureId, plan, reqType, corsHeaders) {
   const r = await checkFeature(env, featureId, plan, reqType);
   if (r.ok) return null;
+  if (r.reason === 'settings_unavailable') {
+    return json({ error: 'feature_settings_unavailable', detail: 'Feature settings ကို ယခု စစ်ဆေးမရပါ။ ခဏနေမှ ပြန်ကြိုးစားပါ။' }, 503, corsHeaders);
+  }
   const msg = r.reason === 'pro_type'
     ? 'ဒီ feature က PRO အတွက်ပါ။ Type 1 ကို သုံးပါ၊ သို့မဟုတ် upgrade လုပ်ပါ။'
     : (r.reason === 'disabled' ? 'ဒီ feature ကို ယခု ပိတ်ထားပါသည်။' : 'ဒီ feature က PRO အတွက်ပါ။');
@@ -760,8 +763,22 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.studio || !body.idea) return json({ error: 'missing_studio_or_idea' }, 400, cors);
+        // The generic endpoint must honor the same server-side Studio Gate as dedicated routes.
+        const requestedStudio = String(body.studio).toLowerCase();
+        if (getStudio(requestedStudio)) {
+          const studioEnabled = await isStudioEnabled(env, requestedStudio);
+          if (!studioEnabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+        }
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
+        // Generic Generate must honor the selected studio's Admin feature gate as well as the shared gate.
+        const studioFeatureId = requestedStudio === 'content' ? 'content.generate'
+          : requestedStudio === 'story' ? 'story.generate'
+          : null;
+        if (studioFeatureId) {
+          const studioFeatureDenied = await requireFeature(env, studioFeatureId, plan, reqType, cors);
+          if (studioFeatureDenied) return studioFeatureDenied;
+        }
         { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
         try {
           // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်

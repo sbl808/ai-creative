@@ -2,7 +2,7 @@
 // Studio Isolation: ဤ File သည် Story Studio နှင့်သာ သက်ဆိုင်သည်။
 // အခြား Studio (Content/Short/Image/Voice/Shop) ကို မထိခိုက်စေရ။
 // Story Studio Workflow (01→06) အတွက် Video Plan ကို Structured JSON ဖြင့် ဦးစားပေးထုတ်သည်။
-// 11-Layer Brain (§4): Generic Engine တစ်ခုတည်း — Story Type / Video Workflow အတွက်
+// 12-Layer Brain (§4): Generic Engine တစ်ခုတည်း — Story Type / Video Workflow အတွက်
 // သီးခြား Engine မဖန်တီးဘဲ CMS မှ Selected Config / Knowledge / Prompt ကို dynamic load လုပ်သည်။
 // Knowledge Isolation (§5): selected Story Type / Visual Style / Video Workflow rows များသာ
 // AI context ထဲ ဝင်မည် — အခြား type ၏ knowledge ကို ထည့်မည် မဟုတ်ပါ။
@@ -146,7 +146,7 @@ export async function generateStoryVideoPlan(env, {
   if (!text) throw new Error('missing_idea');
   const wf = String(workflow || 'CINEMATIC_FEATURE').toUpperCase();
   const vs = String(visualStyle || (videoType && /^[A-Za-z]/.test(String(videoType)) ? videoType : '') || 'REALISM');
-  // 11-Layer Video Context — separate contexts (Knowledge Isolation):
+  // 12-Layer Video Context — separate contexts (Knowledge Isolation):
   // GLOBAL + VIDEO_KNOWLEDGE(base) + SELECTED VISUAL_STYLE + SELECTED VIDEO_WORKFLOW (သာ)
   const ctx = await getStoryVideoContext(env, { visualStyle: vs, workflow: wf, plan });
   const globalPrompt = buildBrainPrompt(ctx.global);
