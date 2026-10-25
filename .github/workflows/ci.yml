@@ -48,6 +48,17 @@ jobs:
       - name: Check browser scripts
         run: node --experimental-default-type=module scripts/check-browser-scripts.mjs
 
+  shim-writer-safety:
+    name: Shim writer safety tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test guarded shim writer
+        run: node --experimental-default-type=module --test scripts/write-shims.test.mjs
+
   migration-contract:
     name: D1 migration schema contract (offline)
     runs-on: ubuntu-latest
