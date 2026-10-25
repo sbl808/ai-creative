@@ -155,12 +155,27 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
   const sourceMatch = file.match(/[\\/]studios[\\/]([^\\/]+)[\\/]/);
   if (!sourceMatch) continue;
   const ownSlug = sourceMatch[1];
+  const studiosRoot = path.join(FRONTEND, 'studios');
   const importPattern = /\b(?:from\s*|import\s*\()(['"])([^'"]+)\1/g;
   for (const match of source.matchAll(importPattern)) {
     const specifier = match[2];
-    const targetMatch = specifier.match(/(?:^|\/)studios\/([^/]+)\//);
-    if (targetMatch && targetMatch[1] !== ownSlug) {
-      fail(path.relative(ROOT, file) + ': cross-Studio dependency on ' + targetMatch[1] + ' via ' + specifier);
+    let targetSlug = null;
+
+    // Support both explicit frontend paths and normalized relative imports
+    // such as ../image/page.js from within studios/story/.
+    const explicitMatch = specifier.match(/(?:^|\/)studios\/([^/]+)\//);
+    if (explicitMatch) {
+      targetSlug = explicitMatch[1];
+    } else if (specifier.startsWith('.')) {
+      const resolvedTarget = path.resolve(path.dirname(file), specifier);
+      const relativeToStudios = path.relative(studiosRoot, resolvedTarget);
+      if (relativeToStudios && !relativeToStudios.startsWith('..' + path.sep) && relativeToStudios !== '..' && !path.isAbsolute(relativeToStudios)) {
+        targetSlug = relativeToStudios.split(path.sep)[0];
+      }
+    }
+
+    if (targetSlug && targetSlug !== ownSlug && STUDIOS.some(studio => studio.slug === targetSlug)) {
+      fail(path.relative(ROOT, file) + ': cross-Studio dependency on ' + targetSlug + ' via ' + specifier);
     }
   }
 }
