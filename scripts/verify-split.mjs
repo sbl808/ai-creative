@@ -84,7 +84,7 @@ for (const studio of STUDIOS) {
 
   if (shim !== null) {
     const expectedShim = new RegExp(
-      '^\\s*export\\s*\\{\\s*' + exp + '\\s*\\}\\s*from\\s*[\\'"]\\./studios/' + slug + '/page\\.js[\\'"]\\s*;?',
+      "^\\s*export\\s*\\{\\s*" + exp + "\\s*\\}\\s*from\\s*['\"]\\./studios/" + slug + "/page\\.js['\"]\\s*;?",
       'm',
     );
     if (expectedShim.test(shim)) pass(slug + ': flat shim re-exports ' + exp + ' from studios/' + slug + '/page.js');
@@ -111,7 +111,7 @@ if (loader !== null) {
   for (const studio of STUDIOS) {
     const slug = studio.slug;
     const mapping = new RegExp(
-      '\\b' + slug + '\\s*:\\s*\\(\\s*\\)\\s*=>\\s*import\\s*\\(\\s*[\\'"]\\./studios/' + slug + '/page\\.js[\\'"]\\s*\\)',
+      "\\b" + slug + "\\s*:\\s*\\(\\s*\\)\\s*=>\\s*import\\s*\\(\\s*['\"]\\./studios/" + slug + "/page\\.js['\"]\\s*\\)",
     );
     if (mapping.test(loader)) pass('loader: ' + slug + ' maps to studios/' + slug + '/page.js');
     else fail('loader: missing or incorrect lazy-loader mapping for ' + slug);
