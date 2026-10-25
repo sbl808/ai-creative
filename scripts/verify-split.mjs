@@ -45,6 +45,80 @@ function readSource(file, label) {
     return null;
   }
 }
+
+/**
+ * Remove JavaScript comments while preserving quoted literals and line breaks.
+ * This reduces comment-only matches in the source-contract regex checks below.
+ * It is deliberately not a JavaScript parser; runtime/module resolution is not
+ * claimed by this source-only verifier.
+ */
+function stripComments(source) {
+  let output = '';
+  let state = 'code';
+  let quote = '';
+  let escaped = false;
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+
+    if (state === 'line-comment') {
+      if (char === '\n') {
+        output += '\n';
+        state = 'code';
+      } else {
+        output += ' ';
+      }
+      continue;
+    }
+
+    if (state === 'block-comment') {
+      if (char === '*' && next === '/') {
+        output += '  ';
+        i += 1;
+        state = 'code';
+      } else {
+        output += char === '\n' ? '\n' : ' ';
+      }
+      continue;
+    }
+
+    if (state === 'quoted') {
+      output += char;
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\\\') {
+        escaped = true;
+      } else if (char === quote) {
+        state = 'code';
+      }
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      output += '  ';
+      i += 1;
+      state = 'line-comment';
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      output += '  ';
+      i += 1;
+      state = 'block-comment';
+      continue;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      output += char;
+      quote = char;
+      escaped = false;
+      state = 'quoted';
+      continue;
+    }
+    output += char;
+  }
+
+  return output;
+}
 function existsLocalModule(fromFile, specifier) {
   if (!specifier.startsWith('.')) return true;
   const target = path.resolve(path.dirname(fromFile), specifier);
@@ -100,7 +174,7 @@ for (const studio of STUDIOS) {
     const defaultExport = new RegExp('\\bexport\\s+default\\s+' + exp + '\\s*;');
     if (namedExport.test(page)) pass(slug + ': page declares named export ' + exp);
     else fail(slug + ': page is missing named export ' + exp);
-    if (defaultExport.test(page)) pass(slug + ': page default export points to ' + exp);
+    if (defaultExport.test(pageCode)) pass(slug + ': page default export points to ' + exp);
     else fail(slug + ': page default export does not point to ' + exp);
   }
 }
@@ -131,11 +205,12 @@ for (const file of uniqueFiles) {
   const source = readSource(file, 'dependency scan');
   if (source === null) continue;
   const relative = path.relative(ROOT, file);
+  const code = stripComments(source);
   const specifiers = new Set();
   const declarationPattern = /^\s*(?:import\s+(?:[^'";]*?\s+from\s+)?|export\s+[^'";]*?\s+from\s*)['"]([^'"]+)['"]\s*;?/gm;
   const dynamicPattern = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-  for (const match of source.matchAll(declarationPattern)) specifiers.add(match[1]);
-  for (const match of source.matchAll(dynamicPattern)) specifiers.add(match[1]);
+  for (const match of code.matchAll(declarationPattern)) specifiers.add(match[1]);
+  for (const match of code.matchAll(dynamicPattern)) specifiers.add(match[1]);
 
   for (const specifier of specifiers) {
     if (specifier.includes('_legacy/')) {
@@ -157,7 +232,7 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
   const ownSlug = sourceMatch[1];
   const studiosRoot = path.join(FRONTEND, 'studios');
   const importPattern = /\b(?:from\s*|import\s*\()(['"])([^'"]+)\1/g;
-  for (const match of source.matchAll(importPattern)) {
+  for (const match of code.matchAll(importPattern)) {
     const specifier = match[2];
     let targetSlug = null;
 
