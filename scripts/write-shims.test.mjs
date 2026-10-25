@@ -4,7 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 const SCRIPT_SOURCE = fs.readFileSync(
   new URL('./write-shims.mjs', import.meta.url),
