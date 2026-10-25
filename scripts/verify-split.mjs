@@ -193,14 +193,11 @@ if (loader !== null) {
   }
 }
 
-// Check relative module dependencies in the Studio source directories.
-// Only import/export declarations and literal dynamic imports are inspected;
-// no application module is imported or executed by this verifier.
-const sourceFiles = [
-  ...STUDIOS.flatMap(studio => collectJsFiles(path.join(FRONTEND, 'studios', studio.slug))),
-  ...STUDIOS.map(studio => path.join(FRONTEND, studio.slug + '.js')),
-  LOADER_FILE,
-];
+// Check relative module dependencies across the frontend JavaScript source.
+// This includes shared modules imported by Studio pages, as well as all current
+// frontend files where stale _legacy references might remain. Only source text
+// is inspected; no application module is imported or executed by this verifier.
+const sourceFiles = collectJsFiles(FRONTEND);
 const uniqueFiles = [...new Set(sourceFiles)].filter(file => fs.existsSync(file));
 for (const file of uniqueFiles) {
   const source = readSource(file, 'dependency scan');
@@ -233,7 +230,7 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
   if (!sourceMatch) continue;
   const ownSlug = sourceMatch[1];
   const studiosRoot = path.join(FRONTEND, 'studios');
-  const importPattern = /\b(?:from\s*|import\s*\()(['"])([^'"]+)\1/g;
+  const importPattern = /\b(?:from\s*|import\s*(?:\(\s*)?)(['"])([^'"]+)\1/g;
   for (const match of code.matchAll(importPattern)) {
     const specifier = match[2];
     let targetSlug = null;
