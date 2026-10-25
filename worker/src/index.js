@@ -771,6 +771,14 @@ export default {
         }
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
+        // Generic Generate must honor the selected studio's Admin feature gate as well as the shared gate.
+        const studioFeatureId = requestedStudio === 'content' ? 'content.generate'
+          : requestedStudio === 'story' ? 'story.generate'
+          : null;
+        if (studioFeatureId) {
+          const studioFeatureDenied = await requireFeature(env, studioFeatureId, plan, reqType, cors);
+          if (studioFeatureDenied) return studioFeatureDenied;
+        }
         { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
         try {
           // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်
