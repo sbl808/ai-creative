@@ -304,6 +304,32 @@ await check('shared generation limit fails closed when D1 query throws', async (
 });
 
 console.log('— Feature gate regression —');
+async function makeFullyInitializedSettingsDb() {
+  const db = new MockD1({});
+  for (const studioId of Object.keys(STUDIO_REGISTRY)) db.studioSettings.set(studioId, 1);
+  for (const [featureId, def] of Object.entries(FEATURE_REGISTRY)) {
+    db.featureSettings.set(featureId, { enabled: 1, access: def.access, limit_value: 0 });
+  }
+  return db;
+}
+async function requestWithMockedProvider(envForRequest, path, body) {
+  const headers = await withToken();
+  const originalFetch = globalThis.fetch;
+  // If a missing gate lets the request reach a provider, return a local mock response.
+  // This prevents all external network calls during this regression test.
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: 'mock_provider_block' }), {
+    status: 503, headers: { 'Content-Type': 'application/json' },
+  });
+  try {
+    return await worker.fetch(new Request('https://test.local' + path, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }), envForRequest, {});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
 await check('FREE user is blocked from PRO-only Story Video Image before AI call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
   env.DB.featureSettings.delete('story.video_image');
@@ -318,6 +344,34 @@ await check('Expired PRO account is treated as FREE for PRO-only Story Video Ima
   const body = await r.json();
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
   return { ok: r.status === 403 && body.error === 'pro_only', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Admin-disabled Story Generate feature returns 403 before AI call', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('story.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/story/generate', { idea: 'test idea', type: '1' });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Generic Generate honors Admin-disabled content.generate when all settings rows exist', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('content.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/generate', {
+    studio: 'CONTENT', type: '1', idea: 'test idea', apiKey: 'mock-key',
+  });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
+});
+await check('Generic Generate honors Admin-disabled story.generate when all settings rows exist', async () => {
+  const db = await makeFullyInitializedSettingsDb();
+  db.rows.users['user-1'] = { plan: 'FREE', expiry: null };
+  db.featureSettings.set('story.generate', { enabled: 0, access: 'FREE', limit_value: 0 });
+  const r = await requestWithMockedProvider({ ...env, DB: db }, '/api/studio/generate', {
+    studio: 'STORY', type: '1', idea: 'test idea', apiKey: 'mock-key',
+  });
+  const body = await r.json();
+  return { ok: r.status === 403 && body.error === 'feature_disabled', msg: `status=${r.status} error=${body.error}` };
 });
 await check('Admin-disabled Content Generate feature returns 403 before AI call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
