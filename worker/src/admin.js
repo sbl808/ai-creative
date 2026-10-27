@@ -129,7 +129,8 @@ var STUDIO_GROUPS=[
   {g:'Short', v:[['SHORT','စာသား'],['SHORTVIDEO','ဗီဒီယို']]},
   {g:'Image', v:[['IMAGE','ပုံ']]},
   {g:'Voice', v:[['VOICE','အသံ']]},
-  {g:'Shop', v:[['SHOPCONTENT','စာသား'],['SHOPVIDEO','ဗီဒီယို']]}
+  {g:'Shop', v:[['SHOPCONTENT','စာသား'],['SHOPVIDEO','ဗီဒီယို']]},
+  {g:'Ideas', v:[['IDEAS','အကြံဉာဏ်']]}
 ];
 var STUDIOS=[];STUDIO_GROUPS.forEach(function(g){g.v.forEach(function(x){STUDIOS.push(x[0]);});});
 function studioLabel(code){
