@@ -12,6 +12,7 @@
 
 export const FEATURE_REGISTRY = {
   'generate': { name: 'Generic Generate', nameMy: 'Generate (အထွေထွေ)', access: 'FREE', desc: 'Generic AI Generate' },
+  'ideas.generate': { name: 'Idea Workspace Generate', nameMy: 'Idea Workspace အကြံဉာဏ်ထုတ်ခြင်း', access: 'FREE', desc: 'Generate exactly three saved creative ideas' },
 
   'content.generate': { name: 'Content Generate', nameMy: 'Content ရေးသားခြင်း', access: 'FREE', desc: 'Content Studio — Tab 1' },
   'content.revise': { name: 'Content Revise', nameMy: 'Content ပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Content Studio — Tab 2' },

@@ -55,6 +55,7 @@ function myWorkLinks(activeId) {
   const setActive = activeId === 'settings' ? ' active' : '';
   return (
     '<a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
+    '  <a class="nav-item' + (activeId === 'ideas' ? ' active' : '') + '" href="/app/ideas"><span class="nav-icon-circle">' + shellIcon('lightbulb') + '</span><span class="nav-text">Idea Workspace</span></a>\n' +
     '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>'
   );
 }
@@ -100,6 +101,7 @@ function studioPageSidebar(activeId) {
     '  ' + studioLinks(activeId) + '\n' +
     '  <div class="nav-label">MY WORK</div>\n' +
     '  <a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
+    '  <a class="nav-item' + (activeId === 'ideas' ? ' active' : '') + '" href="/app/ideas"><span class="nav-icon-circle">' + shellIcon('lightbulb') + '</span><span class="nav-text">Idea Workspace</span></a>\n' +
     '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>\n' +
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +

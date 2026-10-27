@@ -14,6 +14,7 @@ import { listEnabledModels } from './core/aiModels.js';
 import { getUserSettings, updateUserSettings, getUserPreferences, updateUserPreferences } from './core/settings.js';
 import { createProject, listProjects, deleteProject } from './core/projects.js';
 import { trackUsage } from './core/usage.js';
+import { generateIdeas, validateIdeasBrief } from './core/ideas.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
 import { getStudio } from './config/studios.js';
@@ -23,6 +24,7 @@ import { APP_HTML } from './frontend.js';
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
 import { getStudioPage } from './frontend/studioPages.js';
 import { CREATIONS_HTML } from './frontend/creations.js';
+import { IDEAS_HTML } from './frontend/ideas.js';
 import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
@@ -84,7 +86,7 @@ const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
 
 function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
-  if (path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
+  if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
   return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
     /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
@@ -492,6 +494,11 @@ export default {
           return htmlPage(studioHtml);
         }
       }
+      if (path === '/app/ideas' || path === '/app/ideas/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(IDEAS_HTML);
+      }
       if (path === '/app/creations' || path === '/app/creations/') {
         const g = await appSessionGuard(request, env, url.origin);
         if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
@@ -754,6 +761,35 @@ export default {
         const c = await getCMSData(env, body.studio || 'STORY', plan, body.type || '1');
         if (!c) return json({ found: false }, 200, cors);
         return json({ found: true, studio: c.studio, plan: c.plan, type: c.type, system_prompt: buildSystemPrompt(c) }, 200, cors);
+      }
+
+      if (path === '/api/ideas/generate' && request.method === 'POST') {
+        const token = bearer(request);
+        if (!token) return json({ error: 'unauthorized' }, 401, cors);
+        const payload = await verifyTokenSafe(env, token);
+        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
+        const body = await request.json().catch(() => null);
+        const validation = validateIdeasBrief(body);
+        if (!validation.ok) return json({ error: validation.error, field: validation.field }, 400, cors);
+        const plan = await resolvePlan(env, payload);
+        const denied = await requireFeature(env, 'ideas.generate', plan, '1', cors);
+        if (denied) return denied;
+        try {
+          let apiKey = body.apiKey;
+          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const ideas = await generateIdeas(env, { brief: body, plan, apiKey });
+          if (!Array.isArray(ideas) || ideas.length !== 3) return json({ error: 'invalid_ai_output' }, 502, cors);
+          await trackUsageSafe(env, payload.sub, 'ai');
+          return json({ ok: true, count: 3, ideas }, 200, cors);
+        } catch (e) {
+          if (e && e.message === 'cms_prompt_missing') {
+            return json({ error: 'cms_prompt_missing', detail: 'Idea Workspace Prompt ကို Admin CMS မှာ အရင်ပြင်ဆင်ပါ။' }, 503, cors);
+          }
+          if (e && /^invalid_(?:ai_output|ideas_count|idea|suggested_studio)$/.test(e.message)) {
+            return json({ error: e.message }, 502, cors);
+          }
+          return json({ error: 'ideas_generation_failed', detail: friendlyError(e) }, 502, cors);
+        }
       }
 
       if (path === '/api/studio/generate' && request.method === 'POST') {

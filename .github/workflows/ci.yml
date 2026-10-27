@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Run route regression tests
         run: node --experimental-default-type=module scripts/regression-test.mjs
+      - name: Run Idea Workspace contract tests
+        run: node --experimental-default-type=module scripts/ideas-contract-test.mjs
 
   security:
     name: Security contracts
