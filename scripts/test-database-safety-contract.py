@@ -93,7 +93,7 @@ def main() -> int:
             if not stripped or stripped.startswith("--"):
                 continue
             sql_lines.append(line.split("--", 1)[0])
-        sql_text = "\\n".join(sql_lines)
+        sql_text = "\n".join(sql_lines)
         for statement in sql_text.split(";"):
             statement = statement.strip()
             if not statement or not DESTRUCTIVE_LINE.search(statement):
