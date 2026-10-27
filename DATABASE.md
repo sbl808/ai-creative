@@ -70,3 +70,15 @@ Before any remote migration is considered:
 6. Re-check the migration history and application behavior after the approved operation.
 
 Do not create a database, apply remote migrations, rename historical migration files, drop tables, or deploy as part of a documentation or offline-test task.
+
+## Offline safety contract check
+
+Run this repository-only check before reviewing changes to Wrangler targets or migration SQL:
+
+```bash
+python scripts/test-database-safety-contract.py
+```
+
+The check reads `worker/wrangler.toml`, the checked-in migration files, and this document only. It does not use Wrangler, credentials, network access, or a Cloudflare connection. It verifies that dev/staging/prod bindings remain distinct, duplicate migration prefixes are documented, and destructive SQL is explicitly allowlisted. A placeholder D1 ID is reported as not production-ready; this test does not prove a remote database exists or validate remote migration history.
+
+The currently known destructive migration statement is the targeted row deletion in `worker/migrations/013_switch_transcribe_model.sql`. Historical migration files must remain unchanged; any future destructive SQL requires a separate review and explicit update of the test's allowlist.
