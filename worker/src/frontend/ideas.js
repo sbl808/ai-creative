@@ -1,4 +1,6 @@
 // Idea Workspace V1 — Browser UI. Idea records stay in a separate local IndexedDB database.
+import { renderSidebar, sidebarScript } from './shared.js';
+
 export const IDEAS_HTML = `<!doctype html>
 <html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Idea Workspace — AI Creative Studio</title>
