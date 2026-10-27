@@ -436,11 +436,17 @@ function applyContentTransfer(){
     var raw=localStorage.getItem('aics_voice_transfer');if(!raw)return;
     var d=JSON.parse(raw);if(!d||!d.text)return;
     resetVoiceBranch('text-to-voice',d.source||'content');
-    VOICE_INPUTS.tts=d.text;
-    if(d.speakingStyle)VOICE_INPUTS.speaking=d.speakingStyle;
-    if(d.voiceStyle)VOICE_INPUTS.voice=d.voiceStyle;
-    if(d.instruction)VOICE_INPUTS.instruction=d.instruction;
-    if(d.audience)VOICE_INPUTS.audience=d.audience;
+    if(d.source==='ideas'){
+      // Idea handoff replaces the Voice draft inputs as well as its previous result.
+      VOICE_INPUTS={tts:d.text,speaking:'',voice:'Kore',instruction:'',audience:d.audience||'လူတိုင်း',srt:''};
+      MEDIA_AUDIO={base64:'',mime:'',fileName:''};
+    }else{
+      VOICE_INPUTS.tts=d.text;
+      if(d.speakingStyle)VOICE_INPUTS.speaking=d.speakingStyle;
+      if(d.voiceStyle)VOICE_INPUTS.voice=d.voiceStyle;
+      if(d.instruction)VOICE_INPUTS.instruction=d.instruction;
+      if(d.audience)VOICE_INPUTS.audience=d.audience;
+    }
     localStorage.removeItem('aics_voice_transfer');
     vRenderInput();saveDraft();
   }catch(e){}
