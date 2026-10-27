@@ -85,25 +85,28 @@ def main() -> int:
         if not match:
             fail(f"Migration filename must start with a numeric prefix: {path.name}")
         prefixes[match.group(1)].append(path.name)
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            # Ignore SQL comment lines; a match must be an executable statement line.
+        # Strip full-line and inline SQL comments, then inspect complete statements.
+        # Joining lines before splitting on semicolons also catches multiline SQL.
+        sql_lines = []
+        for line in path.read_text(encoding="utf-8").splitlines():
             stripped = line.strip()
             if not stripped or stripped.startswith("--"):
                 continue
-            if DESTRUCTIVE_LINE.search(stripped):
-                statement = stripped.split("--", 1)[0].strip()
-                normalized = normalize_sql(statement)
-                allowed = {
-                    (filename, normalize_sql(sql))
-                    for filename, sql in ALLOWED_DESTRUCTIVE_STATEMENTS
-                }
-                key = (path.name, normalized)
-                if key not in allowed:
-                    fail(
-                        f"Unreviewed destructive SQL at {path.name}:{line_number}: "
-                        f"{statement}"
-                    )
-                observed_destructive.add(key)
+            sql_lines.append(line.split("--", 1)[0])
+        sql_text = "\\n".join(sql_lines)
+        for statement in sql_text.split(";"):
+            statement = statement.strip()
+            if not statement or not DESTRUCTIVE_LINE.search(statement):
+                continue
+            normalized = normalize_sql(statement)
+            allowed = {
+                (filename, normalize_sql(sql))
+                for filename, sql in ALLOWED_DESTRUCTIVE_STATEMENTS
+            }
+            key = (path.name, normalized)
+            if key not in allowed:
+                fail(f"Unreviewed destructive SQL in {path.name}: {statement}")
+            observed_destructive.add(key)
 
     duplicates = {prefix: files for prefix, files in prefixes.items() if len(files) > 1}
     for prefix, files in duplicates.items():
