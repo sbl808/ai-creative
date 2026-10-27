@@ -20,7 +20,7 @@ export function validateIdeasBrief(body) {
 export function parseIdeasOutput(raw) {
   let value = raw;
   if (typeof value !== 'string') throw new Error('invalid_ai_output');
-  value = value.trim().replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/, '');
+  value = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let parsed;
   try { parsed = JSON.parse(value); } catch (_) { throw new Error('invalid_ai_output'); }
   const ideas = Array.isArray(parsed) ? parsed : parsed?.ideas;
