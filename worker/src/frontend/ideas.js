@@ -12,6 +12,7 @@ main{max-width:1000px;margin:auto;padding:24px 16px 56px}.hero{padding:18px 0 22
 button{border:0;border-radius:10px;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer;background:var(--cyan);color:#041018}button.secondary{background:#26334b;color:var(--text);border:1px solid #44516a}button.danger{background:#512832;color:#fff}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.status{padding:10px 12px;border-radius:9px;background:#15233a;margin:12px 0;white-space:pre-wrap}.status.error{color:#ffaaaa;border:1px solid #7a3942}.ideas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.idea{margin:0}.idea h3{color:var(--cyan);margin:0 0 8px}.idea h4{margin:12px 0 3px;font-size:13px;color:#b5c2d7}.idea p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.saved-item{padding:12px 0;border-bottom:1px solid #2b3850}.saved-item:last-child{border-bottom:0}.small{font-size:13px}
 @media(max-width:760px){.grid,.ideas{grid-template-columns:1fr}.hero h1{font-size:23px}}
 </style></head><body>
+${renderSidebar('ideas')}
 <main>
 <header class="hero"><h1>💡 Idea Workspace</h1><p class="muted">Brief တစ်ခုမှ Idea ၃ ခု ထုတ်ပြီး ကိုယ့် Browser ထဲမှာ သီးခြားသိမ်းထားပါ။ Idea များကို Server/D1 တွင် မသိမ်းပါ။</p></header>
 <section class="panel"><h2>Idea Brief</h2>
@@ -27,6 +28,7 @@ button{border:0;border-radius:10px;padding:10px 15px;font:inherit;font-weight:70
 <section><h2>ထုတ်ပေးထားသော Ideas</h2><div id="results" class="ideas"><p class="muted">Brief ဖြည့်ပြီး Generate ကိုနှိပ်ပါ။</p></div></section>
 <section class="panel"><h2>သိမ်းထားသော Ideas</h2><p class="muted small">ဒီစာရင်းက ဒီ Browser ရဲ့ IndexedDB ထဲမှာပဲ သိမ်းထားပါတယ်။ Browser data ဖျက်လျှင် ပျောက်နိုင်ပါတယ်။</p><div id="saved"><p class="muted">ဖတ်နေသည်…</p></div></section>
 </main>
+${sidebarScript()}
 <script>
 (function(){
 'use strict';
