@@ -129,3 +129,13 @@ index.js studio endpoints ──► resolveModel(userChoice, plan, category)
 - PRO-only models (`plan_access='PRO'`) are hidden from FREE users on the server (list + resolution), never just in the UI.
 - `core/ai.js` `callGeminiTTS` now accepts a `model` parameter (TTS model is also admin-controlled).
 - Last-model protection: Admin cannot disable/delete the **only enabled model** of a category — the app can never lose its fallback.
+
+## 8. Deployment, database, and recovery boundaries
+
+- Application code and checked-in SQL migrations describe intended behavior; they do not prove the state of a remote D1 database.
+- `worker/wrangler.toml` currently contains environment-specific names for dev, staging, and prod, but its D1 IDs are placeholders. Do not run remote commands or replace these values until the Cloudflare account, target database, and intended environment are independently confirmed and approved.
+- The repository's currently listed `.github/workflows/ci.yml` runs tests and declares `contents: read`; it does not deploy. At the time of this review, `.github/workflows/` listed only `ci.yml`. This repository observation does not establish whether deployment is configured outside this directory or through GitHub settings.
+- The CI migration checks use offline/in-memory SQLite. They do not confirm remote D1 migration history, backups, or restore success.
+- My Creations uses browser IndexedDB (`aics_creations_v1`). D1 backups alone do not protect that browser-local data; export/import and recovery must be designed and tested separately.
+- Before any production deployment or database migration, require an explicit environment/target check, reviewed migration plan, suitable backup, a tested recovery path, and owner approval for the named operation.
+- Never use documentation checks or offline tests as evidence that production is safe to change. Keep database and Cloudflare operations outside this repository-only safety workflow.
