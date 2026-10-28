@@ -55,7 +55,7 @@ a{color:var(--primary);text-decoration:none;}
 .loading-state{text-align:center;color:var(--primary);padding:40px 20px;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:var(--aics-radius-md,12px);font-size:14px;z-index:9999;display:none;box-shadow:var(--aics-shadow-md,0 8px 24px rgba(16,24,40,.08));}
 .toast.show{display:block;}.toast.success{border-color:var(--success);}.toast.error{border-color:var(--error);}
-@media(max-width:600px){.tab-panel{padding:17px;}.profile-value{text-align:left;width:100%;}.tabs{gap:6px;}}
+@media(max-width:600px){.tab-panel{padding:17px;}.profile-value{text-align:left;width:100%;}.tabs{gap:6px;}.tab{min-height:44px;flex:1 1 auto;}}
 @media(prefers-reduced-motion:reduce){.tab,.btn{transition:none;}}
 
 /* AICS UIUX: shared theme bridge and keyboard/touch accessibility */
@@ -95,7 +95,7 @@ html[data-aics-theme="dark"] .aics-app{
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">${shellIcon('menu')}</button>
+<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">${shellIcon('menu')}</button>
 <div class="aics-brand"><span class="aics-brand-icon">${shellIcon('sparkles')}</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -104,15 +104,15 @@ ${renderSidebar('settings',{variant:'studio'})}
 <main class="main-content aics-main">
   <h1 class="page-title">${shellIcon('settings')} ဆက်တင်များ</h1>
   <p class="page-subtitle">သင့်အကောင့်၊ ဦးစားပေးချက်များနှင့် API Key ကို စီမံပါ — ဤအချက်များသည် သင့်အကောင့်တွင်သာ သက်ရောက်သည်။</p>
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('profile')">👤 Profile</button>
-    <button class="tab" onclick="showTab('prefs')">🎯 ဦးစားပေးချက်များ</button>
-    <button class="tab" onclick="showTab('apikey')">🔑 API Key</button>
+  <div class="tabs" role="tablist" aria-label="Settings sections">
+    <button type="button" class="tab active" id="tab-btn-profile" role="tab" aria-controls="tab-profile" aria-selected="true" tabindex="0" onclick="showTab('profile')">👤 Profile</button>
+    <button type="button" class="tab" id="tab-btn-prefs" role="tab" aria-controls="tab-prefs" aria-selected="false" tabindex="-1" onclick="showTab('prefs')">🎯 ဦးစားပေးချက်များ</button>
+    <button type="button" class="tab" id="tab-btn-apikey" role="tab" aria-controls="tab-apikey" aria-selected="false" tabindex="-1" onclick="showTab('apikey')">🔑 API Key</button>
   </div>
-  <div id="tab-profile" class="tab-panel">
+  <div id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-profile" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
-  <div id="tab-prefs" class="tab-panel" style="display:none;">
+  <div id="tab-prefs" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0" style="display:none;">
     <form onsubmit="savePrefs(event)">
       <div class="form-row">
         <label>ပုံမှန် Studio (Default Studio)</label>
@@ -147,7 +147,7 @@ ${renderSidebar('settings',{variant:'studio'})}
       <button type="submit" class="btn btn-primary" id="saveBtn">💾 သိမ်းပါ</button>
     </form>
   </div>
-  <div id="tab-apikey" class="tab-panel" style="display:none;">
+  <div id="tab-apikey" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0" style="display:none;">
     <div class="loading-state">Loading...</div>
   </div>
 </main>
@@ -165,12 +165,26 @@ if(!TOKEN){
   loadSettings();
 }
 function showTab(name){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab-panel').forEach(function(p){p.style.display='none';});
   var tabs={profile:'tab-profile',prefs:'tab-prefs',apikey:'tab-apikey'};
+  if(!tabs[name]) return;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');t.setAttribute('aria-selected','false');t.setAttribute('tabindex','-1');});
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.style.display='none';});
   document.getElementById(tabs[name]).style.display='block';
-  var idx=name==='profile'?0:name==='prefs'?1:2;
-  document.querySelectorAll('.tab')[idx].classList.add('active');
+  var selected=document.getElementById('tab-btn-'+name);
+  if(selected){selected.classList.add('active');selected.setAttribute('aria-selected','true');selected.setAttribute('tabindex','0');}
+}
+document.querySelectorAll('[role="tab"]').forEach(function(tab){
+  tab.addEventListener('keydown',function(event){
+    var tabs=Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    var index=tabs.indexOf(tab);
+    if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
+      event.preventDefault();
+      var delta=event.key==='ArrowRight'?1:-1;
+      var next=tabs[(index+delta+tabs.length)%tabs.length];
+      next.focus();
+      next.click();
+    }
+  });
 }
 function loadSettings(){
   api('/api/users/me').then(function(d){
