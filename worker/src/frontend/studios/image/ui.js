@@ -13,7 +13,7 @@ const STEP1_HTML = `
 <p style="color:var(--text2);font-size:13px;margin-bottom:14px;">Type ရွေးပြီး ပုံအကြောင်း အပြည့်အစုံ ဖော်ပြပါ — AI က သင့်အတွက် Image Prompt ပြင်ဆင်ပေးပါမယ်။</p>
 <div class="studio-form-grid">
 <div class="form-group aics-cms-type-field" style="margin-bottom:0;">
-<label>ဓာတ်ပုံ အမျိုးအစား</label>
+<label for="imgTypeSel">ဓာတ်ပုံ အမျိုးအစား</label>
 <select id="imgTypeSel" onchange="selectedImageType=this.value;">
 <option value="1" selected>💡 Idea To Image (Free)</option>
 <option value="2">👤 Character Design (Pro)</option>
@@ -23,21 +23,21 @@ const STEP1_HTML = `
 </select>
 </div>
 <div class="form-group" style="margin-bottom:0;">
-<label>ဘယ်သူအတွက်</label>
+<label for="audSel">ဘယ်သူအတွက်</label>
 <select id="audSel" onchange="window.aichAud=this.value;"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select>
 </div>
 </div>
 <div class="form-group">
-<label>ပုံဖော်ပြချင်တဲ့ အကြောင်းအရာ *</label>
-<textarea id="ideaInput" placeholder="ဥပမာ — အသက် ၂၅ နှစ် အမျိုးသား၊ အနက်ရောင် Jacket ဝတ်ထားပြီး Tokyo ညဈေးလမ်းမှာ ရပ်နေသည်..." style="min-height:120px;" oninput="autoExpand(this)"></textarea>
+<label for="ideaInput">ပုံဖော်ပြချင်တဲ့ အကြောင်းအရာ <span aria-hidden="true">*</span></label>
+<textarea id="ideaInput" aria-required="true" aria-describedby="ideaHint prepareErr" placeholder="ဥပမာ — အသက် ၂၅ နှစ် အမျိုးသား၊ အနက်ရောင် Jacket ဝတ်ထားပြီး Tokyo ညဈေးလမ်းမှာ ရပ်နေသည်..." style="min-height:120px;" oninput="autoExpand(this)"></textarea>
 </div>
 <div class="ref-upload-area">
-<label>&#128444; Reference ပုံများ ပူးတွဲရန် (ချန်ထားလို့ရသည်)</label>
-<input type="file" id="refInput" accept="image/*" multiple onchange="onRefSelected()">
-<p class="ref-hint">အများဆုံး ၅ ပုံအထိ Upload တင်နိုင်ပါတယ် (ပုံတစ်ပုံချင်းစီ Max 5MB) — Image→Image Mode အတွက် နောင်တွင် အသုံးပြုနိုင်ပါမည်</p>
-<div class="ref-preview" id="refPreview"></div>
+<label for="refInput">&#128444; Reference ပုံများ ပူးတွဲရန် (ချန်ထားလို့ရသည်)</label>
+<input type="file" id="refInput" accept="image/*" multiple aria-describedby="refHint" onchange="onRefSelected()">
+<p class="ref-hint" id="refHint">အများဆုံး ၅ ပုံအထိ Upload တင်နိုင်ပါတယ် (ပုံတစ်ပုံချင်းစီ Max 5MB) — Image→Image Mode အတွက် နောင်တွင် အသုံးပြုနိုင်ပါမည်</p>
+<div class="ref-preview" id="refPreview" aria-live="polite" aria-label="Reference ပုံများ preview"></div>
 </div>
-<div class="error-box" id="prepareErr"></div>
+<div class="error-box" id="prepareErr" role="alert" aria-live="assertive"></div>
 </div>
 </div>`;
 
@@ -50,9 +50,9 @@ const STEP3_HTML = `
 <div class="card-title">&#128221; Image Prompt Result</div>
 ${aicsResultLoadingHtml('promptLoading','AI က သင့်အတွက် Image Prompt ကို ပြင်ဆင်နေသည်...')}
 <p style="color:var(--text2);font-size:13px;margin-bottom:14px;">AI က သင့်အချက်အလက်ကို အခြေခံပြီး Image Prompt ပြင်ဆင်ပေးပြီးပါပြီ — အောက်က Prompt ကို တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
-<textarea class="result-textarea" id="promptResult" placeholder="Prompt ဒီနေရာမှာ ပေါ်ပါမယ် — တိုက်ရိုက်ပြင်နိုင်ပါတယ်" oninput="onPromptEdit(this)"></textarea>
-<p class="hint-note">&#9997; ပြင်ဆင်ထားသော Prompt ကို နောက်အဆင့်သို့ အလိုအလျောက် ပို့ပေးပါမည် — Copy / Paste မလိုပါ</p>
-<div class="error-box" id="prepareErr2"></div>
+<textarea class="result-textarea" id="promptResult" aria-describedby="promptHint" placeholder="Prompt ဒီနေရာမှာ ပေါ်ပါမယ် — တိုက်ရိုက်ပြင်နိုင်ပါတယ်" oninput="onPromptEdit(this)"></textarea>
+<p class="hint-note" id="promptHint">&#9997; ပြင်ဆင်ထားသော Prompt ကို နောက်အဆင့်သို့ အလိုအလျောက် ပို့ပေးပါမည် — Copy / Paste မလိုပါ</p>
+<div class="error-box" id="prepareErr2" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="prepareRetry">
 <button class="btn btn-primary" onclick="preparePrompt()">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(1)">&#8592; ပြန်ပြင်ရန်</button>
@@ -66,10 +66,10 @@ const STEP4_HTML = `
 <div class="card-title">&#128295; Image ဖန်တီးရန် ပြင်ဆင်ခြင်း</div>
 <p style="color:var(--text2);font-size:13px;margin-bottom:14px;">Step 02 မှာ သင်ပြင်ဆင်ထားသော နောက်ဆုံး Prompt ကို အလိုအလျောက် ထည့်ပေးထားပါသည် — လိုအပ်ရင် ထပ်ပြင်ပြီး "AI ပုံဖန်တီးရန်" နှိပ်ပါ။</p>
 <div class="form-group">
-<label>&#128221; အသုံးပြုမည့် နောက်ဆုံး Prompt</label>
+<label for="prepPromptInput">&#128221; အသုံးပြုမည့် နောက်ဆုံး Prompt</label>
 <textarea id="prepPromptInput" placeholder="Prompt ဒီနေရာမှာ အလိုအလျောက် ရောက်ပါမယ်" style="min-height:160px;" oninput="autoExpand(this)"></textarea>
 </div>
-<div class="error-box" id="genErr"></div>
+<div class="error-box" id="genErr" role="alert" aria-live="assertive"></div>
 </div>
 </div>`;
 
@@ -77,7 +77,7 @@ const STEP6_HTML = `
 <div class="aics-step" data-step="4">
 ${aicsResultLoadingHtml('imageLoading','AI က သင့်အတွက် ပုံကို ဖန်တီးနေသည်...')}
 <div id="imageMapArea"></div>
-<div class="error-box" id="genErr5"></div>
+<div class="error-box" id="genErr5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="genRetry5">
 <button class="btn btn-primary" onclick="startGenerate()">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(3)">&#8592; ပြန်ပြင်ရန်</button>
