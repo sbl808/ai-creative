@@ -201,16 +201,28 @@ function responsiveStyles() {
 // ---- Shared Sidebar Script (Browser တွင် လုပ်ဆောင်သည်) ----
 // toggleSidebar / logout / setApiKey / User Info Hydration / Admin Link
 // ကိုယ်ပိုင် Token ဖတ်သောကြောင့် Page Script နှင့် အစဉ်လိုက် မမှီခိုပါ။
+// One controller is shared by the app shell and the Admin document.
+export function themeControllerScript(options = {}) {
+  const config = JSON.stringify({
+    key: 'aics-theme-preference',
+    toggleId: options.toggleId || 'aicsThemeToggle',
+    mountSelector: options.mountSelector || '',
+    className: options.className || 'aics-theme-toggle',
+    createToggle: Boolean(options.mountSelector)
+  });
+  return '(function(){\n' +
+    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);\n' +
+    '  var key=config.key;\n' +
+    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}\n' +
+    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\n' +
+    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\n' +
+    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();\n' +
+    '})();';
+}
+
 export function sidebarScript() {
   return '<script>\n' +
-    '// ===== Persistent accessible Light/Dark theme =====\n' +
-    '(function(){\n' +
-    '  var key="aics-theme-preference";\n' +
-    '  function applyTheme(theme){document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById("aicsThemeToggle");if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";}}\n' +
-    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\n' +
-    '  function addToggle(){var bottom=document.querySelector("#sidebar .sidebar-bottom");if(!bottom||document.getElementById("aicsThemeToggle"))return;var b=document.createElement("button");b.type="button";b.id="aicsThemeToggle";b.className="aics-theme-toggle";b.setAttribute("aria-label","Toggle color theme");b.addEventListener("click",function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");});bottom.insertBefore(b,bottom.firstChild);applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\n' +
-    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",addToggle);else addToggle();\n' +
-    '})();\n' +
+    themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     '// ===== AI Creative Studio — Client-side Creations Store (Phase 13 — Option 2) =====\n' +
     '// User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင် သိမ်းသည်။ Server/D1 သို့ မပို့ပါ။\n' +
     'function __aicsDbOpen() {\n' +
