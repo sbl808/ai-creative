@@ -14,7 +14,7 @@ const STEPS = [
 const STEP1_HTML = `
 <div class="aics-step" data-step="1">
 <div class="card">
-<div class="card-title">&#9997; အကြောင်းအရာ ရေးသားရန် (Create Content)</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg> အကြောင်းအရာ ရေးသားရန် (Create Content)</div>
 <p class="form-help" style="margin-bottom:14px;">သင့် Content အကြံကို ထည့်ပြီး "&#10024; Content ရေးသားရန်" နှိပ်ပါ — AI က သင့်အတွက် Content ကို ရေးပေးပါမည်။</p>
 <div class="form-group">
 <label for="ideaInput">အကြောင်းအရာ (Content Idea) *</label>
@@ -135,8 +135,8 @@ const STEP1_HTML = `
 </div>
 </div>
 <button class="btn btn-primary" id="genBtn" onclick="generateContent()" style="margin-top:4px;">&#10024; Content ရေးသားရန်</button>
-<div class="loading" id="genLoading"><div class="spinner"></div> AI ရေးသားနေသည်</div>
-<div class="error-box" id="genError"></div>
+<div class="loading" id="genLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> AI ရေးသားနေသည်</div>
+<div class="error-box" id="genError" role="alert" aria-live="assertive"></div>
 </div>
 </div>`;
 
@@ -147,7 +147,7 @@ const STEP1_HTML = `
 const STEP3_HTML = `
 <div class="aics-step" data-step="2">
 <div class="card">
-<div class="card-title">&#128221; Content ရလဒ် (Result)</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg> Content ရလဒ် (Result)</div>
 ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်')}
 <div id="contentResultBody">
 <div id="noResultHint" class="empty-note">Result မရှိသေးပါ — "01 အကြောင်းအရာ" အဆင့်မှာ Generate နှိပ်ပါ</div>
@@ -173,7 +173,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်')
 <button class="btn-ghost" onclick="copyAllResult()">&#128203; Copy</button>
 <button class="btn btn-purple" onclick="saveContentResult()">&#128190; သိမ်းရန်</button>
 </div>
-<div class="error-box" id="genError2"></div>
+<div class="error-box" id="genError2" role="alert" aria-live="assertive"></div>
 <div class="btn-row" id="genRetryRow" style="display:none;justify-content:center;">
 <button class="btn btn-secondary" onclick="csNav(1)">&#8592; ပြန်ပြင်ရန်</button>
 <button class="btn btn-primary" onclick="generateContent()">&#128260; ပြန်လည်ကြိုးစားရန်</button>
@@ -182,7 +182,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်')
 </div>
 <div class="aics-step" data-step="2b">
 <div class="card">
-<div class="card-title">&#128172; Edit — Quick Actions</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.6L3 21l1.9-5.8A8.5 8.5 0 1 1 21 11.5Z"/></svg> Edit — Quick Actions</div>
 <p class="form-help" style="margin-bottom:12px;">လိုချင်တဲ့ ပြင်ဆင်မှုကို တစ်ချက်နှိပ်ရုံဖြင့် AI က ပြင်ပေးပါမယ် — သို့မဟုတ် အောက်မှာ ကိုယ်တိုင် ညွှန်ကြားချက် ရေးနိုင်ပါတယ်။</p>
 <div class="type-chips" id="quickActions"></div>
 <div class="revise-section" style="border-top:none;padding-top:0;">
@@ -191,24 +191,24 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်')
 <textarea id="feedbackInput" placeholder="ဘယ်လိုပြင်စေချင်လဲ? ဥပမာ — ပိုပြီး ရယ်စရာဖြစ်အောင်လုပ်ပါ..."></textarea>
 <button class="btn btn-secondary" id="reviseBtn" onclick="reviseContent()">&#128260; ပြင်ပါ</button>
 </div>
-<div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
-<div class="error-box" id="revError"></div>
+<div class="loading" id="revLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
+<div class="error-box" id="revError" role="alert" aria-live="assertive"></div>
 </div>
 </div>
 </div>
 <div class="aics-step" data-step="2c">
 <div class="aics-out-hub">
-<div class="aics-out-hub-title">&#128640; ဆက်လက်ဖန်တီးရန်</div>
+<div class="aics-out-hub-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6.05 11A22 22 0 0 1 12 15Z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> ဆက်လက်ဖန်တီးရန်</div>
 <p class="aics-out-hub-sub">သင့် Content ကို နောက်ထပ် Output အဖြစ် ဆက်လက်ဖန်တီးနိုင်ပါသည် — တစ်ခုချင်း သီးသန့် ရွေးနိုင်ပြီး ပြီးတိုင်း ဤနေရာသို့ ပြန်လာနိုင်ပါသည်။</p>
 <div class="aics-out-cards">
 <div class="aics-out-card">
-<div class="aics-out-icon">&#127916;</div>
+<div class="aics-out-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></div>
 <div class="aics-out-title">Video</div>
 <div class="aics-out-desc">Content &#8594; Video</div>
 <button class="btn btn-primary aics-out-btn" onclick="openBranch('video')">&#127916; ဆက်ဖန်တီးရန်</button>
 </div>
 <div class="aics-out-card">
-<div class="aics-out-icon">&#128266;</div>
+<div class="aics-out-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></div>
 <div class="aics-out-title">Audio</div>
 <div class="aics-out-desc">Content &#8594; Audio</div>
 <button class="btn btn-secondary aics-out-btn" onclick="openBranch('audio')">&#128266; ဆက်ဖန်တီးရန်</button>
@@ -225,7 +225,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်')
 const STEP12_HTML = `
 <div class="aics-step" data-step="12">
 <div class="card">
-<div class="card-title">&#127916; Video ပြင်ဆင်ရန် (Video Setup)</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg> Video ပြင်ဆင်ရန် (Video Setup)</div>
 <div class="aics-transfer-note">&#10003; Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="aics-transfer-box" id="videoContentPreview" style="display:none;"></div>
 <div class="form-group">
@@ -332,15 +332,15 @@ const STEP12_HTML = `
 </div>
 </div>
 <button class="btn btn-primary" id="videoGenBtn" onclick="generateVideo()">&#9654; Video Plan ဖန်တီးမယ်</button>
-<div class="loading" id="videoGenLoading"><div class="spinner"></div> ဗီဒီယိုအစီအစဉ် ရေးဆွဲနေပါသည်...</div>
-<div class="error-box" id="videoError"></div>
+<div class="loading" id="videoGenLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ဗီဒီယိုအစီအစဉ် ရေးဆွဲနေပါသည်...</div>
+<div class="error-box" id="videoError" role="alert" aria-live="assertive"></div>
 </div>
 </div>`;
 
 const STEP14_HTML = `
 <div class="aics-step" data-step="14">
 <div class="card">
-<div class="card-title">&#127916; Video ရလဒ်</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg> Video ရလဒ်</div>
 ${aicsResultLoadingHtml('videoLoading','AI က သင့်အတွက် Video ကို ပြင်ဆင်နေသည်...')}
 <div id="videoResult" style="display:none;">
 <div class="card" id="charactersCard" style="display:none;margin-top:16px;">
@@ -352,7 +352,7 @@ ${aicsResultLoadingHtml('videoLoading','AI က သင့်အတွက် Video
 <div id="scenesList"></div>
 </div>
 </div>
-<div class="error-box" id="videoError2"></div>
+<div class="error-box" id="videoError2" role="alert" aria-live="assertive"></div>
 <div class="btn-row" id="videoRetryRow" style="display:none;justify-content:center;">
 <button class="btn btn-secondary" onclick="csNav(12)">&#8592; ပြန်ပြင်ရန်</button>
 <button class="btn btn-primary" onclick="generateVideo()">&#128260; ပြန်လည်ကြိုးစားရန်</button>
