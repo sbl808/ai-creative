@@ -47,6 +47,9 @@ a{color:var(--cyan);text-decoration:none;}
 .creation-preview{margin-top:10px;color:#ccc;font-size:14px;line-height:1.5;max-height:60px;overflow:hidden;}
 .creation-media{margin-top:10px;}
 .creation-media img{max-width:100%;max-height:260px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;}
+.creation-media img:focus-visible,.btn:focus-visible,.search-input:focus-visible,.select:focus-visible{outline:3px solid var(--aics-focus,rgba(0,229,255,.72));outline-offset:3px;}
+@media(max-width:767px){.toolbar{align-items:stretch;flex-direction:column;gap:10px;}.search-input,.select{width:100%;min-width:0;min-height:44px;}.btn{min-height:44px;padding:10px 12px;}.creation-card{padding:14px;}.creation-header{flex-wrap:wrap;}}
+@media(prefers-reduced-motion:reduce){.btn{transition:none;}}
 .creation-media audio{width:100%;max-width:420px;}
 .creation-full{margin-top:10px;color:#ccc;font-size:14px;line-height:1.5;white-space:pre-wrap;display:none;background:var(--card2);padding:12px;border-radius:8px;max-height:400px;overflow-y:auto;}
 .btn-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -98,7 +101,7 @@ html[data-aics-theme="dark"] .aics-app{
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -113,8 +116,8 @@ ${renderSidebar('creations',{variant:'studio'})}
     Studio တစ်ခုခုမှာ Generate လုပ်ပြီး "ဖန်တီးမှုသိမ်းပါ" နှိပ်ကြည့်ပါ။
   </div>
   <div id="toolbar" class="toolbar" style="display:none;">
-    <input id="searchInput" class="search-input" type="text" placeholder="🔍 ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." oninput="renderList()">
-    <select id="filterSelect" class="select" onchange="renderList()">
+    <input id="searchInput" class="search-input" type="search" aria-label="ဖန်တီးမှုများကို ခေါင်းစဉ် သို့မဟုတ် အကြောင်းအရာဖြင့် ရှာရန်" placeholder="ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." oninput="renderList()">
+    <select id="filterSelect" class="select" aria-label="ဖန်တီးမှုအမျိုးအစား စစ်ထုတ်ရန်" onchange="renderList()">
       <option value="ALL">အားလုံး</option>
       <option value="FAV">⭐ အနှစ်သက်ဆုံး</option>
       <option value="STORY">📖 Story</option>
@@ -124,7 +127,7 @@ ${renderSidebar('creations',{variant:'studio'})}
       <option value="VOICE">🎙 Voice</option>
       <option value="SHOP">🛒 Shop</option>
     </select>
-    <select id="sortSelect" class="select" onchange="renderList()">
+    <select id="sortSelect" class="select" aria-label="ဖန်တီးမှုများ စီရန်" onchange="renderList()">
       <option value="newest">အသစ်ဆုံး</option>
       <option value="oldest">အဟောင်းဆုံး</option>
     </select>

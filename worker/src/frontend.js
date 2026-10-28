@@ -75,6 +75,8 @@ a{color:var(--cyan);text-decoration:none;}
 .quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
 .studio-card{position:relative;overflow:hidden;border-radius:16px;padding:20px;cursor:pointer;transition:transform 0.2s;border:1px solid;min-height:110px;}
 .studio-card:hover{transform:translateY(-4px);}
+.studio-card:focus-visible,.section-label .view-all:focus-visible{outline:3px solid var(--aics-focus,rgba(0,229,255,.75));outline-offset:3px;}
+@media(prefers-reduced-motion:reduce){.studio-card,.studio-card .desc{transition:none;}.studio-card:hover{transform:none;}}
 .studio-card .bg-icon{position:absolute;right:-14px;bottom:-22px;font-size:110px;line-height:1;opacity:0.16;pointer-events:none;}
 .studio-card .title{position:relative;z-index:2;font-weight:bold;font-size:16px;margin-bottom:3px;}
 .studio-card .desc{position:relative;z-index:2;font-size:12.5px;color:var(--text2);transition:opacity 0.5s,transform 0.5s;}
@@ -114,7 +116,7 @@ a{color:var(--cyan);text-decoration:none;}
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -170,7 +172,7 @@ ${renderSidebar('home',{variant:'studio'})}
   </div>
   <div class="section-label">
     နောက်ဆုံးဖန်တီးထားသော Project များ
-    <span class="view-all" onclick="location.href='/app/creations'">အားလုံးကြည့်ရန် →</span>
+    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" onclick="location.href='/app/creations'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='/app/creations';}">အားလုံးကြည့်ရန် →</span>
   </div>
   <div id="recentProjectsArea"><p style="color:var(--text3);">Loading...</p></div>
 </main>
