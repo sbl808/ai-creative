@@ -10,7 +10,8 @@ const STEP1_HTML = `
 <div class="aics-step" data-step="1">
 <div class="card">
 <div class="card-title">&#128221;&#65039; Short အချက်အလက် ဖြည့်ရန်</div>
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">Short Video / Short Content ရေးသားရန် လိုအပ်သော အချက်အလက်များကို အောက်တွင် ဖြည့်ပါ — Generate နှိပ်လိုက်ရင် AI က Short Script ရေးပေးပါမယ်။</p>
+<div class="workflow-intro"><div><div class="workflow-intro-title">အဆင့်လိုက် ဖန်တီးပါ</div><div class="workflow-steps"><span><strong>01</strong> အကြောင်းအရာ ဖြည့်ပါ</span><span><strong>02</strong> Script ကို ပြန်စစ်ပါ</span><span><strong>03</strong> Video Plan ဆက်လုပ်ပါ</span></div></div><p class="workflow-status" id="shortWorkflowStatus" role="status" aria-live="polite">လက်ရှိအဆင့် — Short အချက်အလက်</p></div>
+<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">အရင်ဆုံး Topic / Idea ကို ဖြည့်ပါ။ ကျန်တဲ့အချက်အလက်တွေကို လိုအပ်သလို ထည့်ပြီး Script ကို ဖန်တီးနိုင်ပါတယ်။</p>
 <div class="studio-form-grid">
 <div class="form-group aics-cms-type-field" style="margin-bottom:0;">
 <label for="shortTypeSel">Short Type</label>
@@ -33,7 +34,8 @@ const STEP1_HTML = `
 </div>
 <div class="form-group">
 <label for="field_0">Topic / Idea *</label>
-<textarea id="field_0" placeholder="ဥပမာ — မြန်မာပြည်ရဲ့ လက်ဖက်ရည်ဆိုင်ယဉ်ကျေးမှု အကြောင်း 30 စက္ကန့် Short..." style="min-height:110px;resize:vertical;"></textarea>
+<textarea id="field_0" aria-describedby="topicIdeaHint" placeholder="ဥပမာ — မြန်မာပြည်ရဲ့ လက်ဖက်ရည်ဆိုင်ယဉ်ကျေးမှု အကြောင်း 30 စက္ကန့် Short..." style="min-height:110px;resize:vertical;"></textarea>
+<p class="field-hint" id="topicIdeaHint">ဘာအကြောင်း ပြောမလဲ၊ ဘယ်အချက်ကို ပရိသတ် မှတ်မိစေချင်လဲ ဆိုတာ ရေးပါ။</p>
 </div>
 <div class="form-group">
 <label for="audInput">Target Audience</label>
@@ -67,6 +69,7 @@ const STEP3_HTML = `
 <div class="aics-step" data-step="2">
 <div class="card">
 <div class="card-title">&#128241; Short Script ရလဒ်</div>
+<div class="workflow-callout">ဖန်တီးပြီးသော Script ကို ဒီနေရာမှာ တိုက်ရိုက်ပြင်နိုင်ပါတယ်။ Video အဆင့်သို့ ဆက်သွားမီ နောက်ဆုံးစာသားကို ပြန်စစ်ပါ။</div>
 ${aicsResultLoadingHtml('shortLoading','AI က သင့်အတွက် Short Script ကို ရေးသားနေသည်...')}
 <div id="shortResultBody">
 <textarea class="result-textarea" id="shortResult" placeholder="Short Script ဒီနေရာမှာ ပေါ်လာပါမယ်..." oninput="onShortEdit()"></textarea>
@@ -100,7 +103,8 @@ const STEP4_HTML = `
 <div class="aics-step" data-step="3">
 <div class="card">
 <div class="card-title">&#127916; Short Video ဖန်တီးရန်</div>
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">Step 02 မှာ ရရှိထားသော Final Short Script ကို အလိုအလျောက် ထည့်ပေးထားပါသည် — Video အတွက် ဆက်တင်များရွေးပြီး ဖန်တီးပါ။</p>
+<div class="workflow-callout">Script ကို အရင်စစ်ပါ။ ထို့နောက် Video Style၊ အချိုးအစား၊ အချိန်နှင့် Scene ဆက်တင်များကို ရွေးချယ်ပါ။ Reference ပုံများသည် optional ဖြစ်သည်။</div>
+<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">နောက်ဆုံးပြင်ဆင်ထားသော Script ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။ လိုအပ်ပါက ဒီနေရာမှာ ထပ်မံပြင်ဆင်နိုင်ပါတယ်။</p>
 <div class="form-group">
 <label for="videoScriptInput">&#128241; အသုံးပြုမည့် Short Script</label>
 <textarea id="videoScriptInput" style="min-height:150px;" oninput="autoExpand(this)"></textarea>
