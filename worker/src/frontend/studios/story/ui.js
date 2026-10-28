@@ -12,7 +12,7 @@ const STEPS = [
 const STEP1_HTML = `
 <div class="aics-step" data-step="1">
 <div class="card">
-<div class="card-title">&#128221; ဇာတ်လမ်းရေးရန် <span class="card-title-sub">(Story Creator)</span></div>
+<div class="card-title"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg> ဇာတ်လမ်းရေးရန် <span class="card-title-sub">(Story Creator)</span></div>
 <p class="story-intro">ဇာတ်လမ်းအကြောင်းအရာ ဖြည့်ပြီး အောက်က <b>「ဇာတ်လမ်းရေးသားရန်」</b> ခလုတ်ကို နှိပ်လိုက်ရင် AI က သင့်အတွက် ဇာတ်လမ်းတစ်ပုဒ် အပြည့်အစုံ ရေးပေးပါမယ်။</p>
 
 <div class="aics-section-label"><span class="aics-section-title">အခြေခံ သတ်မှတ်ချက်များ</span><span class="aics-section-sub">Essential Settings</span></div>
@@ -51,7 +51,7 @@ const STEP1_HTML = `
 <div id="ideaFields" class="adv-grid aics-adv-panel" style="margin-top:2px;"></div>
 
 <div class="error-box" id="genError"></div>
-<button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" onclick="generateStory()" disabled>&#10024; ဇာတ်လမ်းရေးသားရန်</button>
+<button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" onclick="generateStory()" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 14l1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1z"/></svg> ဇာတ်လမ်းရေးသားရန်</button>
 </div>
 </div>`;
 
@@ -61,7 +61,7 @@ const STEP1_HTML = `
 const STEP3_HTML = `
 <div class="aics-step" data-step="2">
 <div class="card">
-<div class="card-title">&#128214; ဇာတ်လမ်းရလဒ် <span class="card-title-sub">(Story Result)</span></div>
+<div class="card-title"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14M3 4h5a4 4 0 0 1 4 4v13a4 4 0 0 0-4-4H3zM21 4h-5a4 4 0 0 0-4 4v13a4 4 0 0 1 4-4h5z"/></svg> ဇာတ်လမ်းရလဒ် <span class="card-title-sub">(Story Result)</span></div>
 ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...')}
 <div id="storyResultBody">
 <div class="result-label">ဇာတ်လမ်း (Story)</div>
@@ -69,17 +69,17 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 <p class="result-hint">&#9997; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ ဇာတ်လမ်းကို Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
 
 <div class="story-actions-primary">
-<button class="btn btn-primary story-action-primary" onclick="goToVideoForm()">&#127916; Video ဆက်ဖန်တီးရန်</button>
+<button class="btn btn-primary story-action-primary" onclick="goToVideoForm()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 5 4 5m2-5 4 5M3 12h18M8 19l4-7 4 7"/></svg> Video ဆက်ဖန်တီးရန်</button>
 </div>
 <div class="story-actions-secondary">
-<button class="btn btn-secondary" onclick="focusRevise()">&#9999;&#65039; ပြန်ပြင်ရန်</button>
-<button class="btn btn-secondary" onclick="copyStory()">&#128203; Copy</button>
-<button class="btn btn-secondary" onclick="saveStory()">&#128190; သိမ်းရန်</button>
+<button class="btn btn-secondary" onclick="focusRevise()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 4 4 4M4 20l4-.8L20 7a2.1 2.1 0 0 0-3-3L5 16z"/></svg> ပြန်ပြင်ရန်</button>
+<button class="btn btn-secondary" onclick="copyStory()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/></svg> Copy</button>
+<button class="btn btn-secondary" onclick="saveStory()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l4 4v14H3V3z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg> သိမ်းရန်</button>
 </div>
 </div>
 <div class="error-box" id="genError2"></div>
 <div class="retry-row" id="genRetry2">
-<button class="btn btn-primary" onclick="generateStory()">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-primary" onclick="generateStory()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 11.6-2L20 12M4 12l2.9 5a7 7 0 0 0 11.6-2"/></svg> ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(1)">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>
@@ -90,7 +90,7 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 <div class="revise-history" id="reviseHistory"></div>
 <div class="revise-input-row">
 <input type="text" id="feedbackInput" placeholder="ဥပမာ — နိဂုံးကို ပိုစိတ်ခံစားရအောင်ပြင်ပေးပါ" style="flex:1;" onkeypress="if(event.key==='Enter'){reviseStory();}">
-<button class="btn btn-secondary" id="reviseBtn" onclick="reviseStory()">&#128260; ပြင်ပါ</button>
+<button class="btn btn-secondary" id="reviseBtn" onclick="reviseStory()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 11.6-2L20 12M4 12l2.9 5a7 7 0 0 0 11.6-2"/></svg> ပြင်ပါ</button>
 </div>
 <div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
 <div class="error-box" id="revError"></div>
@@ -105,7 +105,7 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 const STEP4_HTML = `
 <div class="aics-step" data-step="3">
 <div class="card">
-<div class="card-title">&#127916; Video ဇာတ်လမ်းဖန်တီးရန် <span class="card-title-sub">(Video Creation)</span></div>
+<div class="card-title"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 5 4 5m2-5 4 5M3 12h18M8 19l4-7 4 7"/></svg> Video ဇာတ်လမ်းဖန်တီးရန် <span class="card-title-sub">(Video Creation)</span></div>
 <div class="story-auto-status">&#10004; Story Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <p class="story-intro">Step 02 မှ ဇာတ်လမ်းကို အောက်မှာ Preview ကြည့်နိုင်ပါသည်။ Video အတွက် ဆက်တင်များ ရွေးပြီး ဖန်တီးပါ။</p>
 <div class="form-group">
@@ -155,7 +155,7 @@ const STEP4_HTML = `
 <input type="text" id="vidEnvDetails" placeholder="ဥပမာ — ရန်ကုန် ရပ်ကွက်၊ မိုးသစ်ပြီး...">
 </div>
 <div class="form-group">
-<label for="vidTransition">&#127916; ကူးပြောင်း / အရှိန် (Transition / Pacing)</label>
+<label for="vidTransition"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 5 4 5m2-5 4 5M3 12h18M8 19l4-7 4 7"/></svg> ကူးပြောင်း / အရှိန် (Transition / Pacing)</label>
 <input type="text" id="vidTransition" placeholder="ဥပမာ — soft cross-fade, slow pacing...">
 </div>
 <div class="form-group adv-full">
@@ -169,7 +169,7 @@ const STEP4_HTML = `
 </div>
 
 <div class="error-box" id="planError"></div>
-<button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" onclick="generateVideoPlan()">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
+<button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" onclick="generateVideoPlan()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 5 4 5m2-5 4 5M3 12h18M8 19l4-7 4 7"/></svg> Video ဇာတ်လမ်း ဖန်တီးရန်</button>
 </div>
 </div>`;
 
@@ -182,7 +182,7 @@ ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်..
 <div id="finalResult"></div>
 <div class="error-box" id="planError5"></div>
 <div class="retry-row" id="planRetry5">
-<button class="btn btn-primary" onclick="generateVideoPlan()">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-primary" onclick="generateVideoPlan()"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 11.6-2L20 12M4 12l2.9 5a7 7 0 0 0 11.6-2"/></svg> ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(3)">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
