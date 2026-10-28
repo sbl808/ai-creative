@@ -179,6 +179,16 @@ function responsiveStyles() {
     '  .aics-app .aics-main,.aics-app .main-content{width:100%;max-width:none;margin:0;padding:14px;}\n' +
     '  .aics-app .quick-grid,.aics-app .recent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}\n' +
     '}\n' +
+    '/* ===== Minimal SaaS theme tokens + persistent Light/Dark mode ===== */\\n' +
+    'html[data-aics-theme="dark"]{color-scheme:dark;--aics-bg:#0b1020;--aics-surface:#111827;--aics-surface-subtle:#182235;--aics-border:#263247;--aics-border-strong:#344158;--aics-text:#edf2fa;--aics-text-muted:#a1aec2;--aics-text-soft:#a1aec2;--aics-primary:#8b8cff;--aics-primary-hover:#a5a5ff;--aics-primary-soft:#242449;--aics-primary-border:#45457c;--aics-focus:rgba(139,140,255,.38);--aics-shadow-sm:0 1px 2px rgba(0,0,0,.2);--aics-shadow-md:0 12px 32px rgba(0,0,0,.28);}\n' +
+    'html[data-aics-theme="light"]{color-scheme:light;}\n' +
+    'html[data-aics-theme="dark"] body,html[data-aics-theme="dark"] .aics-app{background:var(--aics-bg);color:var(--aics-text);}\n' +
+    'html[data-aics-theme="dark"] .aics-app .sidebar,html[data-aics-theme="dark"] .aics-app .topbar,html[data-aics-theme="dark"] .aics-app .card,html[data-aics-theme="dark"] .aics-app .studio-card,html[data-aics-theme="dark"] .aics-app .quick-card,html[data-aics-theme="dark"] .aics-app .recent-card{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
+    'html[data-aics-theme="dark"] .aics-app input,html[data-aics-theme="dark"] .aics-app textarea,html[data-aics-theme="dark"] .aics-app select,html[data-aics-theme="dark"] .aics-app .form-control{background:var(--aics-surface-subtle);color:var(--aics-text);border-color:var(--aics-border-strong);}\n' +
+    'html[data-aics-theme="light"] body,html[data-aics-theme="light"] .aics-app{background:var(--aics-bg);color:var(--aics-text);}\n' +
+    'html[data-aics-theme="light"] .aics-app .sidebar,html[data-aics-theme="light"] .aics-app .topbar,html[data-aics-theme="light"] .aics-app .card,html[data-aics-theme="light"] .aics-app .studio-card,html[data-aics-theme="light"] .aics-app .quick-card,html[data-aics-theme="light"] .aics-app .recent-card{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
+    'html[data-aics-theme="light"] .aics-app input,html[data-aics-theme="light"] .aics-app textarea,html[data-aics-theme="light"] .aics-app select,html[data-aics-theme="light"] .aics-app .form-control{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border-strong);}\n' +
+    '.aics-theme-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:9px 12px;border:1px solid var(--aics-border);border-radius:10px;background:var(--aics-surface-subtle);color:var(--aics-text);font:inherit;font-size:13px;cursor:pointer;text-align:left;} .aics-theme-toggle:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;} .aics-theme-toggle svg{width:16px;height:16px;flex:none;}\n' +
     '@media (prefers-reduced-motion:reduce){.aics-app .nav-item,.aics-app .side-btn,.aics-app .layout > .sidebar{transition:none;}}\n' +
     '</style>';
 }
@@ -187,8 +197,16 @@ function responsiveStyles() {
 // toggleSidebar / logout / setApiKey / User Info Hydration / Admin Link
 // ကိုယ်ပိုင် Token ဖတ်သောကြောင့် Page Script နှင့် အစဉ်လိုက် မမှီခိုပါ။
 export function sidebarScript() {
-  return '<script>\n' +
-    '// ===== AI Creative Studio — Client-side Creations Store (Phase 13 — Option 2) =====\n' +
+  return '<script>\\n' +
+    '// ===== Persistent accessible Light/Dark theme =====\\n' +
+    '(function(){\\n' +
+    '  var key="aics-theme-preference";\\n' +
+    '  function applyTheme(theme){document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById("aicsThemeToggle");if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";}}\\n' +
+    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\\n' +
+    '  function addToggle(){var bottom=document.querySelector("#sidebar .sidebar-bottom");if(!bottom||document.getElementById("aicsThemeToggle"))return;var b=document.createElement("button");b.type="button";b.id="aicsThemeToggle";b.className="aics-theme-toggle";b.setAttribute("aria-label","Toggle color theme");b.addEventListener("click",function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");});bottom.insertBefore(b,bottom.firstChild);applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\\n' +
+    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",addToggle);else addToggle();\\n' +
+    '})();\\n' +
+    '// ===== AI Creative Studio — Client-side Creations Store (Phase 13 — Option 2) =====\\n' +
     '// User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင် သိမ်းသည်။ Server/D1 သို့ မပို့ပါ။\n' +
     'function __aicsDbOpen() {\n' +
     '  return new Promise(function (resolve, reject) {\n' +
