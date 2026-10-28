@@ -8,7 +8,7 @@ import { STEP14_HTML } from './ui.js';import { aicsResultLoadingHtml } from '../
 const STEP22_HTML = `
 <div class="aics-step" data-step="22">
 <div class="card">
-<div class="card-title">&#128266; Audio ပြင်ဆင်ရန် (Audio Setup)</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg> Audio ပြင်ဆင်ရန် (Audio Setup)</div>
 <div class="aics-transfer-note">&#10003; Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="aics-transfer-box" id="audioContentPreview" style="display:none;"></div>
 <div class="form-group">
@@ -87,18 +87,18 @@ const STEP22_HTML = `
 </div>
 </div>
 <button class="btn btn-secondary" id="voiceBtn" onclick="generateVoice()">&#127908; Generate Voice</button>
-<div class="loading" id="voiceGenLoading"><div class="spinner"></div> အသံဖန်တီးနေပါသည်...</div>
-<div class="error-box" id="voiceError"></div>
+<div class="loading" id="voiceGenLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> အသံဖန်တီးနေပါသည်...</div>
+<div class="error-box" id="voiceError" role="alert" aria-live="assertive"></div>
 </div>
 </div>`;
 
 const STEP24_HTML = `
 <div class="aics-step" data-step="24">
 <div class="card">
-<div class="card-title">&#128266; Audio ရလဒ်</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg> Audio ရလဒ်</div>
 ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အသံကို ပြင်ဆင်နေသည်...')}
 <div class="audio-container" id="audioContainer"></div>
-<div class="error-box" id="voiceError2"></div>
+<div class="error-box" id="voiceError2" role="alert" aria-live="assertive"></div>
 <div class="btn-row" id="voiceRetryRow" style="display:none;justify-content:center;">
 <button class="btn btn-secondary" onclick="csNav(22)">&#8592; ပြန်ပြင်ရန်</button>
 <button class="btn btn-primary" onclick="generateVoice()">&#128260; ပြန်လည်ကြိုးစားရန်</button>
@@ -108,13 +108,13 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 </div>
 </div>
 <div class="card">
-<div class="card-title">&#127760; SRT &amp; ဘာသာပြန်</div>
+<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg> SRT &amp; ဘာသာပြန်</div>
 <p class="voice-hint">Generate Voice နှိပ်ပြီးပြီးရင် SRT ကို အလိုအလျောက် ထုတ်နိုင်ပါတယ်။ Box ထဲမှာ တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
 <div class="btn-row" style="margin-top:12px;">
 <button class="btn btn-secondary" id="srtBtn" onclick="generateSrt()">&#128221; Generate SRT (မူရင်း)</button>
 </div>
-<div class="loading" id="srtLoading"><div class="spinner"></div> SRT ထုတ်နေပါသည်...</div>
-<div class="error-box" id="srtError"></div>
+<div class="loading" id="srtLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> SRT ထုတ်နေပါသည်...</div>
+<div class="error-box" id="srtError" role="alert" aria-live="assertive"></div>
 <textarea class="srt-box" id="resultSrt" placeholder="Generate Voice ပြီးရင် (သို့) ဒီခလုတ်ကို နှိပ်ရင် SRT ဒီနေရာမှာ ပေါ်ပါမယ်"></textarea>
 <div class="btn-row">
 <button class="btn-ghost" onclick="copyText('resultSrt')">&#128203; Copy SRT</button>
@@ -124,11 +124,11 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 <p class="voice-hint">ဘာသာပြန်လိုသော ဘက်ကို ရွေးပြီး "ဘာသာပြန်ရန်" နှိပ်ပါ —</p>
 <div class="direction-row">
 <button class="btn btn-secondary" id="translateBtn" onclick="translateSrt()">&#127760; ဘာသာပြန်ရန်</button>
-<div class="direction-chip selected" data-dir="my-to-cn" onclick="selectDirection(this)">&#127480;&#127415; &#8594; &#127464;&#127475; မြန်မာ &#8594; တရုတ်</div>
-<div class="direction-chip" data-dir="cn-to-my" onclick="selectDirection(this)">&#127464;&#127475; &#8594; &#127480;&#127415; တရုတ် &#8594; မြန်မာ</div>
+<button type="button" class="direction-chip selected" data-dir="my-to-cn" aria-pressed="true" onclick="selectDirection(this)">မြန်မာ → တရုတ်</button>
+<button type="button" class="direction-chip" data-dir="cn-to-my" aria-pressed="false" onclick="selectDirection(this)">တရုတ် → မြန်မာ</button>
 </div>
-<div class="loading" id="translateLoading"><div class="spinner"></div> ဘာသာပြန်နေပါသည်...</div>
-<div class="error-box" id="translateError"></div>
+<div class="loading" id="translateLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ဘာသာပြန်နေပါသည်...</div>
+<div class="error-box" id="translateError" role="alert" aria-live="assertive"></div>
 <div class="result-label" id="translatedLabel" style="display:none;">&#9989; ဘာသာပြန်ထားသော SRT</div>
 <textarea class="srt-box" id="resultSrtTranslated" placeholder="('ဘာသာပြန်ရန်' ခလုတ်ကို နှိပ်ပါက ဒီနေရာတွင် ပေါ်ပါမည်)"></textarea>
 <div class="btn-row">
