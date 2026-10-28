@@ -59,7 +59,9 @@ function stUpdateStepper(){
     var n=parseInt(btns[i].getAttribute('data-step'),10);
     var m=stMeta(n);
     btns[i].classList.remove('active','done','todo');
-    if(n===stCur)btns[i].classList.add('active');
+    btns[i].removeAttribute('aria-current');
+    btns[i].setAttribute('aria-disabled',String(!stAllowed(n)||(m&&m.lock&&!stDone[n])));
+    if(n===stCur){btns[i].classList.add('active');btns[i].setAttribute('aria-current','step');}
     else if(stDone[n])btns[i].classList.add('done');
     else if(!stAllowed(n)||(m&&m.lock))btns[i].classList.add('todo');
   }
@@ -72,7 +74,7 @@ function stRenderStepper(){
   for(var i=0;i<steps.length;i++){
     var s=steps[i];
     var label=((i+1<10)?'0':'')+(i+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-    html+='<button class="aics-step-btn" data-step="'+s.n+'" onclick="stNav('+s.n+')">'+
+    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" aria-label="'+label+'" onclick="stNav('+s.n+')">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
       '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
     if(i<steps.length-1)html+='<span class="aics-step-link"></span>';

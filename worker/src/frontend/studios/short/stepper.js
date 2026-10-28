@@ -62,6 +62,9 @@ function stShow(n){
   }
   var w=document.getElementById('aicsWork');if(w)w.scrollTop=0;
   stUpdateStepper();
+  var status=document.getElementById('shortWorkflowStatus');
+  var meta=stMeta(n);
+  if(status&&meta)status.textContent='လက်ရှိအဆင့် — '+String(meta.label).replace(/^\\d+\\s*/,'');
   if(window.studioOnStep){try{window.studioOnStep(n);}catch(e){}}
 }
 function stUpdateStepper(){
@@ -69,6 +72,9 @@ function stUpdateStepper(){
   for(var i=0;i<btns.length;i++){
     var n=parseInt(btns[i].getAttribute('data-step'),10);
     var m=stMeta(n);
+    if(n===stCur)btns[i].setAttribute('aria-current','step');
+    else btns[i].removeAttribute('aria-current');
+    btns[i].setAttribute('aria-disabled',stAllowed(n)&&!(m&&m.lock)?'false':'true');
     btns[i].classList.remove('active','done','todo');
     if(n===stCur)btns[i].classList.add('active');
     else if(stDone[n])btns[i].classList.add('done');
@@ -79,11 +85,11 @@ function stUpdateStepper(){
 function stRenderStepper(){
   var c=document.getElementById('aicsStepper');if(!c)return;
   var steps=stVisibleSteps();
-  var html='<div class="aics-stepper-inner">';
+  var html='<div class="aics-stepper-inner" role="group" aria-label="Short Studio steps">';
   for(var i=0;i<steps.length;i++){
     var s=steps[i];
     var label=((i+1<10)?'0':'')+(i+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-    html+='<button class="aics-step-btn" data-step="'+s.n+'" onclick="stNav('+s.n+')">'+
+    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" onclick="stNav('+s.n+')">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
       '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
     if(i<steps.length-1)html+='<span class="aics-step-link"></span>';

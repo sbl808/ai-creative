@@ -43,14 +43,14 @@ const STEP1_HTML = `
 
 <div class="form-group story-content-group">
 <label for="field_0">ဇာတ်လမ်းအကြောင်းအရာ (Story Content) <span class="req-star" aria-hidden="true">*</span></label>
-<textarea id="field_0" class="story-content-input" aria-required="true" placeholder="ဥပမာ — ရန်ကုန်မှာ အောင်မြင်မှုရဖို့ ကြိုးစားနေတဲ့ လူငယ်တစ်ယောက်ရဲ့ ခရီး..." oninput="onStoryContentInput()"></textarea>
-<div class="form-error" id="field0Error">ဇာတ်လမ်းအကြောင်းအရာကို အနည်းဆုံး ဖြည့်ရေးပါ</div>
+<textarea id="field_0" class="story-content-input" aria-required="true" aria-describedby="field0Error" placeholder="ဥပမာ — ရန်ကုန်မှာ အောင်မြင်မှုရဖို့ ကြိုးစားနေတဲ့ လူငယ်တစ်ယောက်ရဲ့ ခရီး..." oninput="onStoryContentInput()"></textarea>
+<div class="form-error" id="field0Error" role="status" aria-live="polite">ဇာတ်လမ်းအကြောင်းအရာကို အနည်းဆုံး ဖြည့်ရေးပါ</div>
 </div>
 
 <button type="button" class="aics-advanced-toggle" id="advToggle" onclick="studioToggleAdvanced('advToggle','ideaFields')" aria-expanded="false"><span>&#8964; အပိုဆောင်းသတ်မှတ်ချက် (Advanced Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div id="ideaFields" class="adv-grid aics-adv-panel" style="margin-top:2px;"></div>
 
-<div class="error-box" id="genError"></div>
+<div class="error-box" id="genError" role="alert" aria-live="assertive"></div>
 <button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" onclick="generateStory()" disabled>&#10024; ဇာတ်လမ်းရေးသားရန်</button>
 </div>
 </div>`;
@@ -64,9 +64,9 @@ const STEP3_HTML = `
 <div class="card-title">&#128214; ဇာတ်လမ်းရလဒ် <span class="card-title-sub">(Story Result)</span></div>
 ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...')}
 <div id="storyResultBody">
-<div class="result-label">ဇာတ်လမ်း (Story)</div>
-<textarea class="result-textarea" id="storyResult" placeholder="ဇာတ်လမ်း ဒီနေရာမှာ ပေါ်လာပါမယ်..." oninput="onStoryEdit()"></textarea>
-<p class="result-hint">&#9997; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ ဇာတ်လမ်းကို Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
+<label class="result-label" for="storyResult">ဇာတ်လမ်း (Story)</label>
+<textarea class="result-textarea" id="storyResult" aria-describedby="storyResultHint" placeholder="ဇာတ်လမ်း ဒီနေရာမှာ ပေါ်လာပါမယ်..." oninput="onStoryEdit()"></textarea>
+<p class="result-hint" id="storyResultHint">&#9997; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ ဇာတ်လမ်းကို Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
 
 <div class="story-actions-primary">
 <button class="btn btn-primary story-action-primary" onclick="goToVideoForm()">&#127916; Video ဆက်ဖန်တီးရန်</button>
@@ -77,7 +77,7 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 <button class="btn btn-secondary" onclick="saveStory()">&#128190; သိမ်းရန်</button>
 </div>
 </div>
-<div class="error-box" id="genError2"></div>
+<div class="error-box" id="genError2" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="genRetry2">
 <button class="btn btn-primary" onclick="generateStory()">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(1)">&#8592; ပြန်ပြင်ရန်</button>
@@ -93,7 +93,7 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 <button class="btn btn-secondary" id="reviseBtn" onclick="reviseStory()">&#128260; ပြင်ပါ</button>
 </div>
 <div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
-<div class="error-box" id="revError"></div>
+<div class="error-box" id="revError" role="alert" aria-live="assertive"></div>
 </div>
 </div>
 </div>`;
@@ -168,7 +168,7 @@ const STEP4_HTML = `
 </div>
 </div>
 
-<div class="error-box" id="planError"></div>
+<div class="error-box" id="planError" role="alert" aria-live="assertive"></div>
 <button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" onclick="generateVideoPlan()">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
 </div>
 </div>`;
@@ -180,7 +180,7 @@ const STEP6_HTML = `
 <div class="aics-step" data-step="4">
 ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="finalResult"></div>
-<div class="error-box" id="planError5"></div>
+<div class="error-box" id="planError5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="planRetry5">
 <button class="btn btn-primary" onclick="generateVideoPlan()">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="stGoForce(3)">&#8592; ပြန်ပြင်ရန်</button>

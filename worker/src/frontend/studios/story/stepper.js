@@ -66,6 +66,9 @@ function stUpdateStepper(){
     if(n===stCur)btns[i].classList.add('active');
     else if(stDone[n])btns[i].classList.add('done');
     else if(!stAllowed(n)||(m&&m.lock))btns[i].classList.add('todo');
+    btns[i].setAttribute('aria-current',n===stCur?'step':'false');
+    btns[i].setAttribute('aria-disabled',(!stAllowed(n)||(m&&m.lock))?'true':'false');
+    btns[i].setAttribute('tabindex',n===stCur?'0':'-1');
   }
   if(window.studioScrollActiveStep)window.studioScrollActiveStep(true);
 }
@@ -76,7 +79,7 @@ function stRenderStepper(){
   for(var i=0;i<steps.length;i++){
     var s=steps[i];
     var label=((i+1<10)?'0':'')+(i+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-    html+='<button class="aics-step-btn" data-step="'+s.n+'" onclick="stNav('+s.n+')">'+
+    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" onclick="stNav('+s.n+')" onkeydown="stStepperKeydown(event,'+s.n+')">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
       '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
     if(i<steps.length-1)html+='<span class="aics-step-link"></span>';
@@ -84,6 +87,18 @@ function stRenderStepper(){
   html+='</div>';
   c.innerHTML=html;
   stUpdateStepper();
+}
+function stStepperKeydown(event,n){
+  var key=event.key;
+  if(key!=='ArrowLeft'&&key!=='ArrowRight'&&key!=='Home'&&key!=='End')return;
+  var btns=Array.prototype.slice.call(document.querySelectorAll('.aics-step-btn'));
+  if(!btns.length)return;
+  event.preventDefault();
+  var idx=btns.findIndex(function(btn){return parseInt(btn.getAttribute('data-step'),10)===n;});
+  if(idx<0)return;
+  var next=key==='Home'?0:key==='End'?btns.length-1:key==='ArrowRight'?Math.min(idx+1,btns.length-1):Math.max(idx-1,0);
+  var target=btns[next];
+  if(target){target.focus();var targetStep=parseInt(target.getAttribute('data-step'),10);if(stAllowed(targetStep))stNav(targetStep);}
 }
 function stSetMode(mode){ST_MODE=mode;stRenderStepper();}
 // Shell globals များကို mode-aware versions နဲ့ override

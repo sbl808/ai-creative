@@ -27,12 +27,15 @@ function vSetBody(html){
   if(slot&&g)slot.appendChild(g);
   vFill();
 }
-function vSetStep(n){VOICE_STATE.voiceStep=n;renderStepper(VOICE_STEPS,n);}
+function vSetStep(n){VOICE_STATE.voiceStep=n;renderStepper(VOICE_STEPS,n);var status=vEl('voiceStatus'),step=VOICE_STEPS.filter(function(x){return x.n===n;})[0];if(status&&step)status.textContent='အဆင့် '+n+' / '+VOICE_STEPS.length+' — '+step.label;}
+function renderStepper(items,current){var c=vEl('voiceStepper'),h='';if(!c)return;h+='<ol class="voice-step-list" role="list">';items.forEach(function(x){var cls=x.n===current?'active':(x.n<current?'done':'');h+='<li class="vstep '+cls+'" role="listitem" data-step="'+x.n+'"'+(x.n===current?' aria-current="step"':'')+'>'+(x.n<current?'✓ ':'')+esc(x.label)+'</li>';});h+='</ol>';c.innerHTML=h;var active=c.querySelector('.vstep.active');if(active&&window.studioScrollElementIntoView)window.studioScrollElementIntoView(active,'#voiceStepper',true);}
+function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');var id=el.getAttribute('aria-describedby');if(id){var note=vEl(id);if(note&&note.classList.contains('field-error'))note.remove();el.removeAttribute('aria-describedby');}}
+function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
 function renderChips(){
   var h='';
   VOICE_MODES.forEach(function(m){
     var on=VOICE_STATE.voiceMode===m.id;
-    h+='<button type="button" class="vchip'+(on?' active':'')+'" role="tab" aria-selected="'+(on?'true':'false')+'" onclick="voiceSwitchMode(\''+m.id+'\')">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
+    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" onclick="voiceSwitchMode(\''+m.id+'\')">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
   });
   vEl('voiceChips').innerHTML=h;
 }
@@ -124,15 +127,15 @@ function vRenderInput(){
   if(m==='text-to-voice'){
     b='<div class="vcard"><div class="vtitle">📝 စာသား</div><p class="hint">Voice အဖြစ် ဖန်တီးလိုသော စာသားကို ထည့်ပါ။</p>'
       +(VOICE_STATE.source?'<div class="source-note">Content Studio မှ နောက်ဆုံးပြင်ထားသော Content ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။</div>':'')
-      +'<div class="form-group"><label>စာသားအကြောင်းအရာ *</label><textarea id="ttsText" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" oninput="autoGrow(this)"></textarea></div>'
+      +'<div class="form-group"><label for="ttsText">စာသားအကြောင်းအရာ *</label><textarea id="ttsText" required aria-required="true" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" oninput="autoGrow(this);vClearValidation(this)"></textarea></div>'
       +'<div class="btn-row" style="margin-top:0"><button type="button" class="btn ghost" onclick="vPasteInto(\'ttsText\')">📋 Paste</button><button type="button" class="btn ghost" onclick="vExample()">✨ ဥပမာ</button></div></div>';
   }else if(m==='media-to-text'){
     var note=MEDIA_AUDIO.base64?'<div class="source-note">ယခင်ဖိုင် — '+esc(MEDIA_AUDIO.fileName||'audio')+' ကို မှတ်ထားပါသည်။ ဖိုင်အသစ် မရွေးလျှင် ဒီဖိုင်ကို ဆက်သုံးမည်။</div>':'';
     b='<div class="vcard"><div class="vtitle">🎧 အသံ / Video</div><p class="hint">Audio သို့မဟုတ် Video ဖိုင်ကို တင်ပါ။ 5MB အထိ အသုံးပြုနိုင်ပါသည်။</p>'+note
-      +'<div class="form-group"><label>Audio / Video File *</label><input type="file" id="mediaFile" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv"></div></div>';
+      +'<div class="form-group"><label for="mediaFile">Audio / Video File *</label><input type="file" id="mediaFile" required aria-required="true" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv" onchange="vClearValidation(this)"></div></div>';
   }else{
     b='<div class="vcard"><div class="vtitle">🌐 SRT စာသား</div><p class="hint">ဘာသာပြန်လိုသော SRT ကို paste လုပ်ပါ သို့မဟုတ် .srt ဖိုင်တင်ပါ။</p>'
-      +'<div class="form-group"><label>SRT *</label><textarea id="srtSourceText" class="srt-box" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" oninput="autoGrow(this)"></textarea></div>'
+      +'<div class="form-group"><label for="srtSourceText">SRT *</label><textarea id="srtSourceText" class="srt-box" required aria-required="true" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" oninput="autoGrow(this);vClearValidation(this)"></textarea></div>'
       +'<div class="btn-row" style="margin-top:0"><button type="button" class="btn ghost" onclick="vPasteInto(\'srtSourceText\')">📋 Paste</button></div>'
       +'<div class="form-group" style="margin-top:14px"><label>သို့မဟုတ် .srt ဖိုင်</label><input type="file" id="srtFile" accept=".srt,.txt,text/plain" onchange="vSrtFilePicked()"></div></div>';
   }
@@ -142,12 +145,12 @@ function vRenderInput(){
 function vInputNext(){
   vCapture();var m=VOICE_STATE.voiceMode;
   if(m==='text-to-voice'){
-    if(!VOICE_INPUTS.tts.trim()){toast('Voice ပြောင်းလိုသော စာသားကို ထည့်ပါ','error');return;}
+    if(!VOICE_INPUTS.tts.trim()){vShowValidation('ttsText','Voice ပြောင်းလိုသော စာသားကို ထည့်ပါ။');return;}
     vRenderFormat();
   }else if(m==='media-to-text'){
     vReadMedia(function(){vRenderFormat();});
   }else{
-    if(!VOICE_INPUTS.srt.trim()){toast('ဘာသာပြန်လိုသော SRT စာသားကို ထည့်ပါ','error');return;}
+    if(!VOICE_INPUTS.srt.trim()){vShowValidation('srtSourceText','ဘာသာပြန်လိုသော SRT စာသားကို ထည့်ပါ။');return;}
     vRenderFormat();
   }
 }
@@ -160,10 +163,10 @@ function vRenderFormat(){
   if(m==='text-to-voice'){
     b='<div class="vcard"><div class="vtitle">🎚️ အသံပုံစံ</div><p class="hint">အသံနှင့် စကားပြောပုံစံကို ရွေးပါ။ AI Model ကို အောက်ဆုံးဘားမှာ ရွေးနိုင်ပါသည်။</p>'
       +'<div class="source-note">“'+esc(shortHint(VOICE_INPUTS.tts))+'”</div>'
-      +'<div class="form-group"><label>Voice Style</label><select id="voiceName">'+voiceOptions()+'</select></div>'
-      +'<div class="form-group"><label>Speaking Style</label><textarea id="speakingStyle" placeholder="ဥပမာ - နူးညံ့စွာ၊ တက်ကြွစွာ၊ သဘာဝကျစွာ ပြောပါ" oninput="autoGrow(this)"></textarea></div>'
-      +'<div class="form-group"><label>ညွှန်ကြားချက် (Optional)</label><textarea id="voiceInstruction" placeholder="AI အသံအတွက် ထပ်မံညွှန်ကြားလိုသည်များ" oninput="autoGrow(this)"></textarea></div>'
-      +'<div class="form-group"><label>ပရိသတ်</label><select id="audience"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select></div></div>';
+      +'<div class="form-group"><label for="voiceName">Voice Style</label><select id="voiceName">'+voiceOptions()+'</select></div>'
+      +'<div class="form-group"><label for="speakingStyle">Speaking Style</label><textarea id="speakingStyle" placeholder="ဥပမာ - နူးညံ့စွာ၊ တက်ကြွစွာ၊ သဘာဝကျစွာ ပြောပါ" oninput="autoGrow(this)"></textarea></div>'
+      +'<div class="form-group"><label for="voiceInstruction">ညွှန်ကြားချက် (Optional)</label><textarea id="voiceInstruction" placeholder="AI အသံအတွက် ထပ်မံညွှန်ကြားလိုသည်များ" oninput="autoGrow(this)"></textarea></div>'
+      +'<div class="form-group"><label for="audience">ပရိသတ်</label><select id="audience"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select></div></div>';
   }else if(m==='media-to-text'){
     var srtSel=VOICE_STATE.mediaOutput==='srt';
     b='<div class="vcard"><div class="vtitle">📤 Output</div><p class="hint">ဖိုင် — '+esc(MEDIA_AUDIO.fileName||'audio')+'</p>'
@@ -226,7 +229,7 @@ function vRunTts(){
   }).catch(function(e){if(rid===VOICE_REQUEST_ID){hideLoading();vFail('tts',e);}});
 }
 function vRunTranscribe(){
-  if(!MEDIA_AUDIO.base64){toast('Audio သို့မဟုတ် Video ဖိုင် ရွေးပါ','error');vRenderInput();return;}
+  if(!MEDIA_AUDIO.base64){vRenderInput();vShowValidation('mediaFile','Audio သို့မဟုတ် Video ဖိုင်ကို ရွေးပါ။');return;}
   VOICE_STATE.errorState=null;
   var rid=++VOICE_REQUEST_ID;
   vRenderLoading('AI က သင့်အတွက် စာသားကို ဖန်တီးနေသည်...',MEDIA_AUDIO.fileName||'');
