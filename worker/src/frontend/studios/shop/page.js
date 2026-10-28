@@ -185,6 +185,62 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .shop-view-title{font-size:13.5px}
 .aics-work .card{padding:14px}
 }
+
+/* ===== Shared Light/Dark theme bridge ===== */
+html[data-aics-theme="light"]{
+  --bg:#f6f8fc;
+  --bg-card:#ffffff;
+  --bg-card2:#eef2f8;
+  --bg-input:#ffffff;
+  --border:#d8e0ec;
+  --border-strong:#aebdd1;
+  --cyan:#087f9b;
+  --purple:#6747d9;
+  --text:#172235;
+  --text2:#526176;
+  --text3:#68778c;
+  --success:#087b4b;
+  --error:#c62828;
+  --warn:#8a5b00;
+  --orange:#9a4d00;
+}
+html[data-aics-theme="dark"]{
+  --bg:#080c18;
+  --bg-card:#0d1424;
+  --bg-card2:#111a2e;
+  --bg-input:#0a1020;
+  --border:rgba(0,229,255,.18);
+  --border-strong:rgba(0,229,255,.38);
+  --cyan:#00d5ed;
+  --purple:#9b86ff;
+  --text:#e8ecf4;
+  --text2:#a4aec0;
+  --text3:#78849a;
+}
+html[data-aics-theme="light"] body{background:var(--bg);color:var(--text)}
+html[data-aics-theme="light"] .aics-work .card,
+html[data-aics-theme="light"] .aics-work .sm-card,
+html[data-aics-theme="light"] .aics-work .trans-pair{box-shadow:0 1px 2px rgba(24,39,75,.04)}
+html[data-aics-theme="light"] .aics-work .branch-action-card{background:linear-gradient(135deg,#fff,#f2f6fc);border-color:var(--border-strong)}
+html[data-aics-theme="light"] .aics-work .loading{background:rgba(255,255,255,.97);border-color:var(--border-strong);box-shadow:0 8px 32px rgba(25,45,75,.14)}
+html[data-aics-theme="light"] .aics-work .chat-ai{color:var(--success)}
+html[data-aics-theme="light"] .aics-work .shop-result,
+html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input);color:var(--text)}
+.aics-work :is(button,input,textarea,select,a,[tabindex]):focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.aics-work button:disabled{cursor:not-allowed}
+.aics-work .btn{line-height:1.4;white-space:normal}
+.aics-work .aics-advanced-toggle{min-height:44px}
+@media(max-width:767px){
+  .aics-work .studio-form-grid{grid-template-columns:minmax(0,1fr)}
+  .aics-work .studio-form-grid .form-group.span-2{grid-column:1}
+  .aics-work .btn-row>.btn{flex:1 1 100%;width:100%}
+  .aics-work .shop-result,.aics-work .srt-editable{font-size:16px}
+  .aics-work .type-chip,.aics-work .dir-radio{min-height:40px}
+  .aics-work .ref-thumb,.aics-work .ref-thumb img{width:64px;height:64px}
+}
+@media(prefers-reduced-motion:reduce){
+  .aics-work *, .aics-work *::before, .aics-work *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
