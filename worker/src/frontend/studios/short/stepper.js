@@ -62,6 +62,9 @@ function stShow(n){
   }
   var w=document.getElementById('aicsWork');if(w)w.scrollTop=0;
   stUpdateStepper();
+  var status=document.getElementById('shortWorkflowStatus');
+  var meta=stMeta(n);
+  if(status&&meta)status.textContent='လက်ရှိအဆင့် — '+String(meta.label).replace(/^\\d+\\s*/,'');
   if(window.studioOnStep){try{window.studioOnStep(n);}catch(e){}}
 }
 function stUpdateStepper(){
