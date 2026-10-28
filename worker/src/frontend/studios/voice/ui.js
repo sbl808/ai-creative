@@ -5,11 +5,11 @@
 const HOME_HTML = `
 <div class="voice-screen active" id="voiceWorkflow">
   <div class="voice-chips" id="voiceChips" role="tablist" aria-label="Voice Studio mode"></div>
-  <div id="voiceStepper" class="voice-stepper"></div>
-  <div id="voiceWorkflowBody"></div>
+  <div id="voiceStepper" class="voice-stepper" role="group" aria-label="Workflow progress"></div>
+  <div id="voiceWorkflowBody" role="tabpanel" tabindex="0" aria-live="polite" aria-atomic="true"></div>
 </div>
 <div id="voiceModel2Store" style="display:none">
-  <div class="form-group" id="voiceModel2Group"><label>🤖 AI Model (အသံ → စာ / SRT / ဘာသာပြန်)</label><select id="aiModelSel2" data-category="transcribe"></select></div>
+  <div class="form-group" id="voiceModel2Group"><label for="aiModelSel2">AI Model (အသံ → စာ / SRT / ဘာသာပြန်)</label><select id="aiModelSel2" data-category="transcribe"></select></div>
 </div>`;
 
 export { HOME_HTML };
