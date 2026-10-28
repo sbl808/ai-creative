@@ -116,6 +116,20 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .scene-image-area{margin-top:10px;text-align:center}
 .aics-work .scene-image-area img{max-width:100%;border-radius:8px;border:1px solid var(--border)}
 @media(max-width:767px){.aics-work .form-row{flex-direction:column}.aics-work .revise-input-row{flex-direction:column;align-items:stretch}.aics-work .action-row{flex-direction:column}.aics-work .action-row .btn{width:100%}.aics-work .vf-grid{grid-template-columns:1fr;}.aics-work .adv-grid{grid-template-columns:1fr;}.aics-work .btn-row .btn{flex:1 1 100%;}}
+
+/* Full workflow orientation and responsive guidance */
+.aics-work .workflow-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;padding:14px 16px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(0,229,255,.07),rgba(123,92,255,.07));border:1px solid var(--border);border-radius:12px}
+.aics-work .workflow-intro-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.aics-work .workflow-steps{display:flex;flex-wrap:wrap;gap:6px 10px;color:var(--text2);font-size:12px}
+.aics-work .workflow-steps span{display:inline-flex;align-items:center;gap:5px}
+.aics-work .workflow-steps strong{color:var(--cyan);font-weight:700}
+.aics-work .workflow-status{align-self:center;max-width:220px;padding:7px 10px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border);color:var(--cyan);font-size:12px;line-height:1.5}
+.aics-work .workflow-callout{padding:11px 14px;margin:10px 0 14px;border-left:3px solid var(--purple);background:rgba(123,92,255,.08);border-radius:0 8px 8px 0;color:var(--text2);font-size:12.5px;line-height:1.6}
+.aics-work .field-hint{color:var(--text3);font-size:12px;margin-top:5px;line-height:1.55}
+.aics-work .error-box[role="alert"]{scroll-margin-top:16px}
+.aics-work .aics-step-btn[aria-disabled="true"]{cursor:not-allowed}
+.aics-work .aics-step-btn[aria-current="step"]{outline:2px solid var(--cyan);outline-offset:2px}
+@media(max-width:767px){.aics-work .workflow-intro{grid-template-columns:1fr;gap:10px}.aics-work .workflow-status{max-width:none}.aics-work .workflow-steps{display:grid;grid-template-columns:1fr;gap:5px}}
 </style>
 </head>
 <body>
