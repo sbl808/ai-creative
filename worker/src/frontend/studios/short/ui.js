@@ -114,11 +114,11 @@ const STEP4_HTML = `
 <div class="form-group"><label for="vidCamSel">Camera Style</label><select id="vidCamSel"></select></div>
 <div class="form-group"><label for="vidLangSel">Language</label><select id="vidLangSel"></select></div>
 </div>
-<label style="display:flex;align-items:center;gap:8px;margin:2px 0 16px;cursor:pointer;color:var(--text2);" for="vidExtra">
+<label style="display:flex;align-items:center;gap:8px;margin:2px 0 16px;cursor:pointer;color:var(--text2);">
 <input type="checkbox" id="vidContinuity" checked style="width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan);"> &#10004; Maintain Same Character (Character Continuity)
 </label>
 <div class="form-group">
-<label>Additional Instructions</label>
+<label for="vidExtra">Additional Instructions</label>
 <textarea id="vidExtra" placeholder="ဥပမာ — နောက်ဆုံး Scene မှာ Logo ပြပါ / Background Music အရှိန်မြှင့်ပါ..." style="min-height:80px;"></textarea>
 </div>
 <div class="ref-upload-area">
