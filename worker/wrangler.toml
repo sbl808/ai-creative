@@ -1,4 +1,4 @@
-name = "ai-creative"
+name = "aics"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
 
@@ -7,7 +7,7 @@ compatibility_date = "2026-01-01"
 vars = { ENVIRONMENT = "dev", ALLOWED_ORIGINS = "https://aics-frontend-dev.pages.dev" }
 [[env.dev.d1_databases]]
 binding = "DB"
-database_name = "ai-creative-db-dev"
+database_name = "aics-db-dev"
 database_id = "cloudflare အကောင့် မရှိသေးပါ"
 
 # --- staging ---
@@ -15,7 +15,7 @@ database_id = "cloudflare အကောင့် မရှိသေးပါ"
 vars = { ENVIRONMENT = "staging", ALLOWED_ORIGINS = "https://aics-frontend-staging.pages.dev" }
 [[env.staging.d1_databases]]
 binding = "DB"
-database_name = "ai-creative-db-staging"
+database_name = "aics-db-staging"
 database_id = "cloudflare အကောင့် မရှိသေးပါ"
 
 # --- prod ---
@@ -23,5 +23,5 @@ database_id = "cloudflare အကောင့် မရှိသေးပါ"
 vars = { ENVIRONMENT = "prod", ALLOWED_ORIGINS = "https://aics-frontend-prod.pages.dev" }
 [[env.prod.d1_databases]]
 binding = "DB"
-database_name = "ai-creative-db-prod"
+database_name = "aics-db-prod"
 database_id = "cloudflare အကောင့် မရှိသေးပါ"
