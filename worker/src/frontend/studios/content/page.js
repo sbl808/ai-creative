@@ -121,6 +121,42 @@ select option{background:var(--bg-card);color:var(--text)}
 /* Conditional fields (Section 8 — Content Type ပေါ်မူတည်၍ ပြသည်) */
 .aics-work .conditional-fields{background:rgba(123,92,255,.05);border:1px solid rgba(123,92,255,.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
 @media(max-width:767px){.aics-work .revise-input-row{flex-direction:column;align-items:stretch}.aics-work .aics-out-cards{grid-template-columns:1fr}.aics-work .aics-out-card{padding:16px}}
+
+/* AICS UIUX: shared light/dark theme bridge — presentation only */
+html[data-aics-theme="light"] .aics-work{
+  --bg:#f5f7fb;--bg-card:#ffffff;--bg-card2:#f0f4fa;--bg-input:#ffffff;
+  --border:rgba(71,85,105,.20);--border-strong:rgba(71,85,105,.34);
+  --cyan:#087f9c;--purple:#6950c8;--text:#172033;--text2:#526078;--text3:#718096;
+  --success:#087f5b;--error:#c53030;--warn:#975a16;--orange:#b45309;
+}
+html[data-aics-theme="dark"] .aics-work{
+  --bg:#080c18;--bg-card:#0d1424;--bg-card2:#111a2e;--bg-input:#0a1020;
+  --border:rgba(0,229,255,.15);--border-strong:rgba(0,229,255,.35);
+  --cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--text2:#8b95a8;--text3:#5a6478;
+  --success:#00e676;--error:#ff5252;--warn:#ffc107;--orange:#ff9f2b;
+}
+html[data-aics-theme="light"] .aics-work .card-title{color:var(--cyan)}
+html[data-aics-theme="light"] .aics-work .btn-primary{color:#fff}
+.aics-work :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{
+  outline:2px solid var(--cyan);outline-offset:3px;
+}
+.aics-work :where(button,input,select,textarea){font:inherit}
+.aics-work button:disabled{cursor:not-allowed;opacity:.62}
+.aics-work :where(button,.btn,.choice-card,.step-item){touch-action:manipulation}
+.aics-work input,.aics-work select,.aics-work textarea{max-width:100%}
+@media(max-width:767px){
+  .aics-work .card{min-width:0}
+  .aics-work .btn{min-height:42px}
+  .aics-work input,.aics-work select{min-height:42px}
+  .aics-work textarea{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .aics-work *, .aics-work *::before, .aics-work *::after{
+    scroll-behavior:auto!important;animation-duration:.01ms!important;
+    animation-iteration-count:1!important;transition-duration:.01ms!important;
+  }
+}
+
 </style>
 </head>
 <body>

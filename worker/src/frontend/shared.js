@@ -179,6 +179,21 @@ function responsiveStyles() {
     '  .aics-app .aics-main,.aics-app .main-content{width:100%;max-width:none;margin:0;padding:14px;}\n' +
     '  .aics-app .quick-grid,.aics-app .recent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}\n' +
     '}\n' +
+    '/* ===== Minimal SaaS theme tokens + persistent Light/Dark mode ===== */\n' +
+    'html[data-aics-theme="dark"]{color-scheme:dark;--aics-bg:#0b1020;--aics-surface:#111827;--aics-surface-subtle:#182235;--aics-border:#263247;--aics-border-strong:#344158;--aics-text:#edf2fa;--aics-text-muted:#a1aec2;--aics-text-soft:#a1aec2;--aics-primary:#8b8cff;--aics-primary-hover:#a5a5ff;--aics-primary-soft:#242449;--aics-primary-border:#45457c;--aics-focus:rgba(139,140,255,.38);--aics-shadow-sm:0 1px 2px rgba(0,0,0,.2);--aics-shadow-md:0 12px 32px rgba(0,0,0,.28);}\n' +
+    'html[data-aics-theme="light"]{color-scheme:light;--aics-bg:#f6f8fb;--aics-surface:#ffffff;--aics-surface-subtle:#f8fafc;--aics-border:#e1e7ef;--aics-border-strong:#bdc9da;--aics-text:#172033;--aics-text-muted:#526078;--aics-text-soft:#667085;--aics-primary:#5145cd;--aics-primary-hover:#4338b8;--aics-primary-soft:#f0efff;--aics-primary-border:#d9d6fe;--aics-success:#087f5b;--aics-warning:#975a16;--aics-danger:#b91c1c;--aics-focus:rgba(81,69,205,.30);--aics-shadow-sm:0 1px 2px rgba(16,24,40,.06);--aics-shadow-md:0 8px 24px rgba(16,24,40,.08);}\n' +
+    'html[data-aics-theme="dark"] body,html[data-aics-theme="dark"] .aics-app{background:var(--aics-bg);color:var(--aics-text);}\n' +
+    'html[data-aics-theme="dark"] .aics-app .sidebar,html[data-aics-theme="dark"] .aics-app .topbar,html[data-aics-theme="dark"] .aics-app .card,html[data-aics-theme="dark"] .aics-app .studio-card,html[data-aics-theme="dark"] .aics-app .quick-card,html[data-aics-theme="dark"] .aics-app .recent-card{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
+    'html[data-aics-theme="dark"] .aics-app input,html[data-aics-theme="dark"] .aics-app textarea,html[data-aics-theme="dark"] .aics-app select,html[data-aics-theme="dark"] .aics-app .form-control{background:var(--aics-surface-subtle);color:var(--aics-text);border-color:var(--aics-border-strong);}\n' +
+    'html[data-aics-theme="light"] body,html[data-aics-theme="light"] .aics-app{background:var(--aics-bg);color:var(--aics-text);}\n' +
+    'html[data-aics-theme="light"] .aics-app .sidebar,html[data-aics-theme="light"] .aics-app .topbar,html[data-aics-theme="light"] .aics-app .card,html[data-aics-theme="light"] .aics-app .studio-card,html[data-aics-theme="light"] .aics-app .quick-card,html[data-aics-theme="light"] .aics-app .recent-card{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
+    'html[data-aics-theme="light"] .aics-app input,html[data-aics-theme="light"] .aics-app textarea,html[data-aics-theme="light"] .aics-app select,html[data-aics-theme="light"] .aics-app .form-control{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border-strong);}\n' +
+    'html[data-aics-theme="light"] .aics-app .main-content,html[data-aics-theme="light"] .aics-app main{background:var(--aics-bg)!important;color:var(--aics-text)!important;}\n' +
+    'html[data-aics-theme="light"] .aics-app [class*="card"],html[data-aics-theme="light"] .aics-app [class*="panel"],html[data-aics-theme="light"] .aics-app [class*="tile"]{background:var(--aics-surface)!important;color:var(--aics-text)!important;border-color:var(--aics-border)!important;box-shadow:var(--aics-shadow-sm);}\n' +
+    'html[data-aics-theme="light"] .aics-app [class*="muted"],html[data-aics-theme="light"] .aics-app [class*="subtitle"],html[data-aics-theme="light"] .aics-app [class*="label"]{color:var(--aics-text-muted);}\n' +
+    'html[data-aics-theme="dark"] .aics-app [class*="card"],html[data-aics-theme="dark"] .aics-app [class*="panel"],html[data-aics-theme="dark"] .aics-app [class*="tile"]{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
+    '.aics-theme-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:9px 12px;border:1px solid var(--aics-border);border-radius:10px;background:var(--aics-surface-subtle);color:var(--aics-text);font:inherit;font-size:13px;cursor:pointer;text-align:left;} .aics-theme-toggle:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;} .aics-theme-toggle svg{width:16px;height:16px;flex:none;}\n' +
+    'a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible,[role="link"]:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;} .aics-app button,.aics-app [role="button"]{touch-action:manipulation;} .aics-app button:not(.icon-btn){min-height:36px;}\n' +
     '@media (prefers-reduced-motion:reduce){.aics-app .nav-item,.aics-app .side-btn,.aics-app .layout > .sidebar{transition:none;}}\n' +
     '</style>';
 }
@@ -186,8 +201,28 @@ function responsiveStyles() {
 // ---- Shared Sidebar Script (Browser တွင် လုပ်ဆောင်သည်) ----
 // toggleSidebar / logout / setApiKey / User Info Hydration / Admin Link
 // ကိုယ်ပိုင် Token ဖတ်သောကြောင့် Page Script နှင့် အစဉ်လိုက် မမှီခိုပါ။
+// One controller is shared by the app shell and the Admin document.
+export function themeControllerScript(options = {}) {
+  const config = JSON.stringify({
+    key: 'aics-theme-preference',
+    toggleId: options.toggleId || 'aicsThemeToggle',
+    mountSelector: options.mountSelector || '',
+    className: options.className || 'aics-theme-toggle',
+    createToggle: Boolean(options.mountSelector)
+  });
+  return '(function(){\n' +
+    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);\n' +
+    '  var key=config.key;\n' +
+    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}\n' +
+    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\n' +
+    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\n' +
+    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();\n' +
+    '})();';
+}
+
 export function sidebarScript() {
   return '<script>\n' +
+    themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     '// ===== AI Creative Studio — Client-side Creations Store (Phase 13 — Option 2) =====\n' +
     '// User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင် သိမ်းသည်။ Server/D1 သို့ မပို့ပါ။\n' +
     'function __aicsDbOpen() {\n' +

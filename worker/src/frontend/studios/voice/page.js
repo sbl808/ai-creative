@@ -45,6 +45,46 @@ export const VOICE_HTML = `<!DOCTYPE html>
 @media(max-width:700px){.aics-work .seg{grid-template-columns:1fr}.aics-work .vchip{flex:1 1 auto}}
 @media(max-width:480px){.aics-work .vlink{width:8px;flex-basis:8px}.aics-work .vstep{padding:6px 7px;font-size:12px}}
 ${AICS_RESULT_HUB_CSS}
+
+/* AICS UIUX: shared light/dark theme bridge — presentation only */
+html[data-aics-theme="light"] .aics-work{
+  --bg:#f5f7fb;--card:#ffffff;--card2:#f0f4fa;--input:#ffffff;
+  --border:rgba(71,85,105,.20);--strong:rgba(71,85,105,.34);
+  --cyan:#087f9c;--purple:#6950c8;--text:#172033;--muted:#526078;
+  --success:#087f5b;--error:#c53030;--warn:#975a16;
+  --bg-card:var(--card);--bg-card2:var(--card2);--bg-input:var(--input);
+  --border-strong:var(--strong);--text2:var(--muted);
+}
+html[data-aics-theme="dark"] .aics-work{
+  --bg:#080c18;--card:#0d1424;--card2:#111a2e;--input:#0a1020;
+  --border:rgba(0,229,255,.15);--strong:rgba(0,229,255,.35);
+  --cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--muted:#8b95a8;
+  --success:#00e676;--error:#ff5252;--warn:#ffc107;
+  --bg-card:var(--card);--bg-card2:var(--card2);--bg-input:var(--input);
+  --border-strong:var(--strong);--text2:var(--muted);
+}
+html[data-aics-theme="light"] .aics-work .vchip.active{color:#172033}
+html[data-aics-theme="light"] .aics-work .lock{color:var(--warn)}
+.aics-work :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{
+  outline:2px solid var(--cyan);outline-offset:3px;
+}
+.aics-work :where(button,input,select,textarea){font:inherit}
+.aics-work button:disabled{cursor:not-allowed;opacity:.62}
+.aics-work :where(button,.btn,.choice-card,.vchip){touch-action:manipulation}
+.aics-work input,.aics-work select,.aics-work textarea{max-width:100%}
+@media(max-width:700px){
+  .aics-work .voice-hero{padding:20px 10px 16px}
+  .aics-work .vchip{min-height:42px}
+  .aics-work input,.aics-work select{min-height:42px}
+  .aics-work textarea{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .aics-work *, .aics-work *::before, .aics-work *::after{
+    scroll-behavior:auto!important;animation-duration:.01ms!important;
+    animation-iteration-count:1!important;transition-duration:.01ms!important;
+  }
+}
+
 </style>
 </head>
 <body>

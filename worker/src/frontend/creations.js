@@ -47,6 +47,9 @@ a{color:var(--cyan);text-decoration:none;}
 .creation-preview{margin-top:10px;color:#ccc;font-size:14px;line-height:1.5;max-height:60px;overflow:hidden;}
 .creation-media{margin-top:10px;}
 .creation-media img{max-width:100%;max-height:260px;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;}
+.creation-media img:focus-visible,.btn:focus-visible,.search-input:focus-visible,.select:focus-visible{outline:3px solid var(--aics-focus,rgba(0,229,255,.72));outline-offset:3px;}
+@media(max-width:767px){.toolbar{align-items:stretch;flex-direction:column;gap:10px;}.search-input,.select{width:100%;min-width:0;min-height:44px;}.btn{min-height:44px;padding:10px 12px;}.creation-card{padding:14px;}.creation-header{flex-wrap:wrap;}}
+@media(prefers-reduced-motion:reduce){.btn{transition:none;}}
 .creation-media audio{width:100%;max-width:420px;}
 .creation-full{margin-top:10px;color:#ccc;font-size:14px;line-height:1.5;white-space:pre-wrap;display:none;background:var(--card2);padding:12px;border-radius:8px;max-height:400px;overflow-y:auto;}
 .btn-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -63,12 +66,42 @@ a{color:var(--cyan);text-decoration:none;}
 .toast.show{display:block;}
 .toast.success{border-color:var(--success);}
 .toast.error{border-color:var(--error);}
+
+/* AICS UIUX: theme bridge and interaction accessibility */
+html[data-aics-theme="light"] .aics-app{
+  --bg:#f5f7fb;--bg-sidebar:#ffffff;--card:#ffffff;--card2:#f0f4fa;
+  --cyan:#087f9c;--purple:#6950c8;--text:#172033;--text2:#526078;--text3:#718096;
+  --border:#d8e0eb;--success:#087f5b;--error:#c53030;
+}
+html[data-aics-theme="dark"] .aics-app{
+  --bg:#080c18;--bg-sidebar:#0d1220;--card:#151b2b;--card2:#111827;
+  --cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--text2:#94a3b8;--text3:#5b6785;
+  --border:#26324a;--success:#2bff9f;--error:#ff4d4d;
+}
+.aics-app :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{
+  outline:2px solid var(--cyan);outline-offset:3px;
+}
+.aics-app :where(button,input,select,textarea){font:inherit}
+.aics-app button:disabled{cursor:not-allowed;opacity:.62}
+.aics-app :where(button,.btn,.tab){touch-action:manipulation}
+@media(max-width:767px){
+  .aics-app input,.aics-app select{min-height:42px}
+  .aics-app .btn{min-height:42px}
+  .aics-app .toolbar{gap:8px;flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){
+  .aics-app *, .aics-app *::before, .aics-app *::after{
+    scroll-behavior:auto!important;animation-duration:.01ms!important;
+    animation-iteration-count:1!important;transition-duration:.01ms!important;
+  }
+}
+
 </style>
 </head>
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -83,8 +116,8 @@ ${renderSidebar('creations',{variant:'studio'})}
     Studio တစ်ခုခုမှာ Generate လုပ်ပြီး "ဖန်တီးမှုသိမ်းပါ" နှိပ်ကြည့်ပါ။
   </div>
   <div id="toolbar" class="toolbar" style="display:none;">
-    <input id="searchInput" class="search-input" type="text" placeholder="🔍 ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." oninput="renderList()">
-    <select id="filterSelect" class="select" onchange="renderList()">
+    <input id="searchInput" class="search-input" type="search" aria-label="ဖန်တီးမှုများကို ခေါင်းစဉ် သို့မဟုတ် အကြောင်းအရာဖြင့် ရှာရန်" placeholder="ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." oninput="renderList()">
+    <select id="filterSelect" class="select" aria-label="ဖန်တီးမှုအမျိုးအစား စစ်ထုတ်ရန်" onchange="renderList()">
       <option value="ALL">အားလုံး</option>
       <option value="FAV">⭐ အနှစ်သက်ဆုံး</option>
       <option value="STORY">📖 Story</option>
@@ -94,7 +127,7 @@ ${renderSidebar('creations',{variant:'studio'})}
       <option value="VOICE">🎙 Voice</option>
       <option value="SHOP">🛒 Shop</option>
     </select>
-    <select id="sortSelect" class="select" onchange="renderList()">
+    <select id="sortSelect" class="select" aria-label="ဖန်တီးမှုများ စီရန်" onchange="renderList()">
       <option value="newest">အသစ်ဆုံး</option>
       <option value="oldest">အဟောင်းဆုံး</option>
     </select>

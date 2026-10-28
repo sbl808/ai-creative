@@ -75,6 +75,8 @@ a{color:var(--cyan);text-decoration:none;}
 .quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
 .studio-card{position:relative;overflow:hidden;border-radius:16px;padding:20px;cursor:pointer;transition:transform 0.2s;border:1px solid;min-height:110px;}
 .studio-card:hover{transform:translateY(-4px);}
+.studio-card:focus-visible,.section-label .view-all:focus-visible{outline:3px solid var(--aics-focus,rgba(0,229,255,.75));outline-offset:3px;}
+@media(prefers-reduced-motion:reduce){.studio-card,.studio-card .desc{transition:none;}.studio-card:hover{transform:none;}}
 .studio-card .bg-icon{position:absolute;right:-14px;bottom:-22px;font-size:110px;line-height:1;opacity:0.16;pointer-events:none;}
 .studio-card .title{position:relative;z-index:2;font-weight:bold;font-size:16px;margin-bottom:3px;}
 .studio-card .desc{position:relative;z-index:2;font-size:12.5px;color:var(--text2);transition:opacity 0.5s,transform 0.5s;}
@@ -108,12 +110,13 @@ a{color:var(--cyan);text-decoration:none;}
   .studio-card .desc{font-size:11px;}
   .studio-card .bg-icon{font-size:80px;}
 }
+.studio-card:focus-visible,.api-pill[role="button"]:focus-visible{outline:3px solid #818cf8;outline-offset:3px}.studio-card{cursor:pointer}@media(prefers-reduced-motion:reduce){.studio-card,.api-pill{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -125,7 +128,7 @@ ${renderSidebar('home',{variant:'studio'})}
       <h1 id="greeting">မင်္ဂလာပါ 👋</h1>
       <p class="subtitle">ဒီနေ့ ဘာဖန်တီးချင်ပါသလဲ?</p>
     </div>
-    <div class="api-pill sparkle" onclick="openFreeKeyGuide()">✨ အခမဲ့ API KEY ယူရန်</div>
+    <div class="api-pill sparkle" role="button" tabindex="0" onclick="openFreeKeyGuide()" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openFreeKeyGuide();}">✨ အခမဲ့ API KEY ယူရန်</div>
   </div>
   <div class="hero-banner">
     <div class="hero-banner-icons">
@@ -136,32 +139,32 @@ ${renderSidebar('home',{variant:'studio'})}
   </div>
   <div class="section-label">အမြန်ဖန်တီးရန်</div>
   <div class="quick-grid">
-    <div class="studio-card card-story" data-studio="story" onclick="location.href='/app/story'">
+    <div class="studio-card card-story" data-studio="story" role="link" tabindex="0" aria-label="Open story studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/story';}" onclick="location.href='/app/story'">
       <div class="sparkle">✨</div><div class="bg-icon">📖</div>
       <div class="title">ဇာတ်လမ်း Studio</div>
       <div class="desc" id="desc-story">AI ဖြင့် Story ရေးပါ</div>
     </div>
-    <div class="studio-card card-content" data-studio="content" onclick="location.href='/app/content'">
+    <div class="studio-card card-content" data-studio="content" role="link" tabindex="0" aria-label="Open content studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/content';}" onclick="location.href='/app/content'">
       <div class="sparkle">✨</div><div class="bg-icon">✍️</div>
       <div class="title">Content Studio</div>
       <div class="desc" id="desc-content">AI ဖြင့် Content ရေးပါ</div>
     </div>
-    <div class="studio-card card-short" data-studio="short" onclick="location.href='/app/short'">
+    <div class="studio-card card-short" data-studio="short" role="link" tabindex="0" aria-label="Open short studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/short';}" onclick="location.href='/app/short'">
       <div class="sparkle">✨</div><div class="bg-icon">🎬</div>
       <div class="title">Short Studio</div>
       <div class="desc" id="desc-short">TikTok/Reels Script ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-image" data-studio="image" onclick="location.href='/app/image'">
+    <div class="studio-card card-image" data-studio="image" role="link" tabindex="0" aria-label="Open image studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/image';}" onclick="location.href='/app/image'">
       <div class="sparkle">✨</div><div class="bg-icon">🎨</div>
       <div class="title">ပုံ Studio</div>
       <div class="desc" id="desc-image">AI Image Prompt ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-voice" data-studio="voice" onclick="location.href='/app/voice'">
+    <div class="studio-card card-voice" data-studio="voice" role="link" tabindex="0" aria-label="Open voice studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/voice';}" onclick="location.href='/app/voice'">
       <div class="sparkle">✨</div><div class="bg-icon">🎙</div>
       <div class="title">အသံ Studio</div>
       <div class="desc" id="desc-voice">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
-    <div class="studio-card card-shop" data-studio="shop" onclick="location.href='/app/shop'">
+    <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/shop';}" onclick="location.href='/app/shop'">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
       <div class="title">ရောင်းချရေး Studio</div>
       <div class="desc" id="desc-shop">Marketing Content ဖန်တီးပါ</div>
@@ -169,7 +172,7 @@ ${renderSidebar('home',{variant:'studio'})}
   </div>
   <div class="section-label">
     နောက်ဆုံးဖန်တီးထားသော Project များ
-    <span class="view-all" onclick="location.href='/app/creations'">အားလုံးကြည့်ရန် →</span>
+    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" onclick="location.href='/app/creations'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='/app/creations';}">အားလုံးကြည့်ရန် →</span>
   </div>
   <div id="recentProjectsArea"><p style="color:var(--text3);">Loading...</p></div>
 </main>
