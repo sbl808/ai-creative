@@ -261,7 +261,7 @@ console.log('\n--- D) API test rate-limit migration contract ---');
   const devIdIsPlaceholder = devId === 'cloudflare အကောင့် မရှိသေးပါ';
 
   check('dev D1 configuration names the dev database only',
-    devName === 'ai-creative-db-dev',
+    devName === 'aics-db-dev',
     'database_name=' + JSON.stringify(devName));
   check('dev D1 ID is either an explicit unconfigured placeholder or a valid UUID',
     devIdIsPlaceholder || isUuid(devId),
