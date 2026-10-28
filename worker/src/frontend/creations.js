@@ -63,6 +63,36 @@ a{color:var(--cyan);text-decoration:none;}
 .toast.show{display:block;}
 .toast.success{border-color:var(--success);}
 .toast.error{border-color:var(--error);}
+
+/* AICS UIUX: theme bridge and interaction accessibility */
+html[data-aics-theme="light"] .aics-app{
+  --bg:#f5f7fb;--bg-sidebar:#ffffff;--card:#ffffff;--card2:#f0f4fa;
+  --cyan:#087f9c;--purple:#6950c8;--text:#172033;--text2:#526078;--text3:#718096;
+  --border:#d8e0eb;--success:#087f5b;--error:#c53030;
+}
+html[data-aics-theme="dark"] .aics-app{
+  --bg:#080c18;--bg-sidebar:#0d1220;--card:#151b2b;--card2:#111827;
+  --cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--text2:#94a3b8;--text3:#5b6785;
+  --border:#26324a;--success:#2bff9f;--error:#ff4d4d;
+}
+.aics-app :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{
+  outline:2px solid var(--cyan);outline-offset:3px;
+}
+.aics-app :where(button,input,select,textarea){font:inherit}
+.aics-app button:disabled{cursor:not-allowed;opacity:.62}
+.aics-app :where(button,.btn,.tab){touch-action:manipulation}
+@media(max-width:767px){
+  .aics-app input,.aics-app select{min-height:42px}
+  .aics-app .btn{min-height:42px}
+  .aics-app .toolbar{gap:8px;flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){
+  .aics-app *, .aics-app *::before, .aics-app *::after{
+    scroll-behavior:auto!important;animation-duration:.01ms!important;
+    animation-iteration-count:1!important;transition-duration:.01ms!important;
+  }
+}
+
 </style>
 </head>
 <body>
