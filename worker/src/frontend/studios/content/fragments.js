@@ -124,8 +124,8 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 <p class="voice-hint">ဘာသာပြန်လိုသော ဘက်ကို ရွေးပြီး "ဘာသာပြန်ရန်" နှိပ်ပါ —</p>
 <div class="direction-row">
 <button class="btn btn-secondary" id="translateBtn" onclick="translateSrt()">&#127760; ဘာသာပြန်ရန်</button>
-<button type="button" class="direction-chip selected" data-dir="my-to-cn" aria-pressed="true" onclick="selectDirection(this)">မြန်မာ → တရုတ်</button>
-<button type="button" class="direction-chip" data-dir="cn-to-my" aria-pressed="false" onclick="selectDirection(this)">တရုတ် → မြန်မာ</button>
+<button type="button" class="direction-chip selected" data-dir="my-to-cn" aria-pressed="true" onclick="selectDirection(this); this.parentElement.querySelectorAll('.direction-chip').forEach(function(c){c.setAttribute('aria-pressed',String(c===this));},this)">မြန်မာ → တရုတ်</button>
+<button type="button" class="direction-chip" data-dir="cn-to-my" aria-pressed="false" onclick="selectDirection(this); this.parentElement.querySelectorAll('.direction-chip').forEach(function(c){c.setAttribute('aria-pressed',String(c===this));},this)">တရုတ် → မြန်မာ</button>
 </div>
 <div class="loading" id="translateLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ဘာသာပြန်နေပါသည်...</div>
 <div class="error-box" id="translateError" role="alert" aria-live="assertive"></div>
