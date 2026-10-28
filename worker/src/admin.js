@@ -8,6 +8,7 @@ import { STUDIO_REGISTRY } from './config/studios.js';
 import { FEATURE_REGISTRY } from './config/features.js';
 import { getFeatureSettings, setFeatureSetting } from './core/featureSettings.js';
 import { getAiModels, setAiModel, deleteAiModel } from './core/aiModels.js';
+import { themeControllerScript } from './frontend/shared.js';
 import { logAdminAction, listAdminLogs } from './core/adminLogs.js';
 
 export const ADMIN_HTML = `<!DOCTYPE html>
@@ -646,7 +647,7 @@ function init(){
 }
 init();
 </script>
-<script>(function(){var key="aics-theme-preference";var theme="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")theme=saved;}catch(e){}function apply(){document.documentElement.setAttribute("data-aics-theme",theme);var b=document.getElementById("adminThemeToggle");if(b){b.textContent=theme==="dark"?"Light mode":"Dark mode";b.setAttribute("aria-pressed",theme==="dark"?"true":"false");}}apply();var b=document.getElementById("adminThemeToggle");if(b)b.addEventListener("click",function(){theme=theme==="dark"?"light":"dark";try{localStorage.setItem(key,theme);}catch(e){}apply();});})();</script>
+<script>${themeControllerScript({ toggleId: 'adminThemeToggle' })}</script>
 </body>
 </html>`;
 
