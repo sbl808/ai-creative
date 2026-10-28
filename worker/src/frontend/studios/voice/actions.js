@@ -32,7 +32,7 @@ function renderChips(){
   var h='';
   VOICE_MODES.forEach(function(m){
     var on=VOICE_STATE.voiceMode===m.id;
-    h+='<button type="button" class="vchip'+(on?' active':'')+'" role="tab" aria-selected="'+(on?'true':'false')+'" onclick="voiceSwitchMode(\''+m.id+'\')">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
+    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" onclick="voiceSwitchMode(\''+m.id+'\')">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
   });
   vEl('voiceChips').innerHTML=h;
 }
