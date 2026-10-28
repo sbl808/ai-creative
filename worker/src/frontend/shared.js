@@ -193,6 +193,7 @@ function responsiveStyles() {
     'html[data-aics-theme="light"] .aics-app [class*="muted"],html[data-aics-theme="light"] .aics-app [class*="subtitle"],html[data-aics-theme="light"] .aics-app [class*="label"]{color:var(--aics-text-muted);}\n' +
     'html[data-aics-theme="dark"] .aics-app [class*="card"],html[data-aics-theme="dark"] .aics-app [class*="panel"],html[data-aics-theme="dark"] .aics-app [class*="tile"]{background:var(--aics-surface);color:var(--aics-text);border-color:var(--aics-border);}\n' +
     '.aics-theme-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:9px 12px;border:1px solid var(--aics-border);border-radius:10px;background:var(--aics-surface-subtle);color:var(--aics-text);font:inherit;font-size:13px;cursor:pointer;text-align:left;} .aics-theme-toggle:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;} .aics-theme-toggle svg{width:16px;height:16px;flex:none;}\n' +
+    'a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible,[role="link"]:focus-visible{outline:3px solid var(--aics-focus);outline-offset:2px;} .aics-app button,.aics-app [role="button"]{touch-action:manipulation;} .aics-app button:not(.icon-btn){min-height:36px;}\n' +
     '@media (prefers-reduced-motion:reduce){.aics-app .nav-item,.aics-app .side-btn,.aics-app .layout > .sidebar{transition:none;}}\n' +
     '</style>';
 }
