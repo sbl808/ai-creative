@@ -11,6 +11,7 @@ import { getAiModels, setAiModel, deleteAiModel } from './core/aiModels.js';
 import { themeControllerScript } from './frontend/shared.js';
 import { AICS_DESIGN_SYSTEM_CSS } from './frontend/design-system.js';
 import { logAdminAction, listAdminLogs } from './core/adminLogs.js';
+import { listPlanCatalog, savePlanCatalogItem, deletePlanCatalogItem, getPlanContactSettings, updatePlanContactSettings } from './core/planCatalog.js';
 
 export const ADMIN_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -676,7 +677,8 @@ export async function adminApi(request, path, env, verifyToken) {
   const isUsage = (path === '/api/admin/usage');
   const isLogs = (path === '/api/admin/logs');
   const isBrain = (path === '/api/brain' || path.indexOf('/api/brain/') === 0);
-  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain) return null;
+  const isPlans = (path === '/api/admin/plans' || path.indexOf('/api/admin/plans/') === 0 || path === '/api/admin/plan-contacts');
+  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain && !isPlans) return null;
 
   const method = request.method;
   const authHeader = request.headers.get('Authorization') || '';
@@ -693,6 +695,60 @@ export async function adminApi(request, path, env, verifyToken) {
   const adminEmail = env.ADMIN_EMAIL || '';
   if (!adminEmail || String(user.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
     return json({ error: 'forbidden', detail: 'admin only' }, 403);
+  }
+
+  // ===== Plan Catalog: display metadata only; existing Feature Gate remains authoritative =====
+  if (path === '/api/admin/plans' && method === 'GET') {
+    try { return json({ ok: true, items: await listPlanCatalog(env, true) }); }
+    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 503); }
+  }
+  if (path === '/api/admin/plans' && method === 'POST') {
+    try {
+      const item = await savePlanCatalogItem(env, await readBody(request));
+      await logAdminAction(env, user.email, 'plan_create', item.plan_key);
+      return json({ ok: true, item });
+    } catch (e) {
+      const msg = String(e && e.message || e);
+      return json({ error: msg, detail: msg }, msg === 'db_unavailable' ? 503 : 400);
+    }
+  }
+  if (path.indexOf('/api/admin/plans/') === 0) {
+    const key = decodeURIComponent(path.slice('/api/admin/plans/'.length)).toUpperCase();
+    if (method === 'PUT') {
+      try {
+        const item = await savePlanCatalogItem(env, await readBody(request), key);
+        await logAdminAction(env, user.email, 'plan_update', key);
+        return json({ ok: true, item });
+      } catch (e) {
+        const msg = String(e && e.message || e);
+        return json({ error: msg, detail: msg }, msg === 'db_unavailable' ? 503 : (msg === 'plan_not_found' ? 404 : 400));
+      }
+    }
+    if (method === 'DELETE') {
+      try {
+        await deletePlanCatalogItem(env, key);
+        await logAdminAction(env, user.email, 'plan_delete', key);
+        return json({ ok: true });
+      } catch (e) {
+        const msg = String(e && e.message || e);
+        const status = msg === 'db_unavailable' ? 503 : (msg === 'plan_not_found' ? 404 : (msg === 'plan_in_use' || msg === 'core_plan_protected' ? 409 : 400));
+        return json({ error: msg, detail: msg }, status);
+      }
+    }
+  }
+  if (path === '/api/admin/plan-contacts' && method === 'GET') {
+    try { return json({ ok: true, contacts: await getPlanContactSettings(env) }); }
+    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 503); }
+  }
+  if (path === '/api/admin/plan-contacts' && method === 'PUT') {
+    try {
+      const contacts = await updatePlanContactSettings(env, await readBody(request));
+      await logAdminAction(env, user.email, 'plan_contacts_update', 'Facebook Messenger / Telegram');
+      return json({ ok: true, contacts });
+    } catch (e) {
+      const msg = String(e && e.message || e);
+      return json({ error: msg, detail: msg }, msg === 'db_unavailable' ? 503 : 400);
+    }
   }
 
   const COLS = ['studio','plan','type','core','memory','knowledge','workflow','template','prompt','quality_check','final_output'];
