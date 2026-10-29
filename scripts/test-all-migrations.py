@@ -42,6 +42,11 @@ EXPECTED_TABLE_COLUMNS = {
         "id", "scope", "module", "type", "plan", "key", "value",
         "active", "version", "updated_at",
     },
+    "plan_catalog": {
+        "plan_key", "name", "icon", "description", "price_amount", "price_currency",
+        "billing_period", "features_json", "enabled", "sort_order", "created_at", "updated_at",
+    },
+    "plan_contact_settings": {"setting_key", "setting_value", "updated_at"},
 }
 
 
@@ -78,6 +83,36 @@ def main():
                 raise AssertionError(
                     f"{table}: missing expected columns: {sorted(missing)}"
                 )
+
+        # Plan catalog migration contract: known plans are seeded for display only,
+        # contact destinations are blank until an admin configures validated URLs.
+        seeded_plans = {
+            row[0]: row[1]
+            for row in db.execute("SELECT plan_key, name FROM plan_catalog")
+        }
+        if seeded_plans != {"FREE": "FREE", "PRO": "PRO"}:
+            raise AssertionError(f"Unexpected plan catalog seeds: {seeded_plans}")
+        contacts = {
+            row[0]: row[1]
+            for row in db.execute("SELECT setting_key, setting_value FROM plan_contact_settings")
+        }
+        if contacts != {"facebook_messenger_url": "", "telegram_url": ""}:
+            raise AssertionError(f"Unexpected plan contact defaults: {contacts}")
+        if db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_plan_catalog_enabled_order'").fetchone()[0] != 1:
+            raise AssertionError("Plan catalog enabled/order index is missing")
+
+        # The migration is idempotent and does not modify the existing users.plan values.
+        migration_user = db.execute(
+            "INSERT INTO users (email, plan, name, password_hash) VALUES (?, ?, ?, ?)",
+            ("migration-check@example.test", "PRO", "", ""),
+        )
+        migration_user_id = migration_user.lastrowid
+        db.executescript((MIGRATIONS_DIR / "016_create_plan_catalog.sql").read_text(encoding="utf-8"))
+        unchanged_plan = db.execute("SELECT plan FROM users WHERE id=?", (migration_user_id,)).fetchone()
+        if not unchanged_plan or unchanged_plan[0] != "PRO":
+            raise AssertionError("Plan catalog migration changed users.plan")
+        if db.execute("SELECT COUNT(*) FROM plan_catalog").fetchone()[0] != 2:
+            raise AssertionError("Plan catalog migration is not idempotent")
 
         # Explicitly guard against accidentally overlooking the duplicate 006 prefix.
         duplicate_prefix_migrations = [

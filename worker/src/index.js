@@ -29,6 +29,7 @@ import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
 import { ADMIN_HTML, adminApi } from './admin.js';
+import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from './core/planCatalog.js';
 
 // Production-readiness (CORS): per-request allowed-origin enforcement.
 // We never fall back to '*' for cross-origin requests. Only origins listed in
@@ -598,6 +599,20 @@ export default {
       if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage());
       if (!isProdEnv && path === '/studio-test') return htmlPage(studioTestPage());
       if (!isProdEnv && path === '/creations-test') return htmlPage(creationsTestPage());
+
+      if (path === '/api/plans' && request.method === 'GET') {
+        try {
+          const items = await listPlanCatalog(env, false);
+          const stored = await getPlanContactSettings(env);
+          const contacts = { facebook_messenger_url: '', telegram_url: '' };
+          for (const key of Object.keys(contacts)) {
+            try { contacts[key] = validateContactUrl(key, stored[key]); } catch (_) {}
+          }
+          return json({ ok: true, items, contacts }, 200, cors);
+        } catch (e) {
+          return json({ error: 'plan_catalog_unavailable', detail: 'Plan information is temporarily unavailable.' }, 503, cors);
+        }
+      }
 
       if (path === '/api/users/me' && request.method === 'GET') {
         const token = bearer(request);
