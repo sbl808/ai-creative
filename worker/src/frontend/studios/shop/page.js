@@ -256,7 +256,7 @@ ${renderStudioShell({
   content: STEPS_HTML,
 })}
 ${sidebarScript()}
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}${VIDEO_SCRIPT}${AUDIO_SCRIPT}${IMAGE_SCRIPT}${SHELL_SCRIPT}</script>
 </body>
 </html>`;

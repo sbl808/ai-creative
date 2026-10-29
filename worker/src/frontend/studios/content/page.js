@@ -136,7 +136,7 @@ ${renderStudioShell({
   content: STEPS_HTML,
 })}
 ${sidebarScript()}
-<div class="toast" id="toast">&#9989; ကူးယူပြီးပါပြီ</div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; ကူးယူပြီးပါပြီ</div>
 <style>
 /* Compact Output Hub overrides (Content Studio only — higher specificity than shared) */
 .aics-work .aics-out-hub{padding:14px 16px;margin-top:2px;}

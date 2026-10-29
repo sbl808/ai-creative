@@ -110,8 +110,8 @@ ${renderSidebar('creations',{variant:'studio'})}
 <main class="main-content aics-main">
   <h1 class="page-title">📁 My Creations</h1>
   <p class="page-subtitle">သင် Save လုပ်ထားသော AI Result များ — ဒီ Data ကို သင့်ဘရောက်ဆာထဲမှာသာ သိမ်းထားပါသည်။ Server ပေါ် မတင်ပါ။ (Phase 13 — Option 2)</p>
-  <div id="loadingState" class="loading-state">Loading...</div>
-  <div id="emptyState" class="empty-state" style="display:none;">
+  <div id="loadingState" class="loading-state" role="status" aria-live="polite">Loading...</div>
+  <div id="emptyState" class="empty-state" role="status" aria-live="polite" style="display:none;">
     📭 Save ထားသော Creation များ မရှိသေးပါ။<br>
     Studio တစ်ခုခုမှာ Generate လုပ်ပြီး "ဖန်တီးမှုသိမ်းပါ" နှိပ်ကြည့်ပါ။
   </div>
@@ -132,11 +132,11 @@ ${renderSidebar('creations',{variant:'studio'})}
       <option value="oldest">အဟောင်းဆုံး</option>
     </select>
   </div>
-  <div id="countInfo" class="count-info"></div>
+  <div id="countInfo" class="count-info" aria-live="polite"></div>
   <div id="noMatch" class="empty-state" style="display:none;">🔍 ရှာလို့ မတွေ့ပါ။</div>
   <div id="creationsList"></div>
 </main>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';

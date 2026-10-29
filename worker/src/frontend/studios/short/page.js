@@ -164,7 +164,7 @@ ${renderStudioShell({
   content: CONTENT_HTML,
 })}
 ${sidebarScript()}
-<div class="toast" id="toast">&#9989; ကူးယူပြီးပါပြီ</div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; ကူးယူပြီးပါပြီ</div>
 <script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}${SHELL_SCRIPT}${STEPPER_SCRIPT}</script>
 </body>
 </html>`;
