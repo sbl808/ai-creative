@@ -182,6 +182,17 @@ await check('GET /app/story after loader restore → 200 (no regression)', async
   return { ok: r.status === 200, msg: `status=${r.status}` };
 });
 
+console.log('— Plan Catalog public API —');
+await check('GET /api/plans → public read-only catalog without auth', async () => {
+  const r = await get('/api/plans');
+  const d = await r.json();
+  return { ok: r.status === 200 && d.ok === true && Array.isArray(d.items) && !!d.contacts, msg: 'status=' + r.status + ' ' + JSON.stringify(d).slice(0, 180) };
+});
+await check('GET /api/admin/plans remains admin-authenticated', async () => {
+  const r = await get('/api/admin/plans');
+  return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+
 console.log('— Auth / user API —');
 await check('GET /api/users/me → 200 user (token)', async () => {
   const r = await get('/api/users/me', await withToken());
