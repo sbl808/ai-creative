@@ -14,6 +14,7 @@ import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
+import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
@@ -103,6 +104,29 @@ const withToken = async (extra = {}) => {
 };
 
 // ---------------------------------------------------------------- tests
+console.log('— Plan Catalog validation —');
+await check('Plan Catalog keeps display data separate from permissions', async () => {
+  const p = normalizePlanInput({ plan_key: 'PRO', name: 'PRO', features: ['More tools'] }, null);
+  return { ok: p.plan_key === 'PRO' && p.enabled === 1 && JSON.parse(p.features_json)[0] === 'More tools', msg: JSON.stringify(p) };
+});
+await check('Plan Catalog rejects malformed feature JSON', async () => {
+  try { normalizePlanInput({ plan_key: 'TEAM', name: 'Team', features: '{bad' }, null); return { ok: false, msg: 'accepted malformed JSON' }; }
+  catch (e) { return { ok: e.message === 'invalid_features', msg: e.message }; }
+});
+await check('Contact URL requires HTTPS', async () => {
+  try { validateContactUrl('telegram_url', 'http://t.me/support'); return { ok: false, msg: 'accepted HTTP' }; }
+  catch (e) { return { ok: e.message === 'invalid_contact_url', msg: e.message }; }
+});
+await check('Contact URL rejects lookalike Telegram host', async () => {
+  try { validateContactUrl('telegram_url', 'https://t.me.example.test/support'); return { ok: false, msg: 'accepted lookalike host' }; }
+  catch (e) { return { ok: e.message === 'invalid_contact_url', msg: e.message }; }
+});
+await check('Contact URL accepts valid Messenger and Telegram destinations', async () => {
+  const fb = validateContactUrl('facebook_messenger_url', 'https://m.me/aics_support');
+  const tg = validateContactUrl('telegram_url', 'https://t.me/aics_support');
+  return { ok: fb === 'https://m.me/aics_support' && tg === 'https://t.me/aics_support', msg: fb + ' / ' + tg };
+});
+
 console.log('— Page routes (no session) —');
 await check('GET / → 200 API home', async () => {
   const r = await get('/');
