@@ -14,6 +14,11 @@ export const AICS_DESIGN_SYSTEM_CSS = `<style>
   --aics-ds-focus: #818cf8;
   --aics-ds-motion-fast: 120ms;
   --aics-ds-motion-normal: 180ms;
+  /* Semantic aliases used by the existing shared shell and settings UI. */
+  --aics-radius-sm: var(--aics-ds-radius-sm);
+  --aics-radius-md: var(--aics-ds-radius-md);
+  --aics-radius-lg: var(--aics-ds-radius-lg);
+  --aics-focus: rgba(129, 140, 248, .32);
 }
 :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
   outline: 3px solid var(--aics-ds-focus);
