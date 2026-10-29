@@ -217,7 +217,38 @@ function loadSettings(){
     document.getElementById('pref_lang').value=s.language||'my';
     document.getElementById('pref_theme').value=s.theme||'dark';
     loadKeyStatus();
+    loadPlanCatalog();
+
   }).catch(function(){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Network problem</div>';});
+}
+function loadPlanCatalog(){
+  var host=document.getElementById('planCatalogUser');
+  if(!host){
+    host=document.createElement('section');
+    host.id='planCatalogUser';
+    host.className='plan-catalog-user';
+    host.style.cssText='margin-top:20px;padding:18px;border:1px solid var(--aics-border);border-radius:12px;background:var(--aics-surface)';
+    document.getElementById('tab-profile').appendChild(host);
+  }
+  host.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:4px">Plans & Pricing</div><div class="hint">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div class="loading-state">Loading plans…</div>';
+  fetch('/api/plans').then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.ok){host.innerHTML='<div style="font-weight:700;font-size:16px">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';return;}
+    var html='<div style="font-weight:700;font-size:16px;margin-bottom:4px">Plans & Pricing</div><div class="hint" style="margin-bottom:14px">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">';
+    (d.items||[]).forEach(function(p){
+      var features=Array.isArray(p.features)?p.features:[];
+      var price=p.price_amount===null||p.price_amount===undefined?'Contact us':(String(p.price_currency||'')+' '+String(p.price_amount)+(p.billing_period?' / '+p.billing_period:''));
+      html+='<article style="border:1px solid var(--aics-border);border-radius:10px;padding:14px;background:var(--aics-surface-subtle)"><div style="font-weight:700;font-size:15px">'+escapeHtml(p.icon||'✦')+' '+escapeHtml(p.name||p.plan_key)+'</div><div style="font-size:20px;font-weight:750;margin:8px 0">'+escapeHtml(price)+'</div><div class="hint">'+escapeHtml(p.description||'')+'</div>';
+      if(features.length){html+='<ul style="padding-left:20px;margin:10px 0;font-size:12.5px">';features.forEach(function(item){html+='<li>'+escapeHtml(item)+'</li>';});html+='</ul>';}
+      html+='</article>';
+    });
+    html+='</div>';
+    var contacts=d.contacts||{};
+    var links='';
+    if(contacts.facebook_messenger_url)links+='<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(contacts.facebook_messenger_url)+'">Facebook Messenger · Upgrade / Contact</a>';
+    if(contacts.telegram_url)links+='<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(contacts.telegram_url)+'">Telegram · Upgrade / Contact</a>';
+    if(links)html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">'+links+'</div>';
+    host.innerHTML=html;
+  }).catch(function(){host.innerHTML='<div style="font-weight:700;font-size:16px">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';});
 }
 function saveName(){
   var name=document.getElementById('profileName').value.trim();
