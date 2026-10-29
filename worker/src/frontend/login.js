@@ -55,6 +55,29 @@ body{font-family:-apple-system,'Segoe UI',Roboto,'PingFang SC',Arial,sans-serif;
 .loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#041018;animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
 @media(max-width:480px){.login-card{padding:26px 18px;border-radius:16px}}
+
+/* Public-facing visual refresh: soft blue + white; auth behavior stays unchanged. */
+body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),transparent 60%),radial-gradient(800px 440px at -10% 110%,rgba(103,232,249,.18),transparent 60%),#f5f9ff;color:#14243b}
+.login-card{background:rgba(255,255,255,.9);border-color:#dce7f6;box-shadow:0 22px 65px rgba(42,82,145,.15);backdrop-filter:blur(16px)}
+.brand-title{background:linear-gradient(90deg,#2563eb,#0891b2);-webkit-background-clip:text;background-clip:text}
+.welcome p,.field label,.switch,.hint{color:#61718a}
+.alert.error{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.alert.info{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.btn-google{border:1px solid #dce7f6;box-shadow:0 3px 10px rgba(42,82,145,.05)}
+.btn-primary{background:linear-gradient(100deg,#2563eb,#0891b2);color:#fff}
+.btn-primary:hover{box-shadow:0 6px 20px rgba(37,99,235,.24)}
+.divider{color:#8190a7}.divider::before,.divider::after{background:#dce7f6}
+.field input{background:#fff;border-color:#d3e0f1;color:#14243b}
+.field input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.field input::placeholder{color:#9aa9bd}
+.link{color:#2563eb}.switch button{color:#2563eb}
+.hint{color:#8492a7}
+.password-wrap{position:relative}
+.password-wrap input{padding-right:76px}
+.password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);min-height:34px;padding:0 10px;border:1px solid #dce7f6;border-radius:9px;background:#f5f9ff;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer}
+.password-toggle:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+@media(max-width:480px){.login-card{padding:26px 18px}}
+
 </style>
 </head>
 <body>
@@ -78,8 +101,8 @@ body{font-family:-apple-system,'Segoe UI',Roboto,'PingFang SC',Arial,sans-serif;
   <form id="signinForm">
     <div class="field" id="suNameField" style="display:none;"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" placeholder="မင်းရဲ့နာမည်" maxlength="60"></div>
     <div class="field"><label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
-    <div class="field"><label for="siPass">Password</label><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
-    <div class="field" id="suCfField" style="display:none;"><label for="suCf">Confirm Password</label><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"></div>
+    <div class="field"><label for="siPass">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" aria-pressed="false">Show</button></div></div>
+    <div class="field" id="suCfField" style="display:none;"><label for="suCf">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
     <div class="row2"><button type="button" class="link" id="forgotBtn">Forgot password?</button></div>
     <button class="btn btn-primary" id="signinBtn" type="submit">Sign In</button>
   </form>
@@ -191,6 +214,18 @@ body{font-family:-apple-system,'Segoe UI',Roboto,'PingFang SC',Arial,sans-serif;
   var mode = 'signin';
   var nameField = document.getElementById('suNameField');
   var cfField = document.getElementById('suCfField');
+  // Password visibility is a presentation-only toggle; it does not alter auth requests.
+  document.querySelectorAll('[data-password-toggle]').forEach(function (toggle) {
+    toggle.addEventListener('click', function () {
+      var input = document.getElementById(toggle.getAttribute('data-password-toggle'));
+      if (!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      toggle.textContent = show ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+      toggle.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + (input.id === 'suCf' ? 'confirm password' : 'password'));
+    });
+  });
   document.getElementById('toSignup').addEventListener('click', function () {
     mode = mode === 'signin' ? 'signup' : 'signin';
     if (mode === 'signup') {
