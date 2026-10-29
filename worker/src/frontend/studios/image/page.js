@@ -116,6 +116,7 @@ html[data-aics-theme] .aics-app .toast{background:var(--aics-surface)!important;
 html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[tabindex]):focus-visible{outline-color:var(--aics-focus)!important}
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
+@media(prefers-reduced-motion:reduce){.aics-work *, .aics-work *::before, .aics-work *::after, .toast{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
