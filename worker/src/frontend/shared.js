@@ -8,7 +8,7 @@
 
 import { listEnabledStudios, SITE_LINKS } from '../config/studios.js';
 import { AICS_RESULT_BOX_CSS, AICS_RESULT_BOX_SCRIPT, AICS_STREAM_SCRIPT } from './shared-ui.js';
-import { AICS_DESIGN_SYSTEM_CSS } from './design-system.js';
+import { AICS_DESIGN_SYSTEM_CSS, AICS_STUDIO_UI_CSS } from './design-system.js';
 
 // Dependency-free Lucide-compatible outline SVGs for shared navigation.
 const SHELL_ICONS = {
@@ -122,7 +122,7 @@ function studioPageSidebar(activeId) {
 // opts.variant: 'app' (Home/Creations) | 'studio' (Studio မျက်နှာများ)
 export function renderSidebar(activeId, opts) {
   opts = opts || {};
-  return responsiveStyles() + AICS_DESIGN_SYSTEM_CSS + (opts.variant === 'studio' ? studioPageSidebar(activeId) : appShellSidebar(activeId));
+  return responsiveStyles() + AICS_DESIGN_SYSTEM_CSS + (opts.variant === 'studio' ? AICS_STUDIO_UI_CSS + studioPageSidebar(activeId) : appShellSidebar(activeId));
 }
 
 // ---- Shared Responsive CSS (Phase 6 — Rule 7) ----
