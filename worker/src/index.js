@@ -28,6 +28,7 @@ import { IDEAS_HTML } from './frontend/ideas.js';
 import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
+import { PRELOGIN_HOME_HTML } from './frontend/prelogin-home.js';
 import { ADMIN_HTML, adminApi } from './admin.js';
 import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from './core/planCatalog.js';
 
@@ -237,15 +238,6 @@ function studioDisabledPage(studioId) {
     '</div></body></html>';
 }
 
-function homePage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Creative Studio</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h1 style="color:#1b6d96">🎨 AI Creative Studio</h1>' +
-    '<p>API is running.</p>' +
-    '<ul><li><a href="/auth/result">Login (Google)</a></li><li><a href="/ai-test">AI Router Test</a></li><li><a href="/cms-test">CMS Test</a></li><li><a href="/studio-test">Studio Test</a></li><li><a href="/creations-test">Creations Test</a></li></ul>' +
-    '</body></html>';
-}
-
 function loginResultPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title></head>' +
     '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
@@ -372,7 +364,7 @@ export default {
         });
       }
 
-      if (path === '/' && request.method === 'GET') return htmlPage(homePage());
+      if (path === '/' && request.method === 'GET') return htmlPage(PRELOGIN_HOME_HTML);
 
       if (path === '/api/auth/login' && request.method === 'GET') {
         const origin = url.origin;
