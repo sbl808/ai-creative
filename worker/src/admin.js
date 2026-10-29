@@ -94,6 +94,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
     <div class="nav-section">AI System</div>
     <button class="nav-btn inactive" id="tabModels" onclick="switchTab('models');closeNav()"><span class="nav-icon">◈</span><span class="nav-label">AI Models</span></button>
     <button class="nav-btn inactive" id="tabFeatures" onclick="switchTab('features');closeNav()"><span class="nav-icon">⚙</span><span class="nav-label">Plans & Features</span></button>
+    <button class="nav-btn inactive" id="tabPlans" onclick="switchTab('plans');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">Plan Catalog</span></button>
     <button class="nav-btn inactive" id="tabCms" onclick="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
     <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
     <div class="nav-section">Analytics</div>
@@ -118,6 +119,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
       <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="loadStudios()">↻ Refresh</button><button class="btn primary" onclick="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
+      <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" onclick="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" onclick="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" onclick="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
       <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" onclick="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" onclick="mfPlan('')">All</button><button id="mfFree" class="btn sm" onclick="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" onclick="mfPlan('PRO')">PRO</button><select id="mfCat" onchange="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
       <section id="usageView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Usage</h1><p class="page-desc">AI, Voice နဲ့ Image usage ကို စောင့်ကြည့်ပါ။</p></div><button class="btn" onclick="loadUsage()">↻ Refresh</button></div><div class="grid two-col"><div class="card"><div class="section-head"><div><div class="card-title">Daily Usage</div><div class="card-sub">နောက်ဆုံး 28 ရက်</div></div></div><div id="usageDaily" class="list"></div></div><div class="card"><div class="section-head"><div><div class="card-title">Top Users</div><div class="card-sub">Usage အများဆုံး Users</div></div></div><div id="usageTop" class="list"></div></div></div></section>
       <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" onclick="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
@@ -129,7 +131,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
 function closeNav(){var s=document.getElementById('sidebar');if(s)s.classList.remove('open');}
-function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',users:'Users',studios:'AI Studios',features:'Plans & Features',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
+function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
 </script>
 <script>
 window.onerror = function(msg, url, line) {
@@ -198,18 +200,66 @@ function fillStudios(){
 function switchTab(tab){
   currentTab=tab;
   setCrumb(tab);
-  ['dashboard','cms','brain','users','studios','features','models','usage','logs'].forEach(function(t){
+  ['dashboard','cms','brain','users','studios','features','plans','models','usage','logs'].forEach(function(t){
     $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='btn '+(tab===t?'active':'inactive');
     $(t+'View').classList.toggle('hidden',tab!==t);
   });
   if(tab==='users') loadUsers();
   if(tab==='studios') loadStudios();
   if(tab==='features') loadFeatures();
+  if(tab==='plans'){loadPlans();loadPlanContacts();}
   if(tab==='models') loadModels();
   if(tab==='usage') loadUsage();
   if(tab==='logs') loadLogs();
   if(tab==='dashboard') loadDashboard();
 }
+
+// Plan Catalog admin actions (display-only metadata; never grants feature access).
+var planCatalogItems=[];
+function loadPlans(){
+  api('/api/admin/plans').then(function(d){
+    if(d.error){$('plansList').innerHTML='<div class="card"><span class="err">'+esc(d.detail||d.error)+'</span></div>';return;}
+    planCatalogItems=d.items||[];renderPlans();
+  }).catch(function(e){$('plansList').textContent=String(e&&e.message||e);});
+}
+function renderPlans(){
+  var list=$('plansList');list.innerHTML='';
+  if(!planCatalogItems.length){list.textContent='No plans found. Confirm migration 016 has been applied to the target database.';return;}
+  planCatalogItems.forEach(function(p){
+    var key=String(p.plan_key||''), safe=esc(key), features=JSON.stringify(p.features||[]);
+    var card=document.createElement('div');card.className='card';
+    card.innerHTML='<div class="section-head"><div class="card-title">'+esc(p.icon||'')+' '+esc(p.name||key)+' · '+safe+'</div><span class="badge '+(p.enabled?'on':'off')+'">'+(p.enabled?'ON':'ARCHIVED')+'</span></div>'+
+      '<div class="grid three-col"><div><label>Name</label><input id="pcName-'+safe+'" value="'+esc(p.name||'')+'" style="width:100%"></div>'+
+      '<div><label>Icon</label><input id="pcIcon-'+safe+'" value="'+esc(p.icon||'sparkles')+'" style="width:100%"></div>'+
+      '<div><label>Sort Order</label><input id="pcSort-'+safe+'" type="number" value="'+esc(p.sort_order||0)+'" style="width:100%"></div>'+
+      '<div><label>Price</label><input id="pcPrice-'+safe+'" type="number" min="0" step="0.01" value="'+esc(p.price_amount==null?'':p.price_amount)+'" style="width:100%"></div>'+
+      '<div><label>Currency</label><input id="pcCurrency-'+safe+'" value="'+esc(p.price_currency||'')+'" maxlength="3" style="width:100%"></div>'+
+      '<div><label>Billing Period</label><input id="pcPeriod-'+safe+'" value="'+esc(p.billing_period||'')+'" style="width:100%"></div>'+
+      '<div style="grid-column:1/-1"><label>Description</label><input id="pcDesc-'+safe+'" value="'+esc(p.description||'')+'" style="width:100%"></div>'+
+      '<div style="grid-column:1/-1"><label>Features JSON</label><textarea id="pcFeatures-'+safe+'">'+esc(features)+'</textarea></div></div>'+
+      '<div class="form-actions"><button class="btn primary" onclick="savePlan(\''+safe+'\')">Save</button><button class="btn" onclick="togglePlan(\''+safe+'\','+(!p.enabled)+')">'+(p.enabled?'Archive':'Enable')+'</button>'+
+      ((key==='FREE'||key==='PRO')?'':'<button class="btn red" onclick="deletePlan(\''+safe+'\')">Delete</button>')+'</div>';
+    list.appendChild(card);
+  });
+}
+function createPlan(){
+  var body={plan_key:$('pcNewKey').value,name:$('pcNewName').value,icon:$('pcNewIcon').value,description:$('pcNewDesc').value,price_amount:$('pcNewPrice').value,price_currency:$('pcNewCurrency').value,billing_period:$('pcNewPeriod').value,features:$('pcNewFeatures').value,sort_order:30,enabled:true};
+  api('/api/admin/plans','POST',body).then(function(d){if(d.ok){loadPlans();}else alert('ERROR: '+(d.detail||d.error||'unknown'));}).catch(function(e){alert(String(e&&e.message||e));});
+}
+function planPayload(key){
+  var get=function(name){return document.getElementById(name+'-'+key).value;};
+  var p=planCatalogItems.find(function(x){return x.plan_key===key;});
+  return {plan_key:key,name:get('pcName'),icon:get('pcIcon'),sort_order:get('pcSort'),price_amount:get('pcPrice'),price_currency:get('pcCurrency'),billing_period:get('pcPeriod'),description:get('pcDesc'),features:get('pcFeatures'),enabled:!!(p&&p.enabled)};
+}
+function savePlan(key){api('/api/admin/plans/'+encodeURIComponent(key),'PUT',planPayload(key)).then(function(d){if(d.ok)loadPlans();else alert('ERROR: '+(d.detail||d.error||'unknown'));}).catch(function(e){alert(String(e&&e.message||e));});}
+function togglePlan(key,enabled){
+  var p=planCatalogItems.find(function(x){return x.plan_key===key;});if(!p)return;
+  var body={plan_key:key,name:p.name,icon:p.icon,description:p.description,price_amount:p.price_amount,price_currency:p.price_currency,billing_period:p.billing_period,features:p.features,sort_order:p.sort_order,enabled:enabled};
+  api('/api/admin/plans/'+encodeURIComponent(key),'PUT',body).then(function(d){if(d.ok)loadPlans();else alert('ERROR: '+(d.detail||d.error||'unknown'));}).catch(function(e){alert(String(e&&e.message||e));});
+}
+function deletePlan(key){if(!confirm('Delete this plan? Plans assigned to users cannot be deleted.'))return;api('/api/admin/plans/'+encodeURIComponent(key),'DELETE').then(function(d){if(d.ok)loadPlans();else alert('ERROR: '+(d.detail||d.error||'unknown'));}).catch(function(e){alert(String(e&&e.message||e));});}
+function loadPlanContacts(){api('/api/admin/plan-contacts').then(function(d){if(d.error){$('planContactMsg').textContent=d.detail||d.error;return;}$('pcFacebook').value=d.contacts.facebook_messenger_url||'';$('pcTelegram').value=d.contacts.telegram_url||'';}).catch(function(e){$('planContactMsg').textContent=String(e&&e.message||e);});}
+function savePlanContacts(){api('/api/admin/plan-contacts','PUT',{facebook_messenger_url:$('pcFacebook').value.trim(),telegram_url:$('pcTelegram').value.trim()}).then(function(d){$('planContactMsg').textContent=d.ok?'Saved.':(d.detail||d.error||'Save failed');}).catch(function(e){$('planContactMsg').textContent=String(e&&e.message||e);});}
 
 // ===== Phase 5 — Dashboard (Statistics) =====
 function loadDashboard(){
