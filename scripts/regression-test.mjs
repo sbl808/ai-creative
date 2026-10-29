@@ -20,12 +20,25 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
 class MockD1 {
-  constructor(rows = {}) { this.rows = { ...rows, users: rows.users || {} }; this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map(); this.featureSettings = new Map(); this.studioSettings = new Map(); }
+  constructor(rows = {}) {
+    this.rows = { ...rows, users: rows.users || {} };
+    this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map();
+    this.featureSettings = new Map(); this.studioSettings = new Map();
+    this.planCatalog = new Map((rows.planCatalog || [
+      { plan_key: 'FREE', name: 'Free', icon: 'sparkles', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 0 },
+      { plan_key: 'PRO', name: 'Pro', icon: 'crown', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 1 },
+    ]).map(row => [row.plan_key, { ...row }]));
+    this.planContacts = new Map([['facebook_messenger_url', ''], ['telegram_url', '']]);
+  }
   prepare(sql) {
     const self = this;
     return {
       bind(...args) { this._args = args; return this; },
       async first() {
+        if (/SELECT COUNT\(\*\) AS count FROM users WHERE plan=\?/.test(sql)) {
+          const plan = String(this._args[0]);
+          return { count: Object.values(self.rows.users || {}).filter(row => String(row.plan || '') === plan).length };
+        }
         if (sql.startsWith('SELECT plan, expiry FROM users WHERE id = ?')) {
           const id = this._args && this._args[0];
           return (self.rows.users || {})[id] || null;
@@ -42,6 +55,13 @@ class MockD1 {
         return null;
       },
       async all() {
+        if (/FROM plan_catalog/.test(sql)) {
+          let items = [...self.planCatalog.values()];
+          if (/WHERE enabled=1/.test(sql)) items = items.filter(row => Number(row.enabled) === 1);
+          items.sort((a,b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.plan_key).localeCompare(String(b.plan_key)));
+          return { results: items.map(row => ({ ...row })) };
+        }
+        if (/FROM plan_contact_settings/.test(sql)) return { results: [...self.planContacts.entries()].map(([setting_key,setting_value]) => ({ setting_key, setting_value })) };
         if (/FROM studio_settings/.test(sql)) return { results: [...self.studioSettings.entries()].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
         if (/FROM feature_settings/.test(sql)) return { results: [...self.featureSettings.entries()].map(([feature_id, row]) => ({ feature_id, ...row })) };
         if (/FROM users/.test(sql)) return { results: Object.values(self.rows.users || {}) };
@@ -50,6 +70,24 @@ class MockD1 {
       },
       async run() {
         let changes = 0;
+        if (/INSERT INTO plan_catalog/.test(sql)) {
+          const [plan_key,name,icon,description,price_amount,price_currency,billing_period,features_json,enabled,sort_order] = this._args;
+          if (self.planCatalog.has(String(plan_key))) throw new Error('UNIQUE constraint failed: plan_catalog.plan_key');
+          self.planCatalog.set(String(plan_key), { plan_key,name,icon,description,price_amount,price_currency,billing_period,features_json,enabled,sort_order });
+          changes = 1;
+        }
+        if (/UPDATE plan_catalog SET/.test(sql)) {
+          const [name,icon,description,price_amount,price_currency,billing_period,features_json,enabled,sort_order,plan_key] = this._args;
+          if (self.planCatalog.has(String(plan_key))) {
+            self.planCatalog.set(String(plan_key), { ...self.planCatalog.get(String(plan_key)), name,icon,description,price_amount,price_currency,billing_period,features_json,enabled,sort_order });
+            changes = 1;
+          }
+        }
+        if (/DELETE FROM plan_catalog WHERE plan_key=\?/.test(sql)) changes = self.planCatalog.delete(String(this._args[0])) ? 1 : 0;
+        if (/INSERT INTO plan_contact_settings/.test(sql)) {
+          self.planContacts.set(String(this._args[0]), String(this._args[1] || ''));
+          changes = 1;
+        }
         if (/INSERT OR IGNORE INTO studio_settings/.test(sql)) {
           const id = String(this._args[0]);
           if (!self.studioSettings.has(id)) { self.studioSettings.set(id, Number(this._args[1])); changes = 1; }
@@ -191,6 +229,66 @@ await check('GET /api/plans → public read-only catalog without auth', async ()
 await check('GET /api/admin/plans remains admin-authenticated', async () => {
   const r = await get('/api/admin/plans');
   return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+
+console.log('— Plan Catalog admin CRUD and contact security —');
+await check('Unauthenticated admin plan create/update/delete and contact update are rejected', async () => {
+  const cases = [
+    ['/api/admin/plans','POST',{plan_key:'TEAM',name:'Team'}],
+    ['/api/admin/plans/PRO','PUT',{name:'Changed'}],
+    ['/api/admin/plans/TEAM','DELETE',undefined],
+    ['/api/admin/plan-contacts','PUT',{facebook_messenger_url:'https://m.me/support',telegram_url:''}],
+  ];
+  const statuses = [];
+  for (const [path,method,body] of cases) statuses.push((await send(path,method,{},body)).status);
+  return { ok: statuses.every(status => status === 401), msg: 'statuses=' + statuses.join(',') };
+});
+await check('Admin can create, update, list and archive a display-only plan', async () => {
+  const db = new MockD1({});
+  const testEnv = { ...env, DB: db };
+  const headers = await withToken();
+  const create = await worker.fetch(new Request('https://test.local/api/admin/plans', { method:'POST', headers:{...headers,'Content-Type':'application/json'}, body:JSON.stringify({plan_key:'TEAM',name:'Team',icon:'users',price_amount:12,price_currency:'USD',features:['Team tools']}) }), testEnv, {});
+  const created = await create.json();
+  const update = await worker.fetch(new Request('https://test.local/api/admin/plans/TEAM', { method:'PUT', headers:{...headers,'Content-Type':'application/json'}, body:JSON.stringify({name:'Team Plus',icon:'users',enabled:0,features:['Team tools','Priority support']}) }), testEnv, {});
+  const updated = await update.json();
+  const listed = await worker.fetch(new Request('https://test.local/api/admin/plans', { headers }), testEnv, {});
+  const listBody = await listed.json();
+  const row = db.planCatalog.get('TEAM');
+  return { ok:create.status===200 && created.ok && update.status===200 && updated.ok && listed.status===200 && listBody.items.some(x=>x.plan_key==='TEAM' && x.enabled===false) && row.name==='Team Plus' && JSON.parse(row.features_json).length===2, msg:`create=${create.status} update=${update.status} list=${listed.status} row=${row && row.name} enabled=${row && row.enabled}` };
+});
+await check('Admin cannot delete FREE/PRO or a plan assigned to a user', async () => {
+  const db = new MockD1({ users: { 'u1': { plan:'TEAM', expiry:null } } });
+  db.planCatalog.set('TEAM',{plan_key:'TEAM',name:'Team',icon:'users',description:'',price_amount:null,price_currency:null,billing_period:'',features_json:'[]',enabled:1,sort_order:2});
+  const testEnv = { ...env, DB: db };
+  const headers = await withToken();
+  const delFree = await worker.fetch(new Request('https://test.local/api/admin/plans/FREE',{method:'DELETE',headers}),testEnv,{});
+  const delPro = await worker.fetch(new Request('https://test.local/api/admin/plans/PRO',{method:'DELETE',headers}),testEnv,{});
+  const delAssigned = await worker.fetch(new Request('https://test.local/api/admin/plans/TEAM',{method:'DELETE',headers}),testEnv,{});
+  return { ok:delFree.status===409 && delPro.status===409 && delAssigned.status===409 && db.planCatalog.has('FREE') && db.planCatalog.has('PRO') && db.planCatalog.has('TEAM'), msg:`FREE=${delFree.status} PRO=${delPro.status} assigned=${delAssigned.status}` };
+});
+await check('Admin contact update accepts allowed HTTPS destinations and rejects invalid hosts', async () => {
+  const db = new MockD1({});
+  const testEnv = { ...env, DB: db };
+  const headers = await withToken();
+  const good = await worker.fetch(new Request('https://test.local/api/admin/plan-contacts',{method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({facebook_messenger_url:'https://m.me/aics_support',telegram_url:'https://t.me/aics_support'})}),testEnv,{});
+  const bad = await worker.fetch(new Request('https://test.local/api/admin/plan-contacts',{method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({facebook_messenger_url:'https://evil.example/aics',telegram_url:'https://t.me/aics_support'})}),testEnv,{});
+  const got = await worker.fetch(new Request('https://test.local/api/admin/plan-contacts',{headers}),testEnv,{});
+  const contacts = await got.json();
+  return { ok:good.status===200 && bad.status===400 && got.status===200 && contacts.contacts.facebook_messenger_url==='https://m.me/aics_support' && contacts.contacts.telegram_url==='https://t.me/aics_support', msg:`good=${good.status} bad=${bad.status} read=${got.status} contacts=${JSON.stringify(contacts.contacts)}` };
+});
+await check('Public plan catalog excludes archived plans and exposes only validated contact URLs', async () => {
+  const db = new MockD1({});
+  db.planCatalog.set('HIDDEN',{plan_key:'HIDDEN',name:'Hidden',icon:'eye-off',description:'',price_amount:null,price_currency:null,billing_period:'',features_json:'[]',enabled:0,sort_order:3});
+  db.planContacts.set('facebook_messenger_url','https://m.me/aics_support');
+  db.planContacts.set('telegram_url','javascript:alert(1)');
+  const r = await worker.fetch(new Request('https://test.local/api/plans'),{...env,DB:db},{});
+  const body = await r.json();
+  return { ok:r.status===200 && body.ok && body.items.every(item=>item.plan_key!=='HIDDEN') && body.contacts.facebook_messenger_url==='https://m.me/aics_support' && body.contacts.telegram_url==='', msg:`status=${r.status} plans=${body.items.map(x=>x.plan_key).join(',')} contacts=${JSON.stringify(body.contacts)}` };
+});
+await check('Plan Catalog metadata does not grant PRO-only Feature Gate access to FREE users', async () => {
+  const db = new MockD1({ users: { 'user-1': { plan:'FREE', expiry:null } } });
+  const result = await checkFeature({DB:db},'story.video_image','FREE','1');
+  return { ok:result.ok===false && result.reason==='pro_only', msg:JSON.stringify(result) };
 });
 
 console.log('— Auth / user API —');
