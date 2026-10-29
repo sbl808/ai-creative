@@ -25,7 +25,18 @@ a{color:var(--cyan);text-decoration:none}
 .aics-work .card-title{font-size:15px;font-weight:600;color:var(--cyan);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .aics-work label{display:block;font-size:12.5px;color:var(--text2);margin-bottom:6px;font-weight:500}
 .aics-work input,.aics-work textarea,select{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:14px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;transition:border-color .2s;box-sizing:border-box}
-.aics-work input:focus,.aics-work textarea:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
+.aics-work input:focus,.aics-work textarea:focus,select:focus{outline:2px solid transparent;outline-offset:2px;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.18)}
+.aics-work input:focus-visible,.aics-work textarea:focus-visible,.aics-work select:focus-visible,.aics-work button:focus-visible,.aics-work a:focus-visible,.aics-work [tabindex]:focus-visible,.aics-work .result-textarea:focus-visible{outline:3px solid var(--cyan);outline-offset:3px;box-shadow:0 0 0 5px rgba(0,229,255,.14)}
+.aics-work button,.aics-work input,.aics-work textarea,.aics-work select{max-width:100%}
+.aics-work .card{box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.aics-work .card-title{line-height:1.45}
+.aics-work label{line-height:1.5}
+.aics-work .form-group{min-width:0}
+.aics-work .form-row .form-group{min-width:min(200px,100%)}
+.aics-work .btn-row .btn{overflow-wrap:anywhere}
+@media(min-width:768px) and (max-width:1024px){.aics-work .card{padding:18px}.aics-work .adv-grid,.aics-work .vf-grid{gap:14px}.aics-work .form-row{gap:12px}}
+@media(max-width:480px){.aics-work .card{padding:14px;border-radius:10px}.aics-work .card-title{font-size:14px}.aics-work .btn{padding:11px 14px}.aics-work .result-textarea{min-height:180px;padding:12px}.aics-work .final-char-card,.aics-work .final-scene-card{padding:12px}.aics-work .revise-history{max-height:220px}}
+@media(prefers-reduced-motion:reduce){.aics-work *, .toast{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .aics-work textarea{resize:vertical;min-height:90px}
 select{cursor:pointer}
 select option{background:var(--bg-card);color:var(--text)}
@@ -47,7 +58,7 @@ select option{background:var(--bg-card);color:var(--text)}
 .btn-orange{background:linear-gradient(135deg,#ff9f2b,#ff6f00);color:#080c18}
 .aics-work .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .aics-work .result-textarea{width:100%;min-height:220px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:16px;color:var(--text);font-size:15px;line-height:1.7;font-family:inherit;resize:vertical;overflow:hidden;box-sizing:border-box}
-.aics-work .result-textarea:focus{outline:none;border-color:var(--cyan)}
+.aics-work .result-textarea:focus{outline:2px solid transparent;outline-offset:2px;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.18)}
 .aics-work .result-hint{color:var(--text3);font-size:12px;margin-top:6px;font-style:italic}
 .aics-work .revise-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
 .aics-work .revise-history{margin-bottom:14px;max-height:280px;overflow-y:auto}
@@ -106,41 +117,19 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .scene-image-area img{max-width:100%;border-radius:8px;border:1px solid var(--border)}
 @media(max-width:767px){.aics-work .form-row{flex-direction:column}.aics-work .revise-input-row{flex-direction:column;align-items:stretch}.aics-work .action-row{flex-direction:column}.aics-work .action-row .btn{width:100%}.aics-work .vf-grid{grid-template-columns:1fr;}.aics-work .adv-grid{grid-template-columns:1fr;}.aics-work .btn-row .btn{flex:1 1 100%;}}
 
-/* AICS UIUX: shared light/dark theme bridge — presentation only */
-html[data-aics-theme="light"] .aics-work{
-  --bg:#f5f7fb;--bg-card:#ffffff;--bg-card2:#f0f4fa;--bg-input:#ffffff;
-  --border:rgba(71,85,105,.20);--border-strong:rgba(71,85,105,.34);
-  --cyan:#087f9c;--purple:#6950c8;--text:#172033;--text2:#526078;--text3:#718096;
-  --success:#087f5b;--error:#c53030;--warn:#975a16;--orange:#b45309;
-}
-html[data-aics-theme="dark"] .aics-work{
-  --bg:#080c18;--bg-card:#0d1424;--bg-card2:#111a2e;--bg-input:#0a1020;
-  --border:rgba(0,229,255,.15);--border-strong:rgba(0,229,255,.35);
-  --cyan:#00e5ff;--purple:#7b5cff;--text:#e8ecf4;--text2:#8b95a8;--text3:#5a6478;
-  --success:#00e676;--error:#ff5252;--warn:#ffc107;--orange:#ff9f2b;
-}
-html[data-aics-theme="light"] .aics-work .card-title{color:var(--cyan)}
-html[data-aics-theme="light"] .aics-work .btn-primary{color:#fff}
-.aics-work :where(button,a,input,select,textarea,[role="button"],[tabindex]):focus-visible{
-  outline:2px solid var(--cyan);outline-offset:3px;
-}
-.aics-work :where(button,input,select,textarea){font:inherit}
-.aics-work button:disabled{cursor:not-allowed;opacity:.62}
-.aics-work :where(button,.btn,.choice-card,.step-item){touch-action:manipulation}
-.aics-work input,.aics-work select,.aics-work textarea{max-width:100%}
-@media(max-width:767px){
-  .aics-work .card{min-width:0}
-  .aics-work .btn{min-height:42px}
-  .aics-work input,.aics-work select{min-height:42px}
-  .aics-work textarea{font-size:16px}
-}
-@media(prefers-reduced-motion:reduce){
-  .aics-work *, .aics-work *::before, .aics-work *::after{
-    scroll-behavior:auto!important;animation-duration:.01ms!important;
-    animation-iteration-count:1!important;transition-duration:.01ms!important;
-  }
-}
-
+/* Full workflow orientation and responsive guidance */
+.aics-work .workflow-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start;padding:14px 16px;margin:14px 0 18px;background:linear-gradient(135deg,rgba(0,229,255,.07),rgba(123,92,255,.07));border:1px solid var(--border);border-radius:12px}
+.aics-work .workflow-intro-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.aics-work .workflow-steps{display:flex;flex-wrap:wrap;gap:6px 10px;color:var(--text2);font-size:12px}
+.aics-work .workflow-steps span{display:inline-flex;align-items:center;gap:5px}
+.aics-work .workflow-steps strong{color:var(--cyan);font-weight:700}
+.aics-work .workflow-status{align-self:center;max-width:220px;padding:7px 10px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border);color:var(--cyan);font-size:12px;line-height:1.5}
+.aics-work .workflow-callout{padding:11px 14px;margin:10px 0 14px;border-left:3px solid var(--purple);background:rgba(123,92,255,.08);border-radius:0 8px 8px 0;color:var(--text2);font-size:12.5px;line-height:1.6}
+.aics-work .field-hint{color:var(--text3);font-size:12px;margin-top:5px;line-height:1.55}
+.aics-work .error-box[role="alert"]{scroll-margin-top:16px}
+.aics-work .aics-step-btn[aria-disabled="true"]{cursor:not-allowed}
+.aics-work .aics-step-btn[aria-current="step"]{outline:2px solid var(--cyan);outline-offset:2px}
+@media(max-width:767px){.aics-work .workflow-intro{grid-template-columns:1fr;gap:10px}.aics-work .workflow-status{max-width:none}.aics-work .workflow-steps{display:grid;grid-template-columns:1fr;gap:5px}}
 </style>
 </head>
 <body>
