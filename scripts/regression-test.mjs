@@ -240,7 +240,13 @@ await check('Unauthenticated admin plan create/update/delete and contact update 
     ['/api/admin/plan-contacts','PUT',{facebook_messenger_url:'https://m.me/support',telegram_url:''}],
   ];
   const statuses = [];
-  for (const [path,method,body] of cases) statuses.push((await send(path,method,{},body)).status);
+  for (const [path,method,body] of cases) {
+    const response = await worker.fetch(new Request('https://test.local' + path, {
+      method,
+      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+    }), env, {});
+    statuses.push(response.status);
+  }
   return { ok: statuses.every(status => status === 401), msg: 'statuses=' + statuses.join(',') };
 });
 await check('Admin can create, update, list and archive a display-only plan', async () => {
