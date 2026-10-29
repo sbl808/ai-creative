@@ -102,9 +102,13 @@ def main():
             raise AssertionError("Plan catalog enabled/order index is missing")
 
         # The migration is idempotent and does not modify the existing users.plan values.
-        db.execute("INSERT INTO users (id, email, plan, name, password_hash) VALUES ('migration-check', 'migration-check@example.test', 'PRO', '', '')")
+        migration_user = db.execute(
+            "INSERT INTO users (email, plan, name, password_hash) VALUES (?, ?, ?, ?)",
+            ("migration-check@example.test", "PRO", "", ""),
+        )
+        migration_user_id = migration_user.lastrowid
         db.executescript((MIGRATIONS_DIR / "016_create_plan_catalog.sql").read_text(encoding="utf-8"))
-        unchanged_plan = db.execute("SELECT plan FROM users WHERE id='migration-check'").fetchone()
+        unchanged_plan = db.execute("SELECT plan FROM users WHERE id=?", (migration_user_id,)).fetchone()
         if not unchanged_plan or unchanged_plan[0] != "PRO":
             raise AssertionError("Plan catalog migration changed users.plan")
         if db.execute("SELECT COUNT(*) FROM plan_catalog").fetchone()[0] != 2:
