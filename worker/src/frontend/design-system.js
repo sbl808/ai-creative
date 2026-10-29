@@ -28,10 +28,10 @@ export const AICS_DESIGN_SYSTEM_CSS = `<style>
   font: inherit;
 }
 /* Keep shared content surfaces aligned without replacing page-specific colors. */
-:where(.studio-card, .project-card, .creation-card, .card) {
+.studio-card, .project-card, .creation-card, .card {
   border-radius: var(--aics-ds-radius-lg);
 }
-:where(button, .btn, [role="button"], .nav-item, .nav-btn, .side-btn) {
+button, .btn, [role="button"], .nav-item, .nav-btn, .side-btn {
   transition-duration: var(--aics-ds-motion-fast);
 }
 @media (prefers-reduced-motion: reduce) {
