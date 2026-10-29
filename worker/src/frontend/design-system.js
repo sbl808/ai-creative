@@ -27,12 +27,30 @@ export const AICS_DESIGN_SYSTEM_CSS = `<style>
 :where(button, input, select, textarea) {
   font: inherit;
 }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+  max-width: 100%;
+  border-radius: var(--aics-ds-radius-sm);
+}
+:where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"]) {
+  touch-action: manipulation;
+}
+:where(img, video, canvas) {
+  max-width: 100%;
+}
 /* Keep shared content surfaces aligned without replacing page-specific colors. */
 .studio-card, .project-card, .creation-card, .card {
   border-radius: var(--aics-ds-radius-lg);
 }
 button, .btn, [role="button"], .nav-item, .nav-btn, .side-btn {
   transition-duration: var(--aics-ds-motion-fast);
+}
+@media (max-width: 480px) {
+  .aics-app, .aics-app .layout, .aics-app .main, .aics-app .aics-main, .aics-app .aics-work {
+    min-width: 0;
+  }
+  .aics-app :where(pre, code) {
+    overflow-wrap: anywhere;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
