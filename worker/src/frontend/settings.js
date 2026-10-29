@@ -115,29 +115,29 @@ ${renderSidebar('settings',{variant:'studio'})}
   <div id="tab-prefs" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0" style="display:none;">
     <form onsubmit="savePrefs(event)">
       <div class="form-row">
-        <label>ပုံမှန် Studio (Default Studio)</label>
+        <label for="pref_studio">ပုံမှန် Studio (Default Studio)</label>
         <select id="pref_studio" class="form-select">
           ${studioOptions}
         </select>
       </div>
       <div class="form-row">
-        <label>ပုံမှန် အသံ (Default Voice)</label>
+        <label for="pref_voice">ပုံမှန် အသံ (Default Voice)</label>
         <input id="pref_voice" class="form-input" type="text" placeholder="Kore">
       </div>
       <div class="form-row">
-        <label>ပုံမှန် AI Model</label>
+        <label for="pref_model">ပုံမှန် AI Model</label>
         <select id="pref_model" class="form-select"><option value="">Loading…</option></select>
         <span style="font-size:11px;color:var(--text3);">Studio များတွင် ရွေးထားသော Model ကို ဤနေရာမှ ပုံသေထားနိုင်သည် (Phase C)</span>
       </div>
       <div class="form-row">
-        <label>ဘာသာစကား (Language)</label>
+        <label for="pref_lang">ဘာသာစကား (Language)</label>
         <select id="pref_lang" class="form-select">
           <option value="my">မြန်မာ (Myanmar)</option>
           <option value="en">English</option>
         </select>
       </div>
       <div class="form-row">
-        <label>အပြင်အဆင် (Theme)</label>
+        <label for="pref_theme">အပြင်အဆင် (Theme)</label>
         <select id="pref_theme" class="form-select">
           <option value="dark">Dark (မှောင်မိုက်)</option>
           <option value="light">Light (ပေါ့ပါး)</option>
@@ -192,7 +192,7 @@ function loadSettings(){
     var s=d.settings||{};
     var u=d.usage||{};
     document.getElementById('tab-profile').innerHTML=
-      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" onclick="saveName()">သိမ်းပါ</button></span></div>'+
+      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" onclick="saveName()">သိမ်းပါ</button></span></div>'+
       '<div class="profile-row"><span class="profile-label">📧 အီးမေးလ်</span><span class="profile-value">'+escapeHtml(d.email||'')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">Plan</span><span class="profile-value"><span class="plan-badge'+(d.plan==='PRO'?' pro':'')+'">'+(d.plan==='PRO'?'PRO ⭐':'FREE')+'</span></span></div>'+
       '<div class="profile-row"><span class="profile-label">User ID</span><span class="profile-value">'+escapeHtml(String(d.user_id||''))+'</span></div>'+
