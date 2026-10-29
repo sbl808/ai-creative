@@ -45,7 +45,8 @@ export async function savePlanCatalogItem(env, body, existingKey = null) {
   if (existingKey) {
     const key = String(existingKey).trim().toUpperCase();
     if (key !== item.plan_key) throw new Error('plan_key_immutable');
-    await env.DB.prepare("UPDATE plan_catalog SET name=?,icon=?,description=?,price_amount=?,price_currency=?,billing_period=?,features_json=?,enabled=?,sort_order=?,updated_at=datetime('now') WHERE plan_key=?").bind(item.name,item.icon,item.description,item.price_amount,item.price_currency,item.billing_period,item.features_json,item.enabled,item.sort_order,key).run();
+    const result = await env.DB.prepare("UPDATE plan_catalog SET name=?,icon=?,description=?,price_amount=?,price_currency=?,billing_period=?,features_json=?,enabled=?,sort_order=?,updated_at=datetime('now') WHERE plan_key=?").bind(item.name,item.icon,item.description,item.price_amount,item.price_currency,item.billing_period,item.features_json,item.enabled,item.sort_order,key).run();
+    if (result.meta && result.meta.changes === 0) throw new Error('plan_not_found');
   } else {
     await env.DB.prepare("INSERT INTO plan_catalog (plan_key,name,icon,description,price_amount,price_currency,billing_period,features_json,enabled,sort_order,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'))").bind(item.plan_key,item.name,item.icon,item.description,item.price_amount,item.price_currency,item.billing_period,item.features_json,item.enabled,item.sort_order).run();
   }
@@ -57,7 +58,8 @@ export async function deletePlanCatalogItem(env, planKey) {
   if (key === 'FREE' || key === 'PRO') throw new Error('core_plan_protected');
   const assigned = await env.DB.prepare('SELECT COUNT(*) AS count FROM users WHERE plan=?').bind(key).first();
   if (Number(assigned && assigned.count) > 0) throw new Error('plan_in_use');
-  await env.DB.prepare('DELETE FROM plan_catalog WHERE plan_key=?').bind(key).run();
+  const result = await env.DB.prepare('DELETE FROM plan_catalog WHERE plan_key=?').bind(key).run();
+  if (result.meta && result.meta.changes === 0) throw new Error('plan_not_found');
   return { ok: true };
 }
 export async function getPlanContactSettings(env) {
