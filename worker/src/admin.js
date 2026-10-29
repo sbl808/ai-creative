@@ -64,6 +64,18 @@ button{cursor:pointer}
 @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}.three-col{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.2s;width:280px}.sidebar.open{transform:translateX(0)}.main{margin-left:0;width:100%}.topbar{height:60px;padding:0 14px}.mobile-menu{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);background:#111A2C;color:#fff;border-radius:10px}.crumb{display:none}.content{padding:18px 14px}.page-head{align-items:flex-start;flex-direction:column}.page-title{font-size:23px}.stats-grid{grid-template-columns:repeat(2,1fr)}.three-col{grid-template-columns:1fr}.quick{grid-template-columns:1fr}.top-actions .admin-pill span.email{display:none}.card{padding:14px;border-radius:14px}.filters>*{width:100%!important}.filters .btn{width:auto!important}.list-row{align-items:flex-start;flex-direction:column}.user-row{align-items:flex-start}.form{padding:15px}}
 html[data-aics-theme="light"]{color-scheme:light;--bg:#f5f7fb;--panel:#fff;--card:#fff;--card2:#f8fafc;--line:#e1e7ef;--text:#172033;--muted:#667085;--cyan:#4f46e5;--purple:#6366f1;--green:#15803d;--orange:#b45309;--red:#b91c1c;--shadow:0 8px 24px rgba(16,24,40,.08)}html[data-aics-theme="dark"]{color-scheme:dark}.theme-toggle{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:8px 11px;min-height:38px;font-size:12px}.theme-toggle:focus-visible{outline:3px solid rgba(99,102,241,.4);outline-offset:2px}html[data-aics-theme="light"] .crumb b{color:var(--text)}html[data-aics-theme="light"] .admin-pill{color:var(--muted)}
+/* AICS UIUX: consistent keyboard focus, touch targets, and reduced-motion support */
+:where(a,button,input,select,textarea,[role="button"],[tabindex]):focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+:where(button,input,select,textarea){max-width:100%}
+button,.btn,.nav-btn,.app-link,.theme-toggle{touch-action:manipulation}
+@media(max-width:760px){
+  .mobile-menu{min-width:44px;min-height:44px}
+  .theme-toggle{min-height:44px}
+  .btn{min-height:42px;white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 ${AICS_DESIGN_SYSTEM_CSS}
 </head>
