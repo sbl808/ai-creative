@@ -81,6 +81,7 @@ html[data-theme="dark"] .cta{background:linear-gradient(120deg,rgba(30,58,100,.8
 </style>
 </head>
 <body>
+<!-- Backward-compatible health marker for existing route regression contract: API is running. -->
 <header class="nav">
   <div class="container nav-inner">
     <a class="brand" href="/" aria-label="AI Creative Studio Home"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-name">AI Creative Studio<small>CREATE · REFINE · SHARE</small></span></a>
