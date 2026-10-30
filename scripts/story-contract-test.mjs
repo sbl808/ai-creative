@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import worker from '../worker/src/index.js';
+import { signToken } from '../worker/src/core/auth.js';
 import {
   buildStoryFactsBlock,
   generateStory,
@@ -26,7 +28,68 @@ const facts = {
   absentField: null,
 };
 
+class RouteMockD1 {
+  constructor() { this.limits = new Map(); }
+  prepare(sql) {
+    const self = this;
+    return {
+      bind(...args) { this.args = args; return this; },
+      async run() {
+        if (sql.includes('INSERT INTO api_generation_limits')) {
+          const key = String(this.args[0]) + ':' + this.args[1];
+          self.limits.set(key, (self.limits.get(key) || 0) + 1);
+        }
+        return { success: true };
+      },
+      async first() {
+        if (sql.includes('SELECT attempts FROM api_generation_limits')) {
+          const key = String(this.args[0]) + ':' + this.args[1];
+          return { attempts: self.limits.get(key) || 0 };
+        }
+        return null;
+      },
+    };
+  }
+}
+
 try {
+  const routeEnv = {
+    SESSION_SIGNING_KEY: 'story-contract-test-secret',
+    DB: new RouteMockD1(),
+  };
+  const token = await signToken(routeEnv, { sub: 'story-contract-user', email: 'story@test.local' });
+  const routePost = (path, body, authenticated = true) => worker.fetch(new Request('https://test.local' + path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authenticated ? { Authorization: 'Bearer ' + token } : {}),
+    },
+    body: JSON.stringify(body),
+  }), routeEnv, {});
+  const unauthenticated = await routePost('/api/studio/story/generate', {}, false);
+  assert.equal(unauthenticated.status, 401);
+  assert.equal((await unauthenticated.json()).error, 'unauthorized');
+
+  const missingIdea = await routePost('/api/studio/story/generate', {});
+  assert.equal(missingIdea.status, 400);
+  assert.equal((await missingIdea.json()).error, 'missing_idea');
+
+  const missingInstruction = await routePost('/api/studio/story/revise', { currentStory: 'Existing story' });
+  assert.equal(missingInstruction.status, 400);
+  assert.equal((await missingInstruction.json()).error, 'missing_instruction');
+
+  const missingCurrentStory = await routePost('/api/studio/story/revise', { instruction: 'Make it warmer' });
+  assert.equal(missingCurrentStory.status, 400);
+  assert.equal((await missingCurrentStory.json()).error, 'missing_current_story');
+
+  const missingVideoInput = await routePost('/api/studio/story/video', {});
+  assert.equal(missingVideoInput.status, 400);
+  assert.equal((await missingVideoInput.json()).error, 'missing_idea');
+
+  const missingImagePrompt = await routePost('/api/studio/story/video-image', {});
+  assert.equal(missingImagePrompt.status, 400);
+  assert.equal((await missingImagePrompt.json()).error, 'missing_prompt');
+
   const fenced = parseStoryWithFacts(
     'A child found a fox.\n\n```json\n' + JSON.stringify(facts) + '\n```',
   );
@@ -73,7 +136,7 @@ try {
     /missing_idea/,
   );
 
-  console.log('Story Studio API contracts: PASS');
+  console.log('Story Studio API contracts (helpers + routes): PASS');
 } catch (error) {
   console.error('Story Studio API contracts: FAIL');
   throw error;
