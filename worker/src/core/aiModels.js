@@ -94,7 +94,6 @@ export async function setAiModel(env, data) {
   const status = data?.status === 'deprecated' ? 'deprecated' : 'active';
   const current = await getAiModels(env);
   const others = current.filter(m => m.category === category && m.id !== id && m.enabled && m.status === 'active');
-  const exists = current.some(m => m.id === id);
   if ((!enable || status !== 'active') && others.length === 0) throw new Error('last_model');
   if (isDefault && (!enable || status !== 'active')) throw new Error('invalid_default');
   if (isDefault) await env.DB.prepare('UPDATE ai_models SET is_default=0 WHERE category=?').bind(category).run();
