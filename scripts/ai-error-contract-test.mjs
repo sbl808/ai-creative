@@ -4,9 +4,9 @@ import {getAIErrorHttpStatus,mapProviderHttpError,normalizeAIError} from '../wor
 const originalFetch=globalThis.fetch,originalSetTimeout=globalThis.setTimeout,env={GEMINI_API_KEY:'mock-secret-key'};
 const response=(status,body,headers={})=>new Response(typeof body==='string'?body:JSON.stringify(body),{status,headers:{'Content-Type':'application/json',...headers}});
 const errBody=(message,status)=>({error:{message,status}});
-let calls=0,nextFetch;
-globalThis.setTimeout=callback=>{callback();return 0;};
-globalThis.fetch=async(...args)=>{calls++;return nextFetch(...args);};
+let calls=0,nextFetch,signalSeen=false;
+globalThis.setTimeout=(callback,delay)=>{if(delay!==60000)callback();return 0;};
+globalThis.fetch=async(...args)=>{calls++;signalSeen=!!args[1]?.signal;return nextFetch(...args);};
 try{
  assert.equal(mapProviderHttpError(401,errBody('invalid key','UNAUTHENTICATED')).code,'authentication_failed');
  assert.equal(mapProviderHttpError(403,errBody('denied','PERMISSION_DENIED')).code,'permission_denied');
@@ -19,27 +19,32 @@ try{
  assert.equal(getAIErrorHttpStatus({code:'authentication_failed'}),401);
  assert.equal(getAIErrorHttpStatus({code:'rate_limited'}),429);
  assert.equal(normalizeAIError(new TypeError('fetch failed')).code,'network_error');
+ assert.equal(normalizeAIError(Object.assign(new Error('timeout'),{name:'TimeoutError'})).code,'request_timeout');
+ assert.equal(getAIErrorHttpStatus({code:'request_timeout'}),503);
+ assert.equal(getAIErrorHttpStatus({code:'model_registry_unavailable'}),503);
  calls=0;nextFetch=async()=>response(401,errBody('mock-secret-key must not escape','UNAUTHENTICATED'));
- await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),e=>e.code==='authentication_failed'&&!e.message.includes('mock-secret-key')&&!e.stack.includes('mock-secret-key'));
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='authentication_failed'&&!e.message.includes('mock-secret-key')&&!e.stack.includes('mock-secret-key'));
  assert.equal(calls,1);
  calls=0;nextFetch=async()=>response(403,errBody('denied','PERMISSION_DENIED'));
- await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),e=>e.code==='permission_denied');assert.equal(calls,1);
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='permission_denied');assert.equal(calls,1);
  calls=0;nextFetch=async()=>calls===1?response(429,errBody('busy','RESOURCE_EXHAUSTED'),{'Retry-After':'0'}):response(200,{candidates:[{content:{parts:[{text:'recovered'}]}}]});
- assert.equal(await generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),'recovered');assert.equal(calls,2);
+ assert.equal(await generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),'recovered');assert.equal(calls,2);
  calls=0;nextFetch=async()=>response(500,errBody('server','INTERNAL'));
- await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),e=>e.code==='provider_unavailable');assert.equal(calls,3);
- calls=0;nextFetch=async()=>{if(calls===1)throw new TypeError('fetch failed');return response(200,{candidates:[{content:{parts:[{text:'network recovered'}]}}]});};
- assert.equal(await generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),'network recovered');assert.equal(calls,2);
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='provider_unavailable');assert.equal(calls,1);
+ calls=0;nextFetch=async()=>{throw new TypeError('fetch failed');};
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='network_error');assert.equal(calls,1);
  calls=0;nextFetch=async()=>response(200,'not-json');
- await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x'}),e=>e.code==='invalid_provider_response');assert.equal(calls,1);
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='invalid_provider_response');assert.equal(calls,1);
  calls=0;let sent=false;
  nextFetch=async()=>new Response(new ReadableStream({pull(c){
    if(!sent){sent=true;const p=JSON.stringify({candidates:[{content:{parts:[{text:'first chunk'}]}}]});c.enqueue(new TextEncoder().encode('data: '+p+'\n\n'));}
    else c.error(new Error('socket closed'));
  }}),{status:200,headers:{'Content-Type':'text/event-stream'}});
  const chunks=[];
- await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',onChunk:x=>chunks.push(x)}),e=>e.code==='provider_unavailable'&&e.retryable===false);
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text',onChunk:x=>chunks.push(x)}),e=>e.code==='provider_unavailable'&&e.retryable===false);
  assert.deepEqual(chunks,['first chunk']);assert.equal(calls,1);
- await assert.rejects(()=>generateText({}, {model:'gemini-3.5-flash-lite',prompt:'x'}),e=>e.code==='missing_api_key');
+ await assert.rejects(()=>generateText({}, {model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='missing_api_key');
+ calls=0;signalSeen=false;nextFetch=async()=>{const timeout=new Error('request timed out');timeout.name='TimeoutError';throw timeout;};
+ await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'x',task:'story.text'}),e=>e.code==='request_timeout');assert.equal(calls,1);assert.equal(signalSeen,true);
  console.log('AI error and retry contracts: PASS');
 }finally{globalThis.fetch=originalFetch;globalThis.setTimeout=originalSetTimeout;}

@@ -11,26 +11,39 @@ async function readErrorPayload(response){
   const raw=await response.text().catch(()=>'');
   try{return JSON.parse(raw)?.error||null;}catch(_){return null;}
 }
+const REQUEST_TIMEOUT_MS=60000;
 async function requestGemini(url,key,body,{stream=false}={}){
   let lastError=null;
   for(let attempt=0;attempt<MAX_ATTEMPTS;attempt++){
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);
+    let keepTimeout=false;
     try{
-      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
+      const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:controller.signal});
       if(!response.ok){
         const error=mapProviderHttpError(response.status,await readErrorPayload(response),getRetryAfterMs(response.headers.get('Retry-After')));
-        if(!error.retryable||attempt===MAX_ATTEMPTS-1)throw error;
+        // Only an explicit HTTP 429 is retried. Network/5xx outcomes may have
+        // completed billable work upstream, so retrying could duplicate cost.
+        if(response.status!==429||!error.retryable||attempt===MAX_ATTEMPTS-1)throw error;
         lastError=error;await sleep(error.retryAfterMs??BASE_RETRY_MS*(2**attempt));continue;
       }
-      if(stream)return response;
+      if(stream){
+        keepTimeout=true;
+        response.__aiTimeoutSignal=controller.signal;
+        response.__aiTimeoutCleanup=()=>clearTimeout(timeout);
+        return response;
+      }
       const raw=await response.text();
       try{return JSON.parse(raw);}catch(_){throw new AIServiceError('invalid_provider_response','invalid_provider_response',{provider:'gemini'});}
     }catch(error){
-      const normalized=normalizeAIError(error,{provider:'gemini'});
-      if(!normalized.retryable||attempt===MAX_ATTEMPTS-1)throw normalized;
-      lastError=normalized;await sleep(normalized.retryAfterMs??BASE_RETRY_MS*(2**attempt));
-    }
+      if(controller.signal.aborted||error?.name==='AbortError'||error?.name==='TimeoutError'){
+        throw new AIServiceError('request_timeout','request_timeout',{provider:'gemini',retryable:false});
+      }
+      if(error instanceof AIServiceError)throw error;
+      throw normalizeAIError(error,{provider:'gemini'});
+    }finally{if(!keepTimeout)clearTimeout(timeout);}
   }
-  throw lastError||new AIServiceError('provider_unavailable','provider_unavailable',{provider:'gemini',retryable:true});
+  throw lastError||new AIServiceError('provider_unavailable','provider_unavailable',{provider:'gemini',retryable:false});
 }
 function requireApiKey(env,apiKey){
   const key=String(apiKey||env?.GEMINI_API_KEY||'').trim();
@@ -41,21 +54,36 @@ function requireText(value){
   if(typeof value!=='string'||!value.trim())throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
 }
 async function readGeminiSseStream(response,onChunk){
-  if(!response.body)throw new AIServiceError('invalid_provider_response','invalid_provider_response',{provider:'gemini'});
-  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',full='';
-  for(;;){
-    const {done,value}=await reader.read();if(done)break;
-    buffer+=decoder.decode(value,{stream:true});let index;
-    while((index=buffer.indexOf('\n'))!==-1){
-      const line=buffer.slice(0,index).trim();buffer=buffer.slice(index+1);
-      if(!line.startsWith('data:'))continue;
-      const payload=line.slice(5).trim();if(!payload||payload==='[DONE]')continue;
-      let data;try{data=JSON.parse(payload);}catch(_){continue;}
-      const parts=data.candidates?.[0]?.content?.parts;if(!Array.isArray(parts))continue;
-      for(const part of parts)if(typeof part?.text==='string'&&part.text){full+=part.text;if(typeof onChunk==='function')onChunk(part.text);}
-    }
+  if(!response.body){
+    if(typeof response.__aiTimeoutCleanup==='function')response.__aiTimeoutCleanup();
+    throw new AIServiceError('invalid_provider_response','invalid_provider_response',{provider:'gemini'});
   }
-  return full;
+  const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',full='';
+  const processLine=line=>{
+    const normalized=line.trim();if(!normalized.startsWith('data:'))return;
+    const payload=normalized.slice(5).trim();if(!payload||payload==='[DONE]')return;
+    let data;try{data=JSON.parse(payload);}catch(_){return;}
+    const parts=data.candidates?.[0]?.content?.parts;if(!Array.isArray(parts))return;
+    for(const part of parts)if(typeof part?.text==='string'&&part.text){full+=part.text;if(typeof onChunk==='function')onChunk(part.text);}
+  };
+  try{
+    for(;;){
+      const {done,value}=await reader.read();if(done)break;
+      buffer+=decoder.decode(value,{stream:true});let index;
+      while((index=buffer.indexOf('\n'))!==-1){processLine(buffer.slice(0,index));buffer=buffer.slice(index+1);}
+    }
+    buffer+=decoder.decode();
+    if(buffer.trim())processLine(buffer);
+    return full;
+  }catch(error){
+    if(response.__aiTimeoutSignal?.aborted||error?.name==='AbortError'||error?.name==='TimeoutError'){
+      throw new AIServiceError('request_timeout','request_timeout',{provider:'gemini',retryable:false});
+    }
+    throw error;
+  }finally{
+    try{reader.releaseLock();}catch(_){}
+    if(typeof response.__aiTimeoutCleanup==='function')response.__aiTimeoutCleanup();
+  }
 }
 async function callGeminiText(env,{model,system,prompt,apiKey,onChunk}){
   const key=requireApiKey(env,apiKey);requireText(prompt);
@@ -63,7 +91,7 @@ async function callGeminiText(env,{model,system,prompt,apiKey,onChunk}){
   if(typeof onChunk==='function'){
     const response=await requestGemini(GEMINI_BASE+'/models/'+model+':streamGenerateContent?alt=sse',key,body,{stream:true});
     try{const output=(await readGeminiSseStream(response,onChunk)).trim();if(!output)throw new Error('empty_stream');return output;}
-    catch(_){throw new AIServiceError('provider_unavailable','provider_unavailable',{provider:'gemini',retryable:false});}
+    catch(error){if(error?.code==='request_timeout')throw error;throw new AIServiceError('provider_unavailable','provider_unavailable',{provider:'gemini',retryable:false});}
   }
   const data=await requestGemini(GEMINI_BASE+'/models/'+model+':generateContent',key,body);
   const output=(data.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();

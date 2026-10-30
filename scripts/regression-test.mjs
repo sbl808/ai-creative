@@ -760,6 +760,23 @@ for (const [slug, exp] of [['story', 'STORY_HTML'], ['content', 'CONTENT_HTML'],
 }
 
 
+console.log('— AI Core hardening contracts —');
+await check('AI Service requires task metadata for normal generation calls', async () => {
+  const source = await readFile(new URL('../worker/src/core/ai/aiService.js', import.meta.url), 'utf8');
+  return { ok: source.includes("if (!task) throw new AIServiceError('task_required'") &&
+    source.includes("validationMode === 'connection_test'"), msg: 'task required; connection test has separate mode' };
+});
+await check('Connection test uses the explicit validation mode', async () => {
+  const source = await readFile(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  return { ok: source.includes("validationMode: 'connection_test'"), msg: 'connection test mode forwarded' };
+});
+await check('Gemini retry policy avoids retrying uncertain POST outcomes', async () => {
+  const source = await readFile(new URL('../worker/src/core/ai/providers/gemini.js', import.meta.url), 'utf8');
+  return { ok: source.includes("response.status!==429") &&
+    source.includes("AbortController") &&
+    source.includes("buffer+=decoder.decode();"), msg: '429-only retry, timeout and final decoder flush' };
+});
+
 console.log('— AI Studio task forwarding contracts —');
 const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){

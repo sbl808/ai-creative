@@ -8,24 +8,32 @@ const REQUIRED_CAPABILITIES = Object.freeze({
   generateMultimodal: { text: ['multimodal-input'], transcribe: ['audio-transcription'] },
   generateSpeech: { voice: ['text-to-speech'] },
 });
-function assertTaskAndCapability(model, operation, task) {
-  if (!task) return;
+function assertTaskAndCapability(model, operation, task, validationMode) {
+  const capabilities = Array.isArray(model.capabilities) ? model.capabilities : [];
+  if (validationMode === 'connection_test') {
+    if (operation !== 'generateText' || !capabilities.includes('text-generation')) {
+      throw new AIServiceError('capability_not_supported', 'capability_not_supported', { provider: model.provider, operation, model: model.id });
+    }
+    return;
+  }
+  if (!task) throw new AIServiceError('task_required', 'task_required', { provider: model.provider, operation, model: model.id });
   if (!Array.isArray(model.supported_tasks) || !model.supported_tasks.includes(task)) throw new AIServiceError('task_not_supported', 'task_not_supported', { provider: model.provider, operation, model: model.id });
   const category = task.slice(task.lastIndexOf('.') + 1), alternatives = REQUIRED_CAPABILITIES[operation]?.[category];
   if (!alternatives) throw new AIServiceError('operation_not_supported', 'operation_not_supported', { provider: model.provider, operation, model: model.id });
-  const capabilities = Array.isArray(model.capabilities) ? model.capabilities : [];
   if (!alternatives.some(capability => capabilities.includes(capability))) throw new AIServiceError('capability_not_supported', 'capability_not_supported', { provider: model.provider, operation, model: model.id });
 }
 export async function executeAI(env, operation, args = {}) {
   const modelId = String(args.model || DEFAULT_MODELS[operation] || '').trim();
   if (!modelId) throw new AIServiceError('model_required', 'model_required', { operation });
-  const model = await getAiModelById(env, modelId);
+  let model;
+  try { model = await getAiModelById(env, modelId); }
+  catch (_) { throw new AIServiceError('model_registry_unavailable', 'model_registry_unavailable', { operation, model: modelId }); }
   if (!model) throw new AIServiceError('model_not_found', 'model_not_found', { operation, model: modelId });
   if (!model.enabled || model.status !== 'active') {
     const code = model.status === 'deprecated' ? 'model_deprecated' : 'model_unavailable';
     throw new AIServiceError(code, code, { provider: model.provider, operation, model: modelId });
   }
-  assertTaskAndCapability(model, operation, args.task);
+  assertTaskAndCapability(model, operation, args.task, args.validationMode);
   try {
     const provider = getAIProvider(model.provider), handler = provider[operation];
     if (typeof handler !== 'function') throw new AIServiceError('operation_not_supported', 'operation_not_supported', { provider: model.provider, operation, model: modelId });

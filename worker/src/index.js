@@ -752,7 +752,7 @@ export default {
         const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
         try {
           const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
-          const out = await generateText(env, { model, prompt, apiKey });
+          const out = await generateText(env, { model, prompt, apiKey, validationMode: 'connection_test' });
           return json({ ok: true, output: out }, 200, cors);
         } catch (e) {
           return json({ error: 'ai_error', code: e?.code || 'provider_error', detail: friendlyError(e) }, getAIErrorHttpStatus(e), cors);
