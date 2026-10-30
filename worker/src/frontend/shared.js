@@ -436,6 +436,9 @@ export function sidebarScript() {
     '  for (var k = 0; k < sels.length; k++) {\n' +
     '    (function (sel) {\n' +
     '      var cat = sel.getAttribute(\'data-category\') || \'text\';\n' +
+    '      var pathParts = window.location.pathname.split(\'/\');\n' +
+    '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
+    '      var task = studio + \'.\' + cat;\n' +
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
@@ -450,7 +453,7 @@ export function sidebarScript() {
     '        sel.innerHTML = html;\n' +
     '        if (!sel.value) sel.value = opts[0].id;\n' +
     '      }\n' +
-    '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '        .then(function (r) { return r.json(); })\n' +
     '        .then(function (d) {\n' +
     '          if (!d || d.error || !d.items || d.items.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +

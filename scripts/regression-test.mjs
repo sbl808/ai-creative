@@ -9,7 +9,9 @@
  * Run: node --experimental-default-type=module scripts/regression-test.mjs
  */
 import { signToken } from '../worker/src/core/auth.js';
+import { readFile } from 'node:fs/promises';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
+import { listEnabledModels, resolveModel, getAiModelById, resolveAiModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
@@ -142,6 +144,46 @@ const withToken = async (extra = {}) => {
 };
 
 // ---------------------------------------------------------------- tests
+console.log('— AI model task compatibility —');
+await check('Model dropdown filters by Studio task and category', async () => {
+  const story = await listEnabledModels({}, 'text', 'FREE', 'story.text');
+  const voice = await listEnabledModels({}, 'voice', 'FREE', 'voice.voice');
+  const incompatible = await listEnabledModels({}, 'voice', 'FREE', 'story.text');
+  return {
+    ok: story.length > 0 && story.every(m => m.category === 'text' && m.supported_tasks.includes('story.text')) &&
+      voice.length > 0 && voice.every(m => m.supported_tasks.includes('voice.voice')) && incompatible.length === 0,
+    msg: `story=${story.length} voice=${voice.length} incompatible=${incompatible.length}`,
+  };
+});
+await check('Resolver rejects task-incompatible user choices and defaults', async () => {
+  const valid = await resolveModel({}, 'text', 'FREE', 'gemini-3.5-flash-lite', 'story.text');
+  const invalid = await resolveModel({}, 'voice', 'FREE', 'gemini-2.5-flash-preview-tts', 'story.text');
+  return { ok: valid === 'gemini-3.5-flash-lite' && invalid === '', msg: `valid=${valid} invalid=${invalid}` };
+});
+await check('AI model metadata resolver exposes provider and enforces active task support', async () => {
+  const model = await getAiModelById({}, 'gemini-3.5-flash-lite');
+  const compatible = await resolveAiModel({}, 'gemini-3.5-flash-lite', 'story.text');
+  const incompatible = await resolveAiModel({}, 'gemini-3.5-flash-lite', 'voice.voice');
+  return {
+    ok: model?.provider === 'gemini' && compatible?.id === model.id && incompatible === null,
+    msg: 'provider=' + model?.provider + ' compatible=' + !!compatible + ' incompatible=' + !!incompatible,
+  };
+});
+
+
+await check('AI model API applies Studio task filtering', async () => {
+  const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());
+  const incompatible = await get('/api/ai-models?category=voice&task=story.text', await withToken());
+  const good = await compatible.json();
+  const bad = await incompatible.json();
+  return {
+    ok: compatible.status === 200 && incompatible.status === 200 &&
+      good.items.length > 0 && good.items.every(m => m.category === 'text') &&
+      bad.items.length === 0,
+    msg: `compatible=${good.items.length} incompatible=${bad.items.length}`,
+  };
+});
+
 console.log('— Plan Catalog validation —');
 await check('Plan Catalog keeps display data separate from permissions', async () => {
   const p = normalizePlanInput({ plan_key: 'PRO', name: 'PRO', features: ['More tools'] }, null);
@@ -715,6 +757,34 @@ for (const [slug, exp] of [['story', 'STORY_HTML'], ['content', 'CONTENT_HTML'],
     const okType = typeof mod[exp] === 'string';
     return { ok: okType && mod[exp] === pageMod[exp], msg: `type=${typeof mod[exp]}` };
   });
+}
+
+
+console.log('— AI Core hardening contracts —');
+await check('AI Service requires task metadata for normal generation calls', async () => {
+  const source = await readFile(new URL('../worker/src/core/ai/aiService.js', import.meta.url), 'utf8');
+  return { ok: source.includes("if (!task) throw new AIServiceError('task_required'") &&
+    source.includes("validationMode === 'connection_test'"), msg: 'task required; connection test has separate mode' };
+});
+await check('Connection test uses the explicit validation mode', async () => {
+  const source = await readFile(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  return { ok: source.includes("validationMode: 'connection_test'"), msg: 'connection test mode forwarded' };
+});
+await check('Gemini retry policy avoids retrying uncertain POST outcomes', async () => {
+  const source = await readFile(new URL('../worker/src/core/ai/providers/gemini.js', import.meta.url), 'utf8');
+  return { ok: source.includes("response.status!==429") &&
+    source.includes("AbortController") &&
+    source.includes("buffer+=decoder.decode();"), msg: '429-only retry, timeout and final decoder flush' };
+});
+
+console.log('— AI Studio task forwarding contracts —');
+const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
+for(const [studio,tasks] of Object.entries(studioTaskContracts)){
+ await check(studio+' forwards task IDs to the AI Service',async()=>{
+  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
+  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
+ });
 }
 
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');

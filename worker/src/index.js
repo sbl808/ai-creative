@@ -1,6 +1,7 @@
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
-import { callGeminiText } from './core/ai.js';
+import { generateText } from './core/ai/aiService.js';
+import { getAIErrorHttpStatus } from './core/ai/errors.js';
 import { ndjsonResponse } from './core/streaming.js';
 import { getCMSData, buildSystemPrompt } from './core/cms.js';
 import { generateStudio } from './studio.js';
@@ -648,7 +649,8 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const plan = await resolvePlan(env, payload);
         const cat = url.searchParams.get('category') || '';
-        const items = await listEnabledModels(env, cat || undefined, plan);
+        const task = String(url.searchParams.get('task') || '').trim().slice(0, 80);
+        const items = await listEnabledModels(env, cat || undefined, plan, task || undefined);
         return json({
           ok: true,
           items: items.map((m) => ({ id: m.id, name: m.name, category: m.category, plan_access: m.plan_access })),
@@ -750,10 +752,10 @@ export default {
         const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
         try {
           const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
-          const out = await callGeminiText(env, { model, prompt, apiKey });
+          const out = await generateText(env, { model, prompt, apiKey, validationMode: 'connection_test' });
           return json({ ok: true, output: out }, 200, cors);
         } catch (e) {
-          return json({ error: 'ai_error', detail: friendlyError(e) }, 500, cors);
+          return json({ error: 'ai_error', code: e?.code || 'provider_error', detail: friendlyError(e) }, getAIErrorHttpStatus(e), cors);
         }
       }
 

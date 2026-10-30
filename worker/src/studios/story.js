@@ -9,7 +9,7 @@
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
 import { getStoryTypeContext, getStoryVideoContext, buildBrainPrompt } from '../core/cmsBrain.js';
-import { callGeminiText, callGeminiImage } from '../core/ai.js';
+import { generateText, generateImage } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'STORY';
@@ -48,7 +48,7 @@ export async function generateStory(env, { idea, type, plan, apiKey, model, onCh
     factsSchema,
     'storyFacts သည် ဇာတ်လမ်းစာသားအတွင်း မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
   const parsed = parseStoryWithFacts(raw);
   return { story: parsed.story, storyFacts: parsed.storyFacts };
 }
@@ -65,7 +65,7 @@ export async function reviseStory(env, { idea, type, currentStory, instruction, 
   prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
   prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း ဇာတ်လမ်းကို ပြင်ဆင်ပါ။ ' +
     'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။';
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
   return { story: raw ? raw.trim() : '' };
 }
 
@@ -213,15 +213,15 @@ export async function generateStoryVideoPlan(env, {
     '  ]',
     '}',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey });
   return parseStoryVideoResponse(raw);
 }
 
 // Tab 2 — Story Video Scene/Character Image Generate
 export async function generateStoryVideoImage(env, { prompt, apiKey, model, plan }) {
   if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return callGeminiImage(env, {
-    model: await resolveModel(env, 'image', plan, model),
+  return generateImage(env, {
+    model: await resolveModel(env, 'image', plan, model, 'story.image'), task: 'story.image',
     prompt: String(prompt).trim(),
     apiKey,
   });

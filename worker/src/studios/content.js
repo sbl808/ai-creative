@@ -15,7 +15,7 @@
 //   scenes:     [ { number, duration, visualPrompt, description, dialogue } ]
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { callGeminiText, callGeminiImage, callGeminiMultimodal, callGeminiTTS } from '../core/ai.js';
+import { generateText, generateImage, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 import { pcmToWavBase64 } from '../core/utilities.js';
 
@@ -126,7 +126,7 @@ export async function generateContent(env, { idea, contentType, generationLevel,
     '{ "speakingStyle": "...", "voiceStyle": "..." }',
     'Content စာသားအတွင်း JSON မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'content.text'), task: 'content.text', prompt, apiKey, onChunk });
   return parseContentResult(raw);
 }
 
@@ -157,7 +157,7 @@ export async function reviseContent(env, { originalContent, originalSpeaking, or
     '{ "speakingStyle": "...", "voiceStyle": "..." }',
     'Content စာသားအတွင်း JSON မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'content.text'), task: 'content.text', prompt, apiKey, onChunk });
   return parseContentResult(raw);
 }
 
@@ -167,11 +167,11 @@ export async function reviseContent(env, { originalContent, originalSpeaking, or
 // ============================================================
 export async function generateContentVoice(env, { text, voiceName, plan, apiKey, model }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await callGeminiTTS(env, {
+  const tts = await generateSpeech(env, {
     text: String(text).trim(),
     voiceName: voiceName || 'Kore',
     apiKey,
-    model: await resolveModel(env, 'voice', plan, model),
+    model: await resolveModel(env, 'voice', plan, model, 'content.voice'), task: 'content.voice',
   });
   const wavBase64 = pcmToWavBase64(tts.data, 24000, 1, 16);
   return { data: wavBase64, mimeType: 'audio/wav' };
@@ -204,7 +204,7 @@ export async function generateContentVideo(env, { idea, contentType, generationL
     'ရလဒ်ကို အောက်ပါ JSON format အတိုင်းသာ ပြန်ပေးပါ (ရှင်းလင်းချက် မထည့်ပါနှင့်):',
     '{ "characters": [ { "name": "", "description": "" } ], "scenes": [ { "number": 1, "duration": 8, "visualPrompt": "", "description": "", "dialogue": "" } ] }',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model), prompt, apiKey });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'content.text'), task: 'content.text', prompt, apiKey });
   return parseContentVideoResponse(raw);
 }
 
@@ -213,8 +213,8 @@ export async function generateContentVideo(env, { idea, contentType, generationL
 // ============================================================
 export async function generateContentVideoImage(env, { prompt, plan, apiKey, model }) {
   if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return callGeminiImage(env, {
-    model: await resolveModel(env, 'image', plan, model),
+  return generateImage(env, {
+    model: await resolveModel(env, 'image', plan, model, 'content.image'), task: 'content.image',
     prompt: String(prompt).trim(),
     apiKey,
   });
@@ -233,8 +233,8 @@ export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, m
     'Character အရေအတွက် ရေတွက်၍ လုံးဝ မခွဲပါနှင့်။ ' +
     'အရမ်းတိုတို (စကားလုံး ၁-၂ လုံးတည်း) မဖြစ်စေရပါ။ ' +
     'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  const srt = await callGeminiMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model),
+  const srt = await generateMultimodal(env, {
+    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
     prompt: instruction,
     images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
     apiKey,
@@ -272,8 +272,8 @@ export async function translateContentSrt(env, { srtText, direction, apiKey, mod
     'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် (explanation) မထည့်ပါနှင့်။\n\n' +
     'SRT:\n' + String(srtText).trim();
 
-  const srt = await callGeminiText(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model),
+  const srt = await generateText(env, {
+    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
     prompt: instruction,
     apiKey,
   });
