@@ -95,8 +95,8 @@ export async function setAiModel(env, data) {
   const current = await getAiModels(env);
   const others = current.filter(m => m.category === category && m.id !== id && m.enabled && m.status === 'active');
   const exists = current.some(m => m.id === id);
-  if (!enable && others.length === 0) throw new Error('last_model');
-  if (!enable && !exists && others.length === 0) throw new Error('last_model');
+  if ((!enable || status !== 'active') && others.length === 0) throw new Error('last_model');
+  if (isDefault && (!enable || status !== 'active')) throw new Error('invalid_default');
   if (isDefault) await env.DB.prepare('UPDATE ai_models SET is_default=0 WHERE category=?').bind(category).run();
 
   try {
@@ -104,7 +104,9 @@ export async function setAiModel(env, data) {
       'INSERT INTO ai_models (id, name, category, enabled, is_default, plan_access, provider, capabilities_json, supported_tasks_json, status, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,datetime(\'now\')) ' +
       'ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, enabled=excluded.enabled, is_default=excluded.is_default, plan_access=excluded.plan_access, provider=excluded.provider, capabilities_json=excluded.capabilities_json, supported_tasks_json=excluded.supported_tasks_json, status=excluded.status, updated_at=excluded.updated_at'
     ).bind(id, name, category, enable ? 1 : 0, isDefault ? 1 : 0, planAccess, provider, JSON.stringify(capabilities), JSON.stringify(supportedTasks), status).run();
-  } catch (_) {
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (!/no such column|has no column named/i.test(message)) throw error;
     await env.DB.prepare(
       'INSERT INTO ai_models (id, name, category, enabled, is_default, plan_access, updated_at) VALUES (?,?,?,?,?,?,datetime(\'now\')) ' +
       'ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, enabled=excluded.enabled, is_default=excluded.is_default, plan_access=excluded.plan_access, updated_at=excluded.updated_at'
