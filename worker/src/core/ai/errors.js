@@ -9,7 +9,8 @@ export class AIServiceError extends Error {
   }
 }
 export function mapProviderHttpError(status,providerError=null,retryAfterMs=null) {
-  const detail=String(providerError?.status||providerError?.reason||providerError?.message||'').toLowerCase();
+  const payload=providerError?.error||providerError;
+  const detail=String(payload?.status||payload?.reason||payload?.message||'').toLowerCase();
   let code,retryable=false;
   if((status===403||status===429)&&/quota|resource_exhausted|billing/.test(detail)){code='quota_exceeded';retryable=status===429;}
   else if(STATUS_CODES[status])[code,retryable]=STATUS_CODES[status];
