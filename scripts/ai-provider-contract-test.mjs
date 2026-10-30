@@ -32,7 +32,7 @@ try{
  await assert.rejects(()=>generateText(makeDb({...base,supported_tasks_json:'["story.text"]'}),{model:base.id,prompt:'x',task:'content.text'}),e=>e.code==='task_not_supported');
  await assert.rejects(()=>generateText(makeDb({...base,capabilities_json:'[]'}),{model:base.id,prompt:'x',task:'story.text'}),e=>e.code==='capability_not_supported');
  const audioDb=makeDb({...base,capabilities_json:'["audio-transcription"]',supported_tasks_json:'["voice.transcribe"]'});
- assert.equal(await generateMultimodal(audioDb,{model:base.id,prompt:'transcribe',images:[{base64:'YXVkaW8=',mimeType:'audio/wav'}],task:'voice.transcribe'}),'contract response');
+ assert.equal(await generateMultimodal({...env,...audioDb},{model:base.id,prompt:'transcribe',images:[{base64:'YXVkaW8=',mimeType:'audio/wav'}],task:'voice.transcribe'}),'contract response');
  assert.equal(JSON.parse(requests.at(-1).options.body).contents[0].parts[1].inlineData.mimeType,'audio/wav');
  await assert.rejects(()=>generateText(env,{model:'gemini-3.5-flash-lite',prompt:'missing task'}),e=>e.code==='task_required');
  console.log('AI provider contracts: PASS');
