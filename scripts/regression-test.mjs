@@ -361,17 +361,22 @@ await check('GET /api/users/me → 401 (no token)', async () => {
 });
 
 console.log('— CMS prompt Admin authorization —');
+const cmsSend = (headers = {}, body = { studio: 'STORY', type: '1' }) => worker.fetch(new Request('https://test.local/api/cms/prompt', {
+  method: 'POST',
+  headers: { ...headers, 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+}), env, {});
 await check('POST /api/cms/prompt → 401 without token', async () => {
-  const r = await send('/api/cms/prompt', 'POST', {}, { studio: 'STORY', type: '1' });
+  const r = await cmsSend();
   return { ok: r.status === 401, msg: 'status=' + r.status };
 });
 await check('POST /api/cms/prompt → 401 for invalid token', async () => {
-  const r = await send('/api/cms/prompt', 'POST', { Authorization: 'Bearer not-a-valid-token' }, { studio: 'STORY', type: '1' });
+  const r = await cmsSend({ Authorization: 'Bearer not-a-valid-token' });
   return { ok: r.status === 401, msg: 'status=' + r.status };
 });
 await check('POST /api/cms/prompt → 403 for a valid non-Admin user', async () => {
   const token = await signToken(env, { sub: 'ordinary-user', email: 'user@example.com', plan: 'FREE' });
-  const r = await send('/api/cms/prompt', 'POST', { Authorization: 'Bearer ' + token }, { studio: 'SHOP', type: '5' });
+  const r = await cmsSend({ Authorization: 'Bearer ' + token }, { studio: 'SHOP', type: '5' });
   return { ok: r.status === 403, msg: 'status=' + r.status };
 });
 await check('POST /api/cms/prompt → Admin can read prompt; non-Admin cannot', async () => {
