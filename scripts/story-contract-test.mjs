@@ -133,11 +133,24 @@ try {
   // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
   const workerSource = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
+  const storyActionsSource = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
   assert.match(workerSource, /storyFacts:\s*body\.storyFacts/);
   assert.match(workerSource, /characterContinuity:\s*body\.characterContinuity/);
   assert.match(workerSource, /characterConsistency:\s*body\.characterConsistency/);
   assert.match(storySource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
   assert.match(storySource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
+
+  // Revision must invalidate facts extracted from the previous story version.
+  // Otherwise Video Plan can receive facts that contradict the revised story text.
+  const reviseAction = storyActionsSource.match(/function reviseStory\(\)\{([\s\S]*?)\n\}\nfunction addHistory/);
+  assert.ok(reviseAction, 'reviseStory action block should be discoverable');
+  const reviseActionBody = reviseAction[1];
+  const storyUpdateIndex = reviseActionBody.indexOf("currentStory=data.story||'';");
+  const factsClearIndex = reviseActionBody.indexOf('currentStoryFacts={};');
+  const autosaveIndex = reviseActionBody.indexOf('autoSave();');
+  assert.ok(storyUpdateIndex >= 0, 'successful revision must store the revised story');
+  assert.ok(factsClearIndex > storyUpdateIndex, 'stale Story Facts must be cleared after storing the revised story');
+  assert.ok(autosaveIndex > factsClearIndex, 'draft autosave must persist the revised story with cleared Story Facts');
 
   // Video response contract: repeated references to a character resolve to one stable ID.
   const videoPlan = parseStoryVideoResponse(JSON.stringify({

@@ -75,6 +75,9 @@ function reviseStory(){
     onChunk:function(t){rbox.appendChunk(t);},
     onDone:function(data){
       currentStory=data.story||'';
+      // Revised story no longer matches the facts extracted from the previous version.
+      // Clear stale facts so Video Plan derives context from the revised story text.
+      currentStoryFacts={};
       rbox.complete();
       addHistory('ai','ပြင်ဆင်ပြီးပါပြီ — အထက်က ဇာတ်လမ်းထဲမှာ ကြည့်ပါ');
       autoSave();
