@@ -747,8 +747,8 @@ export async function adminApi(request, path, env, verifyToken) {
     return json({ error: 'unauthorized', detail: 'login required' }, 401);
   }
   if (!user || !user.email) return json({ error: 'unauthorized', detail: 'login required' }, 401);
-  const adminEmail = env.ADMIN_EMAIL || '';
-  if (!adminEmail || String(user.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
+  const adminEmail = String(env.ADMIN_EMAIL || '').trim();
+  if (!adminEmail || String(user.email).trim().toLowerCase() !== adminEmail.toLowerCase()) {
     return json({ error: 'forbidden', detail: 'admin only' }, 403);
   }
 
