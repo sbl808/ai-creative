@@ -24,6 +24,7 @@ const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 class MockD1 {
   constructor(rows = {}) {
     this.rows = { ...rows, users: rows.users || {} };
+    this.cmsPrompts = rows.cmsPrompts || [];
     this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map();
     this.featureSettings = new Map(); this.studioSettings = new Map();
     this.planCatalog = new Map((rows.planCatalog || [
@@ -57,6 +58,15 @@ class MockD1 {
         return null;
       },
       async all() {
+        if (/FROM cms_prompts/.test(sql)) {
+          const [studio, plan, type] = this._args || [];
+          const results = self.cmsPrompts.filter(row =>
+            String(row.studio || '').toLowerCase() === String(studio || '').toLowerCase() &&
+            String(row.plan || '').toLowerCase() === String(plan || '').toLowerCase() &&
+            String(row.type || '') === String(type || '')
+          );
+          return { results: results.map(row => ({ ...row })) };
+        }
         if (/FROM plan_catalog/.test(sql)) {
           let items = [...self.planCatalog.values()];
           if (/WHERE enabled=1/.test(sql)) items = items.filter(row => Number(row.enabled) === 1);
@@ -348,6 +358,60 @@ await check('GET /api/users/me → 200 user (token)', async () => {
 await check('GET /api/users/me → 401 (no token)', async () => {
   const r = await get('/api/users/me');
   return { ok: r.status === 401, msg: `status=${r.status}` };
+});
+
+console.log('— CMS prompt Admin authorization —');
+// Use a local helper here so these tests do not depend on the later generic send() declaration.
+const cmsSend = (headers = {}, body = { studio: 'STORY', type: '1' }) => worker.fetch(new Request('https://test.local/api/cms/prompt', {
+  method: 'POST',
+  headers: { ...headers, 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+}), env, {});
+await check('POST /api/cms/prompt → 401 without token', async () => {
+  const r = await cmsSend();
+  return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+await check('POST /api/cms/prompt → 401 for invalid token', async () => {
+  const r = await cmsSend({ Authorization: 'Bearer not-a-valid-token' });
+  return { ok: r.status === 401, msg: 'status=' + r.status };
+});
+await check('POST /api/cms/prompt → 403 for a valid non-Admin user', async () => {
+  const token = await signToken(env, { sub: 'ordinary-user', email: 'user@example.com', plan: 'FREE' });
+  const r = await cmsSend({ Authorization: 'Bearer ' + token }, { studio: 'SHOP', type: '5' });
+  return { ok: r.status === 403, msg: 'status=' + r.status };
+});
+await check('POST /api/cms/prompt → Admin can read prompt; non-Admin cannot', async () => {
+  const prompt = {
+    studio: 'STORY', plan: 'FREE', type: '1',
+    core: 'CMS_PROMPT_AUTH_TEST_SENTINEL', memory: '', knowledge: '', workflow: '',
+    template: '', prompt: '', quality_check: '', final_output: '',
+  };
+  const db = new MockD1({ users: { 'user-1': { plan: 'FREE', expiry: null } }, cmsPrompts: [prompt] });
+  const testEnv = { ...env, DB: db };
+  const adminHeaders = await withToken();
+  const adminResponse = await worker.fetch(new Request('https://test.local/api/cms/prompt', {
+    method: 'POST', headers: { ...adminHeaders, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studio: 'STORY', type: '1' }),
+  }), testEnv, {});
+  const adminBody = await adminResponse.json();
+  const userToken = await signToken(testEnv, { sub: 'ordinary-user', email: 'user@example.com', plan: 'FREE' });
+  const userResponse = await worker.fetch(new Request('https://test.local/api/cms/prompt', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + userToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studio: 'STORY', type: '1' }),
+  }), testEnv, {});
+  const userBody = await userResponse.json();
+  return {
+    ok: adminResponse.status === 200 && adminBody.found === true &&
+      adminBody.system_prompt.includes('CMS_PROMPT_AUTH_TEST_SENTINEL') &&
+      userResponse.status === 403 && !JSON.stringify(userBody).includes('CMS_PROMPT_AUTH_TEST_SENTINEL'),
+    msg: 'admin=' + adminResponse.status + ' found=' + adminBody.found + ' user=' + userResponse.status,
+  };
+});
+await check('GET /cms-test stays unavailable in production', async () => {
+  const prodEnv = { ...env, ENVIRONMENT: 'prod' };
+  const r = await worker.fetch(new Request('https://test.local/cms-test'), prodEnv, {});
+  const body = await r.text();
+  return { ok: r.status !== 200 && !body.includes('<title>CMS Test</title>'), msg: 'status=' + r.status };
 });
 
 console.log('— BYOK API security contracts —');
