@@ -160,6 +160,19 @@ await check('Resolver rejects task-incompatible user choices and defaults', asyn
   return { ok: valid === 'gemini-3.5-flash-lite' && invalid === '', msg: `valid=${valid} invalid=${invalid}` };
 });
 
+await check('AI model API applies Studio task filtering', async () => {
+  const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());
+  const incompatible = await get('/api/ai-models?category=voice&task=story.text', await withToken());
+  const good = await compatible.json();
+  const bad = await incompatible.json();
+  return {
+    ok: compatible.status === 200 && incompatible.status === 200 &&
+      good.items.length > 0 && good.items.every(m => m.category === 'text') &&
+      bad.items.length === 0,
+    msg: `compatible=${good.items.length} incompatible=${bad.items.length}`,
+  };
+});
+
 console.log('— Plan Catalog validation —');
 await check('Plan Catalog keeps display data separate from permissions', async () => {
   const p = normalizePlanInput({ plan_key: 'PRO', name: 'PRO', features: ['More tools'] }, null);
