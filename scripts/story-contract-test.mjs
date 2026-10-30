@@ -41,6 +41,12 @@ class RouteMockD1 {
         }
         return { success: true };
       },
+      async all() {
+        if (sql.includes('SELECT studio_id, enabled FROM studio_settings')) {
+          return { results: ['story', 'content', 'short', 'image', 'voice', 'shop'].map(studio_id => ({ studio_id, enabled: 1 })) };
+        }
+        return { results: [] };
+      },
       async first() {
         if (sql.includes('SELECT attempts FROM api_generation_limits')) {
           const key = String(this.args[0]) + ':' + this.args[1];
