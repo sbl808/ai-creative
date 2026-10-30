@@ -32,6 +32,8 @@ jobs:
         run: node --experimental-default-type=module scripts/ai-provider-contract-test.mjs
       - name: Run AI error contract tests
         run: node --experimental-default-type=module scripts/ai-error-contract-test.mjs
+      - name: Run Story Studio API contract tests
+        run: node --experimental-default-type=module scripts/story-contract-test.mjs
 
   security:
     name: Security contracts
