@@ -77,22 +77,26 @@ async function callGeminiImage(env,{model,prompt,apiKey}){
   if(!image)throw new AIServiceError('invalid_provider_response','invalid_provider_response',{provider:'gemini'});
   return {data:image.inlineData.data,mimeType:image.inlineData.mimeType||'image/png'};
 }
-function validateMultimodalInputs(prompt,images){
+function validateMultimodalInputs(prompt,images,{allowAudio=false}={}){
   const MAX_PROMPT_CHARS=100000,MAX_IMAGES=5,MAX_IMAGE_CHARS=12*1024*1024,MAX_TOTAL_IMAGE_CHARS=20*1024*1024;
-  if(typeof prompt!=='string'||prompt.length>MAX_PROMPT_CHARS)throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
+  if(typeof prompt!=='string'||prompt.length>MAX_PROMPT_CHARS)throw new Error('prompt_too_large');
   const list=images==null?[]:images;
-  if(!Array.isArray(list)||list.length>MAX_IMAGES)throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
+  if(!Array.isArray(list))throw new Error('invalid_images');
+  if(list.length>MAX_IMAGES)throw new Error('too_many_images');
   let totalChars=0;
   for(const image of list){
-    const payload=image?.base64||image?.data,mimeType=image?.mimeType;
-    if(!image||typeof image!=='object'||typeof payload!=='string'||!payload.length||typeof mimeType!=='string'||(!mimeType.startsWith('image/')&&!mimeType.startsWith('audio/')))throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
-    if(payload.length>MAX_IMAGE_CHARS)throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
-    totalChars+=payload.length;if(totalChars>MAX_TOTAL_IMAGE_CHARS)throw new AIServiceError('invalid_request','invalid_request',{provider:'gemini'});
+    if(!image||typeof image!=='object')throw new Error('invalid_image');
+    const payload=image.base64||image.data,mimeType=image.mimeType;
+    if(typeof payload!=='string'||!payload.length||typeof mimeType!=='string'||
+       (!mimeType.startsWith('image/')&&!(allowAudio&&mimeType.startsWith('audio/'))))throw new Error('invalid_image');
+    if(payload.length>MAX_IMAGE_CHARS)throw new Error('image_too_large');
+    totalChars+=payload.length;
+    if(totalChars>MAX_TOTAL_IMAGE_CHARS)throw new Error('images_too_large');
   }
   return list;
 }
-async function callGeminiMultimodal(env,{model,prompt,images,apiKey}){
-  const key=requireApiKey(env,apiKey),validatedImages=validateMultimodalInputs(prompt,images),parts=[{text:prompt}];
+async function callGeminiMultimodal(env,{model,prompt,images,apiKey,task}){
+  const key=requireApiKey(env,apiKey),validatedImages=validateMultimodalInputs(prompt,images,{allowAudio:String(task||'').endsWith('.transcribe')}),parts=[{text:prompt}];
   for(const image of validatedImages)parts.push({inlineData:{mimeType:image.mimeType,data:image.base64||image.data}});
   const data=await requestGemini(GEMINI_BASE+'/models/'+model+':generateContent',key,{contents:[{parts}]});
   const output=(data.candidates?.[0]?.content?.parts||[]).map(part=>part.text||'').join('').trim();
