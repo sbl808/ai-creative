@@ -61,8 +61,8 @@ try {
 
   await assert.rejects(() => generateStory({}, { idea: '   ' }), /missing_idea/);
   await assert.rejects(
-    () => reviseStory({}, { instruction: 'make it warmer', currentStory: 'Once upon a time' }),
-    /missing_current_story|missing_instruction/,
+    () => reviseStory({}, { instruction: 'make it warmer' }),
+    /missing_current_story/,
   );
   await assert.rejects(
     () => reviseStory({}, { instruction: '   ', currentStory: 'Once upon a time' }),
