@@ -144,7 +144,13 @@ try {
   // Otherwise Video Plan can receive facts that contradict the revised story text.
   const reviseAction = storyActionsSource.match(/function reviseStory\(\)\{([\s\S]*?)\n\}\nfunction addHistory/);
   assert.ok(reviseAction, 'reviseStory action block should be discoverable');
-  assert.match(reviseAction[1], /currentStoryFacts=\{\};/, 'successful revision must clear stale Story Facts');
+  const reviseActionBody = reviseAction[1];
+  const storyUpdateIndex = reviseActionBody.indexOf("currentStory=data.story||'';");
+  const factsClearIndex = reviseActionBody.indexOf('currentStoryFacts={};');
+  const autosaveIndex = reviseActionBody.indexOf('autoSave();');
+  assert.ok(storyUpdateIndex >= 0, 'successful revision must store the revised story');
+  assert.ok(factsClearIndex > storyUpdateIndex, 'stale Story Facts must be cleared after storing the revised story');
+  assert.ok(autosaveIndex > factsClearIndex, 'draft autosave must persist the revised story with cleared Story Facts');
 
   // Video response contract: repeated references to a character resolve to one stable ID.
   const videoPlan = parseStoryVideoResponse(JSON.stringify({
