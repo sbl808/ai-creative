@@ -25,7 +25,7 @@ try{
  assert.equal(await generateMultimodal(env,{model:'gemini-3.5-flash-lite',prompt:'describe',images:[{base64:'aW1hZ2U=',mimeType:'image/png'}],task:'story.text'}),'contract response');
  assert.equal(JSON.parse(requests.at(-1).options.body).contents[0].parts[1].inlineData.mimeType,'image/png');
  assert.deepEqual(await generateSpeech(env,{model:'gemini-2.5-flash-preview-tts',text:'hello',task:'voice.voice'}),{data:'YXVkaW8=',mimeType:'audio/L16;rate=24000'});
- assert.equal(await callGeminiText(env,{model:'gemini-3.5-flash-lite',prompt:'legacy'}),'contract response');assert.equal(validateMultimodalInputs('prompt',[]).length,0);
+ assert.equal(await callGeminiText(env,{model:'gemini-3.5-flash-lite',prompt:'legacy',task:'story.text'}),'contract response');assert.equal(validateMultimodalInputs('prompt',[]).length,0);
  await assert.rejects(()=>generateText(makeDb({...base,provider:'not-registered'}),{model:base.id,prompt:'x',task:'story.text'}),e=>e.code==='provider_not_supported');
  await assert.rejects(()=>generateText(makeDb({...base,enabled:0,status:'deprecated'}),{model:base.id,prompt:'x',task:'story.text'}),e=>e.code==='model_deprecated');
  await assert.rejects(()=>generateText(env,{model:'unknown-model',prompt:'x',task:'story.text'}),e=>e.code==='model_not_found');
