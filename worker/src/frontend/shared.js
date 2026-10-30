@@ -437,7 +437,7 @@ export function sidebarScript() {
     '    (function (sel) {\n' +
     '      var cat = sel.getAttribute(\'data-category\') || \'text\';\n' +
     '      var pathParts = window.location.pathname.split(\'/\');\n' +
-    '      var studio = pathParts[pathParts.length - 1] || \'\';\n' +
+    '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
     '      var task = studio + \'.\' + cat;\n' +
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
