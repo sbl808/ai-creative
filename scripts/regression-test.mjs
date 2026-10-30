@@ -361,6 +361,7 @@ await check('GET /api/users/me → 401 (no token)', async () => {
 });
 
 console.log('— CMS prompt Admin authorization —');
+// Use a local helper here so these tests do not depend on the later generic send() declaration.
 const cmsSend = (headers = {}, body = { studio: 'STORY', type: '1' }) => worker.fetch(new Request('https://test.local/api/cms/prompt', {
   method: 'POST',
   headers: { ...headers, 'Content-Type': 'application/json' },
