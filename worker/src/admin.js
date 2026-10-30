@@ -740,7 +740,12 @@ export async function adminApi(request, path, env, verifyToken) {
     if (m) token = decodeURIComponent(m[1]);
   }
   if (!token) return json({ error: 'unauthorized', detail: 'login required' }, 401);
-  const user = await verifyToken(env, token);
+  let user = null;
+  try {
+    user = await verifyToken(env, token);
+  } catch (_) {
+    return json({ error: 'unauthorized', detail: 'login required' }, 401);
+  }
   if (!user || !user.email) return json({ error: 'unauthorized', detail: 'login required' }, 401);
   const adminEmail = env.ADMIN_EMAIL || '';
   if (!adminEmail || String(user.email).toLowerCase() !== String(adminEmail).toLowerCase()) {
