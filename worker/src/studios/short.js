@@ -12,7 +12,7 @@
 // Shared core များသာ ခေါ်သည် (core/cms.js, core/ai.js, core/aiModels.js) — Story နှင့် မမှီခိုပါ။
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { callGeminiText, callGeminiImage, callGeminiMultimodal } from '../core/ai.js';
+import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'SHORT';
@@ -39,7 +39,7 @@ export async function generateShort(env, { idea, type, plan, apiKey, model, onCh
     '4. Call To Action ဖြင့် အဆုံးသတ်ပါ။',
     '5. Short Script စာသားကိုသာ ပြန်ပေးပါ — ရှင်းလင်းချက် (Explanation) မထည့်ပါနှင့်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey, onChunk });
   return { short: raw ? raw.trim() : '' };
 }
 
@@ -67,7 +67,7 @@ export async function reviseShort(env, { idea, type, currentShort, instruction, 
       'Short Video ပုံစံ (Hook → လျင်မြန်သော အရှိန် → CTA) ကို ဆက်ထိန်းပါ။ ' +
       'Script စာသားကိုသာ ပြန်ပေးပါ — ရှင်းလင်းချက် မထည့်ပါနှင့်။',
   ].filter(Boolean).join('\n');
-  const raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey, onChunk });
   return { short: raw ? raw.trim() : '' };
 }
 
@@ -129,7 +129,7 @@ export async function generateShortVideoPlan(env, {
   ].filter(Boolean).join('\n');
 
   const raw = images && images.length
-    ? await callGeminiMultimodal(env, {
+    ? await generateMultimodal(env, {
         model: await resolveModel(env, 'text', plan, model, 'short.text'),
         prompt,
         images: images.map(function (img) {
@@ -137,7 +137,7 @@ export async function generateShortVideoPlan(env, {
         }),
         apiKey,
       })
-    : await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey });
+    : await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'short.text'), prompt, apiKey });
 
   return parseShortVideoResponse(raw, scDur);
 }
@@ -147,7 +147,7 @@ export async function generateShortVideoPlan(env, {
 // ============================================================
 export async function generateShortVideoImage(env, { prompt, apiKey, model, plan }) {
   if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return callGeminiImage(env, {
+  return generateImage(env, {
     model: await resolveModel(env, 'image', plan, model, 'short.image'),
     prompt: String(prompt).trim(),
     apiKey,

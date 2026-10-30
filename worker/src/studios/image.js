@@ -6,7 +6,7 @@
 // ရှိပြီးသား API contract (prompt field) ကို မပျက်စေဘဲ map field ထပ်ဖြည့်သည်။
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { callGeminiText, callGeminiImage, callGeminiMultimodal } from '../core/ai.js';
+import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_IMAGE = 'IMAGE';
@@ -86,9 +86,9 @@ export async function generateImagePrompt(env, { idea, type, plan, apiKey, image
       'ဒီပုံများထဲက အဓိကအင်္ဂါရပ်များ (မျက်နှာ/ပုံပန်းသဏ္ဌာန်/ဝတ်စုံ/ပတ်ဝန်းကျင်/အရောင်) ' +
       'ကို လေ့လာပြီး အထက်ပါ JSON ရှိ subject/environment စသည့် အပိုင်းများတွင် ' +
       'ထည့်သွင်းပါ — JSON ပုံစံအတိုင်းသာ ပြန်ထုတ်ပါ။)';
-    raw = await callGeminiMultimodal(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, images, apiKey });
+    raw = await generateMultimodal(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, images, apiKey });
   } else {
-    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, apiKey, onChunk });
+    raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, apiKey, onChunk });
   }
 
   const parsed = parseImageMap(raw);
@@ -112,9 +112,9 @@ export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, ima
       'ဒီပုံများထဲက ကုန်ပစ္စည်း/Product ရဲ့ တကယ့် အရောင်/ပုံသဏ္ဌာန်/Design ကို လေ့လာပြီး ' +
       'ကြော်ငြာပုံ Prompt ရေးတဲ့အခါ ပုံနှင့် ကိုက်ညီအောင် တိကျစွာ ထည့်သွင်းရေးပါ။ PRODUCT/AD ' +
       'DESCRIPTION Text ထက် ပုံအစစ်ကို ဦးစားပေး ကိုးကားပါ။)';
-    raw = await callGeminiMultimodal(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, images, apiKey });
+    raw = await generateMultimodal(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, images, apiKey });
   } else {
-    raw = await callGeminiText(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, apiKey, onChunk });
+    raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'image.text'), prompt, apiKey, onChunk });
   }
   return { prompt: raw ? raw.trim() : '' };
 }
@@ -122,5 +122,5 @@ export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, ima
 // Tab 1 & 2 — Image Prompt (Text) ကို အခြေခံပြီး AI ပုံအစစ် ထုတ်ခြင်း — မပြောင်း
 export async function generateImageFromPrompt(env, { prompt, apiKey, model, plan }) {
   if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return callGeminiImage(env, { model: await resolveModel(env, 'image', plan, model, 'image.image'), prompt: String(prompt).trim(), apiKey });
+  return generateImage(env, { model: await resolveModel(env, 'image', plan, model, 'image.image'), prompt: String(prompt).trim(), apiKey });
 }

@@ -10,7 +10,7 @@
  */
 import { signToken } from '../worker/src/core/auth.js';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
-import { listEnabledModels, resolveModel } from '../worker/src/core/aiModels.js';
+import { listEnabledModels, resolveModel, getAiModelById, resolveAiModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
@@ -159,6 +159,16 @@ await check('Resolver rejects task-incompatible user choices and defaults', asyn
   const invalid = await resolveModel({}, 'voice', 'FREE', 'gemini-2.5-flash-preview-tts', 'story.text');
   return { ok: valid === 'gemini-3.5-flash-lite' && invalid === '', msg: `valid=${valid} invalid=${invalid}` };
 });
+await check('AI model metadata resolver exposes provider and enforces active task support', async () => {
+  const model = await getAiModelById({}, 'gemini-3.5-flash-lite');
+  const compatible = await resolveAiModel({}, 'gemini-3.5-flash-lite', 'story.text');
+  const incompatible = await resolveAiModel({}, 'gemini-3.5-flash-lite', 'voice.voice');
+  return {
+    ok: model?.provider === 'gemini' && compatible?.id === model.id && incompatible === null,
+    msg: 'provider=' + model?.provider + ' compatible=' + !!compatible + ' incompatible=' + !!incompatible,
+  };
+});
+
 
 await check('AI model API applies Studio task filtering', async () => {
   const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());

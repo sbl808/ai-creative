@@ -133,3 +133,16 @@ export async function deleteAiModel(env, id) {
   await env.DB.prepare('DELETE FROM ai_models WHERE id=?').bind(id).run();
   return { ok: true };
 }
+
+export async function getAiModelById(env, modelId) {
+  const id = String(modelId || '').trim();
+  if (!id) return null;
+  const models = await getAiModels(env);
+  return models.find(model => model.id === id) || null;
+}
+export async function resolveAiModel(env, modelId, task) {
+  const model = await getAiModelById(env, modelId);
+  if (!model || !model.enabled || model.status !== 'active') return null;
+  if (task && !model.supported_tasks.includes(task)) return null;
+  return model;
+}

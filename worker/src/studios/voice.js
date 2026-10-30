@@ -4,7 +4,7 @@
 // Shared Logic (AI Call, CMS, WAV) ကို core/ မှ ခေါ်သုံးသည်။
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { callGeminiText, callGeminiMultimodal, callGeminiTTS } from '../core/ai.js';
+import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 import { pcmToWavBase64 } from '../core/utilities.js';
 
@@ -16,7 +16,7 @@ const CMS_STUDIO = 'VOICE';
 // ============================================================
 export async function generateVoiceAudio(env, { text, voiceName, apiKey, model, plan }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await callGeminiTTS(env, {
+  const tts = await generateSpeech(env, {
     text: String(text).trim(),
     voiceName: voiceName || 'Kore',
     apiKey,
@@ -37,7 +37,7 @@ export async function transcribeAudio(env, { audioBase64, mimeType, type, plan, 
   const prompt = system
     ? (system + '\n\nအထက်ပါ instruction အတိုင်း အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။')
     : 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။';
-  const text = await callGeminiMultimodal(env, {
+  const text = await generateMultimodal(env, {
     model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'),
     prompt,
     images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
@@ -107,7 +107,7 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
 
   const instruction = buildVoiceSrtInstruction(lineRule, knownText);
 
-  const srt = await callGeminiMultimodal(env, {
+  const srt = await generateMultimodal(env, {
     model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'),
     prompt: instruction,
     images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
@@ -147,6 +147,6 @@ export async function translateVoiceSrt(env, { srtText, direction, type, plan, a
     'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် (explanation) မထည့်ပါနှင့်။\n\n' +
     'SRT:\n' + String(srtText).trim();
 
-  const srt = await callGeminiText(env, { model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), prompt: instruction, apiKey });
+  const srt = await generateText(env, { model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), prompt: instruction, apiKey });
   return { srt };
 }
