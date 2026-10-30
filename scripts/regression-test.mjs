@@ -10,6 +10,7 @@
  */
 import { signToken } from '../worker/src/core/auth.js';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
+import { listEnabledModels, resolveModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
@@ -142,6 +143,23 @@ const withToken = async (extra = {}) => {
 };
 
 // ---------------------------------------------------------------- tests
+console.log('— AI model task compatibility —');
+await check('Model dropdown filters by Studio task and category', async () => {
+  const story = await listEnabledModels({}, 'text', 'FREE', 'story.text');
+  const voice = await listEnabledModels({}, 'voice', 'FREE', 'voice.voice');
+  const incompatible = await listEnabledModels({}, 'voice', 'FREE', 'story.text');
+  return {
+    ok: story.length > 0 && story.every(m => m.category === 'text' && m.supported_tasks.includes('story.text')) &&
+      voice.length > 0 && voice.every(m => m.supported_tasks.includes('voice.voice')) && incompatible.length === 0,
+    msg: `story=${story.length} voice=${voice.length} incompatible=${incompatible.length}`,
+  };
+});
+await check('Resolver rejects task-incompatible user choices and defaults', async () => {
+  const valid = await resolveModel({}, 'text', 'FREE', 'gemini-3.5-flash-lite', 'story.text');
+  const invalid = await resolveModel({}, 'voice', 'FREE', 'gemini-2.5-flash-preview-tts', 'story.text');
+  return { ok: valid === 'gemini-3.5-flash-lite' && invalid === '', msg: `valid=${valid} invalid=${invalid}` };
+});
+
 console.log('— Plan Catalog validation —');
 await check('Plan Catalog keeps display data separate from permissions', async () => {
   const p = normalizePlanInput({ plan_key: 'PRO', name: 'PRO', features: ['More tools'] }, null);
