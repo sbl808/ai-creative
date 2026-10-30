@@ -648,7 +648,8 @@ export default {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const plan = await resolvePlan(env, payload);
         const cat = url.searchParams.get('category') || '';
-        const items = await listEnabledModels(env, cat || undefined, plan);
+        const task = String(url.searchParams.get('task') || '').trim().slice(0, 80);
+        const items = await listEnabledModels(env, cat || undefined, plan, task || undefined);
         return json({
           ok: true,
           items: items.map((m) => ({ id: m.id, name: m.name, category: m.category, plan_access: m.plan_access })),
