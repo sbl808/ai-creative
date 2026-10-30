@@ -133,11 +133,11 @@ try {
   // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
   const workerSource = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
-  assert.match(workerSource, /storyFacts:\\s*body\\.storyFacts/);
-  assert.match(workerSource, /characterContinuity:\\s*body\\.characterContinuity/);
-  assert.match(workerSource, /characterConsistency:\\s*body\\.characterConsistency/);
-  assert.match(storySource, /const factsBlock = buildStoryFactsBlock\\(storyFacts\\)/);
-  assert.match(storySource, /STORY FACTS \\(structured — video အတွက် လိုအပ်သော facts သာ\\)/);
+  assert.match(workerSource, /storyFacts:\s*body\.storyFacts/);
+  assert.match(workerSource, /characterContinuity:\s*body\.characterContinuity/);
+  assert.match(workerSource, /characterConsistency:\s*body\.characterConsistency/);
+  assert.match(storySource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
+  assert.match(storySource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
 
   // Video response contract: repeated references to a character resolve to one stable ID.
   const videoPlan = parseStoryVideoResponse(JSON.stringify({
