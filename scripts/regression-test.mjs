@@ -9,6 +9,7 @@
  * Run: node --experimental-default-type=module scripts/regression-test.mjs
  */
 import { signToken } from '../worker/src/core/auth.js';
+import { readFile } from 'node:fs/promises';
 import { checkFeature } from '../worker/src/core/featureSettings.js';
 import { listEnabledModels, resolveModel, getAiModelById, resolveAiModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
@@ -756,6 +757,17 @@ for (const [slug, exp] of [['story', 'STORY_HTML'], ['content', 'CONTENT_HTML'],
     const okType = typeof mod[exp] === 'string';
     return { ok: okType && mod[exp] === pageMod[exp], msg: `type=${typeof mod[exp]}` };
   });
+}
+
+
+console.log('— AI Studio task forwarding contracts —');
+const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
+for(const [studio,tasks] of Object.entries(studioTaskContracts)){
+ await check(studio+' forwards task IDs to the AI Service',async()=>{
+  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
+  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
+ });
 }
 
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');

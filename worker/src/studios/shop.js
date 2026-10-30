@@ -35,12 +35,12 @@ export async function generateShopContent(env, { idea, type, plan, apiKey, image
   if (imgList.length > 0) {
     prompt += referenceImageInstruction(imgList, 'product');
     const raw = await generateMultimodal(env, {
-      model: await resolveModel(env, 'text', plan, model, 'shop.text'), prompt, images: imgList, apiKey,
+      model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text', prompt, images: imgList, apiKey,
     });
     return parseContentResponse(raw);
   }
 
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text', prompt, apiKey, onChunk });
   return parseContentResponse(raw);
 }
 
@@ -57,7 +57,7 @@ export async function reviseShopContent(env, { idea, type, currentContent, instr
   prompt += 'လက်ရှိ Content:\n' + currentContent + '\n\n';
   prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
   prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း Content ကို ပြင်ဆင်ပါ။ Content အပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), prompt, apiKey, onChunk });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text', prompt, apiKey, onChunk });
   return parseContentResponse(raw);
 }
 
@@ -95,12 +95,12 @@ export async function generateShopVideo(env, { idea, type, plan, apiKey, images,
   if (imgList.length > 0) {
     prompt += referenceImageInstruction(imgList, 'product');
     const raw = await generateMultimodal(env, {
-      model: await resolveModel(env, 'text', plan, model, 'shop.text'), prompt, images: imgList, apiKey,
+      model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text', prompt, images: imgList, apiKey,
     });
     return parseShopVideoResponse(raw);
   }
 
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), prompt, apiKey });
+  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text', prompt, apiKey });
   return parseShopVideoResponse(raw);
 }
 
@@ -116,7 +116,7 @@ export async function generateShopVideoImage(env, { prompt, apiKey, model, plan,
   if (imgList.length > 0) {
     try {
       const desc = await generateMultimodal(env, {
-        model: await resolveModel(env, 'text', plan, model, 'shop.text'),
+        model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text',
         prompt: finalPrompt + '\n\n' + referenceImageInstruction(imgList, 'product') +
           '\n\nအထက်ပါ product reference ပုံများနှင့် ကိုက်ညီသော image generation prompt တစ်ခုတည်းကိုသာ ပြန်ပေးပါ။ (Return only the final image prompt, no extra text.)',
         images: imgList,
@@ -128,7 +128,7 @@ export async function generateShopVideoImage(env, { prompt, apiKey, model, plan,
     }
   }
   const out = await generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'shop.image'),
+    model: await resolveModel(env, 'image', plan, model, 'shop.image'), task: 'shop.image',
     prompt: finalPrompt,
     apiKey,
   });

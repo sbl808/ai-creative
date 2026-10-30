@@ -30,6 +30,8 @@ jobs:
         run: node --experimental-default-type=module scripts/ideas-contract-test.mjs
       - name: Run AI provider contract tests
         run: node --experimental-default-type=module scripts/ai-provider-contract-test.mjs
+      - name: Run AI error contract tests
+        run: node --experimental-default-type=module scripts/ai-error-contract-test.mjs
 
   security:
     name: Security contracts
