@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import worker from '../worker/src/index.js';
 import { signToken } from '../worker/src/core/auth.js';
 import {
@@ -6,6 +7,7 @@ import {
   generateStory,
   generateStoryVideoPlan,
   parseStoryWithFacts,
+  parseStoryVideoResponse,
   reviseStory,
 } from '../worker/src/studios/story.js';
 
@@ -127,6 +129,35 @@ try {
   assert.equal(buildStoryFactsBlock({ internalPrompt: 'not a supported story fact' }), '');
   assert.equal(buildStoryFactsBlock(null), '');
   assert.equal(buildStoryFactsBlock('not an object'), '');
+
+  // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
+  const workerSource = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
+  assert.match(workerSource, /storyFacts:\\s*body\\.storyFacts/);
+  assert.match(workerSource, /characterContinuity:\\s*body\\.characterContinuity/);
+  assert.match(workerSource, /characterConsistency:\\s*body\\.characterConsistency/);
+  assert.match(storySource, /const factsBlock = buildStoryFactsBlock\\(storyFacts\\)/);
+  assert.match(storySource, /STORY FACTS \\(structured — video အတွက် လိုအပ်သော facts သာ\\)/);
+
+  // Video response contract: repeated references to a character resolve to one stable ID.
+  const videoPlan = parseStoryVideoResponse(JSON.stringify({
+    characters: [
+      { id: 'char_01', name: 'Mina', role: 'helper', characterPrompt: 'Blue scarf' },
+      { id: 'char_02', name: 'Fox', role: 'lost animal', characterPrompt: 'Red fur' },
+    ],
+    scenes: [
+      { id: 'scene_01', number: 1, title: 'Forest', characterIds: ['Mina', 'Fox'], videoPrompt: 'Mina meets Fox' },
+      { id: 'scene_02', number: 2, title: 'Lantern', characterIds: ['char_01'], videoPrompt: 'Mina lights a lantern' },
+      { id: 'scene_03', number: 3, title: 'Return', characterIds: [], videoPrompt: 'Mina walks home with Fox' },
+    ],
+  }));
+  assert.deepEqual(videoPlan.characters.map(ch => ch.id), ['char_01', 'char_02']);
+  assert.deepEqual(videoPlan.scenes.map(scene => scene.characterIds), [
+    ['char_01', 'char_02'],
+    ['char_01'],
+    ['char_01', 'char_02'],
+  ]);
+  assert.equal(videoPlan.scenes[0].videoPrompt, 'Mina meets Fox');
 
   await assert.rejects(() => generateStory({}, { idea: '   ' }), /missing_idea/);
   await assert.rejects(
