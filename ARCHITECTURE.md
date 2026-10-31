@@ -7,7 +7,7 @@ Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product. T
 ```
 Browser ──▶ Cloudflare Worker (index.js)
                 ├── middleware/ (CORS, request-size and AI rate guards)
-                ├── routes/ (Projects + six Studio API route modules)
+                ├── routes/ (Auth, Plans, Users, AI Models, BYOK, AI Test, CMS, Ideas, Generic Studio, Projects + six Studio API modules)
                 ├── admin/ (Admin UI + Admin API)
                 ├── frontend/ (Home + shared pages + six Studio UIs)
                 ├── core/ services (auth, ai, cms, projects, settings, usage, …)
@@ -64,7 +64,7 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 
 ## 4. Backend request flow (personalization & security)
 
-1. **Routing** — `index.js` runs the shared middleware, then dispatches Projects to `routes/projects.routes.js` and Studio APIs to `routes/studios/<slug>.routes.js`. Auth/user and generic API routes are still handled in `index.js` as an incremental migration step.
+1. **Routing** — `index.js` runs the shared middleware and dispatches API groups to `routes/*.routes.js`; the route modules delegate business logic to `core/` or `studios/` services. HTML page rendering and final 404 handling remain in the Worker entry point.
 2. **Auth** — `/api/auth/login` → Google OAuth → JWT (7-day). `/api/users/me` returns the current user + settings + preferences + studio settings + admin flag.
 3. **Role check** — Admin routes (`/admin`, `/api/admin/*`) verify server-side role (`USER` / `ADMIN` / `SUPER_ADMIN`), never trusting frontend flags.
 4. **Studio gate** — Studio page/API checks `isStudioEnabled(env, id)`; a disabled studio is rejected **server-side** (403), not just hidden. Studio **page** routes match only under `/app/*` (Phase 7 fix: an admin API path like `/api/admin/studios/shop` is never intercepted as a studio page).
@@ -76,8 +76,12 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 
 - `middleware/cors.js` owns the per-request CORS policy.
 - `middleware/requestGuards.js` owns API body-size checks and the shared AI generation rate-limit guard.
+- `routes/auth.routes.js` owns Google OAuth callback/login, cookie session, email/password signup, signin, and logout API endpoints.
+- `routes/plans.routes.js`, `routes/users.routes.js`, and `routes/aiModels.routes.js` own plan catalog, user profile/settings, and user-facing AI model list endpoints.
+- `routes/byok.routes.js`, `routes/ai.routes.js`, `routes/cms.routes.js`, and `routes/ideas.routes.js` own BYOK, AI connection test, CMS prompt, and Idea generation endpoints.
+- `routes/studio.routes.js` owns the backward-compatible generic Studio endpoint.
 - `routes/projects.routes.js` owns `/api/projects` while preserving the existing authentication and response contract.
-- `routes/studios/{content,story,short,image,voice,shop}.routes.js` own the corresponding Studio API endpoint groups. Their business logic remains in `studios/*.js` and shared services remain in `core/`.
+- `routes/studios/{content,story,short,image,voice,shop}.routes.js` own the six dedicated Studio API endpoint groups. Their business logic remains in `studios/*.js` and shared services remain in `core/`.
 - `admin/ui.js` and `admin/api.js` separate the Admin page template from Admin API handlers. `admin.js` re-exports both for existing imports.
 - `frontend/home.js` owns the app home template. `frontend.js` re-exports `APP_HTML` for existing imports.
 - This is an incremental modularization: authentication/user routes and generic API endpoints still live in `index.js`; do not claim they have been extracted yet.
