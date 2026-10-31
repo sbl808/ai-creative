@@ -37,7 +37,18 @@
 |---|---|---|---|---|
 | 1 | Studio parser functions (JSON.parse + field extraction) | studios/{story,short,shop}.js | KEEP (already isolated) | Functionality မပြောင်း — future: `studios/<slug>/helpers.js` သို့ MOVE နိုင် |
 | 2 | `json(...)` / `friendlyError(...)` helpers | index.js (single) | KEEP | Router တစ်နေရာတည်း — duplicate မရှိ |
-| 3 | `verifyTokenSafe` pattern (index.js + admin.js) | 2 | MERGE (NEXT) | admin.js ကို core/auth.js မှ သုံးအောင် ပြောင်းနိုင် — V2 မလို |
+| 3 | `verifyTokenSafe` pattern (index.js + admin/api.js) | 2 | KEEP (separate route boundaries) | Admin API keeps its own server-side verification path; review for shared helper only if contracts remain identical |
+
+
+## 3A. Backend Route Ownership (Option B)
+
+| Route group | Before | Current owner | Result |
+|---|---|---|---|
+| Projects API | Direct handlers in `index.js` plus an unused `routes/projects.routes.js` implementation | `routes/projects.routes.js` | Duplicate handler removed from `index.js`; the route module now imports `core/projects.js` and is dispatched by the Worker entry |
+| Six dedicated Studio APIs | Handler branches in `index.js` | `routes/studios/<slug>.routes.js` | Each Studio API group has a separate route module; business logic remains in `studios/<slug>.js` |
+| Auth / Users / BYOK / AI / CMS / Ideas / Plans | Handler branches in `index.js` | Corresponding `routes/*.routes.js` modules | Route ownership extracted; existing endpoints and helper contracts are retained |
+| Admin UI / Admin API | Combined in `admin.js` | `admin/ui.js` + `admin/api.js` | `admin.js` remains a compatibility export |
+| App Home | `frontend.js` | `frontend/home.js` | `frontend.js` remains a compatibility export |
 
 ## 4. Legacy / Unused (DELETE LATER — test ပြီးမှ)
 
