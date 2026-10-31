@@ -170,11 +170,12 @@ const localStorage = {
     return key === 'aics_token' ? activeToken : null;
   }
 };
-const window = {};
+const indexedDB = { open: () => fakeIndexedDB.open() };
+const window = { indexedDB };
 const context = {
   window,
   localStorage,
-  indexedDB: { open: () => fakeIndexedDB.open() },
+  indexedDB,
   atob: (value) => Buffer.from(value, 'base64').toString('binary'),
   Date,
   Math,
