@@ -2,7 +2,7 @@ import { generateShopContent, reviseShopContent, generateShopVideo, generateShop
 
 export async function handleShopStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
 
       // ===== Shop Studio — Tab 1: Generate =====
       if (path === '/api/studio/shop/content/generate' && request.method === 'POST') {
