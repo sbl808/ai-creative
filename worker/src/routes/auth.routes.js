@@ -18,23 +18,13 @@ function createOAuthNonce() {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(32)));
 }
 
-function safeOAuthRedirect(next, requestOrigin, env = {}) {
-  const allowedOrigins = new Set([requestOrigin]);
-  for (const value of String(env.ALLOWED_ORIGINS || '').split(',')) {
-    const candidate = value.trim();
-    if (!candidate) continue;
-    try {
-      const parsed = new URL(candidate);
-      if ((parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
-          parsed.origin === candidate.replace(/\/$/, '') &&
-          !parsed.username && !parsed.password) allowedOrigins.add(parsed.origin);
-    } catch (_) {}
-  }
-
+function safeOAuthRedirect(next, requestOrigin) {
+  // The session cookie is host-only. Keep OAuth completion on the same origin
+  // so the browser can use that cookie after returning from Google.
   try {
     const target = new URL(String(next || '/app'), requestOrigin);
     if (target.protocol !== 'https:' && target.protocol !== 'http:') return requestOrigin + '/app';
-    if (target.username || target.password || !allowedOrigins.has(target.origin)) return requestOrigin + '/app';
+    if (target.username || target.password || target.origin !== requestOrigin) return requestOrigin + '/app';
     if (target.protocol === 'http:' && target.hostname !== 'localhost' && target.hostname !== '127.0.0.1') {
       return requestOrigin + '/app';
     }
