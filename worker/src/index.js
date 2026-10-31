@@ -766,7 +766,7 @@ export default {
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
-        const studioApiId = (path.match(/^\\/api\\/studio\\/(story|content|short|image|voice|shop)\\//) || [])[1];
+        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop)\//) || [])[1];
         if (studioApiId) {
           const enabled = await isStudioEnabled(env, studioApiId);
           if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
