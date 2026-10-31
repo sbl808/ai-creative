@@ -2,16 +2,18 @@
 
 ## 1. System overview
 
-Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product — it handles routing, renders HTML pages, exposes the JSON API, checks auth/roles/plans/features, and talks to **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). GitHub Actions deploys the Worker and applies D1 migrations.
+Single Cloudflare **Worker** (`worker/src/index.js`) serves the whole product. The entry point coordinates request middleware and dispatches the dedicated Studio and Project route modules; legacy auth/user and generic API handlers remain in the entry point during incremental extraction. The app renders HTML pages and exposes the JSON API, using **Cloudflare D1** (SQLite) and the **Gemini API** (directly, or via the user's **BYOK** key). GitHub Actions CI runs repository checks; this workflow does not deploy.
 
 ```
 Browser ──▶ Cloudflare Worker (index.js)
-                │  routes /app/* pages  │  /api/* JSON  │  /admin  │  /api/admin/*
-                ├── core/ services (auth, ai, cms, projects,
-                │         settings, usage, studioSettings, featureSettings, adminLogs)
+                ├── middleware/ (CORS, request-size and AI rate guards)
+                ├── routes/ (Projects + six Studio API route modules)
+                ├── admin/ (Admin UI + Admin API)
+                ├── frontend/ (Home + shared pages + six Studio UIs)
+                ├── core/ services (auth, ai, cms, projects, settings, usage, …)
                 ├── studios/ (story, content, short, image, voice, shop)
                 └── config/ (STUDIO_REGISTRY, FEATURE_REGISTRY, AI_MODEL_REGISTRY)
-                │  ──▶ D1 (migrations 001–012)
+                │  ──▶ D1 (migrations 001–017)
                 │  ──▶ Gemini API (built-in key OR user BYOK key)
 ```
 
@@ -37,7 +39,7 @@ AI CREATIVE STUDIO
 │   ├── Studio Settings (studioSettings.js)
 │   ├── Feature / Free-Pro (featureSettings.js)
 │   └── CMS / Prompt (cms.js), Utilities (utilities.js), Admin Logs (adminLogs.js)
-└── ADMIN APP (admin.js + /api/admin/*)
+└── ADMIN APP (`admin/ui.js` + `admin/api.js`; `admin.js` remains a compatibility entry)
     ├── Dashboard · Users · Studios · Features · Usage · Logs · CMS · …
 ```
 
@@ -49,12 +51,12 @@ Every page is rendered server-side by `index.js` from a JS template module in `w
 
 | Route | Module | Purpose |
 |---|---|---|
-| `/` | `frontend.js` | Home — greeting, hero banner, 6 Studio cards, recent projects, API-key pill |
+| `/` | `frontend/home.js` (re-exported by `frontend.js`) | Home — greeting, hero banner, 6 Studio cards, recent projects, API-key pill |
 | `/app/story` `/app/content` `/app/short` `/app/image` `/app/voice` `/app/shop` | `frontend/studios/<slug>/` packages, lazy-loaded via `frontend/studioPages.js` (`getStudioPage`) — root `frontend/{story,content,short,image,voice,shop}.js` are back-compat shims | Studio UIs (V2 modular: page/ui/state/constants/helpers/actions/stepper/shell/…) |
 | `/app/creations` | `frontend/creations.js` | My Creations (filter/sort/search/favorite) — reads/writes **IndexedDB only** (Phase 13) |
 | `/app/settings` | `frontend/settings.js` | Profile / Preferences / API Key tabs |
 | `/app/projects` | `frontend/projects.js` | Projects |
-| `/admin` | `admin.js` | Admin panel (light theme, separate) |
+| `/admin` | `admin/ui.js` (re-exported by `admin.js`) | Admin panel (light theme, separate) |
 
 Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUND`; known studio whose module fails to load → `500 STUDIO_PAGE_LOAD_FAILED` (module errors are never reported as 404; the server log records slug + message + error id, and the user never sees a stack trace).
 
@@ -62,7 +64,7 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 
 ## 4. Backend request flow (personalization & security)
 
-1. **Routing** — `index.js` matches path + method.
+1. **Routing** — `index.js` runs the shared middleware, then dispatches Projects to `routes/projects.routes.js` and Studio APIs to `routes/studios/<slug>.routes.js`. Auth/user and generic API routes are still handled in `index.js` as an incremental migration step.
 2. **Auth** — `/api/auth/login` → Google OAuth → JWT (7-day). `/api/users/me` returns the current user + settings + preferences + studio settings + admin flag.
 3. **Role check** — Admin routes (`/admin`, `/api/admin/*`) verify server-side role (`USER` / `ADMIN` / `SUPER_ADMIN`), never trusting frontend flags.
 4. **Studio gate** — Studio page/API checks `isStudioEnabled(env, id)`; a disabled studio is rejected **server-side** (403), not just hidden. Studio **page** routes match only under `/app/*` (Phase 7 fix: an admin API path like `/api/admin/studios/shop` is never intercepted as a studio page).
@@ -70,7 +72,17 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 6. **Ownership** — every query scopes by `user_id` from the verified JWT (`projects.js`, `settings.js`, `usage.js`). User A can never read/write User B's rows. (Creations moved client-side in Phase 13 — see note above.)
 7. **BYOK** — user API keys are stored encrypted in `user_keys` and used only server-side; they are **never returned** to the browser.
 
-## 5. Config
+## 5. Modular route ownership
+
+- `middleware/cors.js` owns the per-request CORS policy.
+- `middleware/requestGuards.js` owns API body-size checks and the shared AI generation rate-limit guard.
+- `routes/projects.routes.js` owns `/api/projects` while preserving the existing authentication and response contract.
+- `routes/studios/{content,story,short,image,voice,shop}.routes.js` own the corresponding Studio API endpoint groups. Their business logic remains in `studios/*.js` and shared services remain in `core/`.
+- `admin/ui.js` and `admin/api.js` separate the Admin page template from Admin API handlers. `admin.js` re-exports both for existing imports.
+- `frontend/home.js` owns the app home template. `frontend.js` re-exports `APP_HTML` for existing imports.
+- This is an incremental modularization: authentication/user routes and generic API endpoints still live in `index.js`; do not claim they have been extracted yet.
+
+## 6. Config
 
 - `config/studios.js` — `STUDIO_REGISTRY` (id, name, nameMy, icon, route, component, enabled), `STUDIO_ORDER`, `SITE_LINKS`, helpers `getStudio` / `isStudioEnabled` / `listEnabledStudios`.
 - `config/features.js` — `FEATURE_REGISTRY` (27 features: access FREE/PRO + limit) — mirrors the legacy hard-coded plan logic.
