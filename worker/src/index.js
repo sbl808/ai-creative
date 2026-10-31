@@ -289,7 +289,7 @@ export default {
 
       if (path === '/' && request.method === 'GET') return htmlPage(PRELOGIN_HOME_HTML);
 
-      const authResponse = await handleAuthRoutes(request, env, cors, { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie, signToken, hashPassword, verifyPassword });
+      const authResponse = await handleAuthRoutes(request, env, cors, { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie });
       if (authResponse) return authResponse;
 
       if (path === '/auth/result' && request.method === 'GET') return htmlPage(loginResultPage());
