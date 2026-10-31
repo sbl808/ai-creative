@@ -2,7 +2,7 @@ import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } f
 
 export async function handleImageStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
 
       // ===== Image Studio — Tab 1: Image Prompt Generate =====
       if (path === '/api/studio/image/prompt' && request.method === 'POST') {
