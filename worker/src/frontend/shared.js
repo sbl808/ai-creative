@@ -9,6 +9,7 @@
 import { listEnabledStudios, SITE_LINKS } from '../config/studios.js';
 import { AICS_RESULT_BOX_CSS, AICS_RESULT_BOX_SCRIPT, AICS_STREAM_SCRIPT } from './shared-ui.js';
 import { AICS_DESIGN_SYSTEM_CSS, AICS_STUDIO_UI_CSS } from './design-system.js';
+import { clientStorageScript } from './storage/client-storage.js';
 
 // Dependency-free Lucide-compatible outline SVGs for shared navigation.
 const SHELL_ICONS = {
@@ -224,145 +225,7 @@ export function themeControllerScript(options = {}) {
 export function sidebarScript() {
   return '<script>\n' +
     themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
-    '// ===== AI Creative Studio — Client-side Creations Store (Phase 13 — Option 2) =====\n' +
-    '// User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင် သိမ်းသည်။ Server/D1 သို့ မပို့ပါ။\n' +
-    "function __aicsDbOpen() {\n" +
-    "  return new Promise(function (resolve, reject) {\n" +
-    "    if (window.__aicsDb) return resolve(window.__aicsDb);\n" +
-    "    if (!window.indexedDB) { reject(new Error('no_indexeddb')); return; }\n" +
-    "    var req = indexedDB.open('aics_creations_v1', 1);\n" +
-    "    req.onupgradeneeded = function () {\n" +
-    "      var db = req.result;\n" +
-    "      if (!db.objectStoreNames.contains('creations')) {\n" +
-    "        var s = db.createObjectStore('creations', { keyPath: 'id' });\n" +
-    "        s.createIndex('user_id', 'user_id', { unique: false });\n" +
-    "      }\n" +
-    "    };\n" +
-    "    req.onsuccess = function () { window.__aicsDb = req.result; resolve(req.result); };\n" +
-    "    req.onerror = function () { reject(req.error); };\n" +
-    "  });\n" +
-    "}\n" +
-    "function __aicsUserId() {\n" +
-    "  var t = '';\n" +
-    "  try { t = localStorage.getItem('aics_token') || ''; } catch (e) {}\n" +
-    "  if (!t) return '';\n" +
-    "  try {\n" +
-    "    var part = t.split('.')[1] || '';\n" +
-    "    part = part.replace(/-/g, '+').replace(/_/g, '/');\n" +
-    "    while (part.length % 4) part += '=';\n" +
-    "    var p = JSON.parse(atob(part));\n" +
-    "    return p.sub || p.user_id || '';\n" +
-    "  } catch (e) { return ''; }\n" +
-    "}\n" +
-    "function __aicsRequireUserId() {\n" +
-    "  var uid = __aicsUserId();\n" +
-    "  if (!uid) throw new Error('auth_required');\n" +
-    "  return String(uid);\n" +
-    "}\n" +
-    "function __aicsOwnedMutation(id, mutate) {\n" +
-    "  var uid;\n" +
-    "  try { uid = __aicsRequireUserId(); } catch (e) { return Promise.reject(e); }\n" +
-    "  return __aicsDbOpen().then(function (db) {\n" +
-    "    return new Promise(function (resolve, reject) {\n" +
-    "      var t = db.transaction('creations', 'readwrite');\n" +
-    "      var s = t.objectStore('creations');\n" +
-    "      var settled = false;\n" +
-    "      var out = null;\n" +
-    "      function fail(error) {\n" +
-    "        if (settled) return;\n" +
-    "        settled = true;\n" +
-    "        try { t.abort(); } catch (e) {}\n" +
-    "        reject(error);\n" +
-    "      }\n" +
-    "      var req = s.get(id);\n" +
-    "      req.onsuccess = function () {\n" +
-    "        var record = req.result;\n" +
-    "        if (!record) { fail(new Error('not_found')); return; }\n" +
-    "        if (String(record.user_id || '') !== uid) { fail(new Error('forbidden')); return; }\n" +
-    "        try { out = mutate(s, record); } catch (e) { fail(e); }\n" +
-    "      };\n" +
-    "      req.onerror = function () { fail(req.error || new Error('indexeddb_read_failed')); };\n" +
-    "      t.oncomplete = function () { if (!settled) { settled = true; resolve(out); } };\n" +
-    "      t.onerror = function () { if (!settled) { settled = true; reject(t.error || new Error('indexeddb_transaction_failed')); } };\n" +
-    "      t.onabort = function () { if (!settled) { settled = true; reject(t.error || new Error('indexeddb_transaction_aborted')); } };\n" +
-    "    });\n" +
-    "  });\n" +
-    "}\n" +
-    "function __aicsGenId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }\n" +
-    "window.AICS_CREATIONS = {\n" +
-    "  save: function (rec) {\n" +
-    "    var uid;\n" +
-    "    try { uid = __aicsRequireUserId(); } catch (e) { return Promise.reject(e); }\n" +
-    "    rec = rec || {};\n" +
-    "    var now = new Date().toISOString();\n" +
-    "    var item = {\n" +
-    "      id: rec.id || __aicsGenId(),\n" +
-    "      user_id: uid,\n" +
-    "      studio: rec.studio || 'UNKNOWN',\n" +
-    "      type: String(rec.type || '1'),\n" +
-    "      title: rec.title || 'Untitled',\n" +
-    "      original_prompt: rec.original_prompt || '',\n" +
-    "      ai_output: rec.ai_output || '',\n" +
-    "      media_type: rec.media_type || '',\n" +
-    "      media_mime: rec.media_mime || '',\n" +
-    "      media_data: rec.media_data || '',\n" +
-    "      is_favorite: rec.is_favorite ? 1 : 0,\n" +
-    "      created_at: rec.created_at || now,\n" +
-    "      updated_at: now\n" +
-    "    };\n" +
-    "    return __aicsDbOpen().then(function (db) {\n" +
-    "      return new Promise(function (resolve, reject) {\n" +
-    "        var t = db.transaction('creations', 'readwrite');\n" +
-    "        var s = t.objectStore('creations');\n" +
-    "        var settled = false;\n" +
-    "        function fail(error) {\n" +
-    "          if (settled) return;\n" +
-    "          settled = true;\n" +
-    "          try { t.abort(); } catch (e) {}\n" +
-    "          reject(error);\n" +
-    "        }\n" +
-    "        var req = s.get(item.id);\n" +
-    "        req.onsuccess = function () {\n" +
-    "          var existing = req.result;\n" +
-    "          if (existing && String(existing.user_id || '') !== uid) { fail(new Error('forbidden')); return; }\n" +
-    "          if (existing && !rec.created_at) item.created_at = existing.created_at || item.created_at;\n" +
-    "          try { s.put(item); } catch (e) { fail(e); }\n" +
-    "        };\n" +
-    "        req.onerror = function () { fail(req.error || new Error('indexeddb_read_failed')); };\n" +
-    "        t.oncomplete = function () { if (!settled) { settled = true; resolve(item); } };\n" +
-    "        t.onerror = function () { if (!settled) { settled = true; reject(t.error || new Error('indexeddb_transaction_failed')); } };\n" +
-    "        t.onabort = function () { if (!settled) { settled = true; reject(t.error || new Error('indexeddb_transaction_aborted')); } };\n" +
-    "      });\n" +
-    "    });\n" +
-    "  },\n" +
-    "  list: function () {\n" +
-    "    var uid = __aicsUserId();\n" +
-    "    if (!uid) return Promise.resolve([]);\n" +
-    "    return __aicsDbOpen().then(function (db) {\n" +
-    "      return new Promise(function (resolve, reject) {\n" +
-    "        var t = db.transaction('creations', 'readonly');\n" +
-    "        var req = t.objectStore('creations').index('user_id').getAll(String(uid));\n" +
-    "        req.onsuccess = function () {\n" +
-    "          var items = req.result || [];\n" +
-    "          items.sort(function (a, b) { return ((b.created_at || '') > (a.created_at || '')) ? 1 : (((b.created_at || '') < (a.created_at || '')) ? -1 : 0); });\n" +
-    "          resolve(items);\n" +
-    "        };\n" +
-    "        req.onerror = function () { reject(req.error || new Error('indexeddb_read_failed')); };\n" +
-    "      });\n" +
-    "    });\n" +
-    "  },\n" +
-    "  remove: function (id) {\n" +
-    "    return __aicsOwnedMutation(id, function (s) { s.delete(id); return true; });\n" +
-    "  },\n" +
-    "  toggleFav: function (id) {\n" +
-    "    return __aicsOwnedMutation(id, function (s, record) {\n" +
-    "      record.is_favorite = record.is_favorite ? 0 : 1;\n" +
-    "      record.updated_at = new Date().toISOString();\n" +
-    "      s.put(record);\n" +
-    "      return { favorite: record.is_favorite === 1 };\n" +
-    "    });\n" +
-    "  }\n" +
-    "};\n" +
+    clientStorageScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +

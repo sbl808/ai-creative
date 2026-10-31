@@ -36,6 +36,8 @@ jobs:
         run: node --experimental-default-type=module scripts/story-contract-test.mjs
       - name: Run IndexedDB owner isolation tests
         run: node --experimental-default-type=module scripts/indexeddb-owner-isolation-test.mjs
+      - name: Run IndexedDB Storage Core tests
+        run: node --experimental-default-type=module scripts/indexeddb-storage-core-test.mjs
 
   security:
     name: Security contracts
