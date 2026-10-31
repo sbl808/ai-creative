@@ -89,8 +89,10 @@ console.log('\n--- B) OAuth redirect and state security ---');
   };
   check('relative OAuth next path resolves to same-origin /app',
     safeOAuthRedirect('/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
-  check('exact configured frontend origin is allowed',
-    safeOAuthRedirect(DEV_ORIGIN + '/app', workerOrigin, oauthEnv) === DEV_ORIGIN + '/app');
+  check('same-origin absolute OAuth redirect is allowed',
+    safeOAuthRedirect(workerOrigin + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('cross-origin frontend redirect falls back to cookie-owning Worker origin',
+    safeOAuthRedirect(DEV_ORIGIN + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
   check('lookalike frontend hostname is rejected',
     safeOAuthRedirect(DEV_ORIGIN + '.attacker.example/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
   check('unlisted external redirect origin is rejected',
