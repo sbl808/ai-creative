@@ -13,7 +13,7 @@ import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSr
 import { generateShopContent, reviseShopContent, generateShopVideo, generateShopVideoImage } from './studios/shop.js';
 import { listEnabledModels } from './core/aiModels.js';
 import { getUserSettings, updateUserSettings, getUserPreferences, updateUserPreferences } from './core/settings.js';
-import { createProject, listProjects, deleteProject } from './core/projects.js';
+import { handleProjectRoutes } from './routes/projects.routes.js';
 import { trackUsage } from './core/usage.js';
 import { generateIdeas, validateIdeasBrief } from './core/ideas.js';
 import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
@@ -1684,51 +1684,19 @@ export default {
         }
       }
 
-      // ===== Projects — User ကိုယ်ပိုင် Project များ (Phase 3) =====
-      // Server-side တွင် user_id ကို အမြဲ စစ်သည် — အခြားသူ၏ Project ကို မမြင်ရ/မဖျက်ရပါ
-      if (path === '/api/projects' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.title) return json({ error: 'missing_title' }, 400, cors);
-        try {
-          const p = await createProject(env, payload.sub, String(body.title), body.description || '');
-          return json({ ok: true, project: p }, 200, cors);
-        } catch (e) {
-          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      if (path === '/api/projects' && request.method === 'GET') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        try {
-          const items = await listProjects(env, payload.sub);
-          return json({ items }, 200, cors);
-        } catch (e) {
-          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      if (path.startsWith('/api/projects/') && request.method === 'DELETE') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const id = path.split('/').pop();
-        if (!id) return json({ error: 'missing_id' }, 400, cors);
-        try {
-          await deleteProject(env, payload.sub, id);
-          return json({ ok: true }, 200, cors);
-        } catch (e) {
-          return json({ error: 'delete_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
+      // Project API is owned by the dedicated route module. Keep the existing
+      // auth, response, and ownership contract while avoiding duplicate handlers.
+      const projectResponse = await handleProjectRoutes(request, env, cors, {
+        bearer,
+        verifyTokenSafe,
+        readBody,
+        json,
+        createProject: undefined,
+        listProjects: undefined,
+        deleteProject: undefined,
+        friendlyError,
+      });
+      if (projectResponse) return projectResponse;
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
       // Server-side /api/creations endpoints များကို ဖယ်ရှားပြီးပြီ — D1 တွင် User Content မသိမ်းတော့ပါ။
