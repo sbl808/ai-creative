@@ -10,6 +10,7 @@
  * Run: node --experimental-default-type=module scripts/security-tests.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
+import { safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
 let passed = 0, failed = 0;
 function check(name, ok, extra) {
@@ -79,7 +80,51 @@ console.log('--- A) CORS enforcement ---');
   check('prod origin rejected under dev env', r9.headers.get('access-control-allow-origin') === null);
 }
 
-console.log('\n--- B) Auth signing key (no dev fallback) ---');
+console.log('\n--- B) OAuth redirect and state security ---');
+{
+  const workerOrigin = 'https://worker.example.com';
+  const oauthEnv = {
+    SESSION_SIGNING_KEY: 'oauth-test-secret',
+    ALLOWED_ORIGINS: DEV_ORIGIN + ',https://aics-frontend-staging.pages.dev',
+  };
+  check('relative OAuth next path resolves to same-origin /app',
+    safeOAuthRedirect('/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('exact configured frontend origin is allowed',
+    safeOAuthRedirect(DEV_ORIGIN + '/app', workerOrigin, oauthEnv) === DEV_ORIGIN + '/app');
+  check('lookalike frontend hostname is rejected',
+    safeOAuthRedirect(DEV_ORIGIN + '.attacker.example/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('unlisted external redirect origin is rejected',
+    safeOAuthRedirect('https://evil.example.com/steal', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('javascript redirect scheme is rejected',
+    safeOAuthRedirect('javascript:alert(1)', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('credential-bearing redirect URL is rejected',
+    safeOAuthRedirect('https://user:pass@' + DEV_ORIGIN.slice('https://'.length) + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+
+  const now = Date.now();
+  const cookie = await createOAuthStateCookieValue(oauthEnv, 'test-state-nonce', DEV_ORIGIN + '/app', now);
+  const verified = await verifyOAuthStateCookieValue(oauthEnv, cookie, now);
+  check('signed OAuth state cookie validates and preserves redirect target',
+    !!verified && verified.state === 'test-state-nonce' && verified.redirectTo === DEV_ORIGIN + '/app');
+  check('tampered OAuth state cookie is rejected',
+    await verifyOAuthStateCookieValue(oauthEnv, cookie + 'x', now) === null);
+  check('expired OAuth state cookie is rejected',
+    await verifyOAuthStateCookieValue(oauthEnv, cookie, now + 11 * 60 * 1000) === null);
+  check('OAuth state cookie fails closed without signing key',
+    await verifyOAuthStateCookieValue({}, cookie, now) === null);
+
+  const authRoute = readFileSync(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
+  const sharedFrontend = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  check('OAuth callback requires matching browser-bound state',
+    authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
+  check('OAuth callback redirects without putting token in URL',
+    authRoute.includes('Location: statePayload.redirectTo') && !authRoute.includes('#token='));
+  check('OAuth callback clears one-time state cookie',
+    authRoute.includes('Max-Age=0') && authRoute.includes('withClearedState(response)'));
+  check('frontend no longer imports tokens from URL fragments',
+    !sharedFrontend.includes("h.indexOf('#token=')") && !sharedFrontend.includes("decodeURIComponent(h.slice(7))"));
+}
+
+console.log('\n--- C) Auth signing key (no dev fallback) ---');
 {
   // Import auth.js fresh per scenario: getKey() caches the first key at module level,
   // so each case needs a separate module instance.
