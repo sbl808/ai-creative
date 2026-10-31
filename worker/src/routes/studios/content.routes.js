@@ -2,7 +2,7 @@ import { generateContent, reviseContent, generateContentVoice, generateContentVi
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
 
       // ===== Content Studio — Tab 1: Generate =====
       if (path === '/api/studio/content/generate' && request.method === 'POST') {
