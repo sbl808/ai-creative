@@ -2,7 +2,7 @@ import { generateStory, reviseStory, generateStoryVideoPlan, generateStoryVideoI
 
 export async function handleStoryStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
 
       // ===== Story Studio — Tab 1: Generate =====
       if (path === '/api/studio/story/generate' && request.method === 'POST') {
