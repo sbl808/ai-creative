@@ -5,16 +5,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
   const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
 
       // ===== Content Studio — Tab 1: Generate =====
-      // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
-      // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
-      {
-        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop)\//) || [])[1];
-        if (studioApiId) {
-          const enabled = await isStudioEnabled(env, studioApiId);
-          if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
-        }
-      }
-
       if (path === '/api/studio/content/generate' && request.method === 'POST') {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
