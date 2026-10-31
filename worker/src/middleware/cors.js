@@ -6,7 +6,7 @@ export function buildCors(request, env) {
     .map((s) => s.trim())
     .filter(Boolean);
   const out = {
-    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     Vary: 'Origin',
   };
