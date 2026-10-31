@@ -87,7 +87,7 @@ Studio page loading contract (V2 Phase 1): unknown slug → `404 STUDIO_NOT_FOUN
 - `config/studios.js` — `STUDIO_REGISTRY` (id, name, nameMy, icon, route, component, enabled), `STUDIO_ORDER`, `SITE_LINKS`, helpers `getStudio` / `isStudioEnabled` / `listEnabledStudios`.
 - `config/features.js` — `FEATURE_REGISTRY` (27 features: access FREE/PRO + limit) — mirrors the legacy hard-coded plan logic.
 
-## 6. Story 11-Layer Brain (v2.1 — Story Studio only)
+## 7. Story 11-Layer Brain (v2.1 — Story Studio only)
 
 Generic Engine တစ်ခုတည်း — Story Type / Video Workflow တစ်ခုချင်းစီအတွက် Engine မဖန်တီး (per-type duplicate engine မရှိ)။ Config / Knowledge / Prompt များကို CMS မှ selected သာ dynamic-load လုပ်သည်။
 
@@ -110,7 +110,7 @@ User Input                                   Story Facts (video-relevant သာ)
 - **Dynamic expansion** — TYPE_6 / TRAILER အသစ် = Brain CMS တွင် rows ထည့်ရုံဖြင့် code မပြန် (frontend workflow/style list မှာ ရွေးစရာ ထည့်ရန် constants ကိုတော့ update လိုအပ်သည်)။
 - Admin → **Brain CMS** tab (GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO rows CRUD) + `/api/brain` endpoints။
 
-## 7. Legacy note
+## 8. Legacy note
 
 `/api/studio/generate` (`studio.js`) is the original generic generator kept for backward compatibility; it still auto-saves a creation on success. The per-studio endpoints (`/api/studio/<id>/…`) are the current path and save explicitly on user action. See `STUDIOS.md`.
 
@@ -119,7 +119,7 @@ User Input                                   Story Facts (video-relevant သာ)
 - App pages use `.hamburger`, studio pages use `.menu-btn` — both render identically (same position, color, size) on every page.
 - On phones, studio headers get `padding-left:64px` so the logo never collides with the fixed button.
 
-## 8. AI Model Service (Phase C — Phase 14)
+## 9. AI Model Service (Phase C — Phase 14)
 
 ```
 Admin Panel ──(PUT/POST/DELETE /api/admin/models)──► ai_models (D1)
@@ -142,7 +142,7 @@ index.js studio endpoints ──► resolveModel(userChoice, plan, category)
 - `core/ai.js` `callGeminiTTS` now accepts a `model` parameter (TTS model is also admin-controlled).
 - Last-model protection: Admin cannot disable/delete the **only enabled model** of a category — the app can never lose its fallback.
 
-## 8. Deployment, database, and recovery boundaries
+## 10. Deployment, database, and recovery boundaries
 
 - Application code and checked-in SQL migrations describe intended behavior; they do not prove the state of a remote D1 database.
 - `worker/wrangler.toml` currently contains environment-specific names for dev, staging, and prod, but its D1 IDs are placeholders. Do not run remote commands or replace these values until the Cloudflare account, target database, and intended environment are independently confirmed and approved.
