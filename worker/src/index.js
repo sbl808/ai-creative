@@ -1,3 +1,4 @@
+import { buildCors } from './middleware/cors.js';
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
 import { generateText } from './core/ai/aiService.js';
@@ -37,23 +38,6 @@ import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from './c
 // We never fall back to '*' for cross-origin requests. Only origins listed in
 // the environment's ALLOWED_ORIGINS (wrangler.toml per env.dev/staging/prod)
 // are echoed back; same-origin / no-Origin requests simply get no ACAO header.
-function buildCors(request, env) {
-  const reqOrigin = request.headers.get('Origin') || '';
-  const allowed = String((env && env.ALLOWED_ORIGINS) || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const out = {
-    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    Vary: 'Origin',
-  };
-  if (reqOrigin && allowed.includes(reqOrigin)) {
-    out['Access-Control-Allow-Origin'] = reqOrigin;
-  }
-  return out;
-}
-
 function json(data, status, c) {
   return new Response(JSON.stringify(data), { status: status || 200, headers: { 'Content-Type': 'application/json', ...c } });
 }
