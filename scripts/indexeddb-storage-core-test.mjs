@@ -10,7 +10,9 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const storageSource = clientStorageScript();
 assert.match(storageSource, /indexedDB\.open\('aics_creations_v1', 2\)/);
-assert.match(storageSource, /createObjectStore\('creations'/);\nassert.match(storageSource, /createObjectStore\('projects'/);\nassert.match(storageSource, /window\.AICS_PROJECTS\\s*=\\s*\\{/);
+assert.match(storageSource, /createObjectStore\('creations'/);
+assert.match(storageSource, /createObjectStore\('projects'/);
+assert.match(storageSource, /window\.AICS_PROJECTS\s*=\s*\{/);
 assert.match(storageSource, /function __aicsStorageError\(/);
 assert.match(storageSource, /function __aicsRequireUserId\(/);
 assert.match(storageSource, /window\.AICS_CREATIONS\s*=\s*\{/);
@@ -23,4 +25,5 @@ const assembled = sidebarScript();
 assert.ok(assembled.includes(storageSource), 'sidebarScript must inject the Storage Core source');
 assert.ok(assembled.includes('<script>'), 'sidebarScript must continue returning a script tag');
 assert.ok(assembled.includes('window.AICS_CREATIONS'), 'legacy Creations API must remain available');
+assert.ok(assembled.includes('window.AICS_PROJECTS'), 'Projects Repository API must be injected');
 console.log('IndexedDB Storage Core tests passed.');
