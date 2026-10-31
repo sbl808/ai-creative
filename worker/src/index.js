@@ -1691,9 +1691,6 @@ export default {
         verifyTokenSafe,
         readBody,
         json,
-        createProject: undefined,
-        listProjects: undefined,
-        deleteProject: undefined,
         friendlyError,
       });
       if (projectResponse) return projectResponse;
