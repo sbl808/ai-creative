@@ -193,7 +193,7 @@ assert.equal(recordA.user_id, 'user-a');
 activeToken = makeToken('user-b');
 const recordB = await store.save({ id: 'record-b', title: 'User B record' });
 assert.equal(recordB.user_id, 'user-b');
-assert.deepEqual((await store.list()).map((item) => item.id), ['record-b']);
+assert.equal(Array.from(await store.list(), (item) => item.id).join(','), 'record-b');
 
 await assert.rejects(store.remove('record-a'), /forbidden/);
 await assert.rejects(store.toggleFav('record-a'), /forbidden/);
@@ -201,11 +201,11 @@ await assert.rejects(store.save({ id: 'record-a', title: 'Overwrite attempt' }),
 assert.equal(fakeIndexedDB.records.get('record-a').title, 'User A record');
 
 activeToken = '';
-assert.deepEqual(await store.list(), []);
+assert.equal((await store.list()).length, 0);
 await assert.rejects(store.save({ title: 'Anonymous record' }), /auth_required/);
 
 activeToken = makeToken('user-a');
-assert.deepEqual((await store.list()).map((item) => item.id), ['record-a']);
+assert.equal(Array.from(await store.list(), (item) => item.id).join(','), 'record-a');
 await store.toggleFav('record-a');
 assert.equal(fakeIndexedDB.records.get('record-a').is_favorite, 1);
 await store.remove('record-a');
