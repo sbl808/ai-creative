@@ -66,40 +66,62 @@ ${renderSidebar('projects',{variant:'studio'})}
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';
-function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
-function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
+function projectErrorMessage(error){
+  var code=error&&error.code?error.code:(error&&error.message?error.message:'');
+  if(code==='auth_required')return 'Login ပြန်ဝင်ပြီး ထပ်ကြိုးစားပါ။';
+  if(code==='missing_title')return 'Project အမည် ရိုက်ထည့်ပါ။';
+  if(code==='forbidden')return 'ဒီ Project ကို ဖျက်ခွင့်မရှိပါ။';
+  if(code==='not_found')return 'Project ကို ရှာမတွေ့ပါ။';
+  return 'သိမ်းဆည်းမှု မအောင်မြင်ပါ။ Browser Storage ကို စစ်ဆေးပါ။';
+}
 if(!TOKEN){
   document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="text-decoration:underline;">Login / Sign Up သို့ သွားရန်</a></p></div>';
 }else{
   loadProjects();
 }
 function loadProjects(){
-  document.getElementById('loadingState').style.display='block';
-  api('/api/projects').then(function(d){
-    document.getElementById('loadingState').style.display='none';
-    if(d.error||!d.items||d.items.length===0){
-      document.getElementById('emptyState').style.display='block';
-      return;
-    }
-    var container=document.getElementById('projectsList');
+  var loading=document.getElementById('loadingState');
+  var empty=document.getElementById('emptyState');
+  var container=document.getElementById('projectsList');
+  loading.style.display='block';
+  loading.textContent='Loading...';
+  empty.style.display='none';
+  return window.AICS_PROJECTS.list().then(function(items){
+    loading.style.display='none';
     container.innerHTML='';
-    d.items.forEach(function(p){
-      var dateStr=p.created_at?new Date(p.created_at.replace(' ','T')+'Z').toLocaleDateString():'';
+    if(!items||items.length===0){empty.style.display='block';return;}
+    items.forEach(function(project){
       var card=document.createElement('div');
       card.className='project-card';
-      card.innerHTML=
-        '<div class="project-info">'+
-        '<div class="project-title">📌 '+escapeHtml(p.title)+'</div>'+
-        (p.description?'<div class="project-desc">'+escapeHtml(p.description)+'</div>':'')+
-        '<div class="project-meta">🕒 '+dateStr+'</div>'+
-        '</div>'+
-        '<button class="btn btn-danger" onclick="removeProject(\\''+p.id+'\\',this)">🗑 ဖျက်မည်</button>';
+      var info=document.createElement('div');
+      info.className='project-info';
+      var title=document.createElement('div');
+      title.className='project-title';
+      title.textContent='📌 '+project.title;
+      info.appendChild(title);
+      if(project.description){
+        var description=document.createElement('div');
+        description.className='project-desc';
+        description.textContent=project.description;
+        info.appendChild(description);
+      }
+      var meta=document.createElement('div');
+      meta.className='project-meta';
+      meta.textContent='🕒 '+(project.created_at?new Date(project.created_at).toLocaleDateString():'');
+      info.appendChild(meta);
+      var removeButton=document.createElement('button');
+      removeButton.className='btn btn-danger';
+      removeButton.textContent='🗑 ဖျက်မည်';
+      removeButton.addEventListener('click',function(){removeProject(project.id,removeButton);});
+      card.appendChild(info);
+      card.appendChild(removeButton);
       container.appendChild(card);
     });
-  }).catch(function(){
-    document.getElementById('loadingState').style.display='none';
-    document.getElementById('loadingState').innerHTML='Error: Network problem';
+  }).catch(function(error){
+    loading.style.display='block';
+    loading.textContent=projectErrorMessage(error);
+    showToast(projectErrorMessage(error),'error');
   });
 }
 function createProject(){
@@ -108,24 +130,28 @@ function createProject(){
   if(!title){showToast('Project အမည် ရိုက်ထည့်ပါ','error');input.focus();return;}
   var btn=document.querySelector('.create-box .btn-primary');
   btn.disabled=true;btn.textContent='⏳ ဖန်တီးနေသည်…';
-  api('/api/projects',{method:'POST',body:{title:title}}).then(function(d){
-    btn.disabled=false;btn.textContent='➕ Project အသစ်';
-    if(d.error){showToast('ဖန်တီး၍ မရပါ','error');return;}
+  window.AICS_PROJECTS.create({title:title,description:''}).then(function(){
     input.value='';
     document.getElementById('emptyState').style.display='none';
-    loadProjects();
     showToast('✓ Project ဖန်တီးပြီးပါပြီ','success');
-  }).catch(function(){btn.disabled=false;btn.textContent='➕ Project အသစ်';showToast('Network error','error');});
+    return loadProjects();
+  }).catch(function(error){
+    showToast(projectErrorMessage(error),'error');
+  }).finally(function(){
+    btn.disabled=false;btn.textContent='➕ Project အသစ်';
+  });
 }
 function removeProject(id,btn){
   if(!confirm('ဒီ Project ကို ဖျက်မှာ သေချာပါသလား?'))return;
-  var orig=btn.textContent;btn.textContent='⏳…';btn.disabled=true;
-  api('/api/projects/'+id,{method:'DELETE'}).then(function(d){
-    if(d.error){showToast('ဖျက်မရပါ','error');btn.textContent=orig;btn.disabled=false;return;}
+  var original=btn.textContent;btn.textContent='⏳…';btn.disabled=true;
+  window.AICS_PROJECTS.remove(id).then(function(){
     btn.closest('.project-card').remove();
     showToast('✓ Project ဖျက်ပြီးပါပြီ','success');
     if(document.querySelectorAll('.project-card').length===0)document.getElementById('emptyState').style.display='block';
-  }).catch(function(){showToast('Network error','error');btn.textContent=orig;btn.disabled=false;});
+  }).catch(function(error){
+    showToast(projectErrorMessage(error),'error');
+    btn.textContent=original;btn.disabled=false;
+  });
 }
 </script>
 </body>

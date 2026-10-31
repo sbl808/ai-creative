@@ -15,16 +15,16 @@ function __aicsRequireUserId() {
   if (!userId) throw __aicsStorageError('auth_required');
   return String(userId);
 }
-function __aicsOwnedMutation(id, mutate) {
+function __aicsOwnedStoreMutation(storeName, id, mutate) {
   var userId;
   try { userId = __aicsRequireUserId(); }
   catch (error) { return Promise.reject(error); }
   return __aicsDbOpen().then(function (db) {
     return new Promise(function (resolve, reject) {
       var transaction;
-      try { transaction = db.transaction('creations', 'readwrite'); }
+      try { transaction = db.transaction(storeName, 'readwrite'); }
       catch (error) { reject(__aicsStorageError('indexeddb_transaction_failed', error)); return; }
-      var store = transaction.objectStore('creations');
+      var store = transaction.objectStore(storeName);
       var settled = false;
       var output = null;
       function fail(error) {
@@ -33,7 +33,9 @@ function __aicsOwnedMutation(id, mutate) {
         try { transaction.abort(); } catch (abortError) {}
         reject(error);
       }
-      var request = store.get(id);
+      var request;
+      try { request = store.get(id); }
+      catch (error) { fail(__aicsStorageError('indexeddb_read_failed', error)); return; }
       request.onsuccess = function () {
         var record = request.result;
         if (!record) { fail(__aicsStorageError('not_found')); return; }
@@ -53,6 +55,9 @@ function __aicsOwnedMutation(id, mutate) {
       };
     });
   });
+}
+function __aicsOwnedMutation(id, mutate) {
+  return __aicsOwnedStoreMutation('creations', id, mutate);
 }`;
 
 export function storageOwnerScript() {

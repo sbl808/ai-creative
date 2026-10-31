@@ -1,6 +1,7 @@
 import { databaseScript } from './database.js';
 import { storageOwnerScript } from './storage-owner.js';
 import { storageErrorsScript } from './storage-errors.js';
+import { projectsRepositoryScript } from './repositories/projects.js';
 
 const CREATIONS_SCRIPT = String.raw`function __aicsGenId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }
 window.AICS_CREATIONS = {
@@ -84,6 +85,7 @@ export function clientStorageScript() {
     databaseScript(),
     storageErrorsScript(),
     storageOwnerScript(),
-    CREATIONS_SCRIPT
+    CREATIONS_SCRIPT,
+    projectsRepositoryScript()
   ].join('\n');
 }
