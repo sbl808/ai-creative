@@ -1,4 +1,4 @@
-import { enforceSharedAiRateLimit, isApiRequestBodyTooLarge, MAX_API_REQUEST_BODY_BYTES } from './middleware/requestGuards.js';
+import { enforceSharedAiRateLimit, isApiRequestBodyTooLarge } from './middleware/requestGuards.js';
 import { buildCors } from './middleware/cors.js';
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
