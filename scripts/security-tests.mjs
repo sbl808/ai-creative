@@ -294,14 +294,15 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
       /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
   }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
   check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(route) &&
-    /api_generation_limits/.test(route) &&
-    /enforceSharedAiRateLimit\(request, env, path\)/.test(route) &&
-    /rate_limited/.test(route));
+    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
+    /api_generation_limits/.test(guards) &&
+    /enforceSharedAiRateLimit\\(request, env, path, \\{/.test(route) &&
+    /rate_limited/.test(guards));
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\/api\/cms\/prompt'/.test(route) &&
-    /content\|story\|short\|image\|voice\|shop/.test(route));
+    /path === '\\/api\\/cms\\/prompt'/.test(guards) &&
+    /content\\|story\\|short\\|image\\|voice\\|shop/.test(guards));
   console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
 }
 
