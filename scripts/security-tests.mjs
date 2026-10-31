@@ -423,17 +423,17 @@ console.log('\n--- CMS prompt authorization contracts ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const admin = readFileSync(new URL('../worker/src/admin/api.js', import.meta.url), 'utf8');
+  const cmsRoute = readFileSync(new URL('../worker/src/routes/cms.routes.js', import.meta.url), 'utf8');
+  const genericStudioRoute = readFileSync(new URL('../worker/src/routes/studio.routes.js', import.meta.url), 'utf8');
   const studio = readFileSync(new URL('../worker/src/studio.js', import.meta.url), 'utf8');
   const cms = readFileSync(new URL('../worker/src/core/cms.js', import.meta.url), 'utf8');
-  const routeAt = index.indexOf("if (path === '/api/cms/prompt' && request.method === 'POST')");
   const adminGateAt = index.indexOf('const adminResp = await adminApi(request, path, env, verifyToken)');
-  const routeEnd = index.indexOf("if (path === '/api/ideas/generate'", routeAt);
-  const route = routeAt >= 0 && routeEnd > routeAt ? index.slice(routeAt, routeEnd) : '';
-  check('CMS prompt route checks Admin email locally', route.includes("String(env.ADMIN_EMAIL || '').trim()") && route.includes("detail: 'admin only'"));
-  check('Shared CMS Admin gate runs before route dispatch', adminGateAt >= 0 && routeAt > adminGateAt && admin.includes("path.indexOf('/api/cms/') === 0"));
-  check('CMS prompt response requires valid identity and Admin email', route.includes("!payload || !payload.sub || !payload.email") && route.includes('system_prompt: buildSystemPrompt(c)'));
+  const cmsDispatchAt = index.indexOf('const cmsResponse = await handleCmsRoutes(request, env, cors');
+  check('CMS prompt route checks Admin email locally', cmsRoute.includes("String(env.ADMIN_EMAIL || '').trim()") && cmsRoute.includes("detail: 'admin only'"));
+  check('Shared CMS Admin gate runs before route dispatch', adminGateAt >= 0 && cmsDispatchAt > adminGateAt && admin.includes("path.indexOf('/api/cms/') === 0"));
+  check('CMS prompt response requires valid identity and Admin email', cmsRoute.includes("!payload || !payload.sub || !payload.email") && cmsRoute.includes('system_prompt: buildSystemPrompt(c)'));
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
-  check('Studio generation keeps server-side CMS integration', index.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
+  check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
