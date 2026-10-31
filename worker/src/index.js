@@ -1,25 +1,42 @@
+import { handleAuthRoutes } from './routes/auth.routes.js';
+import { handlePlanRoutes } from './routes/plans.routes.js';
+import { handleUserRoutes } from './routes/users.routes.js';
+import { handleAiModelRoutes } from './routes/aiModels.routes.js';
+import { handleByokRoutes } from './routes/byok.routes.js';
+import { handleAiRoutes } from './routes/ai.routes.js';
+import { handleCmsRoutes } from './routes/cms.routes.js';
+import { handleIdeasRoutes } from './routes/ideas.routes.js';
+import { handleGenericStudioRoute } from './routes/studio.routes.js';
+import { handleContentStudioRoutes } from './routes/studios/content.routes.js';
+import { handleStoryStudioRoutes } from './routes/studios/story.routes.js';
+import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
+import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
+import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
+import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
+import { enforceSharedAiRateLimit, isApiRequestBodyTooLarge } from './middleware/requestGuards.js';
+import { buildCors } from './middleware/cors.js';
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
-import { signToken, verifyToken, hashPassword, verifyPassword } from './core/auth.js';
-import { generateText } from './core/ai/aiService.js';
-import { getAIErrorHttpStatus } from './core/ai/errors.js';
+import { verifyToken } from './core/auth.js';
+
+
 import { ndjsonResponse } from './core/streaming.js';
-import { getCMSData, buildSystemPrompt } from './core/cms.js';
-import { generateStudio } from './studio.js';
-import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from './studios/content.js';
-import { generateStory, reviseStory, generateStoryVideoPlan, generateStoryVideoImage } from './studios/story.js';
-import { generateShort, reviseShort, generateShortVideoPlan, generateShortVideoImage } from './studios/short.js';
-import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } from './studios/image.js';
-import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from './studios/voice.js';
-import { generateShopContent, reviseShopContent, generateShopVideo, generateShopVideoImage } from './studios/shop.js';
-import { listEnabledModels } from './core/aiModels.js';
-import { getUserSettings, updateUserSettings, getUserPreferences, updateUserPreferences } from './core/settings.js';
-import { createProject, listProjects, deleteProject } from './core/projects.js';
+
+
+
+
+
+
+
+
+
+
+import { handleProjectRoutes } from './routes/projects.routes.js';
 import { trackUsage } from './core/usage.js';
-import { generateIdeas, validateIdeasBrief } from './core/ideas.js';
-import { getStudioSettings, isStudioEnabled, setStudioEnabled } from './core/studioSettings.js';
+
+import { isStudioEnabled } from './core/studioSettings.js';
 import { checkFeature } from './core/featureSettings.js';
 import { getStudio } from './config/studios.js';
-import { getUserApiKey, saveUserApiKey, deleteUserApiKey } from './core/utilities.js';
+import { getUserApiKey } from './core/utilities.js';
 import { APP_HTML } from './frontend.js';
 // V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
@@ -31,29 +48,12 @@ import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
 import { PRELOGIN_HOME_HTML } from './frontend/prelogin-home.js';
 import { ADMIN_HTML, adminApi } from './admin.js';
-import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from './core/planCatalog.js';
+
 
 // Production-readiness (CORS): per-request allowed-origin enforcement.
 // We never fall back to '*' for cross-origin requests. Only origins listed in
 // the environment's ALLOWED_ORIGINS (wrangler.toml per env.dev/staging/prod)
 // are echoed back; same-origin / no-Origin requests simply get no ACAO header.
-function buildCors(request, env) {
-  const reqOrigin = request.headers.get('Origin') || '';
-  const allowed = String((env && env.ALLOWED_ORIGINS) || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const out = {
-    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    Vary: 'Origin',
-  };
-  if (reqOrigin && allowed.includes(reqOrigin)) {
-    out['Access-Control-Allow-Origin'] = reqOrigin;
-  }
-  return out;
-}
-
 function json(data, status, c) {
   return new Response(JSON.stringify(data), { status: status || 200, headers: { 'Content-Type': 'application/json', ...c } });
 }
@@ -81,84 +81,6 @@ async function readBody(request) {
 // STEP 8 — Bound API JSON request bodies before any route calls request.json().
 // Keep enough room for the existing base64 image/audio workflows, while rejecting
 // oversized bodies before they reach route parsing or Gemini/D1 work.
-const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
-
-
-const SHARED_AI_RATE_LIMIT = 30;
-const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
-
-function isAiGenerationRoute(path, method) {
-  if (method !== 'POST') return false;
-  if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
-  return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
-    /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
-}
-
-async function enforceSharedAiRateLimit(request, env, path) {
-  if (!isAiGenerationRoute(path, request.method)) return null;
-  const authHeader = request.headers.get('Authorization') || '';
-  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
-  const token = bearer || cookieToken(request);
-  const payload = token ? await verifyTokenSafe(env, token) : null;
-  if (!payload?.sub) return null; // Let route auth preserve its established response.
-  if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503);
-
-  const windowId = Math.floor(Date.now() / SHARED_AI_RATE_WINDOW_MS);
-  try {
-    await env.DB.prepare(
-      'INSERT INTO api_generation_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ' +
-      'ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1'
-    ).bind(payload.sub, windowId).run();
-    const row = await env.DB.prepare(
-      'SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?'
-    ).bind(payload.sub, windowId).first();
-    if (!row || row.attempts > SHARED_AI_RATE_LIMIT) {
-      const retryAfter = Math.max(1, Math.ceil(((windowId + 1) * SHARED_AI_RATE_WINDOW_MS - Date.now()) / 1000));
-      return json({ error: 'rate_limited', limit: SHARED_AI_RATE_LIMIT, window_seconds: 600 }, 429, {
-        'Retry-After': String(retryAfter),
-      });
-    }
-    return null;
-  } catch (e) {
-    friendlyError(e);
-    return json({ error: 'rate_limit_unavailable' }, 503);
-  }
-}
-
-async function isApiRequestBodyTooLarge(request) {
-  if (!request.url || !new URL(request.url).pathname.startsWith('/api/') || request.method !== 'POST') {
-    return false;
-  }
-  const declaredLength = request.headers.get('Content-Length');
-  if (declaredLength !== null) {
-    const length = Number(declaredLength);
-    if (!Number.isSafeInteger(length) || length < 0) return true;
-    if (length > MAX_API_REQUEST_BODY_BYTES) return true;
-    // HTTP runtimes validate framing; the declared length allows a cheap early reject.
-    return false;
-  }
-  if (!request.body) return false;
-
-  // Content-Length may be absent for streamed/chunked requests. Inspect a clone with
-  // a bounded reader so the original request body remains available to route handlers.
-  const reader = request.clone().body.getReader();
-  let total = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) return false;
-      total += value.byteLength;
-      if (total > MAX_API_REQUEST_BODY_BYTES) {
-        try { await reader.cancel('request_body_too_large'); } catch (_) {}
-        return true;
-      }
-    }
-  } catch (_) {
-    try { await reader.cancel('request_body_read_failed'); } catch (_) {}
-    return true;
-  }
-}
-
 // Admin Panel ကို Browser မှ တိုက်ရိုက် နှိပ်ဝင်နိုင်ရန် Cookie Session (Phase 11 — Rule 13)
 // HttpOnly Cookie — Frontend JS မှ မဖတ်နိုင်၊ CSRF ကာကွယ်ရန် SameSite=Lax
 function cookieToken(req) {
@@ -354,7 +276,7 @@ export default {
       }
 
       // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
-      const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path);
+      const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path, { cookieToken, verifyTokenSafe, json, friendlyError });
       if (rateLimitResponse) {
         const headers = new Headers(rateLimitResponse.headers);
         for (const [key, value] of Object.entries(cors)) headers.set(key, value);
@@ -367,77 +289,8 @@ export default {
 
       if (path === '/' && request.method === 'GET') return htmlPage(PRELOGIN_HOME_HTML);
 
-      if (path === '/api/auth/login' && request.method === 'GET') {
-        const origin = url.origin;
-        let next = url.searchParams.get('next') || (origin + '/auth/result');
-        const okNext = next.indexOf(origin) === 0 || /^https:\/\/aics-frontend-/.test(next) || /^http:\/\/localhost/.test(next);
-        if (!okNext) next = origin + '/auth/result';
-        const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + env.GOOGLE_OAUTH_CLIENT_ID +
-          '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
-          '&response_type=code&scope=openid%20email%20profile' +
-          '&state=' + encodeURIComponent(next) + '&access_type=online';
-        return Response.redirect(authUrl, 302);
-      }
-
-      if (path === '/api/auth/callback' && request.method === 'GET') {
-        try {
-          const code = url.searchParams.get('code');
-          if (!code) return json({ error: 'no_code' }, 400, cors);
-          const origin = url.origin;
-          const res = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'code=' + encodeURIComponent(code) +
-              '&client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID) +
-              '&client_secret=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_SECRET) +
-              '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
-              '&grant_type=authorization_code',
-          });
-          const tokenData = await res.json().catch(() => ({}));
-          if (!tokenData.access_token) {
-            try { console.error('[AICS] oauth token failed', JSON.stringify(tokenData).slice(0, 300)); } catch (_) {}
-            return json({ error: 'auth_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
-          }
-          const ures = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: { Authorization: 'Bearer ' + tokenData.access_token },
-          });
-          const user = await ures.json().catch(() => ({}));
-          if (!user.id || !user.email) {
-            try { console.error('[AICS] oauth userinfo failed', JSON.stringify(user).slice(0, 300)); } catch (_) {}
-            return json({ error: 'userinfo_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
-          }
-
-          const existing = env.DB ? await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(user.email).first() : null;
-          let userId;
-          if (existing) {
-            userId = existing.id;
-            // Phase 12 — Google မှ Name ပါလာပါက User နာမည် ဖြည့်ပေးသည် (Name ရှိပြီးသားဆိုလျှင် မပြောင်း)
-            if (user.name) {
-              try {
-                await env.DB.prepare('UPDATE users SET name = CASE WHEN name = \'\' THEN ? ELSE name END, updated_at = datetime(\'now\') WHERE id = ?').bind(String(user.name).slice(0, 60), userId).run();
-              } catch (e) { console.error('[AICS] update google name failed', String(e)); }
-            } else {
-              await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run();
-            }
-          } else {
-            const ins = await env.DB.prepare('INSERT INTO users (email, name, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(user.email, String(user.name || '').slice(0, 60)).run();
-            userId = ins.meta.last_row_id;
-          }
-
-          const token = await signToken(env, { sub: String(userId), email: user.email, plan: 'FREE' });
-          // Phase 12 — Default ကို Personal Workspace (/app) သို့ ပြောင်းသည်
-          const state = url.searchParams.get('state') || (origin + '/app');
-          // Phase 11 — Browser မှ Page Navigation များတွင် Header မပါသော်လည်း Admin Panel ဝင်နိုင်ရန်
-          // HttpOnly Cookie ကိုပါ ထည့်ပေးသည် (Authorization Header ကို မူလအတိုင်း ထားသည်)
-          const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-          return new Response(null, {
-            status: 302,
-            headers: { Location: state + '#token=' + encodeURIComponent(token), 'Set-Cookie': sessionCookie },
-          });
-        } catch (e) {
-          return json({ error: 'auth_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const authResponse = await handleAuthRoutes(request, env, cors, { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie });
+      if (authResponse) return authResponse;
 
       if (path === '/auth/result' && request.method === 'GET') return htmlPage(loginResultPage());
       // Phase 12 — Professional Personal Login UI (/login)
@@ -531,61 +384,6 @@ export default {
         }
         return htmlPage(ADMIN_HTML);
       }
-      // Phase 11 — Logout: HttpOnly Cookie ကို ရှင်းပြီး ပင်မသို့ ပြန်ပို့သည်
-      if (path === '/api/auth/logout' && request.method === 'GET') {
-        return new Response(null, {
-          status: 302,
-          headers: { Location: url.origin + '/app', 'Set-Cookie': clearSessionCookie() },
-        });
-      }
-
-      // ===== Phase 12-fix — Remember Session: Cookie ရှိလျှင် Token ပြန်ပေးသည် =====
-      // (App ပြန်ဖွင့်လျှင် localStorage မရှိသော်လည်း Cookie ဖြင့် Session ပြန်ရသည် — Rule 14)
-      if (path === '/api/auth/session' && request.method === 'GET') {
-        const c = cookieToken(request);
-        if (!c) return json({ error: 'no_session' }, 401, cors);
-        const p = await verifyTokenSafe(env, c);
-        if (!p) return json({ error: 'invalid_session' }, 401, cors);
-        return json({ ok: true, token: c, email: p.email, plan: p.plan || 'FREE', user_id: p.sub }, 200, cors);
-      }
-
-      // ===== Phase 12 — Email/Password Sign Up (PBKDF2 — Plain Text မသိမ်းပါ) =====
-      if (path === '/api/auth/signup' && request.method === 'POST') {
-        const body = await readBody(request).catch(() => null);
-        const name = String((body && body.name) || '').trim().slice(0, 60);
-        const email = String((body && body.email) || '').trim().toLowerCase();
-        const password = String((body && body.password) || '');
-        if (!name) return json({ error: 'missing_name', detail: 'Name ထည့်ပါ။' }, 400, cors);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email', detail: 'Email ပုံစံ မမှန်ပါ။' }, 400, cors);
-        if (password.length < 6) return json({ error: 'weak_password', detail: 'Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။' }, 400, cors);
-        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
-        const dup = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-        if (dup) return json({ error: 'email_taken', detail: 'ဒီ Email နဲ့ Account ရှိပြီးသားပါ။ Google Login သုံးပါ သို့မဟုတ် Sign in လုပ်ပါ။' }, 409, cors);
-        const hash = await hashPassword(password);
-        const ins = await env.DB.prepare('INSERT INTO users (email, name, password_hash, plan, created_at, updated_at) VALUES (?, ?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, name, hash).run();
-        const userId = ins.meta.last_row_id;
-        const token = await signToken(env, { sub: String(userId), email, plan: 'FREE' });
-        // Phase 12-fix — /app သို့ Browser Navigation မှာပါ Session ရှိစေရန် Cookie ကိုပါ ထည့်ပေးသည်
-        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, name, plan: 'FREE', user_id: String(userId) }, 201, { ...cors, 'Set-Cookie': sessionCookie });
-      }
-
-      // ===== Phase 12 — Email/Password Sign In =====
-      if (path === '/api/auth/signin' && request.method === 'POST') {
-        const body = await readBody(request).catch(() => null);
-        const email = String((body && body.email) || '').trim().toLowerCase();
-        const password = String((body && body.password) || '');
-        if (!email || !password || !env.DB) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const row = await env.DB.prepare('SELECT id, name, plan, expiry, password_hash FROM users WHERE email = ?').bind(email).first();
-        if (!row || !row.password_hash) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const okPass = await verifyPassword(password, row.password_hash);
-        if (!okPass) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const token = await signToken(env, { sub: String(row.id), email, plan: row.plan || 'FREE' });
-        // Phase 12-fix — Sign In ပြီးနောက် /app သို့ Browser Navigation အတွက် Cookie ပါ ထည့်ပေးသည်
-        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, name: row.name || '', plan: row.plan || 'FREE', user_id: String(row.id) }, 200, { ...cors, 'Set-Cookie': sessionCookie });
-      }
-
       const adminResp = await adminApi(request, path, env, verifyToken);
       if (adminResp) return adminResp;
       if (!isProdEnv && path === '/ai-test') return htmlPage(aiTestPage());
@@ -593,264 +391,30 @@ export default {
       if (!isProdEnv && path === '/studio-test') return htmlPage(studioTestPage());
       if (!isProdEnv && path === '/creations-test') return htmlPage(creationsTestPage());
 
-      if (path === '/api/plans' && request.method === 'GET') {
-        try {
-          const items = await listPlanCatalog(env, false);
-          const stored = await getPlanContactSettings(env);
-          const contacts = { facebook_messenger_url: '', telegram_url: '' };
-          for (const key of Object.keys(contacts)) {
-            try { contacts[key] = validateContactUrl(key, stored[key]); } catch (_) {}
-          }
-          return json({ ok: true, items, contacts }, 200, cors);
-        } catch (e) {
-          return json({ error: 'plan_catalog_unavailable', detail: 'Plan information is temporarily unavailable.' }, 503, cors);
-        }
-      }
+      const planResponse = await handlePlanRoutes(request, env, cors, { json });
+      if (planResponse) return planResponse;
 
-      if (path === '/api/users/me' && request.method === 'GET') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const plan = await resolvePlan(env, payload);
-        const adminEmail = env.ADMIN_EMAIL || '';
-        const isAdmin = Boolean(adminEmail) && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
-        // Phase 3 — User ၏ Settings / Preferences များကိုပါ ပြန်ပို့သည်
-        const settings = await getUserSettings(env, payload.sub);
-        const preferences = await getUserPreferences(env, payload.sub);
-        // Phase 4 — Studio ON/OFF အနေအထားကိုပါ ပြန်ပို့သည် (Sidebar မှ ပိတ်ထားသော Studio ကို ဖျောက်ရန်)
-        const studio_settings = await getStudioSettings(env);
-        // Phase 12 — Name + Usage Summary (Personal Profile အတွက်)
-        let name = '';
-        let usage = { ai_requests: 0, image_generations: 0, voice_generations: 0 };
-        try {
-          const row = env.DB ? await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(payload.sub).first() : null;
-          name = (row && row.name) || '';
-          const usageRows = env.DB ? await env.DB.prepare('SELECT category, COUNT(*) AS n FROM usage WHERE user_id = ? GROUP BY category').bind(payload.sub).all() : null;
-          if (usageRows && usageRows.results) {
-            usageRows.results.forEach(function (r) {
-              const cat = String(r.category || '').toUpperCase();
-              const n = Number(r.n) || 0;
-              if (cat.indexOf('IMAGE') > -1) usage.image_generations += n;
-              else if (cat.indexOf('VOICE') > -1) usage.voice_generations += n;
-              else usage.ai_requests += n;
-            });
-          }
-        } catch (e) { console.error('[AICS] me usage failed', String(e)); }
-        return json({ email: payload.email, name, plan, user_id: payload.sub, is_admin: isAdmin, usage, settings, preferences, studio_settings }, 200, cors);
-      }
+      const userResponse = await handleUserRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, friendlyError, readBody });
+      if (userResponse) return userResponse;
 
-      // ===== Phase C — AI Models List (User အတွက် Studio Dropdown) =====
-      // ဖွင့်ထားသော + User ၏ Plan နှင့် ကိုက်ညီသော Model များကိုသာ ပြန်ပို့သည်
-      if (path === '/api/ai-models' && request.method === 'GET') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const plan = await resolvePlan(env, payload);
-        const cat = url.searchParams.get('category') || '';
-        const task = String(url.searchParams.get('task') || '').trim().slice(0, 80);
-        const items = await listEnabledModels(env, cat || undefined, plan, task || undefined);
-        return json({
-          ok: true,
-          items: items.map((m) => ({ id: m.id, name: m.name, category: m.category, plan_access: m.plan_access })),
-        }, 200, cors);
-      }
+      const aiModelResponse = await handleAiModelRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan });
+      if (aiModelResponse) return aiModelResponse;
 
-      // ===== Phase 12 — Personal Profile Name ပြောင်းခြင်း (Server-side Whitelist) =====
-      if (path === '/api/users/me/profile' && request.method === 'PUT') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await readBody(request).catch(() => null);
-        const name = String((body && body.name) || '').trim().slice(0, 60);
-        if (!name) return json({ error: 'missing_name', detail: 'Name မထည့်နိုင်ပါ။' }, 400, cors);
-        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
-        await env.DB.prepare('UPDATE users SET name = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(name, payload.sub).run();
-        return json({ ok: true, name }, 200, cors);
-      }
+      const byokResponse = await handleByokRoutes(request, env, cors, { bearer, verifyTokenSafe, json, friendlyError });
+      if (byokResponse) return byokResponse;
 
-      // ===== Personal Settings — Profile/Preferences သိမ်းခြင်း (Phase 3) =====
-      // Server-side တွင် Whitelist စစ်ပြီးမှသာ သိမ်းသည် (Frontend ကို မယုံပါ)
-      if (path === '/api/users/me/settings' && request.method === 'PUT') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || typeof body !== 'object') return json({ error: 'bad_request' }, 400, cors);
-        try {
-          const settings = await updateUserSettings(env, payload.sub, body.settings || {});
-          const preferences = await updateUserPreferences(env, payload.sub, body.preferences || {});
-          return json({ ok: true, settings, preferences }, 200, cors);
-        } catch (e) {
-          return json({ error: 'settings_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const aiResponse = await handleAiRoutes(request, env, cors, { bearer, verifyTokenSafe, json, friendlyError, getUserApiKey });
+      if (aiResponse) return aiResponse;
 
-      // ===== BYOK — User ကိုယ်ပိုင် Gemini Key သိမ်းခြင်း / အခြေအနေ စစ်ခြင်း =====
-      if (path === '/api/user/apikey' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.key || !String(body.key).trim()) return json({ error: 'missing_key' }, 400, cors);
-        try {
-          await saveUserApiKey(env, payload.sub, String(body.key).trim());
-          return json({ ok: true }, 200, cors);
-        } catch (e) {
-          return json({ error: 'db_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const cmsResponse = await handleCmsRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan });
+      if (cmsResponse) return cmsResponse;
 
-      if (path === '/api/user/apikey/status' && request.method === 'GET') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        try {
-          const key = await getUserApiKey(env, payload.sub);
-          return json({ hasKey: !!key }, 200, cors);
-        } catch (e) {
-          return json({ error: 'apikey_status_failed', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const ideasResponse = await handleIdeasRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe, friendlyError });
+      if (ideasResponse) return ideasResponse;
 
-      if (path === '/api/user/apikey' && request.method === 'DELETE') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        try {
-          await deleteUserApiKey(env, payload.sub);
-          return json({ ok: true }, 200, cors);
-        } catch (e) {
-          return json({ error: 'apikey_delete_failed', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const genericStudioResponse = await handleGenericStudioRoute(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe, friendlyError, getStudio, isStudioEnabled });
+      if (genericStudioResponse) return genericStudioResponse;
 
-      // D1-backed fixed-window limit: five connection tests per user per ten minutes.
-      // A shared database provides consistent limits across Worker isolates.
-      // API key connection test is authenticated; callers may test a new key before saving it.
-      if (path === '/api/ai/test' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        if (!env.DB) return json({ error: 'rate_limit_unavailable' }, 503, cors);
-        try {
-          const windowId = Math.floor(Date.now() / 600000);
-          await env.DB.prepare('INSERT INTO api_test_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1').bind(payload.sub, windowId).run();
-          const usage = await env.DB.prepare('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?').bind(payload.sub, windowId).first();
-          if (!usage || usage.attempts > 5) return json({ error: 'rate_limited' }, 429, { ...cors, 'Retry-After': String(Math.ceil(((windowId + 1) * 600000 - Date.now()) / 1000)) });
-        } catch (e) { friendlyError(e); return json({ error: 'rate_limit_unavailable' }, 503, cors); }
-        const body = await request.json().catch(() => null);
-        if (!body) return json({ error: 'bad_request' }, 400, cors);
-        const prompt = String(body.prompt || 'Reply with OK').slice(0, 500);
-        const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
-        try {
-          const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
-          const out = await generateText(env, { model, prompt, apiKey, validationMode: 'connection_test' });
-          return json({ ok: true, output: out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'ai_error', code: e?.code || 'provider_error', detail: friendlyError(e) }, getAIErrorHttpStatus(e), cors);
-        }
-      }
-
-      if (path === '/api/cms/prompt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub || !payload.email) return json({ error: 'invalid_token' }, 401, cors);
-        // Defense in depth: this endpoint returns the full CMS system prompt.
-        // Keep the explicit Admin gate here even though adminApi() also protects /api/cms/*.
-        const adminEmail = String(env.ADMIN_EMAIL || '').trim();
-        if (!adminEmail || String(payload.email).trim().toLowerCase() !== adminEmail.toLowerCase()) {
-          return json({ error: 'forbidden', detail: 'admin only' }, 403, cors);
-        }
-        const body = await request.json().catch(() => null);
-        if (!body) return json({ error: 'bad_request' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const c = await getCMSData(env, body.studio || 'STORY', plan, body.type || '1');
-        if (!c) return json({ found: false }, 200, cors);
-        return json({ found: true, studio: c.studio, plan: c.plan, type: c.type, system_prompt: buildSystemPrompt(c) }, 200, cors);
-      }
-
-      if (path === '/api/ideas/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload || !payload.sub) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        const validation = validateIdeasBrief(body);
-        if (!validation.ok) return json({ error: validation.error, field: validation.field }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const denied = await requireFeature(env, 'ideas.generate', plan, '1', cors);
-        if (denied) return denied;
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const ideas = await generateIdeas(env, { brief: body, plan, apiKey });
-          if (!Array.isArray(ideas) || ideas.length !== 3) return json({ error: 'invalid_ai_output' }, 502, cors);
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, count: 3, ideas }, 200, cors);
-        } catch (e) {
-          if (e && e.message === 'cms_prompt_missing') {
-            return json({ error: 'cms_prompt_missing', detail: 'Idea Workspace Prompt ကို Admin CMS မှာ အရင်ပြင်ဆင်ပါ။' }, 503, cors);
-          }
-          if (e && /^invalid_(?:ai_output|ideas_count|idea|suggested_studio)$/.test(e.message)) {
-            return json({ error: e.message }, 502, cors);
-          }
-          return json({ error: 'ideas_generation_failed', detail: friendlyError(e) }, 502, cors);
-        }
-      }
-
-      if (path === '/api/studio/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.studio || !body.idea) return json({ error: 'missing_studio_or_idea' }, 400, cors);
-        // The generic endpoint must honor the same server-side Studio Gate as dedicated routes.
-        const requestedStudio = String(body.studio).toLowerCase();
-        if (getStudio(requestedStudio)) {
-          const studioEnabled = await isStudioEnabled(env, requestedStudio);
-          if (!studioEnabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
-        }
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        // Generic Generate must honor the selected studio's Admin feature gate as well as the shared gate.
-        const studioFeatureId = requestedStudio === 'content' ? 'content.generate'
-          : requestedStudio === 'story' ? 'story.generate'
-          : null;
-        if (studioFeatureId) {
-          const studioFeatureDenied = await requireFeature(env, studioFeatureId, plan, reqType, cors);
-          if (studioFeatureDenied) return studioFeatureDenied;
-        }
-        { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
-        try {
-          // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStudio(env, {
-            studio: String(body.studio).toUpperCase(),
-            type: String(body.type || '1'),
-            idea: body.idea,
-            plan,
-            apiKey,
-            model: body.model,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json(out, 200, cors);
-        } catch (e) {
-          return json({ error: 'studio_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Content Studio — Tab 1: Generate =====
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
@@ -861,873 +425,32 @@ export default {
         }
       }
 
-      if (path === '/api/studio/content/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const genLevel = String(body.generationLevel || body.type || '1');
-        { const denied = await requireFeature(env, 'content.generate', plan, genLevel, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateContent(env, {
-              model: body.model,
-              idea: body.idea,
-              generationLevel: genLevel,
-              contentType: String(body.contentType || 'Other'),
-              platform: body.platform,
-              product: body.product,
-              goal: body.goal,
-              cta: body.cta,
-              plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            await trackUsageSafe(env, payload.sub, 'ai');
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContent(env, {
-            model: body.model,
-            idea: body.idea,
-            generationLevel: genLevel,
-            contentType: String(body.contentType || 'Other'),
-            platform: body.platform,
-            product: body.product,
-            goal: body.goal,
-            cta: body.cta,
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'content_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (contentStudioResponse) return contentStudioResponse;
 
-      // ===== Content Studio — Tab 1: Revise (Chat) =====
-      if (path === '/api/studio/content/revise' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.feedback) return json({ error: 'missing_feedback' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const genLevel = String(body.generationLevel || body.type || '1');
-        { const denied = await requireFeature(env, 'content.revise', plan, genLevel, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await reviseContent(env, {
-              model: body.model,
-              originalContent: body.originalContent || '',
-              originalSpeaking: body.originalSpeaking || '',
-              originalVoice: body.originalVoice || '',
-              feedback: body.feedback,
-              generationLevel: genLevel,
-              contentType: String(body.contentType || 'Other'),
-              plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseContent(env, { model: body.model, 
-            originalContent: body.originalContent || '',
-            originalSpeaking: body.originalSpeaking || '',
-            originalVoice: body.originalVoice || '',
-            feedback: body.feedback,
-            generationLevel: genLevel,
-            contentType: String(body.contentType || 'Other'),
-            plan, apiKey,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (storyStudioResponse) return storyStudioResponse;
 
-      // ===== Content Studio — Tab 1: Text → Voice (TTS) =====
-      if (path === '/api/studio/content/tts' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.text) return json({ error: 'missing_text' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const genLevel = String(body.generationLevel || body.type || '1');
-        { const denied = await requireFeature(env, 'content.tts', plan, genLevel, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentVoice(env, { model: body.model,
-            text: body.text,
-            voiceName: body.voiceName || 'Kore',
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'voice');
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (shortStudioResponse) return shortStudioResponse;
 
-      // ===== Content Studio — Tab 2: Video Plan =====
-      if (path === '/api/studio/content/video' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const genLevel = String(body.generationLevel || body.type || '1');
-        { const denied = await requireFeature(env, 'content.video', plan, genLevel, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentVideo(env, {
-            model: body.model,
-            idea: body.idea,
-            generationLevel: genLevel,
-            contentType: String(body.contentType || 'Other'),
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (imageStudioResponse) return imageStudioResponse;
 
-      // ===== Content Studio — Tab 2: Video Scene Image =====
-      if (path === '/api/studio/content/video-image' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'content.video_image', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (voiceStudioResponse) return voiceStudioResponse;
 
-      // ===== Content Studio — Tab 3: SRT from Audio =====
-      if (path === '/api/studio/content/srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'content.srt', plan, '1', cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentSrt(env, { model: body.model, 
-            audioBase64: body.audioBase64,
-            mimeType: body.mimeType || 'audio/mpeg',
-            apiKey,
-          });
-          return json({ ok: true, srt: out.srt }, 200, cors);
-        } catch (e) {
-          return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      if (shopStudioResponse) return shopStudioResponse;
 
-      // ===== Content Studio — Tab 3: Translate SRT =====
-      if (path === '/api/studio/content/translate-srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'content.translate_srt', plan, '1', cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await translateContentSrt(env, { model: body.model, 
-            srtText: body.srtText,
-            direction: body.direction || 'my-to-cn',
-            apiKey,
-          });
-          return json({ ok: true, srt: out.srt }, 200, cors);
-        } catch (e) {
-          return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Story Studio — Tab 1: Generate =====
-      if (path === '/api/studio/story/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'story.generate', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateStory(env, {
-              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            await trackUsageSafe(env, payload.sub, 'ai');
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStory(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'story_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Story Studio — Tab 1: Revise (Chat) =====
-      if (path === '/api/studio/story/revise' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
-        if (!body.currentStory) return json({ error: 'missing_current_story' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'story.revise', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await reviseStory(env, {
-              model: body.model,
-              idea: body.idea || '',
-              type: reqType,
-              currentStory: body.currentStory,
-              instruction: body.instruction,
-              plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseStory(env, { model: body.model, 
-            idea: body.idea || '',
-            type: reqType,
-            currentStory: body.currentStory,
-            instruction: body.instruction,
-            plan, apiKey,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Story Studio — Tab 2: Video Plan (04 Form → 05/06) =====
-      // Backward Compat: ယခင် body.idea ကိုလည်း ဆက်လက်လက်ခံသည်။
-      // Story Video = Feature-level PRO gate (§3) — Visual Style + Video Workflow သည်
-      // Story Video အတွင်းရှိ configuration သာ (type-based gate မသုံးတော့ပါ)။
-      if (path === '/api/studio/story/video' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || (!body.idea && !body.story)) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'story.video', plan, '1', cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStoryVideoPlan(env, {
-            model: body.model,
-            story: body.story || body.idea || '',
-            idea: body.idea || body.story || '',
-            type: body.type || '1',
-            videoType: body.videoType,
-            workflow: body.workflow,
-            visualStyle: body.visualStyle,
-            storyFacts: body.storyFacts,
-            duration: body.duration,
-            sceneDuration: body.sceneDuration,
-            aspectRatio: body.aspectRatio,
-            cameraStyle: body.cameraStyle,
-            language: body.language,
-            environmentStyle: body.environmentStyle,
-            characterContinuity: body.characterContinuity,
-            characterConsistency: body.characterConsistency,
-            referenceImage: body.referenceImage,
-            characterDirection: body.characterDirection || '',
-            cameraDirection: body.cameraDirection || '',
-            lighting: body.lighting || '',
-            environmentDetails: body.environmentDetails || '',
-            colorMood: body.colorMood || '',
-            transitionPacing: body.transitionPacing || '',
-            audioDirection: body.audioDirection || '',
-            additionalInstructions: body.additionalInstructions,
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Story Studio — Tab 2: Video Scene/Character Image =====
-      // Story Video ၏ အစိတ်အပိုင်း — Feature-level PRO gate အတိုင်း လိုက်နာသည်
-      if (path === '/api/studio/story/video-image' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'story.video_image', plan, '1', cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStoryVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Short Studio — Tab 1: Generate =====
-      if (path === '/api/studio/short/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'short.generate', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateShort(env, {
-              model: body.model, idea: body.idea, type: reqType, plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            await trackUsageSafe(env, payload.sub, 'ai');
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShort(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'short_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Short Studio — Tab 1: Revise (Chat) =====
-      if (path === '/api/studio/short/revise' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
-        if (!body.currentShort) return json({ error: 'missing_current_short' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'short.revise', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await reviseShort(env, {
-              model: body.model,
-              idea: body.idea || '', type: reqType, currentShort: body.currentShort,
-              instruction: body.instruction, plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseShort(env, { model: body.model, 
-            idea: body.idea || '', type: reqType, currentShort: body.currentShort,
-            instruction: body.instruction, plan, apiKey,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Short Studio — Tab 2: Video Plan (with Reference Images) =====
-      if (path === '/api/studio/short/video' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'short.video', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShortVideoPlan(env, { model: body.model, 
-            idea: body.idea, type: reqType, plan, apiKey,
-            images: body.images || [],
-            // Short Video Production Setup (Step 04) — additive, backward compatible
-            videoStyle: body.videoStyle || '',
-            aspectRatio: body.aspectRatio || '9:16',
-            duration: body.duration || '30 sec',
-            sceneDuration: body.sceneDuration || '5 sec',
-            visualStyle: body.visualStyle || '',
-            cameraStyle: body.cameraStyle || '',
-            language: body.language || 'မြန်မာ',
-            characterContinuity: body.characterContinuity || 'true',
-            additionalInstructions: body.additionalInstructions || '',
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Short Studio — Tab 2: Video Scene/Character Image =====
-      if (path === '/api/studio/short/video-image' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'short.video_image', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShortVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Image Studio — Tab 1: Image Prompt Generate =====
-      if (path === '/api/studio/image/prompt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'image.prompt', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateImagePrompt(env, {
-              model: body.model,
-              idea: body.idea, type: reqType, plan, apiKey,
-              images: body.images,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateImagePrompt(env, { model: body.model, 
-            idea: body.idea, type: reqType, plan, apiKey,
-            images: body.images,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_prompt_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Image Studio — Tab 2: Ad Image Prompt Generate =====
-      if (path === '/api/studio/image/ad-prompt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'image.ad_prompt', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateAdImagePrompt(env, {
-              model: body.model,
-              idea: body.idea, type: reqType, plan, apiKey,
-              images: body.images,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateAdImagePrompt(env, { model: body.model, 
-            idea: body.idea, type: reqType, plan, apiKey,
-            images: body.images,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'ad_prompt_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Image Studio — Tab 1 & 2: Generate Actual Image from Prompt =====
-      if (path === '/api/studio/image/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'image.generate', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateImageFromPrompt(env, { model: body.model, prompt: body.prompt, plan, apiKey });
-          await trackUsageSafe(env, payload.sub, 'image');
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_generate_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Voice Studio — Tab 1: Text → Voice (TTS) =====
-      if (path === '/api/studio/voice/tts' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.text) return json({ error: 'missing_text' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'voice.tts', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateVoiceAudio(env, { model: body.model,
-            text: body.text,
-            voiceName: body.voiceName || 'Kore',
-            plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'voice');
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Voice Studio — Tab 2: Audio → Text (Transcribe) =====
-      if (path === '/api/studio/voice/transcribe' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'voice.transcribe', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await transcribeAudio(env, { model: body.model, 
-            audioBase64: body.audioBase64,
-            mimeType: body.mimeType || 'audio/mpeg',
-            type: reqType, plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'transcribe_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Voice Studio — Tab 1 & 2: SRT from Audio (PRO only) =====
-      if (path === '/api/studio/voice/srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'voice.srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateVoiceSrt(env, { model: body.model, 
-            audioBase64: body.audioBase64,
-            knownText: typeof body.knownText === 'string' ? body.knownText : '',
-            mimeType: body.mimeType || 'audio/mpeg',
-            type: String(body.type || '2'), plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Voice Studio — Tab 1 & 2: Translate SRT (PRO only) =====
-      if (path === '/api/studio/voice/translate-srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'voice.translate_srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await translateVoiceSrt(env, { model: body.model, 
-            srtText: body.srtText,
-            direction: body.direction || 'MY_TO_CN',
-            type: String(body.type || '2'), plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Shop Studio — Tab 1: Generate =====
-      if (path === '/api/studio/shop/content/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'shop.content_generate', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await generateShopContent(env, {
-              model: body.model, idea: body.idea, type: reqType, plan, apiKey, images: body.images || [],
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            await trackUsageSafe(env, payload.sub, 'ai');
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShopContent(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'shop_content_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Shop Studio — Tab 1: Revise (Chat) =====
-      if (path === '/api/studio/shop/content/revise' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.instruction) return json({ error: 'missing_instruction' }, 400, cors);
-        if (!body.currentContent) return json({ error: 'missing_current_content' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'shop.content_revise', plan, reqType, cors); if (denied) return denied; }
-        // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
-        if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
-          return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-            const out = await reviseShopContent(env, {
-              model: body.model,
-              idea: body.idea || '', type: reqType, currentContent: body.currentContent,
-              instruction: body.instruction, plan, apiKey,
-              onChunk: (t) => send({ type: 'chunk', text: t }),
-            });
-            send({ type: 'done', result: out });
-          }, cors);
-        }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await reviseShopContent(env, { model: body.model, 
-            idea: body.idea || '', type: reqType, currentContent: body.currentContent,
-            instruction: body.instruction, plan, apiKey,
-          });
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'revise_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Shop Studio — Tab 2: Video Plan =====
-      if (path === '/api/studio/shop/video/generate' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.idea) return json({ error: 'missing_idea' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'shop.video_generate', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShopVideo(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
-          await trackUsageSafe(env, payload.sub, 'ai');
-          return json({ ok: true, ...out }, 200, cors);
-        } catch (e) {
-          return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Shop Studio — Tab 2: Video Scene/Character/Product Image =====
-      if (path === '/api/studio/shop/video-image' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.prompt) return json({ error: 'missing_prompt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'shop.video_image', plan, reqType, cors); if (denied) return denied; }
-        try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShopVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey, images: body.images || [] });
-          return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
-        } catch (e) {
-          return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Projects — User ကိုယ်ပိုင် Project များ (Phase 3) =====
-      // Server-side တွင် user_id ကို အမြဲ စစ်သည် — အခြားသူ၏ Project ကို မမြင်ရ/မဖျက်ရပါ
-      if (path === '/api/projects' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.title) return json({ error: 'missing_title' }, 400, cors);
-        try {
-          const p = await createProject(env, payload.sub, String(body.title), body.description || '');
-          return json({ ok: true, project: p }, 200, cors);
-        } catch (e) {
-          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      if (path === '/api/projects' && request.method === 'GET') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        try {
-          const items = await listProjects(env, payload.sub);
-          return json({ items }, 200, cors);
-        } catch (e) {
-          return json({ error: 'project_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      if (path.startsWith('/api/projects/') && request.method === 'DELETE') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const id = path.split('/').pop();
-        if (!id) return json({ error: 'missing_id' }, 400, cors);
-        try {
-          await deleteProject(env, payload.sub, id);
-          return json({ ok: true }, 200, cors);
-        } catch (e) {
-          return json({ error: 'delete_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
+      const projectResponse = await handleProjectRoutes(request, env, cors, {
+        bearer,
+        verifyTokenSafe,
+        readBody,
+        json,
+        friendlyError,
+      });
+      if (projectResponse) return projectResponse;
 
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။

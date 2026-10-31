@@ -326,15 +326,6 @@ export function sidebarScript() {
     '  }\n' +
     '};\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
-    '// Phase 12 — Google Login ပြီးနောက် #token ကို ကမ္ဘာလုံးဆိုင်ရာ သိမ်းသည် (App စာမျက်နှာအားလုံးအတွက်)\n' +
-    '(function () {\n' +
-    '  var h = location.hash || \'\';\n' +
-    '  if (h.indexOf(\'#token=\') === 0) {\n' +
-    '    try { localStorage.setItem(\'aics_token\', decodeURIComponent(h.slice(7))); } catch (e) {}\n' +
-    '    try { history.replaceState(null, \'\', location.pathname); } catch (e) {}\n' +
-    '    location.reload();\n' +
-    '  }\n' +
-    '})();\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +

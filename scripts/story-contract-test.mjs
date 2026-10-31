@@ -131,7 +131,7 @@ try {
   assert.equal(buildStoryFactsBlock('not an object'), '');
 
   // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
-  const workerSource = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const workerSource = readFileSync(new URL('../worker/src/routes/studios/story.routes.js', import.meta.url), 'utf8');
   const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
   const storyActionsSource = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
   assert.match(workerSource, /storyFacts:\s*body\.storyFacts/);

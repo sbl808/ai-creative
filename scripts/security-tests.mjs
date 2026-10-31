@@ -10,6 +10,7 @@
  * Run: node --experimental-default-type=module scripts/security-tests.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
+import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
 let passed = 0, failed = 0;
 function check(name, ok, extra) {
@@ -79,7 +80,85 @@ console.log('--- A) CORS enforcement ---');
   check('prod origin rejected under dev env', r9.headers.get('access-control-allow-origin') === null);
 }
 
-console.log('\n--- B) Auth signing key (no dev fallback) ---');
+console.log('\n--- B) OAuth redirect and state security ---');
+{
+  const workerOrigin = 'https://worker.example.com';
+  const oauthEnv = {
+    SESSION_SIGNING_KEY: 'oauth-test-secret',
+    ALLOWED_ORIGINS: DEV_ORIGIN + ',https://aics-frontend-staging.pages.dev',
+  };
+  check('relative OAuth next path resolves to same-origin /app',
+    safeOAuthRedirect('/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('same-origin absolute OAuth redirect is allowed',
+    safeOAuthRedirect(workerOrigin + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('cross-origin frontend redirect falls back to cookie-owning Worker origin',
+    safeOAuthRedirect(DEV_ORIGIN + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('lookalike frontend hostname is rejected',
+    safeOAuthRedirect(DEV_ORIGIN + '.attacker.example/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('unlisted external redirect origin is rejected',
+    safeOAuthRedirect('https://evil.example.com/steal', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('javascript redirect scheme is rejected',
+    safeOAuthRedirect('javascript:alert(1)', workerOrigin, oauthEnv) === workerOrigin + '/app');
+  check('credential-bearing redirect URL is rejected',
+    safeOAuthRedirect('https://user:pass@' + DEV_ORIGIN.slice('https://'.length) + '/app', workerOrigin, oauthEnv) === workerOrigin + '/app');
+
+  const now = Date.now();
+  const cookie = await createOAuthStateCookieValue(oauthEnv, 'test-state-nonce', DEV_ORIGIN + '/app', now);
+  const verified = await verifyOAuthStateCookieValue(oauthEnv, cookie, now);
+  check('signed OAuth state cookie validates and preserves redirect target',
+    !!verified && verified.state === 'test-state-nonce' && verified.redirectTo === DEV_ORIGIN + '/app');
+  check('tampered OAuth state cookie is rejected',
+    await verifyOAuthStateCookieValue(oauthEnv, cookie + 'x', now) === null);
+  check('expired OAuth state cookie is rejected',
+    await verifyOAuthStateCookieValue(oauthEnv, cookie, now + 11 * 60 * 1000) === null);
+  check('OAuth state cookie fails closed without signing key',
+    await verifyOAuthStateCookieValue({}, cookie, now) === null);
+
+  const routeDeps = {
+    json: (data, status, headers) => new Response(JSON.stringify(data), {
+      status, headers: { 'Content-Type': 'application/json', ...headers },
+    }),
+    friendlyError: () => 'safe error',
+    readBody: async () => ({}),
+    verifyTokenSafe: async () => null,
+    cookieToken: () => null,
+    clearSessionCookie: () => '',
+  };
+  const loginResponse = await handleAuthRoutes(
+    new Request(workerOrigin + '/api/auth/login?next=' + encodeURIComponent(DEV_ORIGIN + '/app')),
+    { ...oauthEnv, GOOGLE_OAUTH_CLIENT_ID: 'oauth-client-id' }, {}, routeDeps
+  );
+  const googleAuthUrl = new URL(loginResponse.headers.get('Location'));
+  const stateCookieHeader = loginResponse.headers.get('Set-Cookie') || '';
+  const stateCookieValue = decodeURIComponent((stateCookieHeader.split(';')[0].split('=').slice(1).join('=')) || '');
+  check('Google login sends opaque random state and sets HttpOnly state cookie',
+    googleAuthUrl.hostname === 'accounts.google.com' &&
+    !!googleAuthUrl.searchParams.get('state') &&
+    googleAuthUrl.searchParams.get('state') !== DEV_ORIGIN + '/app' &&
+    /HttpOnly/.test(stateCookieHeader) && /Secure/.test(stateCookieHeader) &&
+    /SameSite=Lax/.test(stateCookieHeader) && /Max-Age=600/.test(stateCookieHeader));
+  const invalidCallback = await handleAuthRoutes(
+    new Request(workerOrigin + '/api/auth/callback?code=not-exchanged&state=attacker-state'),
+    oauthEnv, {}, routeDeps
+  );
+  check('callback rejects missing browser state before exchanging OAuth code',
+    invalidCallback.status === 400 &&
+    (await invalidCallback.json()).error === 'invalid_oauth_state' &&
+    /Max-Age=0/.test(invalidCallback.headers.get('Set-Cookie') || ''));
+
+  const authRoute = readFileSync(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
+  const sharedFrontend = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  check('OAuth callback requires matching browser-bound state',
+    authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
+  check('OAuth callback redirects without putting token in URL',
+    authRoute.includes('Location: statePayload.redirectTo') && !authRoute.includes('#token='));
+  check('OAuth callback clears one-time state cookie',
+    authRoute.includes('Max-Age=0') && authRoute.includes('withClearedState(response)'));
+  check('frontend no longer imports tokens from URL fragments',
+    !sharedFrontend.includes("h.indexOf('#token=')") && !sharedFrontend.includes("decodeURIComponent(h.slice(7))"));
+}
+
+console.log('\n--- C) Auth signing key (no dev fallback) ---');
 {
   // Import auth.js fresh per scenario: getKey() caches the first key at module level,
   // so each case needs a separate module instance.
@@ -241,7 +320,7 @@ console.log('\n--- D) API test rate-limit migration contract ---');
       /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
     check('migration indexes window_id for cleanup queries',
       /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
-    const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+    const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
     check('rate-limit route SQL matches migration table and columns',
       /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
       /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
@@ -294,14 +373,15 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
       /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
   }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
   check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(route) &&
-    /api_generation_limits/.test(route) &&
-    /enforceSharedAiRateLimit\(request, env, path\)/.test(route) &&
-    /rate_limited/.test(route));
+    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
+    /api_generation_limits/.test(guards) &&
+    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
+    /rate_limited/.test(guards));
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\/api\/cms\/prompt'/.test(route) &&
-    /content\|story\|short\|image\|voice\|shop/.test(route));
+    /path === '\/api\/cms\/prompt'/.test(guards) &&
+    /content\|story\|short\|image\|voice\|shop/.test(guards));
   console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
 }
 
@@ -421,18 +501,18 @@ console.log('\n--- G) Multimodal request input limits ---');
 console.log('\n--- CMS prompt authorization contracts ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
-  const admin = readFileSync(new URL('../worker/src/admin.js', import.meta.url), 'utf8');
+  const admin = readFileSync(new URL('../worker/src/admin/api.js', import.meta.url), 'utf8');
+  const cmsRoute = readFileSync(new URL('../worker/src/routes/cms.routes.js', import.meta.url), 'utf8');
+  const genericStudioRoute = readFileSync(new URL('../worker/src/routes/studio.routes.js', import.meta.url), 'utf8');
   const studio = readFileSync(new URL('../worker/src/studio.js', import.meta.url), 'utf8');
   const cms = readFileSync(new URL('../worker/src/core/cms.js', import.meta.url), 'utf8');
-  const routeAt = index.indexOf("if (path === '/api/cms/prompt' && request.method === 'POST')");
   const adminGateAt = index.indexOf('const adminResp = await adminApi(request, path, env, verifyToken)');
-  const routeEnd = index.indexOf("if (path === '/api/ideas/generate'", routeAt);
-  const route = routeAt >= 0 && routeEnd > routeAt ? index.slice(routeAt, routeEnd) : '';
-  check('CMS prompt route checks Admin email locally', route.includes("String(env.ADMIN_EMAIL || '').trim()") && route.includes("detail: 'admin only'"));
-  check('Shared CMS Admin gate runs before route dispatch', adminGateAt >= 0 && routeAt > adminGateAt && admin.includes("path.indexOf('/api/cms/') === 0"));
-  check('CMS prompt response requires valid identity and Admin email', route.includes("!payload || !payload.sub || !payload.email") && route.includes('system_prompt: buildSystemPrompt(c)'));
+  const cmsDispatchAt = index.indexOf('const cmsResponse = await handleCmsRoutes(request, env, cors');
+  check('CMS prompt route checks Admin email locally', cmsRoute.includes("String(env.ADMIN_EMAIL || '').trim()") && cmsRoute.includes("detail: 'admin only'"));
+  check('Shared CMS Admin gate runs before route dispatch', adminGateAt >= 0 && cmsDispatchAt > adminGateAt && admin.includes("path.indexOf('/api/cms/') === 0"));
+  check('CMS prompt response requires valid identity and Admin email', cmsRoute.includes("!payload || !payload.sub || !payload.email") && cmsRoute.includes('system_prompt: buildSystemPrompt(c)'));
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
-  check('Studio generation keeps server-side CMS integration', index.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
+  check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);

@@ -78,5 +78,30 @@ Legend: 🟢 = new file · 🟡 = modified (safe) · 🔴 = modified (protected 
 | File | Reason |
 |---|---|
 | `core/ai.js`, `core/auth.js`, `config/studios.js`, `frontend/shared.js` | Protected (rule 5) — V2 တွင် ပြင်စရာ မလို |
-| `config/features.js`, `config/models.js`, `core/*`, `studios/*` (backend), `admin.js`, `frontend.js`, `frontend/{login,creations,settings,projects}.js` | Non-500+ / already isolated / server logic — functionality မပြောင်း (rule 9) |
+| `config/features.js`, `config/models.js`, `core/*`, `studios/*` (backend), `frontend/{login,creations,settings,projects}.js` | Non-500+ / already isolated / server logic — functionality မပြောင်း (rule 9) |
+| `worker/src/admin.js`, `worker/src/frontend.js` | ပြင်ဆင်ထားသော compatibility re-export entry များ — မူလ import path များ ဆက်အလုပ်လုပ် |
 | `migrations/*.sql`, `wrangler.toml` | DB schema + deploy config — မပြောင်း (rule 4) |
+
+
+## H. Backend Modular Route Extraction (Option B)
+
+| Module | WHAT | DEPENDENCY | IMPACT / COMPATIBILITY |
+|---|---|---|---|
+| `worker/src/index.js` | Worker composition root, HTML page dispatch, shared helper ownership, route orchestration | middleware + routes + core + frontend | API URL များကို မပြောင်းဘဲ handler များကို သီးခြားခွဲထား |
+| `middleware/cors.js` | Per-request CORS allowlist | Worker Request + environment | မူလ origin allowlist behavior ထိန်းသိမ်း |
+| `middleware/requestGuards.js` | API body-size guard + shared AI generation rate limit | Worker Request + injected auth/response helpers + D1 | မူလ 32 MiB limit နှင့် 30-per-10-minute limit ထိန်းသိမ်း |
+| `routes/auth.routes.js` | Google OAuth, session, signup, signin, logout APIs | `core/auth.js` + injected session helpers | Existing auth endpoints နှင့် cookie contract ထိန်းသိမ်း |
+| `routes/plans.routes.js` | User-facing plan catalog endpoint | `core/planCatalog.js` | Existing response shape ထိန်းသိမ်း |
+| `routes/users.routes.js` | User profile, settings, preferences, usage summary | `core/settings.js`, `core/studioSettings.js` | Existing user response fields ထိန်းသိမ်း |
+| `routes/aiModels.routes.js` | User-facing AI model list | `core/aiModels.js` | Existing query filters and model response shape ထိန်းသိမ်း |
+| `routes/byok.routes.js` | Save/status/delete API key endpoints | `core/utilities.js` | Encryption implementation မပြောင်း |
+| `routes/ai.routes.js` | AI connection test endpoint | `core/ai/aiService.js`, AI error mapper | Existing validation mode and error contract ထိန်းသိမ်း |
+| `routes/cms.routes.js` | CMS prompt endpoint | `core/cms.js`; Admin API gate still runs before this dispatch | Explicit Admin email check ထိန်းသိမ်း |
+| `routes/ideas.routes.js` | Idea generation endpoint | `core/ideas.js` + feature/usage/BYOK helpers | Existing validation and usage tracking ထိန်းသိမ်း |
+| `routes/studio.routes.js` | Legacy generic Studio generation endpoint | `studio.js` | Backward-compatible API path ထိန်းသိမ်း |
+| `routes/projects.routes.js` | Project create/list/delete endpoints | `core/projects.js` + injected auth/response helpers | User ownership checks and response contract ထိန်းသိမ်း |
+| `routes/studios/*.routes.js` | Dedicated API endpoints for Story, Content, Short, Image, Voice, Shop | Corresponding `studios/*.js` + shared helpers | Studio ၆ ခု၏ existing API paths and feature gates ထိန်းသိမ်း |
+| `admin/ui.js` / `admin/api.js` | Admin UI template and Admin API handlers split into separate modules | Admin frontend + core admin services | `admin.js` compatibility barrel keeps existing imports working |
+| `frontend/home.js` | Application home page template | Frontend shared shell | `frontend.js` compatibility export keeps existing imports working |
+
+**Dependency direction:** `index.js` → middleware/routes → core or Studio service. Studio route modules do not call another Studio's route module. Legacy CMS (`core/cms.js`) and Story Brain (`core/cmsBrain.js`) remain separate. Database migration files and Wrangler configuration were not changed.

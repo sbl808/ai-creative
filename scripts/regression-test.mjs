@@ -831,7 +831,7 @@ await check('AI Service requires task metadata for normal generation calls', asy
     source.includes("validationMode === 'connection_test'"), msg: 'task required; connection test has separate mode' };
 });
 await check('Connection test uses the explicit validation mode', async () => {
-  const source = await readFile(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
   return { ok: source.includes("validationMode: 'connection_test'"), msg: 'connection test mode forwarded' };
 });
 await check('Gemini retry policy avoids retrying uncertain POST outcomes', async () => {
