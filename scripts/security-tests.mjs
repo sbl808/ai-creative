@@ -10,7 +10,7 @@
  * Run: node --experimental-default-type=module scripts/security-tests.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
-import { safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
+import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
 let passed = 0, failed = 0;
 function check(name, ok, extra) {
@@ -111,6 +111,38 @@ console.log('\n--- B) OAuth redirect and state security ---');
     await verifyOAuthStateCookieValue(oauthEnv, cookie, now + 11 * 60 * 1000) === null);
   check('OAuth state cookie fails closed without signing key',
     await verifyOAuthStateCookieValue({}, cookie, now) === null);
+
+  const routeDeps = {
+    json: (data, status, headers) => new Response(JSON.stringify(data), {
+      status, headers: { 'Content-Type': 'application/json', ...headers },
+    }),
+    friendlyError: () => 'safe error',
+    readBody: async () => ({}),
+    verifyTokenSafe: async () => null,
+    cookieToken: () => null,
+    clearSessionCookie: () => '',
+  };
+  const loginResponse = await handleAuthRoutes(
+    new Request(workerOrigin + '/api/auth/login?next=' + encodeURIComponent(DEV_ORIGIN + '/app')),
+    { ...oauthEnv, GOOGLE_OAUTH_CLIENT_ID: 'oauth-client-id' }, {}, routeDeps
+  );
+  const googleAuthUrl = new URL(loginResponse.headers.get('Location'));
+  const stateCookieHeader = loginResponse.headers.get('Set-Cookie') || '';
+  const stateCookieValue = decodeURIComponent((stateCookieHeader.split(';')[0].split('=').slice(1).join('=')) || '');
+  check('Google login sends opaque random state and sets HttpOnly state cookie',
+    googleAuthUrl.hostname === 'accounts.google.com' &&
+    !!googleAuthUrl.searchParams.get('state') &&
+    googleAuthUrl.searchParams.get('state') !== DEV_ORIGIN + '/app' &&
+    /HttpOnly/.test(stateCookieHeader) && /Secure/.test(stateCookieHeader) &&
+    /SameSite=Lax/.test(stateCookieHeader) && /Max-Age=600/.test(stateCookieHeader));
+  const invalidCallback = await handleAuthRoutes(
+    new Request(workerOrigin + '/api/auth/callback?code=not-exchanged&state=attacker-state'),
+    oauthEnv, {}, routeDeps
+  );
+  check('callback rejects missing browser state before exchanging OAuth code',
+    invalidCallback.status === 400 &&
+    (await invalidCallback.json()).error === 'invalid_oauth_state' &&
+    /Max-Age=0/.test(invalidCallback.headers.get('Set-Cookie') || ''));
 
   const authRoute = readFileSync(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
   const sharedFrontend = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
