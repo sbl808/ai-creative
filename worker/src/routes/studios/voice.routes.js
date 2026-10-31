@@ -2,7 +2,7 @@ import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSr
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
 
       // ===== Voice Studio — Tab 1: Text → Voice (TTS) =====
       if (path === '/api/studio/voice/tts' && request.method === 'POST') {
