@@ -3,7 +3,7 @@ import { signToken, hashPassword, verifyPassword } from '../core/auth.js';
 export async function handleAuthRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const url = new URL(request.url);
-  const { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie, signToken, hashPassword, verifyPassword } = deps;
+  const { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie } = deps;
 
       if (path === '/api/auth/login' && request.method === 'GET') {
         const origin = url.origin;
