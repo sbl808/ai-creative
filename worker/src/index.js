@@ -763,11 +763,17 @@ export default {
         }
       }
 
-      // ===== Content Studio — Tab 1: Generate =====
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
-        const studioApiId = (path.match(/^\/api\/studio\/(story|con      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled });
+        const studioApiId = (path.match(/^\\/api\\/studio\\/(story|content|short|image|voice|shop)\\//) || [])[1];
+        if (studioApiId) {
+          const enabled = await isStudioEnabled(env, studioApiId);
+          if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+        }
+      }
+
+      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled });
       if (contentStudioResponse) return contentStudioResponse;
 
       const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled });
@@ -785,11 +791,15 @@ export default {
       const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse, isStudioEnabled });
       if (shopStudioResponse) return shopStudioResponse;
 
-            readBody,
+      const projectResponse = await handleProjectRoutes(request, env, cors, {
+        bearer,
+        verifyTokenSafe,
+        readBody,
         json,
         friendlyError,
       });
       if (projectResponse) return projectResponse;
+
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
       // Server-side /api/creations endpoints များကို ဖယ်ရှားပြီးပြီ — D1 တွင် User Content မသိမ်းတော့ပါ။
