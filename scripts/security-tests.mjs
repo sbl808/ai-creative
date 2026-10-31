@@ -422,7 +422,7 @@ console.log('\n--- G) Multimodal request input limits ---');
 console.log('\n--- CMS prompt authorization contracts ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
-  const admin = readFileSync(new URL('../worker/src/admin.js', import.meta.url), 'utf8');
+  const admin = readFileSync(new URL('../worker/src/admin/api.js', import.meta.url), 'utf8');
   const studio = readFileSync(new URL('../worker/src/studio.js', import.meta.url), 'utf8');
   const cms = readFileSync(new URL('../worker/src/core/cms.js', import.meta.url), 'utf8');
   const routeAt = index.indexOf("if (path === '/api/cms/prompt' && request.method === 'POST')");
