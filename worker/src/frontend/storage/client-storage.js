@@ -81,8 +81,8 @@ window.AICS_CREATIONS = {
 
 export function clientStorageScript() {
   return [
-    storageErrorsScript(),
     databaseScript(),
+    storageErrorsScript(),
     storageOwnerScript(),
     CREATIONS_SCRIPT
   ].join('\n');
