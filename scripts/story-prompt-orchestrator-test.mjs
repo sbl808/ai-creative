@@ -7,7 +7,7 @@ globalThis.fetch = async (url, options = {}) => {
   const body = JSON.parse(options.body || '{}');
   requests.push({ url: String(url), body });
   return new Response(JSON.stringify({
-    candidates: [{ content: { parts: [{ text: 'A completed story.\\n\\n```json\\n{"storyId":"story-test"}\\n```' }] } }],
+    candidates: [{ content: { parts: [{ text: 'A completed story.\n\n\`\`\`json\n{"storyId":"story-test"}\n\`\`\`' }] } }],
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
 
