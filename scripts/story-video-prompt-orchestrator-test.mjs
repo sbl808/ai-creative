@@ -123,7 +123,7 @@ try {
   const fallbackBody = requests.at(-1).body;
   const fallbackSystem = fallbackBody.systemInstruction.parts[0].text;
   assert.match(fallbackSystem, /Global policy role/);
-  assert.match(fallbackSystem, /Legacy video role/);
+  assert.doesNotMatch(fallbackSystem, /Legacy video role/);
   assert.match(fallbackSystem, /Legacy video memory/);
   assert.match(fallbackSystem, /Legacy video final output/);
 
