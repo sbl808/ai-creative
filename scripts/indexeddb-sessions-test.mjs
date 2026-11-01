@@ -123,15 +123,18 @@ function createFakeIndexedDB() {
           return;
         }
 
+        let continued = false;
         const cursor = {
           key: clone(entry.key),
           primaryKey: clone(entry.primaryKey),
           value: clone(entry.value),
           continue() {
+            continued = true;
             position++;
             emit();
           },
           continuePrimaryKey(key, primaryKey) {
+            continued = true;
             const target = { key, primaryKey };
             position = ordered.findIndex((candidate) => {
               const keyCompare = compareKeys(candidate.key, target.key);
@@ -147,6 +150,10 @@ function createFakeIndexedDB() {
         };
         request.result = cursor;
         if (request.onsuccess) request.onsuccess();
+        if (!continued) {
+          transaction.pending--;
+          transaction.scheduleCompletion();
+        }
       });
     }
 
