@@ -18,6 +18,20 @@ import { resolveModel } from '../core/aiModels.js';
 const CMS_STUDIO = 'STORY';
 const CMS_VIDEO = 'STORYVIDEO';
 
+function mapLegacyStoryTemplate(row) {
+  if (!row) return {};
+  return {
+    role: row.core,
+    memory: row.memory,
+    knowledge: row.knowledge,
+    workflow: row.workflow,
+    template: row.template,
+    prompt_rule: row.prompt,
+    quality_check: row.quality_check,
+    final_output: row.final_output,
+  };
+}
+
 // Story text context — Global Policy > selected Story Brain > legacy CMS fallback.
 async function buildStoryTextContext(env, typeId, plan, taskInstructions, userInput) {
   const [globalPolicy, studioBrain] = await Promise.all([
@@ -30,7 +44,7 @@ async function buildStoryTextContext(env, typeId, plan, taskInstructions, userIn
     globalPolicy,
     studioBrain,
     taskTemplate: {
-      ...(legacy || {}),
+      ...mapLegacyStoryTemplate(legacy),
       task_instructions: taskInstructions,
     },
     userInput,
