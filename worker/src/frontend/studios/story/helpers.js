@@ -5,7 +5,6 @@ export const HELPERS_SCRIPT = `(function init(){
   if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
   var _ue=document.getElementById('userEmail');if(_ue)_ue.textContent=userEmail||'—';
   var _pb=document.getElementById('planBadge');if(_pb)_pb.textContent=userPlan||'FREE';
-  try{var ic=localStorage.getItem('aics_draft_story_imgcache');if(ic){imgCache=JSON.parse(ic)||{};}}catch(e){}
   buildIdeaFields();
   buildWorkflowSel();
   fillSelect('vidDurationSel',DURATIONS,'30 sec');
@@ -20,6 +19,7 @@ export const HELPERS_SCRIPT = `(function init(){
   var _db=debounce(autoSave,400);
   document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#aicsApp'))_db();},true);
   document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#aicsApp'))_db();},true);
+  studioMigrateLegacyStorage();
 })();
 
 function debounce(fn,ms){var t=null;return function(){var a=arguments,c=this;clearTimeout(t);t=setTimeout(function(){fn.apply(c,a);},ms);};}
