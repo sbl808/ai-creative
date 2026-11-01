@@ -73,24 +73,26 @@ export async function getStudioStoryTypeConfig(env, typeId, plan) {
 
 // Studio-only Video context. Global Policy is intentionally excluded.
 export async function getStudioVideoContext(env, { visualStyle, workflow, plan }) {
-  const videoKnowledge = await getBrainConfig(env, {
-    scope: BRAIN_SCOPE_STORY_VIDEO,
-    module: BRAIN_MODULE_VIDEO_KNOWLEDGE,
-    type: BRAIN_TYPE_BASE,
-    plan,
-  });
-  const styleCfg = await getBrainConfig(env, {
-    scope: BRAIN_SCOPE_STORY_VIDEO,
-    module: BRAIN_MODULE_VISUAL_STYLE,
-    type: String(visualStyle || 'REALISM').toUpperCase(),
-    plan,
-  });
-  const workflowCfg = await getBrainConfig(env, {
-    scope: BRAIN_SCOPE_STORY_VIDEO,
-    module: BRAIN_MODULE_VIDEO_WORKFLOW,
-    type: String(workflow || 'CINEMATIC_FEATURE').toUpperCase(),
-    plan,
-  });
+  const [videoKnowledge, styleCfg, workflowCfg] = await Promise.all([
+    getBrainConfig(env, {
+      scope: BRAIN_SCOPE_STORY_VIDEO,
+      module: BRAIN_MODULE_VIDEO_KNOWLEDGE,
+      type: BRAIN_TYPE_BASE,
+      plan,
+    }),
+    getBrainConfig(env, {
+      scope: BRAIN_SCOPE_STORY_VIDEO,
+      module: BRAIN_MODULE_VISUAL_STYLE,
+      type: String(visualStyle || 'REALISM').toUpperCase(),
+      plan,
+    }),
+    getBrainConfig(env, {
+      scope: BRAIN_SCOPE_STORY_VIDEO,
+      module: BRAIN_MODULE_VIDEO_WORKFLOW,
+      type: String(workflow || 'CINEMATIC_FEATURE').toUpperCase(),
+      plan,
+    }),
+  ]);
   return { videoKnowledge, visualStyle: styleCfg, workflow: workflowCfg };
 }
 
