@@ -439,7 +439,7 @@ function studioCollectDraft(){
       audioDirection:document.getElementById('vidAudio')?document.getElementById('vidAudio').value:'',
       additionalInstructions:document.getElementById('vidExtra')?document.getElementById('vidExtra').value:''
     },
-    characters:currentCharacters,
+    characters:currentCharacters.map(function(character){var copy=Object.assign({},character||{});delete copy.referenceImage;return copy;}),
     scenes:currentScenes
   };
 }
@@ -525,6 +525,11 @@ function autoSave(){
       }
       return window.AICS_SESSIONS.update(storySessionId,{draft:data,title:storySessionTitle(data)})
         .then(function(session){return session;});
+    })
+    .catch(function(error){
+      console.error('Story draft save failed:',error);
+      showToastMsg('Draft သိမ်းဆည်းရာတွင် ပြဿနာရှိသည်။ ထပ်မံကြိုးစားပါ။');
+      return null;
     });
   return storySaveQueue;
 }
@@ -607,7 +612,16 @@ function studioMigrateLegacyStorage(){
       return studioRestoreDraft(data);
     })
     .then(function(){
-      return autoSaveImgCache();
+      var keys=Object.keys(legacyImages);
+      return keys.reduce(function(queue,key){
+        return queue.then(function(){
+          return window.AICS_SESSION_RESULTS.create({
+            sessionId:storySessionId,
+            type:'story_image',
+            content:{key:key,dataUrl:legacyImages[key]}
+          }).then(function(result){storyImageResultIds[key]=result.id;});
+        });
+      },Promise.resolve());
     })
     .then(function(){
       localStorage.removeItem('aics_draft_story');
