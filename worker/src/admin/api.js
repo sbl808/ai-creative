@@ -10,6 +10,13 @@ import { getAiModels, setAiModel, deleteAiModel } from '../ai/model-registry/ind
 import { logAdminAction, listAdminLogs } from '../core/adminLogs.js';
 import { listPlanCatalog, savePlanCatalogItem, deletePlanCatalogItem, getPlanContactSettings, updatePlanContactSettings } from '../configuration/plan-catalog/index.js';
 
+function cmsRepositoryErrorStatus(error) {
+  const code = String(error && error.message || error);
+  if (code === 'db_unavailable') return 503;
+  if (code.startsWith('invalid_') || code.startsWith('missing_')) return 400;
+  return 500;
+}
+
 export async function adminApi(request, path, env, verifyToken) {
   const isCms = (path === '/api/cms' || path.indexOf('/api/cms/') === 0);
   const isUsers = (path === '/api/admin/users' || path.indexOf('/api/admin/users/') === 0);
@@ -102,7 +109,7 @@ export async function adminApi(request, path, env, verifyToken) {
 
   if (path === '/api/cms' && method === 'GET') {
     try { return json({ ok: true, items: await listCMSPrompts(env) }); }
-    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
 
   if (path === '/api/cms' && method === 'POST') {
@@ -112,7 +119,7 @@ export async function adminApi(request, path, env, verifyToken) {
       const item = await createCMSPrompt(env, body);
       await logAdminAction(env, user.email, 'cms_create', item.studio + '/' + item.plan + '/' + item.type);
       return json({ ok: true });
-    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
 
   if (path.indexOf('/api/cms/') === 0) {
