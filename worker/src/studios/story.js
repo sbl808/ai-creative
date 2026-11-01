@@ -11,23 +11,30 @@ import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { getGlobalPolicyConfig, buildBrainPrompt } from '../cms/global-policies/index.js';
 import { getStudioStoryTypeConfig, getStudioVideoContext } from '../cms/studio-brains/index.js';
+import { buildPromptContext } from '../prompt/orchestrator/index.js';
 import { generateText, generateImage } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'STORY';
 const CMS_VIDEO = 'STORYVIDEO';
 
-// Story Engine system prompt — Priority (§15): GLOBAL_BRAIN → SELECTED TYPE → (legacy fallback)
-async function buildStorySystem(env, typeId, plan) {
+// Story text context — Global Policy > selected Story Brain > legacy CMS fallback.
+async function buildStoryTextContext(env, typeId, plan, taskInstructions, userInput) {
   const [globalPolicy, studioBrain] = await Promise.all([
     getGlobalPolicyConfig(env, plan),
     getStudioStoryTypeConfig(env, typeId, plan),
   ]);
-  const globalPrompt = buildBrainPrompt(globalPolicy);
-  const typePrompt = buildBrainPrompt(studioBrain);
-  const legacy = await getCMSData(env, CMS_STUDIO, plan, typeId);
-  const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
-  return [globalPrompt, typePrompt, typePrompt ? '' : legacyPrompt].filter(Boolean).join('\n\n');
+  const hasStudioBrain = Object.keys(studioBrain).length > 0;
+  const legacy = hasStudioBrain ? null : await getCMSData(env, CMS_STUDIO, plan, typeId);
+  return buildPromptContext({
+    globalPolicy,
+    studioBrain,
+    taskTemplate: {
+      ...(legacy || {}),
+      task_instructions: taskInstructions,
+    },
+    userInput,
+  });
 }
 
 // Tab 1 — Story Generate
@@ -36,24 +43,27 @@ async function buildStorySystem(env, typeId, plan) {
 export async function generateStory(env, { idea, type, plan, apiKey, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const typeId = String(type || '1');
-  const system = await buildStorySystem(env, typeId, plan);
   const factsSchema = [
     '{ "storyId": "", "storyType": "' + typeId + '", "title": "", "summary": "",',
     '  "characters": [ { "name": "", "role": "", "attributes": "" } ],',
     '  "locations": [], "timeline": [], "events": [], "dialogue": [],',
     '  "emotion": "", "importantObjects": [], "visualFacts": [], "sceneInformation": [] }',
   ].join('\n');
-  const prompt = [
-    system,
-    'USER IDEA:\n' + String(idea).trim(),
-    '',
+  const context = await buildStoryTextContext(env, typeId, plan, [
     'အလုပ် ၂ ခု လုပ်ပါ:',
     '1) ဇာတ်လမ်းအပြည့်အစုံကို ရေးပါ။',
-    '2) ဇာတ်လမ်းပြီးနောက် storyFacts ကို JSON block တစ်ခုအဖြစ် ထည့်ပါ (```json ဖြင့် စ၍ ``` ဖြင့် ဆုံးပါ)။ Format:',
+    '2) ဇာတ်လမ်းပြီးနောက် storyFacts ကို JSON block တစ်ခုအဖြစ် ထည့်ပါ (\x60\x60\x60json ဖြင့် စ၍ \x60\x60\x60 ဖြင့် ဆုံးပါ)။ Format:',
     factsSchema,
     'storyFacts သည် ဇာတ်လမ်းစာသားအတွင်း မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
-  ].filter(Boolean).join('\n');
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
+  ].join('\n'), { idea: String(idea).trim() });
+  const raw = await generateText(env, {
+    model: await resolveModel(env, 'text', plan, model, 'story.text'),
+    task: 'story.text',
+    system: context.system,
+    prompt: context.prompt,
+    apiKey,
+    onChunk,
+  });
   const parsed = parseStoryWithFacts(raw);
   return { story: parsed.story, storyFacts: parsed.storyFacts };
 }
@@ -63,14 +73,22 @@ export async function reviseStory(env, { idea, type, currentStory, instruction, 
   if (!instruction || !String(instruction).trim()) throw new Error('missing_instruction');
   if (!currentStory) throw new Error('missing_current_story');
   const typeId = String(type || '1');
-  const system = await buildStorySystem(env, typeId, plan);
-  let prompt = system + '\n\n';
-  prompt += 'USER IDEA (မူရင်းစိတ်ကူး):\n' + (idea || '(empty)') + '\n\n';
-  prompt += 'လက်ရှိ ဇာတ်လမ်း:\n' + String(currentStory) + '\n\n';
-  prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
-  prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း ဇာတ်လမ်းကို ပြင်ဆင်ပါ။ ' +
-    'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။';
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
+  const context = await buildStoryTextContext(env, typeId, plan, [
+    'ပေးထားသော လက်ရှိဇာတ်လမ်းကို User ၏ ပြင်ဆင်လိုသည့်အချက်များအတိုင်း ပြင်ဆင်ပါ။',
+    'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။',
+  ].join('\n'), {
+    idea: String(idea || '(empty)'),
+    current_story: String(currentStory),
+    revision_instruction: String(instruction).trim(),
+  });
+  const raw = await generateText(env, {
+    model: await resolveModel(env, 'text', plan, model, 'story.text'),
+    task: 'story.text',
+    system: context.system,
+    prompt: context.prompt,
+    apiKey,
+    onChunk,
+  });
   return { story: raw ? raw.trim() : '' };
 }
 
