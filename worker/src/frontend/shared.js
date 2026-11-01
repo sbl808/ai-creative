@@ -94,6 +94,13 @@ function studioPageSidebar(activeId) {
   const homeActive = activeId === 'home' ? ' active' : '';
   const creActive = activeId === 'creations' ? ' active' : '';
   const favActive = activeId === 'favorites' ? ' active' : '';
+  const sessionHistoryHtml = activeId === 'story'
+    ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
+      '<div class="nav-label">RECENT HISTORY</div>' +
+      '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" onclick="aicsLoadMoreStorySessions()">Load More</button>' +
+      '</section>'
+    : '';
   return (
     '<div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>\n' +
     '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
@@ -105,6 +112,7 @@ function studioPageSidebar(activeId) {
     '  <a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
     '  <a class="nav-item' + (activeId === 'ideas' ? ' active' : '') + '" href="/app/ideas"><span class="nav-icon-circle">' + shellIcon('lightbulb') + '</span><span class="nav-text">Idea Workspace</span></a>\n' +
     '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>\n' +
+    sessionHistoryHtml +
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +
     '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
@@ -149,6 +157,17 @@ function responsiveStyles() {
     '.aics-app .lucide-icon{display:block;width:18px;height:18px;flex:0 0 18px;}\n' +
     '.aics-app .nav-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
     '.aics-app .sidebar-nav{flex:1 1 auto;overflow-y:auto;min-height:0;}\n' +
+    '.aics-app .aics-session-history{margin:14px 0 8px;padding-top:8px;border-top:1px solid var(--aics-border);}\n' +
+    '.aics-app .aics-session-history .nav-label{margin-top:8px;}\n' +
+    '.aics-app .aics-session-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:8px 10px;margin:2px 0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--aics-text);text-align:left;cursor:pointer;font:inherit;min-width:0;}\n' +
+    '.aics-app .aics-session-item:hover,.aics-app .aics-session-item:focus-visible{background:var(--aics-surface-subtle);border-color:var(--aics-border);outline:none;}\n' +
+    '.aics-app .aics-session-item:disabled{opacity:.55;cursor:wait;}\n' +
+    '.aics-app .aics-session-title{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;}\n' +
+    '.aics-app .aics-session-date,.aics-app .aics-session-muted{font-size:10px;color:var(--aics-text-muted);line-height:1.5;}\n' +
+    '.aics-app .aics-session-muted{padding:6px 10px;}\n' +
+    '.aics-app .aics-session-more{display:block;width:calc(100% - 20px);margin:5px 10px;padding:7px 9px;border:1px solid var(--aics-border);border-radius:8px;background:var(--aics-surface-subtle);color:var(--aics-text-muted);font:inherit;font-size:11px;cursor:pointer;}\n' +
+    '.aics-app .aics-session-more:hover{border-color:var(--aics-primary-border);color:var(--aics-primary);}\n' +
+    '.aics-app .aics-session-more:disabled{opacity:.5;cursor:wait;}\n' +
     '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:12px;border-top:1px solid var(--aics-border);width:100%;box-sizing:border-box;}\n' +
     '.aics-app .side-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;padding:8px 10px;min-height:40px;border-radius:var(--aics-radius-sm);background:transparent;color:var(--aics-text-muted);border:1px solid transparent;font-size:12.5px;cursor:pointer;margin-bottom:3px;text-decoration:none;transition:background .16s,color .16s,border-color .16s;font-family:inherit;}\n' +
     '.aics-app .side-btn:hover,.aics-app .side-btn.active{background:var(--aics-surface-subtle);border-color:var(--aics-border);color:var(--aics-text);}\n' +
@@ -222,10 +241,143 @@ export function themeControllerScript(options = {}) {
     '})();';
 }
 
+function sidebarSessionHistoryScript() {
+  return String.raw`
+// ===== Story Studio Recent Session History =====
+(function () {
+  var root = document.getElementById('aicsSessionHistory');
+  if (!root || !window.AICS_SESSIONS) return;
+
+  var listNode = document.getElementById('aicsSessionHistoryList');
+  var moreButton = document.getElementById('aicsSessionLoadMore');
+  var cursor = null;
+  var loading = false;
+  var hasMore = false;
+  var pageSize = 10;
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+    });
+  }
+
+  function formatDate(value) {
+    var date = new Date(value);
+    if (!value || isNaN(date.getTime())) return '';
+    try {
+      return new Intl.DateTimeFormat('my-MM', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      return date.toLocaleString();
+    }
+  }
+
+  function renderItems(items, append) {
+    if (!append) listNode.innerHTML = '';
+    if (!items || !items.length) {
+      if (!append && !listNode.children.length) {
+        listNode.innerHTML = '<div class="aics-session-muted">Session မရှိသေးပါ</div>';
+      }
+      return;
+    }
+
+    var html = '';
+    items.forEach(function (session) {
+      html += '<button type="button" class="aics-session-item" data-session-id="' +
+        escapeHtml(session.id) + '" onclick="aicsOpenStorySession(this)" title="' +
+        escapeHtml(session.title || 'Untitled Story') + '">' +
+        '<span class="aics-session-title">' + escapeHtml(session.title || 'Untitled Story') + '</span>' +
+        '<span class="aics-session-date">' + escapeHtml(formatDate(session.updatedAt)) + '</span>' +
+        '</button>';
+    });
+    if (append) listNode.insertAdjacentHTML('beforeend', html);
+    else listNode.innerHTML = html;
+  }
+
+  function loadPage(append) {
+    if (loading) return Promise.resolve();
+    loading = true;
+    if (!append) {
+      cursor = null;
+      hasMore = false;
+      listNode.innerHTML = '<div class="aics-session-muted">Loading...</div>';
+    }
+    if (moreButton) moreButton.disabled = true;
+
+    return window.AICS_SESSIONS.list({
+      limit: pageSize,
+      cursor: append ? cursor : null
+    }).then(function (result) {
+      result = result || {};
+      renderItems(result.items || [], append);
+      cursor = result.nextCursor || null;
+      hasMore = !!result.hasMore;
+      if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
+    }).catch(function (error) {
+      console.error('Story session history load failed:', error);
+      if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
+      if (moreButton) moreButton.style.display = 'none';
+    }).then(function () {
+      loading = false;
+      if (moreButton) moreButton.disabled = false;
+    });
+  }
+
+  window.aicsLoadMoreStorySessions = function () {
+    if (!hasMore || loading) return;
+    return loadPage(true);
+  };
+
+  window.aicsRefreshStorySessions = function () {
+    return loadPage(false);
+  };
+
+  window.aicsOpenStorySession = function (button) {
+    var sessionId = button && button.getAttribute('data-session-id');
+    if (!sessionId || button.disabled) return;
+    if (typeof window.studioLoadSession !== 'function') {
+      __sbToast('Story Studio မဖွင့်ရသေးပါ။ ပြန်စမ်းကြည့်ပါ။', true);
+      return;
+    }
+
+    var buttons = listNode.querySelectorAll('.aics-session-item');
+    for (var i = 0; i < buttons.length; i++) buttons[i].disabled = true;
+    button.classList.add('is-loading');
+
+    window.studioLoadSession(sessionId).then(function () {
+      __sbToast('✓ Story Session ပြန်ဖွင့်ပြီးပါပြီ', false);
+      var sidebar = document.getElementById('sidebar');
+      var backdrop = document.getElementById('backdrop');
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('show');
+    }).catch(function (error) {
+      console.error('Story session restore failed:', error);
+      __sbToast('Session ပြန်ဖွင့်မရပါ။ ထပ်မံကြိုးစားပါ။', true);
+    }).then(function () {
+      for (var j = 0; j < buttons.length; j++) buttons[j].disabled = false;
+      button.classList.remove('is-loading');
+    });
+  };
+
+  loadPage(false).then(function () {
+    // Legacy draft migration runs during Story Studio initialization; refresh once
+    // so a newly migrated session appears without requiring a page reload.
+    if (!hasMore && !listNode.querySelector('.aics-session-item')) {
+      setTimeout(function () {
+        if (root.isConnected && !listNode.querySelector('.aics-session-item')) loadPage(false);
+      }, 1200);
+    }
+  });
+})();
+`;
+}
+
 export function sidebarScript() {
   return '<script>\n' +
     themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     clientStorageScript() + '\n' +
+    sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
