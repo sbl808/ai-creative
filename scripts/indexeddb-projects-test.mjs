@@ -9,9 +9,12 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 2\)/);
-assert.match(source, /createObjectStore\('projects'/);
-assert.match(source, /window\.AICS_PROJECTS\s*=\s*\{/);
+assert.match(source, /indexedDB\\.open\\('aics_creations_v1', 3\\)/);
+assert.match(source, /createObjectStore\\('projects'/);
+assert.match(source, /createObjectStore\\('studio_sessions'/);
+assert.match(source, /createObjectStore\\('session_results'/);
+assert.match(source, /createIndex\\('owner_updatedAt'/);
+assert.match(source, /window\\.AICS_PROJECTS\\s*=\\s*\\{/);
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -22,10 +25,17 @@ function createFakeIndexedDB() {
     ['creations', new Map([['legacy-record', {
       id: 'legacy-record', user_id: 'user-a', title: 'Existing Creation',
       created_at: '2026-10-31T10:00:00.000Z'
+    }]])],
+    ['projects', new Map([['legacy-project', {
+      id: 'legacy-project', user_id: 'user-a', title: 'Existing Project',
+      created_at: '2026-10-30T10:00:00.000Z'
     }]])]
   ]);
-  const indexes = new Map([['creations', new Set(['user_id'])]]);
-  let version = 1;
+  const indexes = new Map([
+    ['creations', new Set(['user_id'])],
+    ['projects', new Set(['user_id'])]
+  ]);
+  let version = 2;
 
   const database = {
     objectStoreNames: {
@@ -112,6 +122,7 @@ function createFakeIndexedDB() {
 
   return {
     records,
+    indexes,
     get version() { return version; },
     open(name, requestedVersion) {
       const req = { result: null, error: null, onupgradeneeded: null, onsuccess: null, onerror: null, onblocked: null };
@@ -146,13 +157,18 @@ const context = {
 };
 vm.runInNewContext(source, context, { timeout: 1000 });
 
-assert.equal(fakeIndexedDB.version, 1, 'database should be v1 before first open');
+assert.equal(fakeIndexedDB.version, 2, 'database should be v2 before schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 2, 'database must upgrade from v1 to v2');
+assert.equal(fakeIndexedDB.version, 3, 'database must upgrade from v2 to v3');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
-assert.equal((await window.AICS_PROJECTS.list()).length, 1);
+assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');
 assert.equal((await window.AICS_CREATIONS.list())[0].id, 'legacy-record', 'existing Creations data must survive upgrade');
+assert.equal(fakeIndexedDB.records.get('projects').get('legacy-project').title, 'Existing Project', 'existing Projects data must survive upgrade');
+assert.ok(fakeIndexedDB.records.has('studio_sessions'), 'schema v3 must create studio_sessions');
+assert.ok(fakeIndexedDB.records.has('session_results'), 'schema v3 must create session_results');
+assert.ok(fakeIndexedDB.indexes.get('studio_sessions').has('owner_updatedAt'), 'sessions must have owner-scoped pagination index');
+assert.ok(fakeIndexedDB.indexes.get('session_results').has('session_createdAt'), 'results must have session ordering index');
 
 activeToken = makeToken('user-b');
 assert.deepEqual(Array.from(await window.AICS_PROJECTS.list()), []);
@@ -169,6 +185,6 @@ await assert.rejects(window.AICS_PROJECTS.create({ title: 'Anonymous Project' })
 activeToken = makeToken('user-a');
 await assert.rejects(window.AICS_PROJECTS.create({ title: '   ' }), /missing_title/);
 await window.AICS_PROJECTS.remove(projectA.id);
-assert.equal((await window.AICS_PROJECTS.list()).length, 0);
+assert.equal((await window.AICS_PROJECTS.list()).length, 1, 'pre-existing project must remain after removing new project');
 assert.equal(fakeIndexedDB.records.get('projects').has(projectA.id), false);
 console.log('IndexedDB Projects Repository tests passed.');
