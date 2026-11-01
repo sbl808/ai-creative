@@ -33,8 +33,19 @@ function mapLegacyStoryTemplate(row) {
 
 function mapBrainFields(config, prefix = '') {
   const fields = {};
+  const used = new Set();
   for (const [key, value] of Object.entries(config || {})) {
-    fields[prefix ? prefix + '.' + key : key] = value;
+    let normalized = String(key).replace(/[^a-zA-Z0-9_.-]/g, '_');
+    if (!/^[a-zA-Z]/.test(normalized)) normalized = 'field_' + normalized;
+    normalized = normalized.slice(0, 64);
+    let field = prefix ? prefix + '.' + normalized : normalized;
+    let suffix = 1;
+    while (used.has(field)) {
+      const tail = '_' + suffix++;
+      field = (prefix ? prefix + '.' : '') + normalized.slice(0, 64 - tail.length) + tail;
+    }
+    used.add(field);
+    fields[field] = value;
   }
   return fields;
 }
