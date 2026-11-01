@@ -356,7 +356,6 @@ async function expectCode(promise, code) {
 }
 
 const sessionA = await window.AICS_SESSIONS.create({ studio: 'story', title: 'User A session' });
-const sessionB = await window.AICS_SESSIONS.create({ studio: 'image', title: 'User B session' });
 assert.equal(fakeIndexedDB.version, 3, 'repository should use IndexedDB schema v3');
 
 const firstResult = await window.AICS_SESSION_RESULTS.create({
@@ -388,6 +387,7 @@ await expectCode(window.AICS_SESSION_RESULTS.create({
 }), 'missing_result_content');
 
 activeToken = makeToken('user-b');
+const sessionB = await window.AICS_SESSIONS.create({ studio: 'image', title: 'User B session' });
 assert.equal(await window.AICS_SESSION_RESULTS.get(firstResult.id), null,
   'another owner must not read a result');
 await expectCode(window.AICS_SESSION_RESULTS.create({
