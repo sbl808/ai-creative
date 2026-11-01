@@ -1,4 +1,4 @@
-import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } from '../../studios/image.js';
+import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } from '../../studios/image/index.js';
 
 export async function handleImageStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
