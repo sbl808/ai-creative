@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * IndexedDB Studio Session Results Repository behavior tests.
- * Run: node --experimental-default-type=module scripts/indexeddb-session-results-test.mjs
+ * IndexedDB Story Studio Session persistence and restore behavior tests.
+ * Run: node --experimental-default-type=module scripts/indexeddb-story-session-test.mjs
  */
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
