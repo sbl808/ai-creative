@@ -20,6 +20,8 @@ function normalizeCMSPrompt(input) {
   values[1] = values[1].trim().toUpperCase();
   values[2] = values[2].trim();
   if (!values[0] || !values[1] || !values[2]) throw new Error('missing_cms_prompt_fields');
+  if (!['FREE', 'PRO'].includes(values[1])) throw new Error('invalid_cms_plan');
+  if (values[0].length > 64 || values[2].length > 64) throw new Error('invalid_cms_prompt_scope');
   return values;
 }
 
@@ -32,8 +34,20 @@ function normalizeBrainEntry(input) {
   const key = String(input.key || '').trim();
   const value = input.value === undefined || input.value === null ? '' : String(input.value);
   const parsedVersion = Number.parseInt(input.version, 10);
-  const version = Number.isInteger(parsedVersion) && parsedVersion > 0 ? parsedVersion : 1;
+  const versionInput = input.version === undefined || input.version === null || input.version === '' ? 1 : Number(input.version);
+  const version = Number.isSafeInteger(versionInput) && versionInput > 0 ? versionInput : null;
+  const moduleByScope = {
+    GLOBAL_BRAIN: ['GLOBAL_FRAMEWORK'],
+    STORY_TYPES: ['STORY_TYPE'],
+    STORY_VIDEO: ['VIDEO_KNOWLEDGE', 'VISUAL_STYLE', 'VIDEO_WORKFLOW'],
+  };
   if (!scope || !module || !type || !plan || !key) throw new Error('missing_brain_entry_fields');
+  if (!moduleByScope[scope] || !moduleByScope[scope].includes(module)) throw new Error('invalid_brain_scope_module');
+  if (!['FREE', 'PRO'].includes(plan)) throw new Error('invalid_brain_plan');
+  if (!/^[A-Z0-9][A-Z0-9_-]{0,63}$/.test(type) || key.length > 100) throw new Error('invalid_brain_type_or_key');
+  if ((module === 'GLOBAL_FRAMEWORK' || module === 'VIDEO_KNOWLEDGE') && type !== 'BASE') throw new Error('invalid_brain_type_for_module');
+  if (module === 'STORY_TYPE' && !/^TYPE_[1-9][0-9]*$/.test(type)) throw new Error('invalid_story_type');
+  if (!version) throw new Error('invalid_brain_version');
   return { scope, module, type, plan, key, value, version };
 }
 
