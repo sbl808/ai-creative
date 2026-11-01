@@ -1,4 +1,4 @@
-import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from '../core/planCatalog.js';
+import { listPlanCatalog, getPlanContactSettings, validateContactUrl } from '../configuration/plan-catalog/index.js';
 
 export async function handlePlanRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
