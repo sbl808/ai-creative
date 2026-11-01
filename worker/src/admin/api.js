@@ -144,7 +144,7 @@ export async function adminApi(request, path, env, verifyToken) {
   // ===== Brain CMS (12-Layer — additive; cms_prompts ကို မထိ) =====
   if (path === '/api/brain' && method === 'GET') {
     try { return json({ ok: true, items: await listBrainEntries(env) }); }
-    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
   if (path === '/api/brain' && method === 'POST') {
     const body = await readBody(request);
@@ -153,7 +153,7 @@ export async function adminApi(request, path, env, verifyToken) {
       const item = await upsertBrainEntry(env, body);
       await logAdminAction(env, user.email, 'brain_create', item.scope + '/' + item.module + '/' + item.type + '/' + item.key);
       return json({ ok: true });
-    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
   if (path.indexOf('/api/brain/') === 0) {
     const id = decodeURIComponent(path.slice('/api/brain/'.length));
@@ -164,14 +164,14 @@ export async function adminApi(request, path, env, verifyToken) {
         await updateBrainEntry(env, id, body);
         await logAdminAction(env, user.email, 'brain_update', 'id=' + id);
         return json({ ok: true });
-      } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+      } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
     }
     if (method === 'DELETE') {
       try {
         await deleteBrainEntry(env, id);
         await logAdminAction(env, user.email, 'brain_delete', 'id=' + id);
         return json({ ok: true });
-      } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+      } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
     }
   }
 
