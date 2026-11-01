@@ -44,6 +44,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-sessions-test.mjs
       - name: Run IndexedDB Session Results Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-session-results-test.mjs
+      - name: Run IndexedDB Story Session persistence tests
+        run: node --experimental-default-type=module scripts/indexeddb-story-session-test.mjs
 
   security:
     name: Security contracts
