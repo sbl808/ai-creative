@@ -3,13 +3,11 @@
 // Phase 5 — Free/Pro Feature ထိန်းချုပ် + Usage Statistics + Admin Logs (Rules 12/15/16/18)
 // Served at /admin. Admin-only — Server-side တွင် အမြဲ စစ်ဆေးသည် (Rule 13).
 
-import { setStudioEnabled, getStudioSettings } from '../core/studioSettings.js';
-import { STUDIO_REGISTRY } from '../config/studios.js';
-import { FEATURE_REGISTRY } from '../config/features.js';
-import { getFeatureSettings, setFeatureSetting } from '../core/featureSettings.js';
-import { getAiModels, setAiModel, deleteAiModel } from '../core/aiModels.js';
+import { setStudioEnabled, getStudioSettings, STUDIO_REGISTRY } from '../configuration/studio-config/index.js';
+import { getFeatureSettings, setFeatureSetting, FEATURE_REGISTRY } from '../configuration/feature-config/index.js';
+import { getAiModels, setAiModel, deleteAiModel } from '../ai/model-registry/index.js';
 import { logAdminAction, listAdminLogs } from '../core/adminLogs.js';
-import { listPlanCatalog, savePlanCatalogItem, deletePlanCatalogItem, getPlanContactSettings, updatePlanContactSettings } from '../core/planCatalog.js';
+import { listPlanCatalog, savePlanCatalogItem, deletePlanCatalogItem, getPlanContactSettings, updatePlanContactSettings } from '../configuration/plan-catalog/index.js';
 
 export async function adminApi(request, path, env, verifyToken) {
   const isCms = (path === '/api/cms' || path.indexOf('/api/cms/') === 0);
