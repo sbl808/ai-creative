@@ -498,15 +498,122 @@ function studioRestoreDraft(d){
 }
 window.studioRestoreDraft=studioRestoreDraft;
 
-// ===================== Auto Save (Refresh ပြီးနောက် Data မပျောက်စေရ) =====================
+// ===================== IndexedDB Session Auto Save =====================
+function storyHasMeaningfulDraft(data){
+  if(!data)return false;
+  var fields=data.fields||{};
+  for(var key in fields){if(Object.prototype.hasOwnProperty.call(fields,key)&&String(fields[key]||'').trim())return true;}
+  return !!(String(data.story||'').trim()||String(data.storyIdea||'').trim()||
+    String(data.videoForm&&data.videoForm.story||'').trim()||
+    (data.characters&&data.characters.length)||(data.scenes&&data.scenes.length)||data.videoStarted);
+}
+function storySessionTitle(data){
+  var fields=data&&data.fields||{};
+  var title=String(fields[0]||data&&data.storyIdea||data&&data.story||'').trim();
+  return (title||'Untitled Story').replace(/\\s+/g,' ').slice(0,80);
+}
 function autoSave(){
-  try{
-    var data=studioCollectDraft();
-    localStorage.setItem('aics_draft_story',JSON.stringify({step:window.studioCur?window.studioCur():1,data:data,savedAt:new Date().toISOString()}));
-  }catch(e){}
+  var data;
+  try{data=studioCollectDraft();}catch(error){return Promise.reject(error);}
+  if(!storyHasMeaningfulDraft(data))return Promise.resolve(null);
+  storySaveQueue=storySaveQueue.catch(function(){})
+    .then(function(){
+      if(!window.AICS_SESSIONS)return Promise.reject(new Error('sessions_storage_unavailable'));
+      if(!storySessionId){
+        return window.AICS_SESSIONS.create({studio:'STORY',title:storySessionTitle(data),draft:data})
+          .then(function(session){storySessionId=session.id;return session;});
+      }
+      return window.AICS_SESSIONS.update(storySessionId,{draft:data,title:storySessionTitle(data)})
+        .then(function(session){return session;});
+    });
+  return storySaveQueue;
 }
 function autoSaveImgCache(){
-  try{localStorage.setItem('aics_draft_story_imgcache',JSON.stringify(imgCache));}catch(e){}
+  var keys=Object.keys(imgCache||{});
+  if(!keys.length)return Promise.resolve([]);
+  return autoSave().then(function(session){
+    if(!session&&!storySessionId)return [];
+    var sessionId=storySessionId;
+    return keys.reduce(function(queue,key){
+      return queue.then(function(saved){
+        var oldId=storyImageResultIds[key];
+        var removeOld=oldId?window.AICS_SESSION_RESULTS.remove(oldId).catch(function(){return false;}):Promise.resolve(false);
+        return removeOld.then(function(){
+          return window.AICS_SESSION_RESULTS.create({
+            sessionId:sessionId,
+            type:'story_image',
+            content:{key:key,dataUrl:imgCache[key]}
+          });
+        }).then(function(result){
+          storyImageResultIds[key]=result.id;
+          saved.push(result);
+          return saved;
+        });
+      });
+    },Promise.resolve([]));
+  }).catch(function(error){
+    console.error('Story image cache save failed:',error);
+    showToastMsg('Image သိမ်းဆည်းရာတွင် ပြဿနာရှိသည်။ ထပ်မံကြိုးစားပါ။');
+    return [];
+  });
+}
+function studioRestoreSessionImages(sessionId){
+  if(!window.AICS_SESSION_RESULTS)return Promise.resolve([]);
+  return window.AICS_SESSION_RESULTS.list({sessionId:sessionId,limit:100}).then(function(result){
+    imgCache={};
+    storyImageResultIds={};
+    (result.items||[]).forEach(function(item){
+      if(item.type!=='story_image'||!item.content)return;
+      var key=String(item.content.key||'');
+      var dataUrl=String(item.content.dataUrl||'');
+      if(!key||!dataUrl)return;
+      imgCache[key]=dataUrl;
+      storyImageResultIds[key]=item.id;
+    });
+    if(currentCharacters.length||currentScenes.length)renderFinalResult();
+    return result.items||[];
+  });
+}
+function studioLoadSession(sessionId){
+  if(!window.AICS_SESSIONS)return Promise.reject(new Error('sessions_storage_unavailable'));
+  return window.AICS_SESSIONS.get(sessionId).then(function(session){
+    if(!session||session.studio!=='STORY')throw new Error('story_session_not_found');
+    storySessionId=session.id;
+    storySaveQueue=Promise.resolve();
+    studioRestoreDraft(session.draft||{});
+    return studioRestoreSessionImages(session.id).then(function(){return session;});
+  });
+}
+window.studioLoadSession=studioLoadSession;
+function studioMigrateLegacyStorage(){
+  var legacyDraft=null,legacyImages={};
+  try{
+    var rawDraft=localStorage.getItem('aics_draft_story');
+    if(rawDraft)legacyDraft=JSON.parse(rawDraft);
+    var rawImages=localStorage.getItem('aics_draft_story_imgcache');
+    if(rawImages)legacyImages=JSON.parse(rawImages)||{};
+  }catch(error){console.warn('Legacy Story draft could not be parsed:',error);return;}
+  if(!legacyDraft&&!Object.keys(legacyImages).length)return;
+  var data=legacyDraft&&legacyDraft.data?legacyDraft.data:(legacyDraft||{});
+  if(!storyHasMeaningfulDraft(data)&&!Object.keys(legacyImages).length)return;
+  if(storySessionId)return;
+  storySaveQueue=storySaveQueue.catch(function(){})
+    .then(function(){
+      return window.AICS_SESSIONS.create({studio:'STORY',title:storySessionTitle(data),draft:data});
+    })
+    .then(function(session){
+      storySessionId=session.id;
+      imgCache=legacyImages;
+      return studioRestoreDraft(data);
+    })
+    .then(function(){
+      return autoSaveImgCache();
+    })
+    .then(function(){
+      localStorage.removeItem('aics_draft_story');
+      localStorage.removeItem('aics_draft_story_imgcache');
+    })
+    .catch(function(error){console.error('Legacy Story draft migration failed:',error);});
 }
 
 // ============================================================
