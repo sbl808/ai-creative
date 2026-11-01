@@ -91,5 +91,5 @@ export function clientStorageScript() {
     projectsRepositoryScript(),
     sessionsRepositoryScript(),
     sessionResultsRepositoryScript()
-  ].join('\\n');
+  ].join('\n');
 }
