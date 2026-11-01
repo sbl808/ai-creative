@@ -1,4 +1,4 @@
-import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from '../../studios/content.js';
+import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from '../../studios/content/index.js';
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
