@@ -7,7 +7,8 @@
 // Knowledge Isolation (§5): selected Story Type / Visual Style / Video Workflow rows များသာ
 // AI context ထဲ ဝင်မည် — အခြား type ၏ knowledge ကို ထည့်မည် မဟုတ်ပါ။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { getGlobalPolicyConfig, buildBrainPrompt } from '../cms/global-policies/index.js';
 import { getStudioStoryTypeConfig, getStudioVideoContext } from '../cms/studio-brains/index.js';
 import { generateText, generateImage } from '../core/ai/aiService.js';
