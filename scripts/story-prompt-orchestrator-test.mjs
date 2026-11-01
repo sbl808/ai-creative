@@ -13,6 +13,7 @@ globalThis.fetch = async (url, options = {}) => {
 
 function makeEnv({ brain = [], legacy = null } = {}) {
   return {
+    GEMINI_API_KEY: 'story-prompt-test-key',
     DB: {
       prepare(sql) {
         let args = [];
