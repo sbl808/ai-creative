@@ -10,7 +10,8 @@
 // Backward Compatible ဖြစ်အောင် ဆက်လက် Parse လုပ်ပေးသည်။
 // API Endpoint / Auth / Usage / Feature Check များကို မပြောင်းပါ။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 import { parseContentResponse, parseVideoPlan, referenceImageInstruction } from '../core/utilities.js';
