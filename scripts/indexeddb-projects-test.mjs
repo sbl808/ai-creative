@@ -9,12 +9,12 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\\.open\\('aics_creations_v1', 3\\)/);
-assert.match(source, /createObjectStore\\('projects'/);
-assert.match(source, /createObjectStore\\('studio_sessions'/);
-assert.match(source, /createObjectStore\\('session_results'/);
-assert.match(source, /createIndex\\('owner_updatedAt'/);
-assert.match(source, /window\\.AICS_PROJECTS\\s*=\\s*\\{/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 3\)/);
+assert.match(source, /createObjectStore\('projects'/);
+assert.match(source, /createObjectStore\('studio_sessions'/);
+assert.match(source, /createObjectStore\('session_results'/);
+assert.match(source, /createIndex\('owner_updatedAt'/);
+assert.match(source, /window\.AICS_PROJECTS\s*=\s*\{/);
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
