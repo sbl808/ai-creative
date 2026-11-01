@@ -1,4 +1,4 @@
-import { listEnabledModels } from '../core/aiModels.js';
+import { listEnabledModels } from '../ai/model-registry/index.js';
 
 export async function handleAiModelRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
