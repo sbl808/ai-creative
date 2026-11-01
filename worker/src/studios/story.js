@@ -17,7 +17,7 @@ import { resolveModel } from '../core/aiModels.js';
 const CMS_STUDIO = 'STORY';
 const CMS_VIDEO = 'STORYVIDEO';
 
-function mapLegacyStoryTemplate(row) {
+function mapLegacyCMSTemplate(row) {
   if (!row) return {};
   return {
     role: row.core,
@@ -37,12 +37,13 @@ function mapBrainFields(config, prefix = '') {
   for (const [key, value] of Object.entries(config || {})) {
     let normalized = String(key).replace(/[^a-zA-Z0-9_.-]/g, '_');
     if (!/^[a-zA-Z]/.test(normalized)) normalized = 'field_' + normalized;
-    normalized = normalized.slice(0, 64);
+    const maxSegmentLength = 64 - (prefix ? prefix.length + 1 : 0);
+    normalized = normalized.slice(0, maxSegmentLength);
     let field = prefix ? prefix + '.' + normalized : normalized;
     let suffix = 1;
     while (used.has(field)) {
       const tail = '_' + suffix++;
-      field = (prefix ? prefix + '.' : '') + normalized.slice(0, 64 - tail.length) + tail;
+      field = (prefix ? prefix + '.' : '') + normalized.slice(0, maxSegmentLength - tail.length) + tail;
     }
     used.add(field);
     fields[field] = value;
@@ -62,7 +63,7 @@ async function buildStoryTextContext(env, typeId, plan, taskInstructions, userIn
     globalPolicy,
     studioBrain,
     taskTemplate: {
-      ...mapLegacyStoryTemplate(legacy),
+      ...mapLegacyCMSTemplate(legacy),
       task_instructions: taskInstructions,
     },
     userInput,
@@ -274,7 +275,7 @@ export async function generateStoryVideoPlan(env, {
     globalPolicy,
     studioBrain,
     taskTemplate: {
-      ...mapLegacyStoryTemplate(legacy),
+      ...mapLegacyCMSTemplate(legacy),
       task_instructions: taskInstructions,
     },
     userInput: Object.fromEntries(
