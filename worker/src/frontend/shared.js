@@ -245,6 +245,7 @@ function sidebarSessionHistoryScript() {
   return String.raw`
 // ===== Story Studio Recent Session History =====
 (function () {
+  if (typeof document === 'undefined') return;
   var root = document.getElementById('aicsSessionHistory');
   if (!root || !window.AICS_SESSIONS) return;
 
