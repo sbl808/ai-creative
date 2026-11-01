@@ -1,4 +1,4 @@
-const SCRIPT = String.raw\`function __aicsSessionResultId() {
+const SCRIPT = String.raw`function __aicsSessionResultId() {
   return 'sr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 11);
 }
 
@@ -188,7 +188,7 @@ window.AICS_SESSION_RESULTS = {
           try {
             index = transaction.objectStore('session_results').index('session_createdAt');
             request = index.openCursor(
-              window.IDBKeyRange.bound([sessionId, ''], [sessionId, '\\uffff']),
+              window.IDBKeyRange.bound([sessionId, ''], [sessionId, '\uffff']),
               'prev'
             );
           } catch (error) {
@@ -307,7 +307,7 @@ window.AICS_SESSION_RESULTS = {
     });
   }
 };
-\`;
+`;
 
 export function sessionResultsRepositoryScript() {
   return SCRIPT;
