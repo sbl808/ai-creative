@@ -33,7 +33,6 @@ function normalizeBrainEntry(input) {
   const plan = String(input.plan || 'FREE').trim().toUpperCase();
   const key = String(input.key || '').trim();
   const value = input.value === undefined || input.value === null ? '' : String(input.value);
-  const parsedVersion = Number.parseInt(input.version, 10);
   const versionInput = input.version === undefined || input.version === null || input.version === '' ? 1 : Number(input.version);
   const version = Number.isSafeInteger(versionInput) && versionInput > 0 ? versionInput : null;
   const moduleByScope = {
