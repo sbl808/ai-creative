@@ -446,7 +446,7 @@ assert.equal(sessionResults.has('result-b1'), true, 'Delete must not remove anot
 
 activeToken = '';
 assert.equal(await window.AICS_SESSIONS.get(secondOwnerSession.id), null);
-assert.deepEqual((await window.AICS_SESSIONS.list()).items, []);
+assert.equal((await window.AICS_SESSIONS.list()).items.length, 0, 'unauthenticated owner must have no visible sessions');
 await assert.rejects(window.AICS_SESSIONS.create({ studio: 'story' }), /auth_required/);
 
 console.log('IndexedDB Sessions Repository tests passed.');
