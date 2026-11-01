@@ -156,7 +156,7 @@ window.AICS_SESSIONS = {
         try {
           store = transaction.objectStore('studio_sessions');
           index = store.index('owner_updatedAt');
-          range = window.IDBKeyRange.bound([String(ownerId), ''], [String(ownerId), '\\uffff']);
+          range = window.IDBKeyRange.bound([String(ownerId), ''], [String(ownerId), '\uffff']);
         } catch (error) {
           reject(__aicsStorageError('indexeddb_read_failed', error));
           return;
