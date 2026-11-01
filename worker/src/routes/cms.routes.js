@@ -1,4 +1,5 @@
-import { getCMSData, buildSystemPrompt } from '../cms/repositories/index.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 
 export async function handleCmsRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
