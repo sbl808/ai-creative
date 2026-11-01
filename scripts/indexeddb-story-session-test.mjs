@@ -426,11 +426,11 @@ assert.equal(afterRefresh.draft.fields.tone, 'mystery',
   'draft edits must survive a refresh/reopen cycle');
 assert.equal(afterRefresh.draft.workflow.step, 4);
 
-const stateSource = storyState.stateScript ? storyState.stateScript() : '';
-const helperSource = storyHelpers.helpersScript ? storyHelpers.helpersScript() : '';
-const actionSource = storyActions.actionsScript ? storyActions.actionsScript() : '';
-assert.ok(stateSource || helperSource || actionSource,
-  'Story Studio modules must expose source builders for static integration checks');
+const stateSource = storyState.STATE_SCRIPT;
+const helperSource = storyHelpers.HELPERS_SCRIPT;
+const actionSource = storyActions.ACTIONS_SCRIPT;
+assert.ok(stateSource && helperSource && actionSource,
+  'Story Studio modules must expose their browser script source');
 
 assert.match(actionSource, /window\.studioLoadSession\s*=\s*studioLoadSession/,
   'Story Studio must expose its session restore entry point');
