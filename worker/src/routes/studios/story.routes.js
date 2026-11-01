@@ -1,4 +1,4 @@
-import { generateStory, reviseStory, generateStoryVideoPlan, generateStoryVideoImage } from '../../studios/story.js';
+import { generateStory, reviseStory, generateStoryVideoPlan, generateStoryVideoImage } from '../../studios/story/index.js';
 
 export async function handleStoryStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
