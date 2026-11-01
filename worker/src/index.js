@@ -48,7 +48,7 @@ import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
 import { PRELOGIN_HOME_HTML } from './frontend/prelogin-home.js';
-import { ADMIN_HTML, adminApi } from './admin.js';
+import { ADMIN_HTML, adminApi } from './admin/index.js';
 
 
 // Production-readiness (CORS): per-request allowed-origin enforcement.
