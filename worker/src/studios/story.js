@@ -8,7 +8,8 @@
 // AI context ထဲ ဝင်မည် — အခြား type ၏ knowledge ကို ထည့်မည် မဟုတ်ပါ။
 
 import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { getStoryTypeContext, getStoryVideoContext, buildBrainPrompt } from '../core/cmsBrain.js';
+import { getGlobalPolicyConfig, buildBrainPrompt } from '../cms/global-policies/index.js';
+import { getStudioStoryTypeConfig, getStudioVideoContext } from '../cms/studio-brains/index.js';
 import { generateText, generateImage } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
@@ -17,9 +18,12 @@ const CMS_VIDEO = 'STORYVIDEO';
 
 // Story Engine system prompt — Priority (§15): GLOBAL_BRAIN → SELECTED TYPE → (legacy fallback)
 async function buildStorySystem(env, typeId, plan) {
-  const brain = await getStoryTypeContext(env, typeId, plan);
-  const globalPrompt = buildBrainPrompt(brain.global);
-  const typePrompt = buildBrainPrompt(brain.type);
+  const [globalPolicy, studioBrain] = await Promise.all([
+    getGlobalPolicyConfig(env, plan),
+    getStudioStoryTypeConfig(env, typeId, plan),
+  ]);
+  const globalPrompt = buildBrainPrompt(globalPolicy);
+  const typePrompt = buildBrainPrompt(studioBrain);
   const legacy = await getCMSData(env, CMS_STUDIO, plan, typeId);
   const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
   return [globalPrompt, typePrompt, typePrompt ? '' : legacyPrompt].filter(Boolean).join('\n\n');
@@ -148,8 +152,11 @@ export async function generateStoryVideoPlan(env, {
   const vs = String(visualStyle || (videoType && /^[A-Za-z]/.test(String(videoType)) ? videoType : '') || 'REALISM');
   // 12-Layer Video Context — separate contexts (Knowledge Isolation):
   // GLOBAL + VIDEO_KNOWLEDGE(base) + SELECTED VISUAL_STYLE + SELECTED VIDEO_WORKFLOW (သာ)
-  const ctx = await getStoryVideoContext(env, { visualStyle: vs, workflow: wf, plan });
-  const globalPrompt = buildBrainPrompt(ctx.global);
+  const [globalPolicy, ctx] = await Promise.all([
+    getGlobalPolicyConfig(env, plan),
+    getStudioVideoContext(env, { visualStyle: vs, workflow: wf, plan }),
+  ]);
+  const globalPrompt = buildBrainPrompt(globalPolicy);
   const videoKnowledgePrompt = buildBrainPrompt(ctx.videoKnowledge);
   const stylePrompt = buildBrainPrompt(ctx.visualStyle);
   const workflowPrompt = buildBrainPrompt(ctx.workflow);
