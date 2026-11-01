@@ -38,7 +38,7 @@ import { isStudioEnabled } from './configuration/studio-config/index.js';
 import { checkFeature } from './configuration/feature-config/index.js';
 import { getStudio } from './catalog/studios/index.js';
 import { getUserApiKey } from './core/utilities.js';
-import { APP_HTML } from './frontend.js';
+import { APP_HTML } from './frontend/index.js';
 // V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
 import { getStudioPage } from './frontend/studioPages.js';
