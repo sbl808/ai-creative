@@ -81,7 +81,7 @@ function readCookie(request, name) {
   return null;
 }
 
-import { signToken, hashPassword, verifyPassword } from '../core/auth.js';
+import { signToken, hashPassword, verifyPassword } from '../platform/auth/index.js';
 
 export async function handleAuthRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
