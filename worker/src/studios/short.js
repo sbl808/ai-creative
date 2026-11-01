@@ -11,7 +11,8 @@
 //   generateShortVideoImage(env,{prompt,...})                   → { data, mimeType }
 // Shared core များသာ ခေါ်သည် (core/cms.js, core/ai.js, core/aiModels.js) — Story နှင့် မမှီခိုပါ။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
