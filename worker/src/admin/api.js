@@ -3,6 +3,7 @@
 // Phase 5 — Free/Pro Feature ထိန်းချုပ် + Usage Statistics + Admin Logs (Rules 12/15/16/18)
 // Served at /admin. Admin-only — Server-side တွင် အမြဲ စစ်ဆေးသည် (Rule 13).
 
+import { listCMSPrompts, createCMSPrompt, updateCMSPrompt, deleteCMSPrompt, listBrainEntries, upsertBrainEntry, updateBrainEntry, deleteBrainEntry } from '../cms/repositories/index.js';
 import { setStudioEnabled, getStudioSettings, STUDIO_REGISTRY } from '../configuration/studio-config/index.js';
 import { getFeatureSettings, setFeatureSetting, FEATURE_REGISTRY } from '../configuration/feature-config/index.js';
 import { getAiModels, setAiModel, deleteAiModel } from '../ai/model-registry/index.js';
@@ -99,22 +100,17 @@ export async function adminApi(request, path, env, verifyToken) {
     }
   }
 
-  const COLS = ['studio','plan','type','core','memory','knowledge','workflow','template','prompt','quality_check','final_output'];
-
   if (path === '/api/cms' && method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM cms_prompts ORDER BY studio, plan, type').all();
-    return json({ ok: true, items: results });
+    try { return json({ ok: true, items: await listCMSPrompts(env) }); }
+    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
 
   if (path === '/api/cms' && method === 'POST') {
     const body = await readBody(request);
     if (!body || !body.studio || !body.plan || !body.type) return json({ error: 'missing_fields', detail: 'studio, plan, type required' }, 400);
-    const vals = COLS.map(c => (body[c] === undefined || body[c] === null) ? '' : String(body[c]));
-    vals[0] = vals[0].toUpperCase();
-    vals[1] = vals[1].toUpperCase();
     try {
-      await env.DB.prepare('INSERT OR REPLACE INTO cms_prompts (studio,plan,type,core,memory,knowledge,workflow,template,prompt,quality_check,final_output,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime(\'now\'))').bind(...vals).run();
-      await logAdminAction(env, user.email, 'cms_create', vals[0] + '/' + vals[1] + '/' + vals[2]);
+      const item = await createCMSPrompt(env, body);
+      await logAdminAction(env, user.email, 'cms_create', item.studio + '/' + item.plan + '/' + item.type);
       return json({ ok: true });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
@@ -123,46 +119,32 @@ export async function adminApi(request, path, env, verifyToken) {
     const id = decodeURIComponent(path.slice('/api/cms/'.length));
     if (method === 'PUT') {
       const body = await readBody(request);
-      const sets = COLS.map(c => c + '=?').join(',');
-      const vals = COLS.map(c => (body && body[c] !== undefined && body[c] !== null) ? String(body[c]) : '');
-      vals[0] = vals[0].toUpperCase();
-      vals[1] = vals[1].toUpperCase();
       try {
-        await env.DB.prepare('UPDATE cms_prompts SET ' + sets + ', updated_at=datetime(\'now\') WHERE id=?').bind(...vals, id).run();
-        await logAdminAction(env, user.email, 'cms_update', 'id=' + id + ' ' + vals[0] + '/' + vals[1] + '/' + vals[2]);
+        const item = await updateCMSPrompt(env, id, body || {});
+        await logAdminAction(env, user.email, 'cms_update', 'id=' + id + ' ' + item.studio + '/' + item.plan + '/' + item.type);
         return json({ ok: true });
       } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM cms_prompts WHERE id=?').bind(id).run();
-      await logAdminAction(env, user.email, 'cms_delete', 'id=' + id);
-      return json({ ok: true });
+      try {
+        await deleteCMSPrompt(env, id);
+        await logAdminAction(env, user.email, 'cms_delete', 'id=' + id);
+        return json({ ok: true });
+      } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
   }
 
   // ===== Brain CMS (12-Layer — additive; cms_prompts ကို မထိ) =====
   if (path === '/api/brain' && method === 'GET') {
-    try {
-      const { results } = await env.DB.prepare('SELECT * FROM cms_brain ORDER BY scope, module, type, key').all();
-      return json({ ok: true, items: results });
-    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
+    try { return json({ ok: true, items: await listBrainEntries(env) }); }
+    catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
   if (path === '/api/brain' && method === 'POST') {
     const body = await readBody(request);
     if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
-    const scope = String(body.scope).toUpperCase();
-    const module = String(body.module).toUpperCase();
-    const type = String(body.type || 'BASE').toUpperCase();
-    const plan = String(body.plan || 'FREE').toUpperCase();
-    const key = String(body.key).trim();
-    const val = (body.value === undefined || body.value === null) ? '' : String(body.value);
-    const version = parseInt(body.version, 10) > 0 ? parseInt(body.version, 10) : 1;
     try {
-      await env.DB.prepare(
-        'INSERT INTO cms_brain (scope,module,type,plan,key,value,active,version,updated_at) VALUES (?,?,?,?,?,?,1,?,datetime(\'now\')) ' +
-        'ON CONFLICT(scope,module,type,plan,key) DO UPDATE SET value=excluded.value, active=1, version=excluded.version, updated_at=excluded.updated_at'
-      ).bind(scope, module, type, plan, key, val, version).run();
-      await logAdminAction(env, user.email, 'brain_create', scope + '/' + module + '/' + type + '/' + key);
+      const item = await upsertBrainEntry(env, body);
+      await logAdminAction(env, user.email, 'brain_create', item.scope + '/' + item.module + '/' + item.type + '/' + item.key);
       return json({ ok: true });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
@@ -172,23 +154,17 @@ export async function adminApi(request, path, env, verifyToken) {
       const body = await readBody(request);
       if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
       try {
-        await env.DB.prepare(
-          'UPDATE cms_brain SET scope=?, module=?, type=?, plan=?, key=?, value=?, version=?, updated_at=datetime(\'now\') WHERE id=?'
-        ).bind(
-          String(body.scope).toUpperCase(), String(body.module).toUpperCase(), String(body.type || 'BASE').toUpperCase(),
-          String(body.plan || 'FREE').toUpperCase(), String(body.key).trim(),
-          (body.value === undefined || body.value === null) ? '' : String(body.value),
-          parseInt(body.version, 10) > 0 ? parseInt(body.version, 10) : 1,
-          id
-        ).run();
+        await updateBrainEntry(env, id, body);
         await logAdminAction(env, user.email, 'brain_update', 'id=' + id);
         return json({ ok: true });
       } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
     if (method === 'DELETE') {
-      await env.DB.prepare('DELETE FROM cms_brain WHERE id=?').bind(id).run();
-      await logAdminAction(env, user.email, 'brain_delete', 'id=' + id);
-      return json({ ok: true });
+      try {
+        await deleteBrainEntry(env, id);
+        await logAdminAction(env, user.email, 'brain_delete', 'id=' + id);
+        return json({ ok: true });
+      } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
   }
 
