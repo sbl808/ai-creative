@@ -3,7 +3,8 @@
 // အခြား Studio (Content/Story/Short/Image/Shop) ကို မထိခိုက်စေရ။
 // Shared Logic (AI Call, CMS, WAV) ကို core/ မှ ခေါ်သုံးသည်။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 import { pcmToWavBase64 } from '../core/utilities.js';
