@@ -50,6 +50,50 @@ export async function getBrainConfig(env, { scope, module, type = BRAIN_TYPE_BAS
   return out;
 }
 
+// Global Policy is read through its own CMS domain facade.
+export async function getGlobalPolicyConfig(env, plan) {
+  return getBrainConfig(env, {
+    scope: BRAIN_SCOPE_GLOBAL,
+    module: BRAIN_MODULE_GLOBAL_FRAMEWORK,
+    type: BRAIN_TYPE_BASE,
+    plan,
+  });
+}
+
+// Studio-only Story Type context. Global Policy is intentionally excluded.
+export async function getStudioStoryTypeConfig(env, typeId, plan) {
+  const type = 'TYPE_' + String(typeId || '1');
+  return getBrainConfig(env, {
+    scope: BRAIN_SCOPE_STORY_TYPES,
+    module: BRAIN_MODULE_STORY_TYPE,
+    type,
+    plan,
+  });
+}
+
+// Studio-only Video context. Global Policy is intentionally excluded.
+export async function getStudioVideoContext(env, { visualStyle, workflow, plan }) {
+  const videoKnowledge = await getBrainConfig(env, {
+    scope: BRAIN_SCOPE_STORY_VIDEO,
+    module: BRAIN_MODULE_VIDEO_KNOWLEDGE,
+    type: BRAIN_TYPE_BASE,
+    plan,
+  });
+  const styleCfg = await getBrainConfig(env, {
+    scope: BRAIN_SCOPE_STORY_VIDEO,
+    module: BRAIN_MODULE_VISUAL_STYLE,
+    type: String(visualStyle || 'REALISM').toUpperCase(),
+    plan,
+  });
+  const workflowCfg = await getBrainConfig(env, {
+    scope: BRAIN_SCOPE_STORY_VIDEO,
+    module: BRAIN_MODULE_VIDEO_WORKFLOW,
+    type: String(workflow || 'CINEMATIC_FEATURE').toUpperCase(),
+    plan,
+  });
+  return { videoKnowledge, visualStyle: styleCfg, workflow: workflowCfg };
+}
+
 // Story Engine context — GLOBAL + SELECTED Story Type (Knowledge Isolation)
 export async function getStoryTypeContext(env, typeId, plan) {
   const type = 'TYPE_' + String(typeId || '1');
