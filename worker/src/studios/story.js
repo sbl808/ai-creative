@@ -269,7 +269,7 @@ export async function generateStoryVideoPlan(env, {
     '    { "id": "scene_01", "number": 1, "title": "", "description": "", "visualDescription": "", "duration": 8, "characterIds": ["char_01"], "videoPrompt": "", "environmentPrompt": "" }',
     '  ]',
     '}',
-  ].join('\\n');
+  ].join('\n');
   const context = buildPromptContext({
     globalPolicy,
     studioBrain,
@@ -283,11 +283,11 @@ export async function generateStoryVideoPlan(env, {
     userPrompt: [
       'USER STORY:',
       text,
-      factsBlock ? ('STORY FACTS (structured — video အတွက် လိုအပ်သော facts သာ):\\n' + factsBlock) : '',
+      factsBlock ? ('STORY FACTS (structured — video အတွက် လိုအပ်သော facts သာ):\n' + factsBlock) : '',
       additionalInstructions && String(additionalInstructions).trim()
-        ? ('ADDITIONAL INSTRUCTIONS:\\n' + String(additionalInstructions).trim())
+        ? ('ADDITIONAL INSTRUCTIONS:\n' + String(additionalInstructions).trim())
         : '',
-    ].filter(Boolean).join('\\n'),
+    ].filter(Boolean).join('\n'),
   });
   const raw = await generateText(env, {
     model: await resolveModel(env, 'text', plan, model, 'story.text'),
