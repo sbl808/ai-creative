@@ -13,13 +13,14 @@ import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
-import { enforceSharedAiRateLimit, isApiRequestBodyTooLarge } from './platform/http/index.js';
-import { buildCors } from './platform/http/index.js';
+import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
+import { isApiRequestBodyTooLarge, buildCors, ndjsonResponse } from './platform/http/index.js';
+
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
 import { verifyToken } from './platform/auth/index.js';
 
 
-import { ndjsonResponse } from './platform/http/index.js';
+
 
 
 
