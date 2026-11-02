@@ -1,8 +1,5 @@
 // Admin API handlers for Task Instruction review, publish and rollback.
-import {
-  getTaskInstructionVersion,
-  listTaskInstructionVersions,
-} from '../cms/repositories/task-instructions.js';
+import { getTaskInstructionVersion } from '../cms/repositories/task-instructions.js';
 import {
   reviewTaskInstructions,
   publishTaskInstructions,
@@ -50,11 +47,15 @@ export async function handleTaskReviewAdminApi(request, path, env, user) {
     const publishMatch = path.match(/^\/api\/admin\/task-versions\/([^/]+)\/publish$/);
     if (publishMatch && method === 'POST') {
       const versionId = decodeURIComponent(publishMatch[1]);
-      const body = await readTaskApiBody(request) || {};
-      if (!body.taskId) return taskApiJson({ error: 'task_id_required' }, 400);
-      const result = await publishTaskInstructions(env, body.taskId, versionId);
+      const version = await getTaskInstructionVersion(env, versionId);
+      if (!version) return taskApiJson({ error: 'version_not_found' }, 404);
+      const owner = await env.DB.prepare(
+        'SELECT task_id FROM task_instruction_sets WHERE instruction_id = ?'
+      ).bind(version.instruction_id).first();
+      if (!owner) return taskApiJson({ error: 'task_instruction_set_not_found' }, 404);
+      const result = await publishTaskInstructions(env, owner.task_id, versionId);
       await logTaskAdminAction(env, user, 'task_instruction_publish', {
-        task_id: body.taskId,
+        task_id: owner.task_id,
         version_id: versionId,
       });
       return taskApiJson({ ok: true, ...result });
@@ -73,7 +74,7 @@ export async function handleTaskReviewAdminApi(request, path, env, user) {
       return taskApiJson({ ok: true, ...result });
     }
 
-    return taskApiJson({ error: 'method_not_allowed' }, 405);
+    return null;
   } catch (error) {
     return taskApiError(error);
   }
