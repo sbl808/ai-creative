@@ -350,6 +350,9 @@ export async function recordTaskInstructionReview(env, versionId, decision, revi
   }
   const actor = reviewedBy === null || reviewedBy === undefined ? null : String(reviewedBy).trim().slice(0, 200);
   const reviewComment = comment === null || comment === undefined ? null : String(comment).trim().slice(0, 2000);
+  const reviewVersion = await getTaskInstructionVersion(env, id);
+  if (!reviewVersion) throw new Error('version_not_found');
+  await verifyTaskInstructionVersionIntegrity(reviewVersion);
   const reviewId = createId();
 
   const results = await env.DB.batch([
@@ -386,6 +389,7 @@ export async function publishTaskInstructionVersion(env, taskId, versionId) {
     throw new Error('version_task_mismatch');
   }
   if (currentVersion.status !== 'approved') throw new Error('approval_required');
+  await verifyTaskInstructionVersionIntegrity(currentVersion);
 
   await env.DB.batch([
     env.DB.prepare(
@@ -432,6 +436,12 @@ export async function activatePublishedTaskInstructionVersion(env, taskId, versi
   const version = normalizeId(versionId, 'invalid_version_id');
   const instructionSet = await getInstructionSetRow(env, task);
   if (!instructionSet) throw new Error('task_instruction_set_not_found');
+
+  const candidate = await getTaskInstructionVersion(env, version);
+  if (!candidate) throw new Error('version_not_found');
+  if (candidate.instruction_id !== instructionSet.instruction_id) throw new Error('version_task_mismatch');
+  if (candidate.status !== 'published') throw new Error('invalid_version_state');
+  await verifyTaskInstructionVersionIntegrity(candidate);
 
   const result = await env.DB.prepare(
     "UPDATE task_instruction_sets SET active_version_id = ?, updated_at = datetime('now') " +
