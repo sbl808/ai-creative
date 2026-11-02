@@ -30,8 +30,21 @@ function normalizePlan(value) {
 
 function normalizeUserInput(value) {
   if (value === undefined) return {};
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).length > 64) {
     throw new Error('invalid_user_input');
+  }
+  for (const fieldValue of Object.values(value)) {
+    if (typeof fieldValue !== 'string' && typeof fieldValue !== 'number' &&
+        typeof fieldValue !== 'boolean') {
+      throw new Error('invalid_user_input');
+    }
+    if (typeof fieldValue === 'string' && fieldValue.length > 30000) {
+      throw new Error('invalid_user_input');
+    }
+    if (typeof fieldValue === 'number' && !Number.isFinite(fieldValue)) {
+      throw new Error('invalid_user_input');
+    }
   }
   return value;
 }
@@ -50,6 +63,18 @@ function normalizeRuntimeParameters(value) {
     throw new Error('invalid_runtime_parameters');
   }
   if (Object.keys(value).length > 32) throw new Error('too_many_runtime_parameters');
+  for (const parameterValue of Object.values(value)) {
+    if (typeof parameterValue !== 'string' && typeof parameterValue !== 'number' &&
+        typeof parameterValue !== 'boolean') {
+      throw new Error('invalid_runtime_parameters');
+    }
+    if (typeof parameterValue === 'string' && parameterValue.length > 2000) {
+      throw new Error('invalid_runtime_parameters');
+    }
+    if (typeof parameterValue === 'number' && !Number.isFinite(parameterValue)) {
+      throw new Error('invalid_runtime_parameters');
+    }
+  }
   return value;
 }
 
