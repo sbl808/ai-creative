@@ -1,12 +1,11 @@
 // Pure field-based prompt merge engine.
-// Precedence is highest-first: Global Policy > Studio Brain > Studio Config > Task Template > User Input.
+// Precedence is highest-first: Global Policy > Studio Brain > Task Instructions > User Input.
 // This module intentionally has no Worker, D1, provider, or logging dependencies.
 
 export const PROMPT_SOURCE_PRIORITY = Object.freeze([
   'globalPolicy',
   'studioBrain',
-  'studioConfig',
-  'taskTemplate',
+  'taskInstructions',
   'userInput',
 ]);
 

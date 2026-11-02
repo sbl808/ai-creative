@@ -16,7 +16,7 @@ function renderFieldLabel(field) {
 
 /** Render trusted, merged instruction fields in deterministic insertion order. */
 export function renderPromptFields(fields = {}) {
-  const merged = mergePromptFields({ taskTemplate: fields });
+  const merged = mergePromptFields({ taskInstructions: fields });
   return Object.entries(merged)
     .map(([field, value]) => renderFieldLabel(field) + ':\n' + String(value).trim())
     .join('\n\n');
@@ -32,8 +32,7 @@ export function renderPromptFields(fields = {}) {
  * @param {{
  *   globalPolicy?: Record<string, string|number|boolean>,
  *   studioBrain?: Record<string, string|number|boolean>,
- *   studioConfig?: Record<string, string|number|boolean>,
- *   taskTemplate?: Record<string, string|number|boolean>,
+ *   taskInstructions?: Record<string, string|number|boolean>,
  *   userInput?: Record<string, string|number|boolean>,
  *   userPrompt?: string
  * }} input
@@ -50,8 +49,7 @@ export function buildPromptContext(input = {}) {
   const trustedSources = {
     globalPolicy: input.globalPolicy,
     studioBrain: input.studioBrain,
-    studioConfig: input.studioConfig,
-    taskTemplate: input.taskTemplate,
+    taskInstructions: input.taskInstructions,
   };
   const trustedFields = mergePromptFields(trustedSources);
   const fields = mergePromptFields({

@@ -62,7 +62,7 @@ async function buildStoryTextContext(env, typeId, plan, taskInstructions, userIn
   return buildPromptContext({
     globalPolicy,
     studioBrain,
-    taskTemplate: {
+    taskInstructions: {
       ...mapLegacyCMSTemplate(legacy),
       task_instructions: taskInstructions,
     },
@@ -274,7 +274,7 @@ export async function generateStoryVideoPlan(env, {
   const context = buildPromptContext({
     globalPolicy,
     studioBrain,
-    taskTemplate: {
+    taskInstructions: {
       ...mapLegacyCMSTemplate(legacy),
       task_instructions: taskInstructions,
     },

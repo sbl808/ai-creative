@@ -1,5 +1,6 @@
 import { themeControllerScript } from '../frontend/shared.js';
 import { AICS_DESIGN_SYSTEM_CSS } from '../frontend/design-system.js';
+import { TASK_INSTRUCTIONS_CSS, TASK_INSTRUCTIONS_NAV, TASK_INSTRUCTIONS_VIEW, TASK_INSTRUCTIONS_SCRIPT } from './task-instructions-ui.js';
 
 export const ADMIN_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -65,6 +66,7 @@ button,.btn,.nav-btn,.app-link,.theme-toggle{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+${TASK_INSTRUCTIONS_CSS}
 </style>
 ${AICS_DESIGN_SYSTEM_CSS}
 </head>
@@ -85,6 +87,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
     <button class="nav-btn inactive" id="tabPlans" onclick="switchTab('plans');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">Plan Catalog</span></button>
     <button class="nav-btn inactive" id="tabCms" onclick="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
     <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
+${TASK_INSTRUCTIONS_NAV}
     <div class="nav-section">Analytics</div>
     <button class="nav-btn inactive" id="tabUsage" onclick="switchTab('usage');closeNav()"><span class="nav-icon">⌁</span><span class="nav-label">Usage</span></button>
     <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
@@ -104,6 +107,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
       </section>
       <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
       <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
+${TASK_INSTRUCTIONS_VIEW}
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
       <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="loadStudios()">↻ Refresh</button><button class="btn primary" onclick="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
@@ -119,7 +123,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
 function closeNav(){var s=document.getElementById('sidebar');if(s)s.classList.remove('open');}
-function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
+function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',taskInstructions:'Task Instructions',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
 </script>
 <script>
 window.onerror = function(msg, url, line) {
@@ -188,8 +192,8 @@ function fillStudios(){
 function switchTab(tab){
   currentTab=tab;
   setCrumb(tab);
-  ['dashboard','cms','brain','users','studios','features','plans','models','usage','logs'].forEach(function(t){
-    $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='btn '+(tab===t?'active':'inactive');
+  ['dashboard','cms','brain','taskInstructions','users','studios','features','plans','models','usage','logs'].forEach(function(t){
+    $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='nav-btn '+(tab===t?'active':'inactive');
     $(t+'View').classList.toggle('hidden',tab!==t);
   });
   if(tab==='users') loadUsers();
@@ -200,6 +204,7 @@ function switchTab(tab){
   if(tab==='usage') loadUsage();
   if(tab==='logs') loadLogs();
   if(tab==='dashboard') loadDashboard();
+  if(tab==='taskInstructions') taskUiLoadCatalog();
 }
 
 // Plan Catalog admin actions (display-only metadata; never grants feature access).
@@ -672,6 +677,7 @@ function tokenFromHash(){
   }
 }
 
+${TASK_INSTRUCTIONS_SCRIPT}
 function init(){
   try{
     tokenFromHash();
@@ -689,6 +695,7 @@ function init(){
       }
       $('userBox').textContent=d.email+' · '+d.plan;
       fillStudios();
+      taskUiInit();
       showApp();
       switchTab('dashboard');
     }).catch(function(e){

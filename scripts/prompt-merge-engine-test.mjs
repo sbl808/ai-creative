@@ -4,8 +4,7 @@ import { mergePromptFields, PROMPT_SOURCE_PRIORITY } from '../worker/src/prompt/
 assert.deepEqual(PROMPT_SOURCE_PRIORITY, [
   'globalPolicy',
   'studioBrain',
-  'studioConfig',
-  'taskTemplate',
+  'taskInstructions',
   'userInput',
 ]);
 
@@ -18,15 +17,10 @@ const merged = mergePromptFields({
     enabled: false,
     count: 0,
   },
-  taskTemplate: {
-    role: 'Template role',
-    format: 'Template format',
+  taskInstructions: {
+    role: 'Task instructions role',
+    format: 'Task output format',
     emptyFallback: '   ',
-  },
-  studioConfig: {
-    role: 'Studio config role',
-    format: 'Studio format',
-    layout: 'Studio layout',
   },
   studioBrain: {
     role: 'Studio brain role',
@@ -45,7 +39,7 @@ assert.deepEqual(merged, {
   safety: 'Global safety',
   policyOnly: 'Global-only field',
   layout: 'Brain layout',
-  format: 'Studio format',
+  format: 'Task output format',
   idea: 'User idea',
   tone: 'User tone',
   emptyFallback: 'User fallback',

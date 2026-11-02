@@ -9,6 +9,10 @@ import { getFeatureSettings, setFeatureSetting, FEATURE_REGISTRY } from '../conf
 import { getAiModels, setAiModel, deleteAiModel } from '../ai/model-registry/index.js';
 import { logAdminAction, listAdminLogs } from '../core/adminLogs.js';
 import { listPlanCatalog, savePlanCatalogItem, deletePlanCatalogItem, getPlanContactSettings, updatePlanContactSettings } from '../configuration/plan-catalog/index.js';
+import { handleTaskCatalogAdminApi } from './task-catalog-api.js';
+import { handleTaskInstructionsAdminApi } from './task-instructions-api.js';
+import { handleTaskReviewAdminApi } from './task-review-api.js';
+import { isSameOriginMutation, taskApiJson } from './task-api-utils.js';
 
 function cmsRepositoryErrorStatus(error) {
   const code = String(error && error.message || error);
@@ -29,16 +33,25 @@ export async function adminApi(request, path, env, verifyToken) {
   const isLogs = (path === '/api/admin/logs');
   const isBrain = (path === '/api/brain' || path.indexOf('/api/brain/') === 0);
   const isPlans = (path === '/api/admin/plans' || path.indexOf('/api/admin/plans/') === 0 || path === '/api/admin/plan-contacts');
-  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain && !isPlans) return null;
+  const isTaskInstructions = (
+    path === '/api/admin/tasks' ||
+    path.indexOf('/api/admin/tasks/') === 0 ||
+    path.indexOf('/api/admin/task-versions/') === 0
+  );
+  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain && !isPlans && !isTaskInstructions) return null;
 
   const method = request.method;
   const authHeader = request.headers.get('Authorization') || '';
   let token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  let authenticatedByCookie = false;
   // Phase 11 — Admin Panel Page မှ Fetch များတွင် Cookie Session ကိုပါ လက်ခံသည် (Header ဦးစားပေး)
   if (!token) {
     const c = request.headers.get('Cookie') || '';
     const m = c.match(/(?:^|;\s*)aics_token=([^;]+)/);
-    if (m) token = decodeURIComponent(m[1]);
+    if (m) {
+      token = decodeURIComponent(m[1]);
+      authenticatedByCookie = true;
+    }
   }
   if (!token) return json({ error: 'unauthorized', detail: 'login required' }, 401);
   let user = null;
@@ -51,6 +64,20 @@ export async function adminApi(request, path, env, verifyToken) {
   const adminEmail = String(env.ADMIN_EMAIL || '').trim();
   if (!adminEmail || String(user.email).trim().toLowerCase() !== adminEmail.toLowerCase()) {
     return json({ error: 'forbidden', detail: 'admin only' }, 403);
+  }
+
+  if (isTaskInstructions) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) &&
+        authenticatedByCookie && !isSameOriginMutation(request)) {
+      return taskApiJson({ error: 'csrf_origin_check_failed' }, 403);
+    }
+    const reviewResponse = await handleTaskReviewAdminApi(request, path, env, user);
+    if (reviewResponse) return reviewResponse;
+    const instructionResponse = await handleTaskInstructionsAdminApi(request, path, env, user);
+    if (instructionResponse) return instructionResponse;
+    const catalogResponse = await handleTaskCatalogAdminApi(request, path, env, user);
+    if (catalogResponse) return catalogResponse;
+    return taskApiJson({ error: 'not_found' }, 404);
   }
 
   // ===== Plan Catalog: display metadata only; existing Feature Gate remains authoritative =====
