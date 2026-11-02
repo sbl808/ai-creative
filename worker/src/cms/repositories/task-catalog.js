@@ -99,7 +99,10 @@ function normalizeTaskInput(input, options = {}) {
   };
 
   if (options.includeTaskId) task.task_id = normalizeTaskId(input.task_id);
-  if (input.enabled !== undefined) task.enabled = normalizeEnabled(input.enabled);
+  if (input.enabled !== undefined) {
+    if (!options.allowEnabled) throw new Error('task_status_requires_status_endpoint');
+    task.enabled = normalizeEnabled(input.enabled);
+  }
   return task;
 }
 
@@ -167,7 +170,7 @@ export async function getTaskCatalogItem(env, taskId) {
 
 export async function createTaskCatalogItem(env, input) {
   requireDatabase(env);
-  const task = normalizeTaskInput(input, { includeTaskId: true });
+  const task = normalizeTaskInput(input, { includeTaskId: true, allowEnabled: true });
   const enabled = task.enabled === undefined ? 1 : task.enabled;
 
   try {
