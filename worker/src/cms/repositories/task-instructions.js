@@ -321,6 +321,17 @@ export async function listTaskInstructionVersions(env, taskId) {
   return (results || []).map(mapVersion);
 }
 
+export async function getTaskIdForInstructionVersion(env, versionId) {
+  requireDatabase(env);
+  const id = normalizeId(versionId, 'invalid_version_id');
+  const row = await env.DB.prepare(
+    'SELECT s.task_id FROM task_instruction_sets s ' +
+    'INNER JOIN task_instruction_versions v ON v.instruction_id = s.instruction_id ' +
+    'WHERE v.version_id = ?'
+  ).bind(id).first();
+  return row ? row.task_id : null;
+}
+
 export async function getTaskInstructionVersion(env, versionId) {
   requireDatabase(env);
   const id = normalizeId(versionId, 'invalid_version_id');
