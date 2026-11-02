@@ -44,7 +44,7 @@ export function taskApiError(error) {
   };
   if (statusByCode[code]) return taskApiJson({ error: code }, statusByCode[code]);
   if (code.startsWith('invalid_') || code.startsWith('missing_') ||
-      code.startsWith('too_many_') || code.startsWith('instruction_field_') ||
+      code.startsWith('too_many_') || code.startsWith('invalid_prompt_') || code.startsWith('instruction_field_') ||
       code.startsWith('instruction_fields_')) {
     return taskApiJson({ error: code }, 400);
   }
