@@ -110,3 +110,73 @@ CREATE TABLE IF NOT EXISTS task_instruction_reviews (
 
 CREATE INDEX IF NOT EXISTS idx_task_instruction_reviews_version
   ON task_instruction_reviews (version_id, reviewed_at DESC);
+
+-- Enforce version immutability at the database boundary. Only workflow status
+-- transitions are mutable; the captured instruction content and identity are not.
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_version_content_immutable
+BEFORE UPDATE OF instruction_id, version_number, fields_json, content_hash, created_by, created_at
+ON task_instruction_versions
+BEGIN
+  SELECT RAISE(ABORT, 'task_instruction_version_immutable');
+END;
+
+-- Allow only the approved workflow transitions. Published and rejected versions
+-- are terminal; a correction must be submitted as a new version.
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_version_status_transition
+BEFORE UPDATE OF status ON task_instruction_versions
+WHEN NOT (
+  OLD.status = NEW.status
+  OR (OLD.status = 'pending' AND NEW.status IN ('approved', 'rejected'))
+  OR (OLD.status = 'approved' AND NEW.status = 'published')
+)
+BEGIN
+  SELECT RAISE(ABORT, 'invalid_task_instruction_version_transition');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_published_at_immutable
+BEFORE UPDATE OF published_at ON task_instruction_versions
+WHEN OLD.status = 'published' AND NEW.published_at IS NOT OLD.published_at
+BEGIN
+  SELECT RAISE(ABORT, 'task_instruction_published_at_immutable');
+END;
+
+-- The active pointer may only reference a published version belonging to the
+-- same instruction set. This also protects rollback from pointing at drafts.
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_active_version_insert
+BEFORE INSERT ON task_instruction_sets
+WHEN NEW.active_version_id IS NOT NULL
+ AND NOT EXISTS (
+   SELECT 1 FROM task_instruction_versions
+   WHERE instruction_id = NEW.instruction_id
+     AND version_id = NEW.active_version_id
+     AND status = 'published'
+ )
+BEGIN
+  SELECT RAISE(ABORT, 'active_task_instruction_version_must_be_published');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_active_version_update
+BEFORE UPDATE OF active_version_id ON task_instruction_sets
+WHEN NEW.active_version_id IS NOT NULL
+ AND NOT EXISTS (
+   SELECT 1 FROM task_instruction_versions
+   WHERE instruction_id = NEW.instruction_id
+     AND version_id = NEW.active_version_id
+     AND status = 'published'
+ )
+BEGIN
+  SELECT RAISE(ABORT, 'active_task_instruction_version_must_be_published');
+END;
+
+-- Review records are append-only history.
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_reviews_no_update
+BEFORE UPDATE ON task_instruction_reviews
+BEGIN
+  SELECT RAISE(ABORT, 'task_instruction_reviews_are_append_only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_task_instruction_reviews_no_delete
+BEFORE DELETE ON task_instruction_reviews
+BEGIN
+  SELECT RAISE(ABORT, 'task_instruction_reviews_are_append_only');
+END;
