@@ -61,6 +61,9 @@ function normalizeFields(value) {
     ) {
       throw new Error('invalid_instruction_field_value');
     }
+    if (typeof fieldValue === 'number' && !Number.isFinite(fieldValue)) {
+      throw new Error('invalid_instruction_field_value');
+    }
     if (typeof fieldValue === 'string' && fieldValue.length > MAX_FIELD_VALUE_LENGTH) {
       throw new Error('instruction_field_too_large');
     }
@@ -252,7 +255,11 @@ export async function resetTaskInstructionDraft(env, taskId, expectedRevision, u
       'SELECT fields_json FROM task_instruction_versions WHERE instruction_id = ? AND version_id = ? AND status = ?'
     ).bind(instructionSet.instruction_id, instructionSet.active_version_id, 'published').first();
     if (!active) throw new Error('instruction_integrity_error');
-    fields = JSON.parse(active.fields_json);
+    try {
+      fields = normalizeFields(active.fields_json);
+    } catch (_) {
+      throw new Error('instruction_integrity_error');
+    }
   }
   return saveTaskInstructionDraft(env, id, fields, expectedRevision, updatedBy);
 }
