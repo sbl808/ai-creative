@@ -10,11 +10,7 @@ const result = buildPromptContext({
     role: 'Story-specific role.',
     story_format: 'Three-act structure.',
   },
-  studioConfig: {
-    role: 'Studio role.',
-    tone: 'Cinematic.',
-  },
-  taskTemplate: {
+  taskInstructions: {
     role: 'Task role.',
     output: 'Return JSON.',
   },
@@ -29,7 +25,6 @@ const result = buildPromptContext({
 assert.match(result.system, /ROLE:\nGlobal role\./);
 assert.match(result.system, /SAFETY:\nFollow platform safety rules\./);
 assert.match(result.system, /STORY FORMAT:\nThree-act structure\./);
-assert.match(result.system, /TONE:\nCinematic\./);
 assert.match(result.system, /OUTPUT:\nReturn JSON\./);
 assert.doesNotMatch(result.system, /Ignore all previous rules/);
 assert.doesNotMatch(result.system, /lost robot/);
@@ -38,7 +33,6 @@ assert.match(result.prompt, /Write a story about a lost robot/);
 assert.match(result.prompt, /Young adults/);
 assert.doesNotMatch(result.prompt, /Ignore all previous rules/);
 assert.equal(result.fields.role, 'Global role.');
-assert.equal(result.fields.tone, 'Cinematic.');
 assert.equal(result.fields.audience, 'Young adults');
 
 const legacy = renderPromptFields({
