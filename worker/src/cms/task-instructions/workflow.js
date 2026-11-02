@@ -4,6 +4,7 @@
 import { getTaskCatalogItem } from '../repositories/task-catalog.js';
 import {
   ensureTaskInstructionSet,
+  getTaskInstructionSet,
   getTaskInstructionDraft,
   createTaskInstructionVersion,
   getTaskInstructionVersion,
@@ -28,7 +29,8 @@ async function getVersionForTaskOrFail(env, taskId, versionId) {
   const task = await getTaskOrFail(env, taskId);
   const version = await getTaskInstructionVersion(env, versionId);
   if (!version) throw new Error('version_not_found');
-  const instructionSet = await ensureTaskInstructionSet(env, task.task_id);
+  const instructionSet = await getTaskInstructionSet(env, task.task_id);
+  if (!instructionSet) throw new Error('task_instruction_set_not_found');
   if (version.instruction_id !== instructionSet.instruction_id) {
     throw new Error('version_task_mismatch');
   }
