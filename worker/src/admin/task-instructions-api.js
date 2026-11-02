@@ -8,10 +8,7 @@ import {
   listTaskInstructionVersions,
   getTaskInstructionVersion,
 } from '../cms/repositories/task-instructions.js';
-import {
-  initializeTaskInstructions,
-  submitTaskInstructions,
-} from '../cms/task-instructions/workflow.js';
+import { submitTaskInstructions } from '../cms/task-instructions/workflow.js';
 import { getGlobalPolicyConfig } from '../cms/global-policies/index.js';
 import { getStudioStoryTypeConfig } from '../cms/studio-brains/index.js';
 import { buildPromptContext } from '../prompt/orchestrator/index.js';
@@ -29,6 +26,22 @@ function normalizePlan(value) {
   const plan = String(value || 'FREE').trim().toUpperCase();
   if (!['FREE', 'PRO'].includes(plan)) throw new Error('invalid_plan');
   return plan;
+}
+
+function normalizeUserInput(value) {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('invalid_user_input');
+  }
+  return value;
+}
+
+function normalizeUserPrompt(value) {
+  if (value === undefined) return '';
+  if (typeof value !== 'string' || value.length > 20000) {
+    throw new Error('invalid_user_prompt');
+  }
+  return value;
 }
 
 function normalizeRuntimeParameters(value) {
@@ -137,8 +150,8 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
         globalPolicy,
         studioBrain,
         taskTemplate: draft.fields,
-        userInput: body.userInput || {},
-        userPrompt: body.userPrompt || '',
+        userInput: normalizeUserInput(body.userInput),
+        userPrompt: normalizeUserPrompt(body.userPrompt),
       });
 
       // Runtime parameters are deliberately returned separately and never merged
@@ -163,7 +176,7 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
       });
     }
 
-    return taskApiJson({ error: 'method_not_allowed' }, 405);
+    return null;
   } catch (error) {
     return taskApiError(error);
   }
