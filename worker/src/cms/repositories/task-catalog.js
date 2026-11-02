@@ -77,8 +77,8 @@ function normalizeDescription(value) {
 }
 
 function normalizeEnabled(value) {
-  if (value === true || value === 1) return 1;
-  if (value === false || value === 0) return 0;
+  if (value === true || value === 1 || value === '1' || value === 'true') return 1;
+  if (value === false || value === 0 || value === '0' || value === 'false') return 0;
   throw new Error('invalid_task_status');
 }
 
