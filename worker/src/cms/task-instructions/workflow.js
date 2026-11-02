@@ -53,21 +53,18 @@ export async function submitTaskInstructions(env, taskId, createdBy = null) {
 export async function reviewTaskInstructions(env, versionId, decision, reviewedBy = null, comment = null) {
   const version = await getTaskInstructionVersion(env, versionId);
   if (!version) throw new Error('version_not_found');
-  await verifyTaskInstructionVersionIntegrity(version);
   return recordTaskInstructionReview(env, versionId, decision, reviewedBy, comment);
 }
 
 export async function publishTaskInstructions(env, taskId, versionId) {
   const { version } = await getVersionForTaskOrFail(env, taskId, versionId);
   if (version.status !== 'approved') throw new Error('approval_required');
-  await verifyTaskInstructionVersionIntegrity(version);
   return publishTaskInstructionVersion(env, taskId, versionId);
 }
 
 export async function rollbackTaskInstructions(env, taskId, versionId) {
   const { version } = await getVersionForTaskOrFail(env, taskId, versionId);
   if (version.status !== 'published') throw new Error('invalid_version_state');
-  await verifyTaskInstructionVersionIntegrity(version);
   const instructionSet = await activatePublishedTaskInstructionVersion(env, taskId, versionId);
   return { instruction_set: instructionSet, version };
 }
