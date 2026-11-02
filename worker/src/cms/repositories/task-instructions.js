@@ -411,6 +411,49 @@ export async function publishTaskInstructionVersion(env, taskId, versionId) {
   return { instruction_set: mapInstructionSet(refreshed), version: versionRow };
 }
 
+export async function verifyTaskInstructionVersionIntegrity(version) {
+  if (!version || typeof version !== 'object') throw new Error('instruction_integrity_error');
+  let fields;
+  try {
+    fields = normalizeFields(version.fields);
+  } catch (_) {
+    throw new Error('instruction_integrity_error');
+  }
+  const actualHash = await hashFields(fields);
+  if (typeof version.content_hash !== 'string' || actualHash !== version.content_hash) {
+    throw new Error('instruction_integrity_error');
+  }
+  return true;
+}
+
+export async function activatePublishedTaskInstructionVersion(env, taskId, versionId) {
+  requireDatabase(env);
+  const task = normalizeTaskId(taskId);
+  const version = normalizeId(versionId, 'invalid_version_id');
+  const instructionSet = await getInstructionSetRow(env, task);
+  if (!instructionSet) throw new Error('task_instruction_set_not_found');
+
+  const result = await env.DB.prepare(
+    "UPDATE task_instruction_sets SET active_version_id = ?, updated_at = datetime('now') " +
+    "WHERE instruction_id = ? AND EXISTS (" +
+    "SELECT 1 FROM task_instruction_versions WHERE version_id = ? " +
+    "AND instruction_id = ? AND status = 'published')"
+  ).bind(version, instructionSet.instruction_id, version, instructionSet.instruction_id).run();
+
+  if (!result || !result.meta || Number(result.meta.changes) !== 1) {
+    const candidate = await getTaskInstructionVersion(env, version);
+    if (!candidate) throw new Error('version_not_found');
+    if (candidate.instruction_id !== instructionSet.instruction_id) throw new Error('version_task_mismatch');
+    throw new Error('invalid_version_state');
+  }
+
+  const refreshed = await getInstructionSetRow(env, task);
+  if (!refreshed || refreshed.active_version_id !== version) {
+    throw new Error('task_instruction_rollback_failed');
+  }
+  return mapInstructionSet(refreshed);
+}
+
 export async function getActiveTaskInstructionVersion(env, taskId) {
   requireDatabase(env);
   const id = normalizeTaskId(taskId);
