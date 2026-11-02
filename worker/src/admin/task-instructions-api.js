@@ -149,7 +149,7 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
       const context = buildPromptContext({
         globalPolicy,
         studioBrain,
-        taskTemplate: draft.fields,
+        taskInstructions: draft.fields,
         userInput: normalizeUserInput(body.userInput),
         userPrompt: normalizeUserPrompt(body.userPrompt),
       });
