@@ -6,7 +6,6 @@ import {
   rollbackTaskInstructions,
   getTaskInstructionReviewHistory,
 } from '../cms/task-instructions/workflow.js';
-import { getTaskCatalogItem } from '../cms/repositories/task-catalog.js';
 import {
   taskApiJson,
   readTaskApiBody,
@@ -47,6 +46,7 @@ export async function handleTaskReviewAdminApi(request, path, env, user) {
     const publishMatch = path.match(/^\/api\/admin\/task-versions\/([^/]+)\/publish$/);
     if (publishMatch && method === 'POST') {
       const versionId = decodeURIComponent(publishMatch[1]);
+      if (!env || !env.DB) throw new Error('db_unavailable');
       const version = await getTaskInstructionVersion(env, versionId);
       if (!version) return taskApiJson({ error: 'version_not_found' }, 404);
       const owner = await env.DB.prepare(
