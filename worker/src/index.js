@@ -13,13 +13,14 @@ import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
-import { enforceSharedAiRateLimit, isApiRequestBodyTooLarge } from './middleware/requestGuards.js';
-import { buildCors } from './middleware/cors.js';
+import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
+import { isApiRequestBodyTooLarge, buildCors, ndjsonResponse } from './platform/http/index.js';
+
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
-import { verifyToken } from './core/auth.js';
+import { verifyToken } from './platform/auth/index.js';
 
 
-import { ndjsonResponse } from './core/streaming.js';
+
 
 
 
@@ -33,11 +34,11 @@ import { ndjsonResponse } from './core/streaming.js';
 import { handleProjectRoutes } from './routes/projects.routes.js';
 import { trackUsage } from './core/usage.js';
 
-import { isStudioEnabled } from './core/studioSettings.js';
-import { checkFeature } from './core/featureSettings.js';
-import { getStudio } from './config/studios.js';
+import { isStudioEnabled } from './configuration/studio-config/index.js';
+import { checkFeature } from './configuration/feature-config/index.js';
+import { getStudio } from './catalog/studios/index.js';
 import { getUserApiKey } from './core/utilities.js';
-import { APP_HTML } from './frontend.js';
+import { APP_HTML } from './frontend/index.js';
 // V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
 import { getStudioPage } from './frontend/studioPages.js';
@@ -47,7 +48,7 @@ import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
 import { LOGIN_HTML } from './frontend/login.js';
 import { PRELOGIN_HOME_HTML } from './frontend/prelogin-home.js';
-import { ADMIN_HTML, adminApi } from './admin.js';
+import { ADMIN_HTML, adminApi } from './admin/index.js';
 
 
 // Production-readiness (CORS): per-request allowed-origin enforcement.

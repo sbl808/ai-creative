@@ -7,22 +7,67 @@
 // Knowledge Isolation (§5): selected Story Type / Visual Style / Video Workflow rows များသာ
 // AI context ထဲ ဝင်မည် — အခြား type ၏ knowledge ကို ထည့်မည် မဟုတ်ပါ။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
-import { getStoryTypeContext, getStoryVideoContext, buildBrainPrompt } from '../core/cmsBrain.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { getGlobalPolicyConfig } from '../cms/global-policies/index.js';
+import { getStudioStoryTypeConfig, getStudioVideoContext } from '../cms/studio-brains/index.js';
+import { buildPromptContext } from '../prompt/orchestrator/index.js';
 import { generateText, generateImage } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'STORY';
 const CMS_VIDEO = 'STORYVIDEO';
 
-// Story Engine system prompt — Priority (§15): GLOBAL_BRAIN → SELECTED TYPE → (legacy fallback)
-async function buildStorySystem(env, typeId, plan) {
-  const brain = await getStoryTypeContext(env, typeId, plan);
-  const globalPrompt = buildBrainPrompt(brain.global);
-  const typePrompt = buildBrainPrompt(brain.type);
-  const legacy = await getCMSData(env, CMS_STUDIO, plan, typeId);
-  const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
-  return [globalPrompt, typePrompt, typePrompt ? '' : legacyPrompt].filter(Boolean).join('\n\n');
+function mapLegacyCMSTemplate(row) {
+  if (!row) return {};
+  return {
+    role: row.core,
+    memory: row.memory,
+    knowledge: row.knowledge,
+    workflow: row.workflow,
+    template: row.template,
+    prompt_rule: row.prompt,
+    quality_check: row.quality_check,
+    final_output: row.final_output,
+  };
+}
+
+function mapBrainFields(config, prefix = '') {
+  const fields = {};
+  const used = new Set();
+  for (const [key, value] of Object.entries(config || {})) {
+    let normalized = String(key).replace(/[^a-zA-Z0-9_.-]/g, '_');
+    if (!/^[a-zA-Z]/.test(normalized)) normalized = 'field_' + normalized;
+    const maxSegmentLength = 64 - (prefix ? prefix.length + 1 : 0);
+    normalized = normalized.slice(0, maxSegmentLength);
+    let field = prefix ? prefix + '.' + normalized : normalized;
+    let suffix = 1;
+    while (used.has(field)) {
+      const tail = '_' + suffix++;
+      field = (prefix ? prefix + '.' : '') + normalized.slice(0, maxSegmentLength - tail.length) + tail;
+    }
+    used.add(field);
+    fields[field] = value;
+  }
+  return fields;
+}
+
+// Story text context — Global Policy > selected Story Brain > legacy CMS fallback.
+async function buildStoryTextContext(env, typeId, plan, taskInstructions, userInput) {
+  const [globalPolicy, studioBrain] = await Promise.all([
+    getGlobalPolicyConfig(env, plan),
+    getStudioStoryTypeConfig(env, typeId, plan),
+  ]);
+  const hasStudioBrain = Object.keys(studioBrain).length > 0;
+  const legacy = hasStudioBrain ? null : await getCMSData(env, CMS_STUDIO, plan, typeId);
+  return buildPromptContext({
+    globalPolicy,
+    studioBrain,
+    taskTemplate: {
+      ...mapLegacyCMSTemplate(legacy),
+      task_instructions: taskInstructions,
+    },
+    userInput,
+  });
 }
 
 // Tab 1 — Story Generate
@@ -31,24 +76,27 @@ async function buildStorySystem(env, typeId, plan) {
 export async function generateStory(env, { idea, type, plan, apiKey, model, onChunk }) {
   if (!idea || !String(idea).trim()) throw new Error('missing_idea');
   const typeId = String(type || '1');
-  const system = await buildStorySystem(env, typeId, plan);
   const factsSchema = [
     '{ "storyId": "", "storyType": "' + typeId + '", "title": "", "summary": "",',
     '  "characters": [ { "name": "", "role": "", "attributes": "" } ],',
     '  "locations": [], "timeline": [], "events": [], "dialogue": [],',
     '  "emotion": "", "importantObjects": [], "visualFacts": [], "sceneInformation": [] }',
   ].join('\n');
-  const prompt = [
-    system,
-    'USER IDEA:\n' + String(idea).trim(),
-    '',
+  const context = await buildStoryTextContext(env, typeId, plan, [
     'အလုပ် ၂ ခု လုပ်ပါ:',
     '1) ဇာတ်လမ်းအပြည့်အစုံကို ရေးပါ။',
-    '2) ဇာတ်လမ်းပြီးနောက် storyFacts ကို JSON block တစ်ခုအဖြစ် ထည့်ပါ (```json ဖြင့် စ၍ ``` ဖြင့် ဆုံးပါ)။ Format:',
+    '2) ဇာတ်လမ်းပြီးနောက် storyFacts ကို JSON block တစ်ခုအဖြစ် ထည့်ပါ (\x60\x60\x60json ဖြင့် စ၍ \x60\x60\x60 ဖြင့် ဆုံးပါ)။ Format:',
     factsSchema,
     'storyFacts သည် ဇာတ်လမ်းစာသားအတွင်း မရောပါစေနှင့် — သီးခြား JSON block သာ ဖြစ်ရမည်။',
-  ].filter(Boolean).join('\n');
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
+  ].join('\n'), { idea: String(idea).trim() });
+  const raw = await generateText(env, {
+    model: await resolveModel(env, 'text', plan, model, 'story.text'),
+    task: 'story.text',
+    system: context.system,
+    prompt: context.prompt,
+    apiKey,
+    onChunk,
+  });
   const parsed = parseStoryWithFacts(raw);
   return { story: parsed.story, storyFacts: parsed.storyFacts };
 }
@@ -58,14 +106,22 @@ export async function reviseStory(env, { idea, type, currentStory, instruction, 
   if (!instruction || !String(instruction).trim()) throw new Error('missing_instruction');
   if (!currentStory) throw new Error('missing_current_story');
   const typeId = String(type || '1');
-  const system = await buildStorySystem(env, typeId, plan);
-  let prompt = system + '\n\n';
-  prompt += 'USER IDEA (မူရင်းစိတ်ကူး):\n' + (idea || '(empty)') + '\n\n';
-  prompt += 'လက်ရှိ ဇာတ်လမ်း:\n' + String(currentStory) + '\n\n';
-  prompt += 'User ရဲ့ ထပ်ညွှန်ကြားချက်:\n' + String(instruction).trim() + '\n\n';
-  prompt += 'အထက်ပါညွှန်ကြားချက်အတိုင်း ဇာတ်လမ်းကို ပြင်ဆင်ပါ။ ' +
-    'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။';
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey, onChunk });
+  const context = await buildStoryTextContext(env, typeId, plan, [
+    'ပေးထားသော လက်ရှိဇာတ်လမ်းကို User ၏ ပြင်ဆင်လိုသည့်အချက်များအတိုင်း ပြင်ဆင်ပါ။',
+    'ဇာတ်လမ်းအပြည့်အစုံကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက်များ မထည့်ပါနှင့်။',
+  ].join('\n'), {
+    idea: String(idea || '(empty)'),
+    current_story: String(currentStory),
+    revision_instruction: String(instruction).trim(),
+  });
+  const raw = await generateText(env, {
+    model: await resolveModel(env, 'text', plan, model, 'story.text'),
+    task: 'story.text',
+    system: context.system,
+    prompt: context.prompt,
+    apiKey,
+    onChunk,
+  });
   return { story: raw ? raw.trim() : '' };
 }
 
@@ -146,63 +202,65 @@ export async function generateStoryVideoPlan(env, {
   if (!text) throw new Error('missing_idea');
   const wf = String(workflow || 'CINEMATIC_FEATURE').toUpperCase();
   const vs = String(visualStyle || (videoType && /^[A-Za-z]/.test(String(videoType)) ? videoType : '') || 'REALISM');
-  // 12-Layer Video Context — separate contexts (Knowledge Isolation):
-  // GLOBAL + VIDEO_KNOWLEDGE(base) + SELECTED VISUAL_STYLE + SELECTED VIDEO_WORKFLOW (သာ)
-  const ctx = await getStoryVideoContext(env, { visualStyle: vs, workflow: wf, plan });
-  const globalPrompt = buildBrainPrompt(ctx.global);
-  const videoKnowledgePrompt = buildBrainPrompt(ctx.videoKnowledge);
-  const stylePrompt = buildBrainPrompt(ctx.visualStyle);
-  const workflowPrompt = buildBrainPrompt(ctx.workflow);
-  const hasBrainVideo = Boolean(videoKnowledgePrompt || stylePrompt || workflowPrompt);
-  const legacy = await getCMSData(env, CMS_VIDEO, plan, type || '1');
-  const legacyPrompt = legacy ? buildSystemPrompt(legacy) : '';
-  // Brain config မရှိမှသာ legacy STORYVIDEO row ကို video knowledge fallback အဖြစ် သုံးမည်
-  const knowledgePrompt = [globalPrompt, videoKnowledgePrompt, stylePrompt, workflowPrompt, hasBrainVideo ? '' : legacyPrompt].filter(Boolean).join('\n\n');
+  // Load only the selected video knowledge, visual style and workflow.
+  const [globalPolicy, ctx] = await Promise.all([
+    getGlobalPolicyConfig(env, plan),
+    getStudioVideoContext(env, { visualStyle: vs, workflow: wf, plan }),
+  ]);
+  const hasBrainVideo = [
+    ctx.videoKnowledge,
+    ctx.visualStyle,
+    ctx.workflow,
+  ].some((config) => Object.keys(config || {}).length > 0);
+  const legacy = hasBrainVideo ? null : await getCMSData(env, CMS_VIDEO, plan, type || '1');
+
+  // Global policy and base video knowledge share field names so global values win.
+  // Style and workflow fields are namespaced to preserve their independent knowledge.
+  const studioBrain = {
+    ...mapBrainFields(ctx.videoKnowledge),
+    ...mapBrainFields(ctx.visualStyle, 'visual_style'),
+    ...mapBrainFields(ctx.workflow, 'video_workflow'),
+  };
   const factsBlock = buildStoryFactsBlock(storyFacts);
-  const settings = [
-    'Visual Style: ' + vs,
-    'Video Workflow: ' + wf + (WORKFLOW_DIRECTIONS[wf] ? (' — ' + WORKFLOW_DIRECTIONS[wf]) : ''),
-    'Video Duration: ' + (duration || '30 sec'),
-    'Scene Duration: ' + (sceneDuration || '8 sec'),
-    'Aspect Ratio: ' + (aspectRatio || '16:9'),
-    'Camera Style: ' + (cameraStyle || 'Feature Film'),
-    'Language: ' + (language || 'မြန်မာ'),
-    'Environment Style: ' + (environmentStyle || 'Realistic'),
-    'Character Continuity: ' + (String(characterContinuity) === 'false' || characterContinuity === false
+  const settings = {
+    visual_style: vs,
+    video_workflow: wf + (WORKFLOW_DIRECTIONS[wf] ? ' — ' + WORKFLOW_DIRECTIONS[wf] : ''),
+    video_duration: duration || '30 sec',
+    scene_duration: sceneDuration || '8 sec',
+    aspect_ratio: aspectRatio || '16:9',
+    camera_style: cameraStyle || 'Feature Film',
+    language: language || 'မြန်မာ',
+    environment_style: environmentStyle || 'Realistic',
+    character_continuity: String(characterContinuity) === 'false' || characterContinuity === false
       ? 'No'
-      : 'YES — တူညီသော ဇာတ်ကောင်ကို Scene တိုင်းတွင် character ID တူတူသုံးပါ (char_01 စသည်)'),
-    'Character Consistency: ' + (String(characterConsistency) === 'false' || characterConsistency === false
+      : 'YES — တူညီသော ဇာတ်ကောင်ကို Scene တိုင်းတွင် character ID တူတူသုံးပါ (char_01 စသည်)',
+    character_consistency: String(characterConsistency) === 'false' || characterConsistency === false
       ? 'No'
-      : 'YES — ဇာတ်ကောင်၏ အသွင်အပြင် / ဝတ်စုံ / အသွင်လက္ခဏာများကို Scene တိုင်းတွင် တစ်သမတ်တည်း ဖော်ပြပါ'),
-    'Reference Image: ' + (referenceImage ? 'Provided (user reference — character / visual style အတွက်)' : 'Not provided'),
-  ];
-  // Optional advanced directions — အသုံးပြုသူ မဖြည့်ထားလျှင် prompt ထဲ မထည့် (Story + Essential settings ကိုသာ အသုံးပြု)
-  const opt = (label, val) => { const v = String(val || '').trim(); if (v) settings.push(label + ': ' + v); };
-  opt('Character Direction', characterDirection);
-  opt('Camera Direction', cameraDirection);
-  opt('Lighting', lighting);
-  opt('Environment Details', environmentDetails);
-  opt('Color / Mood', colorMood);
-  opt('Transition / Pacing', transitionPacing);
-  opt('Audio / Sound Direction', audioDirection);
-  const settingsStr = settings.join('\n');
-  const extra = String(additionalInstructions || '').trim();
-  const prompt = [
-    knowledgePrompt,
-    'USER STORY:',
-    text,
-    factsBlock ? ('STORY FACTS (structured — video အတွက် လိုအပ်သော facts သာ):\n' + factsBlock) : '',
-    'VIDEO SETTINGS:',
-    settingsStr,
-    extra ? ('ADDITIONAL INSTRUCTIONS:\n' + extra) : '',
-    '',
+      : 'YES — ဇာတ်ကောင်၏ အသွင်အပြင် / ဝတ်စုံ / အသွင်လက္ခဏာများကို Scene တိုင်းတွင် တစ်သမတ်တည်း ဖော်ပြပါ',
+    reference_image: referenceImage ? 'Provided (user reference — character / visual style အတွက်)' : 'Not provided',
+  };
+  const optionalSettings = {
+    character_direction: characterDirection,
+    camera_direction: cameraDirection,
+    lighting,
+    environment_details: environmentDetails,
+    color_mood: colorMood,
+    transition_pacing: transitionPacing,
+    audio_direction: audioDirection,
+  };
+  for (const [key, value] of Object.entries(optionalSettings)) {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      settings[key] = String(value).trim();
+    }
+  }
+
+  const taskInstructions = [
     'အောက်ပါ အလုပ်များကို လုပ်ပါ:',
     '1. ဇာတ်လမ်းထဲမှ ဇာတ်ကောင်များကို ရှာပြီး character တစ်ယောက်စီအတွက် id (char_01, char_02 ...) သတ်မှတ်ပါ။',
     '2. ဇာတ်လမ်းကို Scene များအဖြစ် ခွဲပါ။ Scene တစ်ခုစီအတွက် title, description (မြင်ကွင်းဖော်ပြချက်), visualDescription (ရုပ်ပုံအသေးစိတ်), Video Prompt နှင့် Environment Reference Prompt ကို ရေးပါ။',
     '3. Character Continuity — တူညီသော ဇာတ်ကောင်သည် Scene အားလုံးတွင် character ID တူတူသာ သုံးရပါမည်။',
     '4. Video Prompt သည် Visual Style, Video Workflow, Camera Style, Aspect Ratio, Language, Scene Duration စသည်တို့နှင့် ကိုက်ညီအောင် ရေးပါ။',
     '5. STORY FACTS ပါလျှင် ဇာတ်ကောင်၊ နေရာ၊ ဖြစ်ရပ်များကို facts မှ တိုက်ရိုက် ယူသုံးပါ (story စာသားကို ပြန်ခွဲစရာ မလို)။',
-    '',
     'ရလဒ်ကို အောက်ပါ JSON format အတိုင်းသာ ပြန်ပေးပါ (စာသားရှင်းလင်းချက် မထည့်ပါနှင့်):',
     '{',
     '  "characters": [',
@@ -212,8 +270,33 @@ export async function generateStoryVideoPlan(env, {
     '    { "id": "scene_01", "number": 1, "title": "", "description": "", "visualDescription": "", "duration": 8, "characterIds": ["char_01"], "videoPrompt": "", "environmentPrompt": "" }',
     '  ]',
     '}',
-  ].filter(Boolean).join('\n');
-  const raw = await generateText(env, { model: await resolveModel(env, 'text', plan, model, 'story.text'), task: 'story.text', prompt, apiKey });
+  ].join('\n');
+  const context = buildPromptContext({
+    globalPolicy,
+    studioBrain,
+    taskTemplate: {
+      ...mapLegacyCMSTemplate(legacy),
+      task_instructions: taskInstructions,
+    },
+    userInput: Object.fromEntries(
+      Object.entries(settings).map(([key, value]) => ['setting.' + key, value])
+    ),
+    userPrompt: [
+      'USER STORY:',
+      text,
+      factsBlock ? ('STORY FACTS (structured — video အတွက် လိုအပ်သော facts သာ):\n' + factsBlock) : '',
+      additionalInstructions && String(additionalInstructions).trim()
+        ? ('ADDITIONAL INSTRUCTIONS:\n' + String(additionalInstructions).trim())
+        : '',
+    ].filter(Boolean).join('\n'),
+  });
+  const raw = await generateText(env, {
+    model: await resolveModel(env, 'text', plan, model, 'story.text'),
+    task: 'story.text',
+    system: context.system,
+    prompt: context.prompt,
+    apiKey,
+  });
   return parseStoryVideoResponse(raw);
 }
 

@@ -1,4 +1,4 @@
-import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from '../../studios/voice.js';
+import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from '../../studios/voice/index.js';
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;

@@ -5,7 +5,8 @@
 // (subject / style / environment / lighting / camera / finalPrompt) JSON ပြန်ထုတ်စေသည်။
 // ရှိပြီးသား API contract (prompt field) ကို မပျက်စေဘဲ map field ထပ်ဖြည့်သည်။
 
-import { getCMSData, buildSystemPrompt } from '../core/cms.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 

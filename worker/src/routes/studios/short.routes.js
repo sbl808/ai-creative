@@ -1,4 +1,4 @@
-import { generateShort, reviseShort, generateShortVideoPlan, generateShortVideoImage } from '../../studios/short.js';
+import { generateShort, reviseShort, generateShortVideoPlan, generateShortVideoImage } from '../../studios/short/index.js';
 
 export async function handleShortStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;

@@ -1,4 +1,4 @@
-import { generateShopContent, reviseShopContent, generateShopVideo, generateShopVideoImage } from '../../studios/shop.js';
+import { generateShopContent, reviseShopContent, generateShopVideo, generateShopVideoImage } from '../../studios/shop/index.js';
 
 export async function handleShopStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;

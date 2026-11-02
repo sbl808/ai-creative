@@ -1,5 +1,5 @@
-import { generateText } from '../core/ai/aiService.js';
-import { getAIErrorHttpStatus } from '../core/ai/errors.js';
+import { generateText } from '../ai/ai-service/index.js';
+import { getAIErrorHttpStatus } from '../ai/errors/index.js';
 
 export async function handleAiRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
