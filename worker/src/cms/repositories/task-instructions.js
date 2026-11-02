@@ -177,9 +177,6 @@ export async function ensureTaskInstructionSet(env, taskId, initialFields = {}) 
   ).bind(id).first();
   if (!task) throw new Error('task_not_found');
 
-  const existing = await getInstructionSetRow(env, id);
-  if (existing) return mapInstructionSet(existing);
-
   const instructionId = createId();
   const draftId = createId();
   const statements = [
@@ -280,10 +277,22 @@ export async function createTaskInstructionVersion(env, taskId, createdBy = null
   const actor = createdBy === null || createdBy === undefined ? null : String(createdBy).trim().slice(0, 200);
 
   try {
-    await env.DB.prepare(
+    const result = await env.DB.prepare(
       "INSERT INTO task_instruction_versions (version_id, instruction_id, version_number, fields_json, content_hash, status, created_by, created_at, published_at) " +
-      "VALUES (?, ?, ?, ?, ?, 'pending', ?, datetime('now'), NULL)"
-    ).bind(versionId, instructionSet.instruction_id, versionNumber, fieldsJson, contentHash, actor).run();
+      "SELECT ?, instruction_id, ?, ?, ?, 'pending', ?, datetime('now'), NULL " +
+      "FROM task_instruction_drafts WHERE instruction_id = ? AND revision = ?"
+    ).bind(
+      versionId,
+      versionNumber,
+      fieldsJson,
+      contentHash,
+      actor,
+      instructionSet.instruction_id,
+      draft.revision
+    ).run();
+    if (!result || !result.meta || Number(result.meta.changes) !== 1) {
+      throw new Error('revision_conflict');
+    }
   } catch (error) {
     const message = String(error && error.message || error).toLowerCase();
     if (message.includes('unique')) throw new Error('task_instruction_version_conflict');
@@ -364,7 +373,14 @@ export async function publishTaskInstructionVersion(env, taskId, versionId) {
   const instructionSet = await getInstructionSetRow(env, task);
   if (!instructionSet) throw new Error('task_instruction_set_not_found');
 
-  const results = await env.DB.batch([
+  const currentVersion = await getTaskInstructionVersion(env, version);
+  if (!currentVersion) throw new Error('version_not_found');
+  if (currentVersion.instruction_id !== instructionSet.instruction_id) {
+    throw new Error('version_task_mismatch');
+  }
+  if (currentVersion.status !== 'approved') throw new Error('approval_required');
+
+  await env.DB.batch([
     env.DB.prepare(
       "UPDATE task_instruction_versions SET status = 'published', published_at = datetime('now') " +
       "WHERE version_id = ? AND instruction_id = ? AND status = 'approved'"
@@ -377,17 +393,15 @@ export async function publishTaskInstructionVersion(env, taskId, versionId) {
   ]);
 
   const versionRow = await getTaskInstructionVersion(env, version);
-  if (!versionRow) throw new Error('version_not_found');
-  if (versionRow.instruction_id !== instructionSet.instruction_id) {
-    throw new Error('version_task_mismatch');
+  if (!versionRow || versionRow.status !== 'published') {
+    throw new Error('task_instruction_publish_failed');
   }
-  if (versionRow.status !== 'published') throw new Error('approval_required');
 
   const refreshed = await getInstructionSetRow(env, task);
   if (!refreshed || refreshed.active_version_id !== version) {
     throw new Error('task_instruction_publish_failed');
   }
-  return { instruction_set: mapInstructionSet(refreshed), version: versionRow, batch_results: results };
+  return { instruction_set: mapInstructionSet(refreshed), version: versionRow };
 }
 
 export async function getActiveTaskInstructionVersion(env, taskId) {
