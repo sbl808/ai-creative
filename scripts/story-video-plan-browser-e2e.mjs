@@ -86,9 +86,11 @@ try {
       draft: Object.assign({}, current.draft, { story }),
     });
     await window.studioLoadSession(id);
+    if (window.studioForceGoStep) window.studioForceGoStep(2);
+    else if (window.studioGoStep) window.studioGoStep(2);
   }, { id: storySession.id, story: storyText });
 
-  await page.locator('#storyResult').waitFor();
+  await page.locator('#storyResult').waitFor({ state: 'visible' });
   await page.locator('button[onclick="goToVideoForm()"]').click();
   await page.waitForURL(/\/app\/story-video-plan\?session=/);
   await page.locator('#videoStoryInput').waitFor();
