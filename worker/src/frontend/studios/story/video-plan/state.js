@@ -5,7 +5,7 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
     var state = {
       sourceSessionId:'', sourceStory:'', sourceStoryFacts:{}, sourceUpdatedAt:'',
       sessionId:'', story:'', workflow:'CINEMATIC_FEATURE', form:{}, characters:[],
-      scenes:[], imageCache:{}, imageResultIds:{}, saveQueue:Promise.resolve(), ready:false
+      scenes:[], imageCache:{}, imageResultIds:{}, legacyImagesMigrated:false, saveQueue:Promise.resolve(), ready:false
     };
     var defaults = {
       duration:'30 sec', sceneDuration:'8 sec', aspectRatio:'16:9', visualStyle:'Realism',
@@ -80,7 +80,8 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
         sourceStoryUpdatedAt:state.sourceUpdatedAt,sourceStorySnapshot:state.sourceStory,
         sourceStoryFacts:objectCopy(state.sourceStoryFacts),story:String((el('videoStoryInput')||{}).value||state.story),
         workflow:String((el('vidWorkflowSel')||{}).value||state.workflow),form:readForm(),
-        characters:arrayCopy(state.characters),scenes:arrayCopy(state.scenes)
+        characters:arrayCopy(state.characters),scenes:arrayCopy(state.scenes),
+        legacyImagesMigrated:state.legacyImagesMigrated
       };
     }
     function hasLegacy(draft){
@@ -113,6 +114,21 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
         return result.items||[];
       });
     }
+    function copyLegacyImages(){
+      if(state.legacyImagesMigrated)return Promise.resolve(true);
+      if(!window.AICS_SESSION_RESULTS){state.legacyImagesMigrated=true;return Promise.resolve(true);}
+      return window.AICS_SESSION_RESULTS.list({sessionId:state.sourceSessionId,limit:100}).then(function(result){
+        var images=(result.items||[]).filter(function(item){
+          return item.type==='story_image'&&item.content&&/^(char_|env_)/.test(String(item.content.key||''))&&item.content.dataUrl;
+        });
+        return images.reduce(function(queue,item){return queue.then(function(){
+          var key=String(item.content.key),data=String(item.content.dataUrl);
+          if(state.imageCache[key])return;
+          return window.AICS_SESSION_RESULTS.create({sessionId:state.sessionId,type:'video_image',content:{key:key,dataUrl:data}})
+            .then(function(saved){state.imageCache[key]=data;state.imageResultIds[key]=saved.id;});
+        });},Promise.resolve()).then(function(){state.legacyImagesMigrated=true;return true;});
+      });
+    }
     function restoreSession(session){
       if(!session||session.studio!=='STORY_VIDEO_PLAN')throw new Error('video_plan_session_not_found');
       var draft=session.draft||{};
@@ -122,27 +138,21 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
       state.sourceUpdatedAt=String(draft.sourceStoryUpdatedAt||'');
       state.story=String(draft.story||state.sourceStory);state.workflow=String(draft.workflow||'CINEMATIC_FEATURE');
       state.characters=arrayCopy(draft.characters);state.scenes=arrayCopy(draft.scenes);
+      state.legacyImagesMigrated=draft.legacyImagesMigrated===true;
       applyForm(Object.assign({},draft.form||{},{story:state.story,workflow:state.workflow}));
-      return restoreImages(session.id);
+      return restoreImages(session.id).then(function(){
+        if(state.legacyImagesMigrated)return true;
+        return copyLegacyImages().then(function(){return save();});
+      });
     }
     function migrateLegacy(source){
       var legacy=source.legacyVideoPlan||{},form=objectCopy(legacy.videoForm);
       state.story=String(form.story||source.story);state.workflow=String(form.workflow||'CINEMATIC_FEATURE');
       state.characters=arrayCopy(legacy.characters);state.scenes=arrayCopy(legacy.scenes);
       applyForm(Object.assign({},form,{story:state.story,workflow:state.workflow}));
-      if(!hasLegacy(legacy))return Promise.resolve(null);
-      return save().then(function(session){
-        if(!window.AICS_SESSION_RESULTS)return session;
-        return window.AICS_SESSION_RESULTS.list({sessionId:state.sourceSessionId,limit:100}).then(function(result){
-          var images=(result.items||[]).filter(function(item){
-            return item.type==='story_image'&&item.content&&/^(char_|env_)/.test(String(item.content.key||''))&&item.content.dataUrl;
-          });
-          return images.reduce(function(queue,item){return queue.then(function(){
-            var key=String(item.content.key),data=String(item.content.dataUrl);
-            return window.AICS_SESSION_RESULTS.create({sessionId:state.sessionId,type:'video_image',content:{key:key,dataUrl:data}})
-              .then(function(saved){state.imageCache[key]=data;state.imageResultIds[key]=saved.id;});
-          });},Promise.resolve()).then(function(){return session;});
-        });
+      if(!hasLegacy(legacy)){state.legacyImagesMigrated=true;return Promise.resolve(null);}
+      return save().then(function(){
+        return copyLegacyImages().then(function(){return save();});
       });
     }
     function init(source){
