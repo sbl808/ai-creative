@@ -134,7 +134,7 @@ jobs:
         with:
           node-version: 22
       - name: Apply D1 migrations to local-only database
-        run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --yes --config worker/wrangler.toml
+        run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --config worker/wrangler.toml
       - name: Start Worker locally and smoke-test app routes
         shell: bash
         run: |
