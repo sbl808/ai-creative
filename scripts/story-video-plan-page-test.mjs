@@ -44,6 +44,8 @@ assert.ok(videoActions.includes("'/api/studio/story/video'"), 'Video Plan action
 assert.ok(videoActions.includes("'/api/studio/story/video-image'"), 'Video Plan actions call the existing image endpoint');
 assert.ok(videoActions.includes("type:'video_image'"), 'Generated images are saved under the Video Plan session');
 assert.ok(videoActions.includes('function savePlan()'), 'Video Plan has an independent IndexedDB save action');
+assert.ok(videoActions.includes('if(state().characters.length||state().scenes.length)'), 'Saved Video Plan results reopen on the result step');
+assert.ok(videoActions.includes('story===s.sourceStory'), 'Edited Video Plan story does not reuse stale Story facts');
 assert.ok(videoActions.includes('function exportResult()'), 'Video Plan has a text export action');
 assert.ok(videoActions.includes('window.generateVideoPlan=generateVideoPlan'), 'Video Plan generate action is exposed to the UI');
 assert.ok(storyPage.includes('CONTENT_HTML'), 'Story page still composes its own UI');
