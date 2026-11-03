@@ -143,7 +143,7 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
   function setBusy(value){
     busy=!!value;
     var button=byId('videoPlanBtn');
-    if(button){button.disabled=busy||!state().ready;button.textContent=busy?'Video Plan ပြင်ဆင်နေသည်...':'🎬 Video ဇာတ်လမ်း ဖန်တီးရန်';}
+    if(button){button.disabled=busy||!state().ready;button.setAttribute('aria-disabled',button.disabled?'true':'false');button.textContent=busy?'Video Plan ပြင်ဆင်နေသည်...':'🎬 Video ဇာတ်လမ်း ဖန်တီးရန်';}
   }
   function generateVideoPlan(){
     if(busy)return;
@@ -152,7 +152,8 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     if(!story){showError('Video အတွက် အသုံးပြုမည့် ဇာတ်လမ်း လိုအပ်ပါသည်။');return;}
     hideError();setBusy(true);
     var loading=byId('planLoading');if(loading){loading.classList.add('show');}
-    if(window.studioGoStep)window.studioGoStep(1);
+    if(window.studioMarkDone)window.studioMarkDone(1);
+    if(window.studioGoStep)window.studioGoStep(2);
     var body={
       story:story,workflow:form.workflow||s.workflow,visualStyle:form.visualStyle,
       storyFacts:s.sourceStoryFacts||{},duration:form.duration,sceneDuration:form.sceneDuration,
@@ -171,10 +172,12 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
       return api.save();
     }).then(function(){
       render();if(loading)loading.classList.remove('show');
-      if(window.studioGoStep)window.studioGoStep(1);
+      if(window.studioMarkDone)window.studioMarkDone(2);
+      if(window.studioGoStep)window.studioGoStep(2);
       toast('Video Plan ပြင်ဆင်ပြီးပါပြီ။');
     }).catch(function(error){
       if(loading)loading.classList.remove('show');
+      if(window.studioUnmarkDone)window.studioUnmarkDone(2);
       showResultError(friendlyError(error,'video'));
     }).finally(function(){setBusy(false);});
   }
