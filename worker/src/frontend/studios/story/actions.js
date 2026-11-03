@@ -356,7 +356,7 @@ function studioMapIdeaResultToStoryInput(idea){
   if(idea.concept)parts.push('အယူအဆ: '+String(idea.concept));
   if(idea.hook)parts.push('စိတ်ဝင်စားဖွယ် အဖွင့်: '+String(idea.hook));
   if(idea.outline)parts.push('ဇာတ်လမ်း အကြမ်းဖျဉ်း: '+String(idea.outline));
-  return parts.join('\n\n');
+  return parts.join('\\n\\n');
 }
 
 function studioClearIdeaHandoffUrl(){
