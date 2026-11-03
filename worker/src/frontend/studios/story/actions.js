@@ -168,6 +168,27 @@ function studioOnStep(n){
 window.studioOnStep=studioOnStep;
 
 // ===================== Draft (studioCollectDraft / studioRestoreDraft) =====================
+function studioCollectLegacyVideoForm(){
+  var form=Object.assign({},legacyVideoForm||{});
+  var map={
+    story:'videoStoryInput',workflow:'vidWorkflowSel',duration:'vidDurationSel',
+    sceneDuration:'vidSceneSel',aspectRatio:'vidRatioSel',visualStyle:'vidStyleSel',
+    cameraStyle:'vidCamSel',language:'vidLangSel',characterDirection:'vidCharDir',
+    cameraDirection:'vidCamDir',lighting:'vidLighting',environmentDetails:'vidEnvDetails',
+    colorMood:'vidColorMood',transitionPacing:'vidTransition',audioDirection:'vidAudio',
+    additionalInstructions:'vidExtra'
+  };
+  Object.keys(map).forEach(function(key){
+    var node=document.getElementById(map[key]);
+    if(!node)return;
+    form[key]=node.type==='checkbox'?!!node.checked:String(node.value||'');
+  });
+  var continuity=document.getElementById('vidContinuity');
+  var consistency=document.getElementById('vidConsistency');
+  if(continuity)form.characterContinuity=!!continuity.checked;
+  if(consistency)form.characterConsistency=!!consistency.checked;
+  return Object.keys(form).length?form:{};
+}
 function studioCollectDraft(){
   var fields={};
   for(var i=0;i<FIELD_CONFIG.length;i++){var f=document.getElementById('field_'+i);fields[i]=f?f.value:'';}
@@ -184,26 +205,7 @@ function studioCollectDraft(){
     story:currentStory,
     storyIdea:currentStoryIdea,
     videoStarted:videoStarted,
-    videoForm:{
-      story:document.getElementById('videoStoryInput')?document.getElementById('videoStoryInput').value:'',
-      workflow:selectedWorkflow,
-      duration:sel('vidDurationSel'),
-      sceneDuration:sel('vidSceneSel'),
-      aspectRatio:sel('vidRatioSel'),
-      visualStyle:sel('vidStyleSel'),
-      cameraStyle:sel('vidCamSel'),
-      language:sel('vidLangSel'),
-      characterContinuity:document.getElementById('vidContinuity')?document.getElementById('vidContinuity').checked:true,
-      characterConsistency:document.getElementById('vidConsistency')?document.getElementById('vidConsistency').checked:true,
-      characterDirection:document.getElementById('vidCharDir')?document.getElementById('vidCharDir').value:'',
-      cameraDirection:document.getElementById('vidCamDir')?document.getElementById('vidCamDir').value:'',
-      lighting:document.getElementById('vidLighting')?document.getElementById('vidLighting').value:'',
-      environmentDetails:document.getElementById('vidEnvDetails')?document.getElementById('vidEnvDetails').value:'',
-      colorMood:document.getElementById('vidColorMood')?document.getElementById('vidColorMood').value:'',
-      transitionPacing:document.getElementById('vidTransition')?document.getElementById('vidTransition').value:'',
-      audioDirection:document.getElementById('vidAudio')?document.getElementById('vidAudio').value:'',
-      additionalInstructions:document.getElementById('vidExtra')?document.getElementById('vidExtra').value:''
-    },
+    videoForm:studioCollectLegacyVideoForm(),
     characters:currentCharacters.map(function(character){var copy=Object.assign({},character||{});delete copy.referenceImage;return copy;}),
     scenes:currentScenes
   };
@@ -224,6 +226,7 @@ function studioRestoreDraft(d){
   currentStoryIdea=d.storyIdea||'';
   videoStarted=!!d.videoStarted;
   document.getElementById('storyResult').value=currentStory;
+  legacyVideoForm=Object.assign({},d.videoForm||{});
   if(d.videoForm){
     var vf=d.videoForm;
     var vs=document.getElementById('videoStoryInput');if(vs){vs.value=vf.story||currentStory;autoExpand(vs);}
