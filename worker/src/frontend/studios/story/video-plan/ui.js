@@ -8,7 +8,7 @@ const STEP4_HTML = `
 <div class="aics-step" data-step="1">
 <div class="card">
 <div class="card-title">&#127916; Video ဇာတ်လမ်းဖန်တီးရန် <span class="card-title-sub">(Video Creation)</span></div>
-<div class="story-auto-status">&#10004; Story Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
+<div id="storyVideoLoadStatus" class="story-auto-status" role="status" aria-live="polite">Story Draft ကို ဖတ်နေပါသည်...</div>
 <p class="story-intro">Step 02 မှ ဇာတ်လမ်းကို အောက်မှာ Preview ကြည့်နိုင်ပါသည်။ Video အတွက် ဆက်တင်များ ရွေးပြီး ဖန်တီးပါ။</p>
 <div class="form-group">
 <label for="videoStoryInput">အသုံးပြုမည့် ဇာတ်လမ်း (Story to Use)</label>
