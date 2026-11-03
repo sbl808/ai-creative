@@ -155,7 +155,6 @@ function saveStory(){
 function bReset(){return {label:'Reset',cls:'ghost',fn:studioReset};}
 function studioOnStep(n){
   if(n===1){
-    // Story Form အောက်ရှိ Generate Button ကို Primary Action အဖြစ် ထားသည်
     studioSetActions([bReset()]);
   }else if(n===2){
     studioSetActions([
@@ -164,22 +163,6 @@ function studioOnStep(n){
     ]);
     var ta=document.getElementById('storyResult');
     if(ta)autoExpand(ta);
-  }else if(n===3){
-    fillVideoStoryField();
-    var pb=document.getElementById('videoPlanBtn');
-    if(pb)pb.disabled=false;
-    studioSetActions([
-      {label:'&#8592; ရလဒ်သို့ ပြန်ရန်',cls:'ghost',fn:function(){stSetMode('main');stGoForce(2);}},
-      bReset()
-    ]);
-  }else if(n===4){
-    studioSetActions([
-      {label:'&#8592; Back',cls:'ghost',fn:function(){window.studioGoStep(3);}},
-      {label:'&#128203; Copy All',cls:'secondary',fn:copyAllResult},
-      {label:'&#128190; သိမ်းရန် (All)',cls:'purple',fn:saveAllResult},
-      bReset()
-    ]);
-    renderFinalResult();
   }
 }
 window.studioOnStep=studioOnStep;
@@ -258,22 +241,12 @@ function studioRestoreDraft(d){
   }
   currentCharacters=d.characters||[];
   currentScenes=d.scenes||[];
-  var was=d.stepNow||1;
+  var was=Number(d.stepNow||1);
+  // Legacy Video Plan data remains in this draft for the receiving adapter.
+  // Story Studio always restores to its own two-step flow.
+  ST_MODE='main';
   if(currentStory){studioMarkDone(1);studioMarkDone(2);}
-  if((videoStarted||was>=3)&&currentStory){studioMarkDone(2);}
-  if(currentCharacters.length||currentScenes.length){studioMarkDone(3);studioMarkDone(4);}
-  if(currentScenes.length||currentCharacters.length)renderFinalResult();
-  // Restore mode (main vs video branch)
-  if(d.mode==='video'&&(videoStarted||was>=3)&&currentStory){ST_MODE='video';}
-  // Resolve target step
-  var target=was;
-  var tm=stMeta(target);
-  if(!tm||tm.lock||!stAllowed(target)){
-    var steps=stModeSteps();
-    target=steps[steps.length-1].n;
-    if(stMeta(target).lock)target=steps[steps.length-2].n;
-    if(!stAllowed(target))target=1;
-  }
+  var target=currentStory&&was>=2?2:1;
   stCur=target;
   stShow(target);
   updateGenBtn();
