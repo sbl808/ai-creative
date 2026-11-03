@@ -1,5 +1,5 @@
 // Story Video Plan — dedicated page shell and IndexedDB Story reader.
-import { renderSidebar, sidebarScript } from '../../shared.js';
+import { renderSidebar, sidebarScript } from '../../../shared.js';
 import { VIDEO_PLAN_SESSION_SCRIPT } from './session.js';
 
 const PAGE_STYLES = `
