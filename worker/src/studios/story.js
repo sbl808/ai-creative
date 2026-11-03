@@ -14,10 +14,10 @@ import { buildPromptContext } from '../prompt/orchestrator/index.js';
 import { generateText } from '../core/ai/aiService.js';
 import { resolveModel } from '../core/aiModels.js';
 
-import { mapLegacyCMSTemplate } from './studios/story/shared.js';
+import { mapLegacyCMSTemplate } from './story/shared.js';
 
-export { buildStoryFactsBlock } from './studios/story/shared.js';
-export { generateStoryVideoPlan, generateStoryVideoImage, parseStoryVideoResponse } from './studios/story/video-plan.js';
+export { buildStoryFactsBlock } from './story/shared.js';
+export { generateStoryVideoPlan, generateStoryVideoImage, parseStoryVideoResponse } from './story/video-plan.js';
 
 const CMS_STUDIO = 'STORY';
 
