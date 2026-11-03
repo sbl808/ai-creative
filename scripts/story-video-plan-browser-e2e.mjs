@@ -113,6 +113,8 @@ try {
     'Video Plan should receive the latest Story text');
 
   const environmentNotes = 'မိုးစိုနေသော သစ်တောလမ်း၊ အဝါရောင် မီးအိမ်အလင်း';
+  await page.locator('#vidAdvToggle').click();
+  await page.locator('#vidAdvFields').waitFor({ state: 'visible' });
   await page.locator('#vidEnvDetails').fill(environmentNotes);
   await page.waitForTimeout(1200);
 
