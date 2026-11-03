@@ -156,7 +156,7 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     if(window.studioGoStep)window.studioGoStep(2);
     var body={
       story:story,workflow:form.workflow||s.workflow,visualStyle:form.visualStyle,
-      storyFacts:s.sourceStoryFacts||{},duration:form.duration,sceneDuration:form.sceneDuration,
+      storyFacts:story===s.sourceStory?(s.sourceStoryFacts||{}):{},duration:form.duration,sceneDuration:form.sceneDuration,
       aspectRatio:form.aspectRatio,cameraStyle:form.cameraStyle,language:form.language,
       characterContinuity:form.characterContinuity?'true':'false',
       characterConsistency:form.characterConsistency?'true':'false',
@@ -242,6 +242,11 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     },true);
     setBusy(false);
     render();
+    if(state().characters.length||state().scenes.length){
+      if(window.studioMarkDone)window.studioMarkDone(1);
+      if(window.studioMarkDone)window.studioMarkDone(2);
+      if(window.studioGoStep)window.studioGoStep(2);
+    }
   }
   window.generateVideoPlan=generateVideoPlan;
   window.generateCharImage=function(index){generateImage('character',index);};
