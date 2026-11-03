@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 3\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 4\)/);
 assert.match(source, /createObjectStore\('projects'/);
 assert.match(source, /createObjectStore\('studio_sessions'/);
 assert.match(source, /createObjectStore\('session_results'/);
@@ -35,7 +35,7 @@ function createFakeIndexedDB() {
     ['creations', new Set(['user_id'])],
     ['projects', new Set(['user_id'])]
   ]);
-  let version = 2;
+  let version = 3;
 
   const database = {
     objectStoreNames: {
@@ -157,18 +157,21 @@ const context = {
 };
 vm.runInNewContext(source, context, { timeout: 1000 });
 
-assert.equal(fakeIndexedDB.version, 2, 'database should be v2 before schema upgrade');
+assert.equal(fakeIndexedDB.version, 3, 'database should be v3 before handoff schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 3, 'database must upgrade from v2 to v3');
+assert.equal(fakeIndexedDB.version, 4, 'database must upgrade from v3 to v4');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
 assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');
 assert.equal((await window.AICS_CREATIONS.list())[0].id, 'legacy-record', 'existing Creations data must survive upgrade');
 assert.equal(fakeIndexedDB.records.get('projects').get('legacy-project').title, 'Existing Project', 'existing Projects data must survive upgrade');
-assert.ok(fakeIndexedDB.records.has('studio_sessions'), 'schema v3 must create studio_sessions');
-assert.ok(fakeIndexedDB.records.has('session_results'), 'schema v3 must create session_results');
+assert.ok(fakeIndexedDB.records.has('studio_sessions'), 'existing studio_sessions store must survive schema v4');
+assert.ok(fakeIndexedDB.records.has('session_results'), 'existing session_results store must survive schema v4');
 assert.ok(fakeIndexedDB.indexes.get('studio_sessions').has('owner_updatedAt'), 'sessions must have owner-scoped pagination index');
 assert.ok(fakeIndexedDB.indexes.get('session_results').has('session_createdAt'), 'results must have session ordering index');
+assert.ok(fakeIndexedDB.records.has('studio_handoffs'), 'schema v4 must create studio_handoffs');
+assert.ok(fakeIndexedDB.indexes.get('studio_handoffs').has('ownerId'), 'handoffs must have owner index');
+assert.ok(fakeIndexedDB.indexes.get('studio_handoffs').has('owner_target_createdAt'), 'handoffs must have owner/target/time index');
 
 activeToken = makeToken('user-b');
 assert.deepEqual(Array.from(await window.AICS_PROJECTS.list()), []);
