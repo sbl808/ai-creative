@@ -56,7 +56,7 @@ assert.ok(storyActions.includes("ST_MODE='main'"), 'Legacy Story drafts restore 
 assert.ok(!storyActions.includes('function fillVideoStoryField()'), 'Story actions do not bind Video Plan form fields');
 
 const handoffStart = storyActions.indexOf('function goToVideoForm(){');
-const handoffEnd = storyActions.indexOf('function fillVideoStoryField()', handoffStart);
+const handoffEnd = storyActions.indexOf('function copyStory()', handoffStart);
 assert.ok(handoffStart >= 0 && handoffEnd > handoffStart, 'Story handoff action remains available');
 const handoff = storyActions.slice(handoffStart, handoffEnd);
 assert.ok(handoff.indexOf('autoSave()') < handoff.indexOf("window.location.assign('/app/story-video-plan?session='"), 'Story is saved before navigation');
