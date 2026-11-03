@@ -9,11 +9,11 @@ import { sidebarScript } from '../worker/src/frontend/shared.js';
 import { clientStorageScript } from '../worker/src/frontend/storage/client-storage.js';
 
 const storageSource = clientStorageScript();
-assert.match(storageSource, /indexedDB\.open\('aics_creations_v1', 3\)/);
+assert.match(storageSource, /indexedDB\.open\('aics_creations_v1', 4\)/);
 assert.match(storageSource, /createObjectStore\('creations'/);
 assert.match(storageSource, /createObjectStore\('projects'/);
 assert.match(storageSource, /createObjectStore\('studio_sessions'/);
-assert.match(storageSource, /createObjectStore\('session_results'/);
+assert.match(storageSource, /createObjectStore\('session_results'/);\nassert.match(storageSource, /createObjectStore\('studio_handoffs'/);\nassert.match(storageSource, /window\.AICS_HANDOFFS\\s*=\\s*\\{/);
 assert.match(storageSource, /createIndex\('owner_updatedAt'/);
 assert.match(storageSource, /createIndex\('session_createdAt'/);
 assert.match(storageSource, /window\.AICS_PROJECTS\s*=\s*\{/);

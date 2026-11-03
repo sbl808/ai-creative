@@ -590,6 +590,25 @@ function studioLoadSession(sessionId){
   });
 }
 window.studioLoadSession=studioLoadSession;
+function studioReceiveIdeaHandoff(){
+  var params=new URLSearchParams(window.location.search||'');
+  var handoffId=params.get('handoff');
+  if(!handoffId)return;
+  if(!window.AICS_HANDOFFS){showToastMsg('Idea Handoff ကို ဖတ်မရပါ။ Storage ကို စစ်ဆေးပါ။');return;}
+  window.AICS_HANDOFFS.get(handoffId).then(function(record){
+    if(!record||record.contractVersion!==1||record.source!=='ideas'||record.target!=='story'||!record.payload||typeof record.payload!=='object')throw new Error('invalid_handoff');
+    var p=record.payload;
+    var ideaText=['Idea: '+String(p.title||''),'Concept: '+String(p.concept||''),'Hook: '+String(p.hook||''),'Outline: '+String(p.outline||'')].join('\\n\\n');
+    studioRestoreDraft({stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:ideaText},story:'',storyIdea:ideaText,videoStarted:false,characters:[],scenes:[]});
+    return autoSave().then(function(session){if(!session)throw new Error('story_draft_save_failed');return window.AICS_HANDOFFS.remove(handoffId);});
+  }).then(function(){
+    window.history.replaceState({},'',window.location.pathname);
+    showToastMsg('Idea ကို Story Draft အသစ်အဖြစ် လက်ခံပြီးပါပြီ');
+    if(window.aicsRefreshStorySessions)window.aicsRefreshStorySessions();
+  }).catch(function(){showToastMsg('Idea Handoff ကို လက်ခံမရပါ။ မူလ Idea နှင့် Draft များကို မဖျက်ထားပါ။');});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',studioReceiveIdeaHandoff);
+else studioReceiveIdeaHandoff();
 function studioMigrateLegacyStorage(){
   var legacyDraft=null,legacyImages={};
   try{
