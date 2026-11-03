@@ -110,6 +110,8 @@ async function run() {
   assert.equal(planSession.draft.form.additionalInstructions, 'Updated after first save');
 
   const reload = makeContext('?session=story_1&plan=plan_1');
+  // Separate page contexts share the same IndexedDB-backed result records.
+  reload.planImages.push(...planImages);
   reload.context.window.AICS_SESSIONS.get = async () => planSession;
   await reload.context.window.AICS_VIDEO_PLAN_STATE.init(source);
   const restored = reload.context.window.AICS_VIDEO_PLAN_STATE.state;
