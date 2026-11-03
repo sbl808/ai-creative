@@ -114,12 +114,27 @@ function goToVideoForm(){
   var ta=document.getElementById('storyResult');
   if(ta)currentStory=ta.value;
   if(!currentStory||!currentStory.trim()){showToastMsg('ဗီဒီယို ဖန်တီးရန် ဇာတ်လမ်း မရှိသေးပါ');return;}
-  stMarkDone(2);
+  if(window.__storyVideoHandoffBusy)return;
+  window.__storyVideoHandoffBusy=true;
+  var previousVideoStarted=videoStarted;
   videoStarted=true;
-  fillVideoStoryField();
-  stSetMode('video');
-  stGoForce(3);
-  autoSave();
+  var button=document.querySelector('button[onclick="goToVideoForm()"]');
+  if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
+  autoSave().then(function(session){
+    if(!session||!session.id){
+      videoStarted=previousVideoStarted;
+      showToastMsg('Story Draft ကို IndexedDB ထဲ မသိမ်းနိုင်သေးပါ။ ပြန်ကြိုးစားပါ။');
+      return;
+    }
+    stMarkDone(2);
+    window.location.assign('/app/story-video-plan?session='+encodeURIComponent(session.id));
+  }).catch(function(){
+    videoStarted=previousVideoStarted;
+    showToastMsg('Story Draft ကို IndexedDB ထဲ မသိမ်းနိုင်သေးပါ။ ပြန်ကြိုးစားပါ။');
+  }).finally(function(){
+    window.__storyVideoHandoffBusy=false;
+    if(button){button.disabled=false;button.removeAttribute('aria-busy');}
+  });
 }
 function fillVideoStoryField(){
   var ta=document.getElementById('videoStoryInput');
