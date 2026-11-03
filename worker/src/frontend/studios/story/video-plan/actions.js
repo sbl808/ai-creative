@@ -1,5 +1,5 @@
 // Story Video Plan — browser actions, rendering and result persistence.
-export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw\`
+export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
 (function(){
   'use strict';
   var api=window.AICS_VIDEO_PLAN_STATE;
@@ -252,4 +252,4 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw\`
   window.AICS_VIDEO_PLAN_ACTIONS=Object.freeze({init:initActions,generate:generateVideoPlan,render:render,save:savePlan});
   if(api.state.ready)initActions();
 })();
-\`;
+`;
