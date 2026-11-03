@@ -136,5 +136,4 @@ export function parseStoryWithFacts(rawText) {
   return { story: text.trim(), storyFacts };
 }
 
-// Video Engine သို့ ပို့မည့် video-relevant story facts သာ (Story Type Knowledge မဟုတ်)
 // Video Workflow default directions (code default — CMS VIDEO_WORKFLOW knowledge rows က override လုပ်နိုင်)
