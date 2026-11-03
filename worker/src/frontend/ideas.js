@@ -63,17 +63,10 @@ function handoffIdea(index,studio){
  var target=TARGET_STUDIOS.find(function(s){return s.id===studio});if(!target)return;
  var payload=ideaPayload(idea);
  if(studio==='story'){
-  if(!window.AICS_HANDOFFS||!window.AICS_SESSIONS){showStatus('IndexedDB Handoff စနစ် မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
-  window.AICS_SESSIONS.list({limit:50}).then(function(result){
-   var hasStoryDraft=(result.items||[]).some(function(session){
-    if(session.studio!=='STORY'||session.status!=='active')return false;
-    var draft=session.draft||{},fields=draft.fields||{};
-    return Object.keys(fields).some(function(key){return String(fields[key]||'').trim()!=='';})||!!String(draft.story||draft.storyIdea||'').trim();
-   });
-   if(hasStoryDraft&&!confirm('Story Studio မှာ သိမ်းထားတဲ့ Draft ရှိပါတယ်။ မူလ Draft ကို မဖျက်ဘဲ ဒီ Idea အတွက် Draft အသစ်ဖန်တီးမလား?'))return null;
-   return window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:{title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}});
-  }).then(function(result){if(!result)return;showStatus('Idea ကို Story Studio သို့ လွှဲပို့နေပါသည်။');location.href='/app/story?handoff='+encodeURIComponent(result.id);})
-    .catch(function(){showStatus('Story Handoff မသိမ်းနိုင်ပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)});
+  if(!window.AICS_HANDOFFS){showStatus('Idea ပို့ဆောင်မှု မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
+  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:idea})
+   .then(function(result){showStatus('Idea Result ကို Story Studio သို့ ပို့နေပါသည်။');location.href='/app/story?handoff='+encodeURIComponent(result.id);})
+   .catch(function(){showStatus('Idea Result ကို ပို့မရပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)});
   return;
  }
  if(targetHasDraft(studio)&&!confirm(target.label+' Studio မှာ Draft ရှိပြီးသားပါ။ ဒီ Idea နဲ့ အစားထိုးမှာ သေချာပါသလား?\\n\\nCancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ။'))return;
