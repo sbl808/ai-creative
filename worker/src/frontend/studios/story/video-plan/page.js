@@ -1,6 +1,7 @@
 // Story Video Plan — dedicated page shell and IndexedDB Story reader.
 import { renderStudioShell, sidebarScript } from '../../../shared.js';
 import { VIDEO_PLAN_SESSION_SCRIPT } from './session.js';
+import { VIDEO_PLAN_STATE_SCRIPT } from './state.js';
 import { VIDEO_PLAN_CONTENT_HTML } from './ui.js';
 
 const PAGE_STYLES = `
@@ -37,6 +38,7 @@ ${renderStudioShell({
 ${sidebarScript()}
 <script>
 ${VIDEO_PLAN_SESSION_SCRIPT}
+${VIDEO_PLAN_STATE_SCRIPT}
 (function(){
   var status=document.getElementById('storyVideoLoadStatus');
   var storyNode=document.getElementById('videoStoryInput');
@@ -48,9 +50,13 @@ ${VIDEO_PLAN_SESSION_SCRIPT}
     return;
   }
   window.AICS_STORY_VIDEO_SESSION.load(sessionId).then(function(session){
-    if(storyNode){storyNode.value=session.story;storyNode.dispatchEvent(new Event('input',{bubbles:true}));}
-    status.textContent='Story Draft ကို IndexedDB မှ အောင်မြင်စွာ ဖတ်ယူပြီးပါပြီ။';
     window.AICS_STORY_VIDEO_SESSION_DATA=session;
+    return window.AICS_VIDEO_PLAN_STATE.init(session).then(function(){
+      if(storyNode&&window.AICS_VIDEO_PLAN_STATE.state.ready){
+        storyNode.value=window.AICS_VIDEO_PLAN_STATE.state.story;
+        storyNode.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    });
   }).catch(function(){
     status.textContent='Story Draft ကို ဖတ်မရပါ။ Session ပျောက်ဆုံးခြင်း သို့မဟုတ် Browser Storage ပြဿနာ ဖြစ်နိုင်ပါသည်။ Story Studio သို့ ပြန်ဝင်ပြီး ထပ်ကြိုးစားပါ။';
     status.classList.add('aics-video-error');
