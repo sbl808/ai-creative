@@ -71,7 +71,7 @@ const STEP4_HTML = `
 </div>
 
 <div class="error-box" id="planError" role="alert" aria-live="assertive"></div>
-<button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" onclick="generateVideoPlan()">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
+<button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" disabled aria-disabled="true">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
 </div>
 </div>`;
 
@@ -84,7 +84,7 @@ ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်..
 <div id="finalResult"></div>
 <div class="error-box" id="planError5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="planRetry5">
-<button class="btn btn-primary" onclick="generateVideoPlan()">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-primary" type="button" disabled aria-disabled="true">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="studioGoStep(1)">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
