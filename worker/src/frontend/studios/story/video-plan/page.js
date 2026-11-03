@@ -31,7 +31,7 @@ ${renderStudioShell({
   desc: 'Story Draft မှ Video Plan သို့',
   icon: '🎬',
   modelCat: 'text',
-  steps: [{ label: '01 Story Source' }],
+  steps: [{ label: '01 Video Settings' }, { label: '02 Video Result', req: [1] }],
   content: PAGE_CONTENT,
 })}
 ${sidebarScript()}
@@ -39,7 +39,7 @@ ${sidebarScript()}
 ${VIDEO_PLAN_SESSION_SCRIPT}
 (function(){
   var status=document.getElementById('storyVideoLoadStatus');
-  var storyNode=document.getElementById('storyVideoSource');
+  var storyNode=document.getElementById('videoStoryInput');
   var sessionId='';
   try{sessionId=new URLSearchParams(window.location.search).get('session')||'';}catch(error){}
   if(!sessionId){
@@ -48,8 +48,8 @@ ${VIDEO_PLAN_SESSION_SCRIPT}
     return;
   }
   window.AICS_STORY_VIDEO_SESSION.load(sessionId).then(function(session){
-    storyNode.textContent=session.story;
-    storyNode.hidden=false;
+    storyNode.value=session.story;
+    if(storyNode)storyNode.dispatchEvent(new Event('input',{bubbles:true}));
     status.textContent='Story Draft ကို IndexedDB မှ အောင်မြင်စွာ ဖတ်ယူပြီးပါပြီ။';
     window.AICS_STORY_VIDEO_SESSION_DATA=session;
   }).catch(function(){
