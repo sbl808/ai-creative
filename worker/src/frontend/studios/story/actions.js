@@ -385,7 +385,7 @@ function studioReceiveIdeaHandoff(){
     if(pendingIdeaResult.concept)lines.push('အယူအဆ: '+String(pendingIdeaResult.concept));
     if(pendingIdeaResult.hook)lines.push('အဖွင့်: '+String(pendingIdeaResult.hook));
     if(pendingIdeaResult.outline)lines.push('အကြမ်းဖျဉ်း: '+String(pendingIdeaResult.outline));
-    summary.textContent=lines.join('\n\n')||'Idea Result ကို ရရှိပါပြီ။';
+    summary.textContent=lines.join('\\n\\n')||'Idea Result ကို ရရှိပါပြီ။';
     panel.style.display='block';
     accept.disabled=false;
     accept.onclick=studioAcceptIdeaHandoff;
