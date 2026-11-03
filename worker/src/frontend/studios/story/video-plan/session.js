@@ -27,6 +27,13 @@ export const VIDEO_PLAN_SESSION_SCRIPT = String.raw`(function(){
         title: String(session.title || 'Untitled Story'),
         story: story,
         storyFacts: draft.storyFacts && typeof draft.storyFacts === 'object' ? draft.storyFacts : {},
+        // Legacy Video Plan data is copied to a new Studio session by its adapter.
+        // The source Story session remains untouched.
+        legacyVideoPlan: {
+          videoForm: draft.videoForm && typeof draft.videoForm === 'object' ? draft.videoForm : {},
+          characters: Array.isArray(draft.characters) ? draft.characters : [],
+          scenes: Array.isArray(draft.scenes) ? draft.scenes : []
+        },
         updatedAt: String(session.updatedAt || '')
       };
     });
