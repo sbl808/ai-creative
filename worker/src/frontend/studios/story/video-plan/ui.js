@@ -82,9 +82,14 @@ const STEP6_HTML = `
 <div class="aics-step" data-step="2">
 ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="finalResult"></div>
+<div id="videoPlanResultActions" class="btn-row" hidden>
+<button type="button" class="btn btn-secondary" onclick="saveVideoPlan()">&#128190; သိမ်းဆည်းရန်</button>
+<button type="button" class="btn btn-ghost" onclick="copyAllVideoPlanResult()">&#128203; အားလုံး Copy</button>
+<button type="button" class="btn btn-ghost" onclick="exportVideoPlan()">&#8681; Export TXT</button>
+</div>
 <div class="error-box" id="planError5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="planRetry5">
-<button class="btn btn-primary" type="button" disabled aria-disabled="true">&#128260; ပြန်ကြိုးစားရန်</button>
+<button id="planRetryBtn" class="btn btn-primary" type="button">&#128260; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" onclick="studioGoStep(1)">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
