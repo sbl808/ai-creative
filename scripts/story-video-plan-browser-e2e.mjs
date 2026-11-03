@@ -92,8 +92,21 @@ try {
   }, { id: storySession.id, story: storyText });
 
   await page.locator('#storyResult').waitFor({ state: 'visible' });
+  const storyHandoffState = await page.evaluate(() => ({
+    isPro: typeof isPro !== 'undefined' && isPro === true,
+    currentStory: typeof currentStory === 'string' ? currentStory : '',
+    resultText: document.getElementById('storyResult')?.value || '',
+  }));
+  assert.equal(storyHandoffState.isPro, true, 'Browser fixture should enable the Story Video Pro feature gate');
+  assert.equal(storyHandoffState.currentStory, storyText, 'Story Studio should restore the completed Story');
   await page.locator('button[onclick="goToVideoForm()"]').click();
-  await page.waitForURL(/\/app\/story-video-plan\?session=/);
+  await page.waitForTimeout(1200);
+  if (!/\/app\/story-video-plan\?session=/.test(page.url())) {
+    const visibleText = await page.locator('body').innerText();
+    throw new Error('Story-to-Video-Plan navigation did not complete. Current URL: ' + page.url() +
+      '. Page message: ' + visibleText.slice(-800));
+  }
+  await page.waitForURL(/\/app\/story-video-plan\?session=/, { timeout: 10000 });
   await page.locator('#videoStoryInput').waitFor();
   await page.waitForFunction(() => window.AICS_VIDEO_PLAN_STATE && window.AICS_VIDEO_PLAN_STATE.state.ready);
   assert.equal(await page.locator('#videoStoryInput').inputValue(), storyText,
