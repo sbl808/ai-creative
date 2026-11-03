@@ -13,7 +13,7 @@ vars = { ENVIRONMENT = "dev", ALLOWED_ORIGINS = "https://aics-frontend-dev.pages
 binding = "DB"
 database_name = "aics-db-dev"
 # Local-only placeholder UUID. Wrangler uses local D1 unless --remote is explicitly supplied.
-database_id = "00000000-0000-0000-0000-000000000001"
+database_id = "00000000-0000-4000-8000-000000000001"
 
 # --- staging ---
 [env.staging]
