@@ -1,5 +1,5 @@
 // Story Video Plan — independent browser state and IndexedDB session lifecycle.
-export const VIDEO_PLAN_STATE_SCRIPT = String.raw\`
+export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
   (function(){
     'use strict';
     var state = {
@@ -166,4 +166,4 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw\`
     }
     window.AICS_VIDEO_PLAN_STATE=Object.freeze({state:state,init:init,save:save,collectDraft:collectDraft,readForm:readForm,applyForm:applyForm});
   })();
-\`;
+`;
