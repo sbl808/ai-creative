@@ -590,23 +590,97 @@ function studioLoadSession(sessionId){
   });
 }
 window.studioLoadSession=studioLoadSession;
+var pendingIdeaHandoffId=null;
+var pendingIdeaResult=null;
+
+function studioMapIdeaResultToStoryInput(idea){
+  var parts=[];
+  if(idea.title)parts.push('ခေါင်းစဉ်: '+String(idea.title));
+  if(idea.concept)parts.push('အယူအဆ: '+String(idea.concept));
+  if(idea.hook)parts.push('စိတ်ဝင်စားဖွယ် အဖွင့်: '+String(idea.hook));
+  if(idea.outline)parts.push('ဇာတ်လမ်း အကြမ်းဖျဉ်း: '+String(idea.outline));
+  return parts.join('\n\n');
+}
+
+function studioClearIdeaHandoffUrl(){
+  var params=new URLSearchParams(window.location.search||'');
+  params.delete('handoff');
+  var query=params.toString();
+  window.history.replaceState({},'',window.location.pathname+(query?'?'+query:'')+(window.location.hash||''));
+}
+
 function studioReceiveIdeaHandoff(){
   var params=new URLSearchParams(window.location.search||'');
   var handoffId=params.get('handoff');
   if(!handoffId)return;
-  if(!window.AICS_HANDOFFS){showToastMsg('Idea Handoff ကို ဖတ်မရပါ။ Storage ကို စစ်ဆေးပါ။');return;}
+  if(!window.AICS_HANDOFFS){showToastMsg('Idea Result ကို ဖတ်မရပါ။ Browser Storage ကို စစ်ဆေးပါ။');return;}
   window.AICS_HANDOFFS.get(handoffId).then(function(record){
-    if(!record||record.contractVersion!==1||record.source!=='ideas'||record.target!=='story'||!record.payload||typeof record.payload!=='object')throw new Error('invalid_handoff');
-    var p=record.payload;
-    var ideaText=['Idea: '+String(p.title||''),'Concept: '+String(p.concept||''),'Hook: '+String(p.hook||''),'Outline: '+String(p.outline||'')].join('\\n\\n');
-    studioRestoreDraft({stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:ideaText},story:'',storyIdea:ideaText,videoStarted:false,characters:[],scenes:[]});
-    return autoSave().then(function(session){if(!session)throw new Error('story_draft_save_failed');return window.AICS_HANDOFFS.remove(handoffId);});
-  }).then(function(){
-    window.history.replaceState({},'',window.location.pathname);
-    showToastMsg('Idea ကို Story Draft အသစ်အဖြစ် လက်ခံပြီးပါပြီ');
-    if(window.aicsRefreshStorySessions)window.aicsRefreshStorySessions();
-  }).catch(function(){showToastMsg('Idea Handoff ကို လက်ခံမရပါ။ မူလ Idea နှင့် Draft များကို မဖျက်ထားပါ။');});
+    if(!record||record.contractVersion!==1||record.source!=='ideas'||record.target!=='story'||!record.payload||typeof record.payload!=='object'||Array.isArray(record.payload))throw new Error('invalid_handoff');
+    pendingIdeaHandoffId=handoffId;
+    pendingIdeaResult=record.payload;
+    var panel=document.getElementById('ideaHandoffPanel');
+    var summary=document.getElementById('ideaHandoffSummary');
+    var accept=document.getElementById('acceptIdeaHandoffBtn');
+    var dismiss=document.getElementById('dismissIdeaHandoffBtn');
+    if(!panel||!summary||!accept||!dismiss)throw new Error('idea_handoff_ui_unavailable');
+    var lines=[];
+    if(pendingIdeaResult.title)lines.push('ခေါင်းစဉ်: '+String(pendingIdeaResult.title));
+    if(pendingIdeaResult.concept)lines.push('အယူအဆ: '+String(pendingIdeaResult.concept));
+    if(pendingIdeaResult.hook)lines.push('အဖွင့်: '+String(pendingIdeaResult.hook));
+    if(pendingIdeaResult.outline)lines.push('အကြမ်းဖျဉ်း: '+String(pendingIdeaResult.outline));
+    summary.textContent=lines.join('\n\n')||'Idea Result ကို ရရှိပါပြီ။';
+    panel.style.display='block';
+    accept.disabled=false;
+    accept.onclick=studioAcceptIdeaHandoff;
+    dismiss.onclick=studioDismissIdeaHandoff;
+  }).catch(function(){showToastMsg('Idea Result ကို ဖတ်မရပါ။ မူရင်း Idea ကို မဖျက်ထားပါ။');});
 }
+
+function studioAcceptIdeaHandoff(){
+  if(!pendingIdeaHandoffId||!pendingIdeaResult||!window.AICS_SESSIONS)return;
+  var handoffId=pendingIdeaHandoffId;
+  var originalDraft;
+  try{originalDraft=studioCollectDraft();}catch(error){showToastMsg('လက်ရှိ Story အချက်အလက်ကို ဖတ်မရပါ။');return;}
+  if(storyHasMeaningfulDraft(originalDraft)&&!confirm('Story Studio မှာ လက်ရှိ Draft အချက်အလက် ရှိနေပါတယ်။ မူလ Draft ကို မဖျက်ဘဲ ဒီ Idea အတွက် Draft အသစ်ဖန်တီးမလား?'))return;
+  var accept=document.getElementById('acceptIdeaHandoffBtn');
+  if(accept){accept.disabled=true;accept.textContent='Draft ဖန်တီးနေသည်...';}
+  var ideaText=studioMapIdeaResultToStoryInput(pendingIdeaResult);
+  var nextDraft={stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:ideaText},story:'',storyIdea:ideaText,videoStarted:false,characters:[],scenes:[]};
+  var pendingSave=storySaveQueue.catch(function(){return null;});
+  pendingSave.then(function(){
+    studioRestoreDraft(nextDraft);
+    var draft=studioCollectDraft();
+    return window.AICS_SESSIONS.create({studio:'STORY',title:storySessionTitle(draft),draft:draft});
+  }).then(function(session){
+    storySessionId=session.id;
+    storySaveQueue=Promise.resolve();
+    return window.AICS_HANDOFFS.remove(handoffId).catch(function(){return false;});
+  }).then(function(){
+    pendingIdeaHandoffId=null;
+    pendingIdeaResult=null;
+    var panel=document.getElementById('ideaHandoffPanel');
+    if(panel)panel.style.display='none';
+    studioClearIdeaHandoffUrl();
+    showToastMsg('Idea ကို လက်ခံပြီး Story Draft အသစ် ဖန်တီးပြီးပါပြီ။');
+    if(window.aicsRefreshStorySessions)window.aicsRefreshStorySessions();
+  }).catch(function(){
+    studioRestoreDraft(originalDraft);
+    if(accept){accept.disabled=false;accept.textContent='ဒီ Idea နဲ့ Story စတင်ရန်';}
+    showToastMsg('Story Draft အသစ် မဖန်တီးနိုင်ပါ။ မူလ Draft နှင့် Idea ကို မဖျက်ထားပါ။');
+  });
+}
+
+function studioDismissIdeaHandoff(){
+  var handoffId=pendingIdeaHandoffId;
+  var panel=document.getElementById('ideaHandoffPanel');
+  if(panel)panel.style.display='none';
+  pendingIdeaHandoffId=null;
+  pendingIdeaResult=null;
+  studioClearIdeaHandoffUrl();
+  if(handoffId&&window.AICS_HANDOFFS)window.AICS_HANDOFFS.remove(handoffId).catch(function(){});
+  showToastMsg('Idea ကို ယခုအကြိမ် Story Studio မှ လက်မခံတော့ပါ။ မူရင်း Idea ကို မဖျက်ထားပါ။');
+}
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',studioReceiveIdeaHandoff);
 else studioReceiveIdeaHandoff();
 function studioMigrateLegacyStorage(){
