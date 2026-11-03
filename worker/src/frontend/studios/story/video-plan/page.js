@@ -2,6 +2,7 @@
 import { renderStudioShell, sidebarScript } from '../../../shared.js';
 import { VIDEO_PLAN_SESSION_SCRIPT } from './session.js';
 import { VIDEO_PLAN_STATE_SCRIPT } from './state.js';
+import { VIDEO_PLAN_ACTIONS_SCRIPT } from './actions.js';
 import { VIDEO_PLAN_CONTENT_HTML } from './ui.js';
 
 const PAGE_STYLES = `
@@ -39,6 +40,7 @@ ${sidebarScript()}
 <script>
 ${VIDEO_PLAN_SESSION_SCRIPT}
 ${VIDEO_PLAN_STATE_SCRIPT}
+${VIDEO_PLAN_ACTIONS_SCRIPT}
 (function(){
   var status=document.getElementById('storyVideoLoadStatus');
   var storyNode=document.getElementById('videoStoryInput');
@@ -56,6 +58,7 @@ ${VIDEO_PLAN_STATE_SCRIPT}
         storyNode.value=window.AICS_VIDEO_PLAN_STATE.state.story;
         storyNode.dispatchEvent(new Event('input',{bubbles:true}));
       }
+      if(window.AICS_VIDEO_PLAN_ACTIONS)window.AICS_VIDEO_PLAN_ACTIONS.init();
     });
   }).catch(function(){
     status.textContent='Story Draft ကို ဖတ်မရပါ။ Session ပျောက်ဆုံးခြင်း သို့မဟုတ် Browser Storage ပြဿနာ ဖြစ်နိုင်ပါသည်။ Story Studio သို့ ပြန်ဝင်ပြီး ထပ်ကြိုးစားပါ။';
