@@ -113,3 +113,13 @@ jobs:
           node-version: 22
       - name: Verify Studio page exports, lazy-loader registry, imports, and isolation boundaries
         run: node --experimental-default-type=module scripts/verify-split.mjs
+      - name: Run Studio Handoff contract tests
+        run: node --experimental-default-type=module scripts/studio-handoff-contract-test.mjs
+      - name: Run IndexedDB Studio Handoff tests
+        run: node --experimental-default-type=module scripts/indexeddb-studio-handoff-test.mjs
+      - name: Run Story Video Plan session bridge tests
+        run: node --experimental-default-type=module scripts/story-video-session-bridge-test.mjs
+      - name: Run Story / Video Plan UI separation tests
+        run: node --experimental-default-type=module scripts/story-video-plan-page-test.mjs
+      - name: Run Story Video Plan state and migration tests
+        run: node --experimental-default-type=module scripts/story-video-plan-state-test.mjs
