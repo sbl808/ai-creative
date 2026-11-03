@@ -123,3 +123,53 @@ jobs:
         run: node --experimental-default-type=module scripts/story-video-plan-page-test.mjs
       - name: Run Story Video Plan state and migration tests
         run: node --experimental-default-type=module scripts/story-video-plan-state-test.mjs
+
+  wrangler-local-smoke:
+    name: Wrangler local runtime smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply D1 migrations to local-only database
+        run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --yes --config worker/wrangler.toml
+      - name: Start Worker locally and smoke-test app routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 dev --local --env dev --config worker/wrangler.toml --ip 127.0.0.1 --port 8787 --log-level error > /tmp/aics-wrangler.log 2>&1 &
+          worker_pid=$!
+          cleanup() {
+            kill "$worker_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error http://127.0.0.1:8787/ --output /tmp/aics-home.html; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$worker_pid" 2>/dev/null; then
+              cat /tmp/aics-wrangler.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/aics-wrangler.log
+            echo "Worker did not become ready in time."
+            exit 1
+          fi
+
+          grep -Eiq '<!doctype html|<html' /tmp/aics-home.html
+
+          story_status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8787/app/story-video-plan)
+          if [ "$story_status" != "302" ]; then
+            echo "Expected unauthenticated Story Video Plan route to redirect to login; received HTTP $story_status."
+            cat /tmp/aics-wrangler.log
+            exit 1
+          fi
