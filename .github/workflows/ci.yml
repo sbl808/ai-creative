@@ -135,6 +135,17 @@ jobs:
           node-version: 22
       - name: Apply D1 migrations to local-only database
         run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --config worker/wrangler.toml
+      - name: Create ephemeral local-only session signing key
+        shell: bash
+        run: |
+          key="$(openssl rand -hex 32)"
+          printf 'SESSION_SIGNING_KEY=%s\n' "$key" > worker/.dev.vars.dev
+          echo "AICS_TEST_SESSION_SIGNING_KEY=$key" >> "$GITHUB_ENV"
+      - name: Install Playwright browser test runtime
+        run: |
+          npm init -y
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
       - name: Start Worker locally and smoke-test app routes
         shell: bash
         run: |
@@ -173,3 +184,5 @@ jobs:
             cat /tmp/aics-wrangler.log
             exit 1
           fi
+
+          node scripts/story-video-plan-browser-e2e.mjs
