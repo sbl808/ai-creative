@@ -15,6 +15,16 @@ const STEP1_HTML = `
 <div class="card-title">&#128221; ဇာတ်လမ်းရေးရန် <span class="card-title-sub">(Story Creator)</span></div>
 <p class="story-intro">ဇာတ်လမ်းအကြောင်းအရာ ဖြည့်ပြီး အောက်က <b>「ဇာတ်လမ်းရေးသားရန်」</b> ခလုတ်ကို နှိပ်လိုက်ရင် AI က သင့်အတွက် ဇာတ်လမ်းတစ်ပုဒ် အပြည့်အစုံ ရေးပေးပါမယ်။</p>
 
+<div id="ideaHandoffPanel" class="card" style="display:none;margin:0 0 16px;border-color:var(--success);" aria-live="polite">
+<div class="card-title">&#128161; Idea Workspace မှ ရရှိသော Idea</div>
+<div id="ideaHandoffSummary" class="story-intro" style="white-space:pre-wrap;"></div>
+<p class="form-help">မူရင်း Idea Result ကို မပြောင်းလဲဘဲ ထားရှိပါမည်။ ဒီ Idea ကို Story အဖြစ် စတင်အသုံးပြုလိုမှ အောက်ပါခလုတ်ကို နှိပ်ပါ။</p>
+<div class="story-actions-primary" style="margin-top:12px;">
+<button type="button" class="btn btn-primary" id="acceptIdeaHandoffBtn">ဒီ Idea နဲ့ Story စတင်ရန်</button>
+<button type="button" class="btn btn-secondary" id="dismissIdeaHandoffBtn">မလုပ်တော့ပါ</button>
+</div>
+</div>
+
 <div class="aics-section-label"><span class="aics-section-title">အခြေခံ သတ်မှတ်ချက်များ</span><span class="aics-section-sub">Essential Settings</span></div>
 <div class="studio-form-grid">
 <div class="form-group aics-cms-type-field">
