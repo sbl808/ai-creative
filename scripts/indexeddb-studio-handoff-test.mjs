@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { clientStorageScript } from '../worker/src/frontend/storage/client-storage.js';
+import { ACTIONS_SCRIPT } from '../worker/src/frontend/studios/story/actions.js';
 
 const source = clientStorageScript();
 assert.match(source, /indexedDB\.open\('aics_creations_v1', 4\)/);
@@ -10,6 +11,7 @@ assert.match(source, /window\.AICS_HANDOFFS\s*=\s*\{/);
 assert.match(source, /contractVersion!==1/);
 assert.match(source, /owner_target_createdAt/);
 new vm.Script(source, { filename: 'client-storage.js' });
+new vm.Script(ACTIONS_SCRIPT, { filename: 'story-actions.js' });
 
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
