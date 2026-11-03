@@ -40,6 +40,7 @@ try {
   const token = createProTestToken(account.user_id, email);
   await page.addInitScript((value) => {
     localStorage.setItem('aics_token', value);
+    localStorage.setItem('aics_plan', 'PRO');
   }, token);
 
   await page.goto(baseURL + '/app/ideas');
