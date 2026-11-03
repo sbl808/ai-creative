@@ -330,7 +330,6 @@ function studioRestoreSessionImages(sessionId){
       imgCache[key]=dataUrl;
       storyImageResultIds[key]=item.id;
     });
-    if(currentCharacters.length||currentScenes.length)renderFinalResult();
     return result.items||[];
   });
 }
