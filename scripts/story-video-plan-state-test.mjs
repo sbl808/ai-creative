@@ -98,10 +98,15 @@ async function run() {
   assert.equal(JSON.stringify(source), original, 'source Story session projection must not be mutated');
   assert.equal(planSession.draft.characters[0].name, 'Hero');
 
+  const updatesBeforeExplicitSave = updates.length;
   nodes.vidExtra.value = 'Updated after first save';
   await context.window.AICS_VIDEO_PLAN_STATE.save();
-  assert.equal(updates.length, 1, 'saving an existing Video Plan updates its own IndexedDB session');
-  assert.equal(updates[0].id, 'plan_1');
+  assert.equal(
+    updates.length,
+    updatesBeforeExplicitSave + 1,
+    'an explicit save performs exactly one additional IndexedDB session update'
+  );
+  assert.equal(updates.at(-1).id, 'plan_1');
   assert.equal(planSession.draft.form.additionalInstructions, 'Updated after first save');
 
   const reload = makeContext('?session=story_1&plan=plan_1');
