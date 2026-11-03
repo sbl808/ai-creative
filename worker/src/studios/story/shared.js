@@ -1,6 +1,6 @@
 // Shared Story-domain helpers used by Story Studio and Story Video Plan.
 
-function mapLegacyCMSTemplate(row) {
+export function mapLegacyCMSTemplate(row) {
   if (!row) return {};
   return {
     role: row.core,
@@ -14,7 +14,7 @@ function mapLegacyCMSTemplate(row) {
   };
 }
 
-function mapBrainFields(config, prefix = '') {
+export function mapBrainFields(config, prefix = '') {
   const fields = {};
   const used = new Set();
   for (const [key, value] of Object.entries(config || {})) {
@@ -34,7 +34,7 @@ function mapBrainFields(config, prefix = '') {
   return fields;
 }
 
-function buildStoryFactsBlock(facts) {
+export function buildStoryFactsBlock(facts) {
   if (!facts || typeof facts !== 'object') return '';
   const keys = ['storyId', 'storyType', 'title', 'summary', 'characters', 'locations', 'timeline', 'events', 'dialogue', 'emotion', 'importantObjects', 'visualFacts', 'sceneInformation'];
   const out = {};
