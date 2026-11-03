@@ -140,7 +140,7 @@ try {
   assert.match(workerSource, /characterConsistency:\s*body\.characterConsistency/);
   assert.match(storyVideoSource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
   assert.match(storyVideoSource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
-  assert.match(storySource, /from '\.\/studios\/story\/video-plan\.js'/);
+  assert.match(storySource, /from '\.\/story\/video-plan\.js'/);
   assert.match(storyVideoSource, /export async function generateStoryVideoPlan/);
 
   // Revision must invalidate facts extracted from the previous story version.
