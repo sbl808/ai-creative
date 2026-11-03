@@ -1,6 +1,7 @@
 // Story Video Plan — dedicated page shell and IndexedDB Story reader.
 import { renderStudioShell, sidebarScript } from '../../../shared.js';
 import { VIDEO_PLAN_SESSION_SCRIPT } from './session.js';
+import { VIDEO_PLAN_CONTENT_HTML } from './ui.js';
 
 const PAGE_STYLES = `
 <style>
@@ -11,19 +12,7 @@ const PAGE_STYLES = `
 @media(max-width:767px){.aics-video-card{padding:15px}}
 </style>`;
 
-const PAGE_CONTENT = `
-<div class="aics-step" data-step="1">
-  <section class="aics-video-card">
-    <h2>လက်ရှိ Story</h2>
-    <div id="storyVideoLoadStatus" class="aics-video-status" role="status" aria-live="polite">IndexedDB မှ Story Draft ကို ဖတ်နေပါသည်...</div>
-    <div id="storyVideoSource" class="aics-video-story" hidden></div>
-  </section>
-  <section class="aics-video-card">
-    <h2>Video Plan Workspace</h2>
-    <p class="aics-video-status">ဤနေရာသည် သီးခြား Story Video Plan Module ဖြစ်သည်။ လက်ရှိအဆင့်တွင် မူရင်း Story ကို Session ID ဖြင့် ချိတ်ဆက်ဖတ်ယူခြင်းကိုသာ တည်ဆောက်ထားပြီး Video Plan Form နှင့် Generate Actions များကို နောက်ထပ် Subtask များတွင် သီးခြားထည့်သွင်းပါမည်။</p>
-    <a class="btn btn-secondary" href="/app/story">← Story Studio သို့ ပြန်ရန်</a>
-  </section>
-</div>`;
+const PAGE_CONTENT = VIDEO_PLAN_CONTENT_HTML;
 
 export const STORY_VIDEO_PLAN_HTML = `<!DOCTYPE html>
 <html lang="my">
