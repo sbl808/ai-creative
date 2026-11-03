@@ -637,7 +637,8 @@ function studioReceiveIdeaHandoff(){
 }
 
 function studioAcceptIdeaHandoff(){
-  if(!pendingIdeaHandoffId||!pendingIdeaResult||!window.AICS_SESSIONS)return;
+  if(!pendingIdeaHandoffId||!pendingIdeaResult)return;
+  if(!window.AICS_SESSIONS){showToastMsg('Story Draft သိမ်းဆည်းမှု မရရှိပါ။ Browser Storage ကို စစ်ဆေးပါ။');return;}
   var handoffId=pendingIdeaHandoffId;
   var originalDraft;
   try{originalDraft=studioCollectDraft();}catch(error){showToastMsg('လက်ရှိ Story အချက်အလက်ကို ဖတ်မရပါ။');return;}
@@ -645,6 +646,7 @@ function studioAcceptIdeaHandoff(){
   var accept=document.getElementById('acceptIdeaHandoffBtn');
   if(accept){accept.disabled=true;accept.textContent='Draft ဖန်တီးနေသည်...';}
   var ideaText=studioMapIdeaResultToStoryInput(pendingIdeaResult);
+  if(!ideaText.trim()){if(accept){accept.disabled=false;accept.textContent='ဒီ Idea နဲ့ Story စတင်ရန်';}showToastMsg('ဒီ Idea Result မှာ Story အတွက် အသုံးပြုနိုင်တဲ့ အချက်အလက် မရှိပါ။');return;}
   var nextDraft={stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:ideaText},story:'',storyIdea:ideaText,videoStarted:false,characters:[],scenes:[]};
   var pendingSave=storySaveQueue.catch(function(){return null;});
   pendingSave.then(function(){
