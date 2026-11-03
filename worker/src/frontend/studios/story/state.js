@@ -13,6 +13,8 @@ var currentStory='';
 var currentStoryIdea='';
 var currentCharacters=[];
 var currentScenes=[];
+// Preserve legacy Video Plan form data while Story Studio no longer renders those controls.
+var legacyVideoForm={};
 var imgCache={};
 var storySessionId=null;
 var storySaveQueue=Promise.resolve();
