@@ -49,6 +49,8 @@ assert.ok(videoActions.includes('window.generateVideoPlan=generateVideoPlan'), '
 assert.ok(storyPage.includes('CONTENT_HTML'), 'Story page still composes its own UI');
 assert.ok(!/function\s+(generateVideoPlan|renderFinalResult|generateCharImage|generateEnvImage|copyCharPrompt)\s*\(/.test(storyActions), 'Story actions no longer own Video Plan operations');
 assert.ok(storyActions.includes('videoForm:'), 'Legacy Video Plan settings remain readable for migration');
+assert.ok(storyActions.includes('function studioCollectLegacyVideoForm()'), 'Story retains legacy settings even though Video Plan controls are no longer rendered');
+assert.ok(storyActions.includes('legacyVideoForm=Object.assign({},d.videoForm||{})'), 'Restored legacy settings are retained without overwriting them with empty Story controls');
 assert.ok(storyActions.includes('characters:currentCharacters'), 'Legacy character data remains readable for migration');
 assert.ok(storyActions.includes("ST_MODE='main'"), 'Legacy Story drafts restore into the Story-only stepper');
 assert.ok(!storyActions.includes('function fillVideoStoryField()'), 'Story actions do not bind Video Plan form fields');
