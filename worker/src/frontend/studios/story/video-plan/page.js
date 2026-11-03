@@ -48,8 +48,7 @@ ${VIDEO_PLAN_SESSION_SCRIPT}
     return;
   }
   window.AICS_STORY_VIDEO_SESSION.load(sessionId).then(function(session){
-    storyNode.value=session.story;
-    if(storyNode)storyNode.dispatchEvent(new Event('input',{bubbles:true}));
+    if(storyNode){storyNode.value=session.story;storyNode.dispatchEvent(new Event('input',{bubbles:true}));}
     status.textContent='Story Draft ကို IndexedDB မှ အောင်မြင်စွာ ဖတ်ယူပြီးပါပြီ။';
     window.AICS_STORY_VIDEO_SESSION_DATA=session;
   }).catch(function(){
