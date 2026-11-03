@@ -25,7 +25,7 @@ function makeContext(search) {
   };
   const planSession = { id: 'plan_1', studio: 'STORY_VIDEO_PLAN', draft: {} };
   const window = {
-    location: { href: 'https://studio.example/app/story-video-plan' + (search || '') },
+    location: { href: 'https://studio.example/app/story-video-plan' + (search || ''), search: search || '' },
     history: { replaceState() {} },
     AICS_SESSIONS: {
       create: async (input) => {
