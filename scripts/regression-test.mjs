@@ -848,7 +848,7 @@ for(const [studio,tasks] of Object.entries(studioTaskContracts)){
   let source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
   // Story Video Plan image generation now belongs to its dedicated module.
   if(studio==='story'){
-   source+='\\n'+await readFile(new URL('../worker/src/studios/story/video-plan.js',import.meta.url),'utf8');
+   source+='\\n'+await readFile(new URL('../worker/src/studios/story-video-plan.js',import.meta.url),'utf8');
   }
   const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
   return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
