@@ -133,7 +133,41 @@ ${renderStudioShell({
 })}
 ${sidebarScript()}
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; အောင်မြင်ပါသည်</div>
-<script>${STATE_SCRIPT}${API_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}</script>
+<script>${STATE_SCRIPT}${API_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}
+(function(){
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(!target||!target.dataset)return;
+    if(target.dataset.imageChange==='type')window.selectedImageType=target.value;
+    if(target.dataset.imageChange==='audience')window.aichAud=target.value;
+    if(target.dataset.imageChange==='referenceFiles')window.onRefSelected();
+  });
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(!target||!target.dataset)return;
+    if(target.dataset.imageInput==='autoExpand')window.autoExpand(target);
+    if(target.dataset.imageInput==='promptEdit')window.onPromptEdit(target);
+  });
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('[data-image-action], [data-image-step-nav]'):null;
+    if(!button)return;
+    if(button.hasAttribute('data-image-step-nav')){window.studioGoStep(Number(button.dataset.step));return;}
+    switch(button.dataset.imageAction){
+      case 'preparePrompt':window.preparePrompt();break;
+      case 'retryPrepare':window.stGoForce(1);break;
+      case 'retryGenerate':window.startGenerate();break;
+      case 'retryPromptEdit':window.stGoForce(3);break;
+      case 'removeReference':window.removeRef(Number(button.dataset.imageIndex));break;
+      case 'scrollMapTop':window.scrollMapTop();break;
+      case 'regenerateImage':window.regenerateImage();break;
+      case 'downloadImage':window.downloadImage();break;
+      case 'editMap':window.editMapSection(button.dataset.imageKey);break;
+      case 'saveMap':window.saveMapSection(button.dataset.imageKey);break;
+      case 'cancelMapEdit':window.renderMap();break;
+    }
+  });
+})();
+</script>
 </body>
 </html>`;
 
