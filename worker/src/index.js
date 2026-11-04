@@ -337,7 +337,8 @@ export default {
         if (studioHtml) {
           const g = await appSessionGuard(request, env, url.origin);
           if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
-          const enabled = await isStudioEnabled(env, studioSlug);
+          const studioConfigId = studioSlug === 'story-video-plan' ? 'story' : studioSlug;
+          const enabled = await isStudioEnabled(env, studioConfigId);
           if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
           return htmlPage(studioHtml);
         }

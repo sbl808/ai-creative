@@ -2,13 +2,18 @@ name = "aics"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
 
+# Keep Worker observability disabled; do not capture request or user data.
+[observability]
+enabled = false
+
 # --- dev ---
 [env.dev]
 vars = { ENVIRONMENT = "dev", ALLOWED_ORIGINS = "https://aics-frontend-dev.pages.dev" }
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "aics-db-dev"
-database_id = "cloudflare အကောင့် မရှိသေးပါ"
+# Local-only placeholder UUID. Wrangler uses local D1 unless --remote is explicitly supplied.
+database_id = "00000000-0000-4000-8000-000000000001"
 
 # --- staging ---
 [env.staging]

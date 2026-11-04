@@ -133,12 +133,15 @@ try {
   // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
   const workerSource = readFileSync(new URL('../worker/src/routes/studios/story.routes.js', import.meta.url), 'utf8');
   const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
+  const storyVideoSource = readFileSync(new URL('../worker/src/studios/story/video-plan.js', import.meta.url), 'utf8');
   const storyActionsSource = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
   assert.match(workerSource, /storyFacts:\s*body\.storyFacts/);
   assert.match(workerSource, /characterContinuity:\s*body\.characterContinuity/);
   assert.match(workerSource, /characterConsistency:\s*body\.characterConsistency/);
-  assert.match(storySource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
-  assert.match(storySource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
+  assert.match(storyVideoSource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
+  assert.match(storyVideoSource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
+  assert.match(storySource, /from '\.\/story\/video-plan\.js'/);
+  assert.match(storyVideoSource, /export async function generateStoryVideoPlan/);
 
   // Revision must invalidate facts extracted from the previous story version.
   // Otherwise Video Plan can receive facts that contradict the revised story text.

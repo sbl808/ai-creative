@@ -845,7 +845,11 @@ console.log('— AI Studio task forwarding contracts —');
 const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
  await check(studio+' forwards task IDs to the AI Service',async()=>{
-  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  let source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  // Story Video Plan image generation now belongs to its dedicated module.
+  if(studio==='story'){
+   source+='\\n'+await readFile(new URL('../worker/src/studios/story/video-plan.js',import.meta.url),'utf8');
+  }
   const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
   return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
  });

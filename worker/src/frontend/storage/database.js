@@ -7,7 +7,7 @@ const SCRIPT = String.raw`function __aicsDbOpen() {
     }
     var req;
     try {
-      req = window.indexedDB.open('aics_creations_v1', 3);
+      req = window.indexedDB.open('aics_creations_v1', 4);
     } catch (error) {
       reject(__aicsStorageError('indexeddb_open_failed', error));
       return;
@@ -32,6 +32,13 @@ const SCRIPT = String.raw`function __aicsDbOpen() {
         sessions.createIndex('ownerId', 'ownerId', { unique: false });
         sessions.createIndex('updatedAt', 'updatedAt', { unique: false });
         sessions.createIndex('owner_updatedAt', ['ownerId', 'updatedAt'], { unique: false });
+      }
+
+      // Short-lived, owner-scoped Studio handoff envelopes.
+      if (!db.objectStoreNames.contains('studio_handoffs')) {
+        var handoffs = db.createObjectStore('studio_handoffs', { keyPath: 'id' });
+        handoffs.createIndex('ownerId', 'ownerId', { unique: false });
+        handoffs.createIndex('owner_target_createdAt', ['ownerId', 'target', 'createdAt'], { unique: false });
       }
 
       // Results are separate so large media payloads do not rewrite session

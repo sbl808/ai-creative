@@ -51,7 +51,6 @@ function targetDraftKey(studio){return studio==='voice'?'aics_voice_workflow_v3'
 function targetHasDraft(studio){try{return !!(localStorage.getItem(targetDraftKey(studio))||(studio==='voice'&&localStorage.getItem('aics_draft_voice')))}catch(e){return true}}
 function makeTargetDraft(studio,idea,payload){
  var now=new Date().toISOString();
- if(studio==='story')return {key:'aics_draft_story',value:{step:1,data:{stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:payload},story:'',storyIdea:payload,videoStarted:false,characters:[],scenes:[]},savedAt:now}};
  if(studio==='short')return {key:'aics_draft_short',value:{step:1,data:{stepNow:1,mode:'main',shortType:'1',fields:{0:payload},aud:'',dur:'',tone:'',lang:'',mainMsg:'',extraInstr:'',adv:{},short:'',shortIdea:payload,videoStarted:false,characters:[],scenes:[]},savedAt:now}};
  if(studio==='image')return {key:'aics_draft_image',value:{step:1,data:{stepNow:1,mode:'main',imageType:'1',aud:'',idea:payload,ideaText:payload,refCount:0,latestPrompt:'',prepPrompt:'',resultText:'',map:{subject:'',style:'',environment:'',lighting:'',camera:'',finalPrompt:''},finalPromptManual:false,hasFinalImage:false,finalImage:null},savedAt:now}};
  if(studio==='content')return {key:'aics_draft_content',value:{step:1,data:{mode:'content',csCur:1,idea:payload,generationLevel:'1',aud:'လူတိုင်း',contentType:'Social Media Post',tone:'',lang:'Burmese',platform:'Facebook',product:'',goal:'',cta:'',keyPoints:'',mainMessage:'',length:'',additionalInstr:'',videoContent:'',videoGenerationLevel:'1',videoTypeSel:'',videoDuration:'',videoAspect:'',videoVisualStyle:'',videoCameraStyle:'',videoMotion:'',videoLanguage:'',videoSceneSettings:'',videoVisualSettings:'',videoReference:'',videoAdditionalInstructions:'',ttsText:'',srt:'',srtTranslated:'',direction:'MY_TO_CN',lastResult:null,videoPlan:null,audio:null},savedAt:now}};
@@ -62,14 +61,17 @@ function handoffIdea(index,studio){
  var idea=generated[index];if(!idea){showStatus('Idea မရှိပါ။',true);return}
  var target=TARGET_STUDIOS.find(function(s){return s.id===studio});if(!target)return;
  var payload=ideaPayload(idea);
+ if(studio==='story'){
+  if(!window.AICS_HANDOFFS){showStatus('Idea ပို့ဆောင်မှု မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
+  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:idea})
+   .then(function(result){showStatus('Idea Result ကို Story Studio သို့ ပို့နေပါသည်။');location.href='/app/story?handoff='+encodeURIComponent(result.id);})
+   .catch(function(){showStatus('Idea Result ကို ပို့မရပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)});
+  return;
+ }
  if(targetHasDraft(studio)&&!confirm(target.label+' Studio မှာ Draft ရှိပြီးသားပါ။ ဒီ Idea နဲ့ အစားထိုးမှာ သေချာပါသလား?\\n\\nCancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ။'))return;
  try{
-  if(studio==='voice'){
-   localStorage.setItem('aics_voice_transfer',JSON.stringify({text:payload,source:'ideas',audience:'လူတိုင်း'}));
-  }else{
-   var draft=makeTargetDraft(studio,idea,payload);if(!draft)throw new Error('unsupported_studio');
-   localStorage.setItem(draft.key,JSON.stringify(draft.value));
-  }
+  if(studio==='voice')localStorage.setItem('aics_voice_transfer',JSON.stringify({text:payload,source:'ideas',audience:'လူတိုင်း'}));
+  else{var draft=makeTargetDraft(studio,idea,payload);if(!draft)throw new Error('unsupported_studio');localStorage.setItem(draft.key,JSON.stringify(draft.value));}
   showStatus('Idea ကို '+target.label+' Studio သို့ လွှဲပို့နေပါသည်။');location.href='/app/'+studio;
  }catch(e){showStatus('Studio သို့ လွှဲမပို့နိုင်ပါ။ Browser Storage နေရာလွတ်နှင့် permission ကို စစ်ပါ။',true)}
 }

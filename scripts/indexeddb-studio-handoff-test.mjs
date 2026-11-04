@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
+import { clientStorageScript } from '../worker/src/frontend/storage/client-storage.js';
+import { ACTIONS_SCRIPT } from '../worker/src/frontend/studios/story/actions.js';
+
+const source = clientStorageScript();
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 4\)/);
+assert.match(source, /createObjectStore\('studio_handoffs'/);
+assert.match(source, /window\.AICS_HANDOFFS\s*=\s*\{/);
+assert.match(source, /contractVersion!==1/);
+assert.match(source, /owner_target_createdAt/);
+new vm.Script(source, { filename: 'client-storage.js' });
+new vm.Script(ACTIONS_SCRIPT, { filename: 'story-actions.js' });
+
+const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
+const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
+const storyUi = readFileSync(new URL('../worker/src/frontend/studios/story/ui.js', import.meta.url), 'utf8');
+assert.match(idea, /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:idea\}\)/);
+assert.match(idea, /location\.href='\/app\/story\?handoff='/);
+assert.doesNotMatch(idea, /AICS_SESSIONS/);
+assert.doesNotMatch(idea, /if\(studio==='story'\)return \{key:'aics_draft_story'/);
+assert.match(storyUi, /id="ideaHandoffPanel"/);
+assert.match(storyUi, /id="acceptIdeaHandoffBtn"/);
+assert.match(story, /function studioReceiveIdeaHandoff\(\)/);
+assert.match(story, /pendingIdeaResult=record\.payload/);
+assert.match(story, /function studioMapIdeaResultToStoryInput\(idea\)/);
+assert.match(story, /function studioAcceptIdeaHandoff\(\)/);
+assert.match(story, /accept\.onclick=studioAcceptIdeaHandoff/);
+assert.match(story, /AICS_SESSIONS\.create\(\{studio:'STORY'/);
+assert.match(story, /studioRestoreDraft\(nextDraft\)/);
+assert.match(story, /AICS_HANDOFFS\.remove\(handoffId\)/);
+const receiverStart = story.indexOf('function studioReceiveIdeaHandoff');
+const acceptStart = story.indexOf('function studioAcceptIdeaHandoff');
+assert.ok(receiverStart >= 0 && acceptStart > receiverStart, 'receiver must be defined before the explicit accept action');
+const receiverSource = story.slice(receiverStart, acceptStart);
+assert.doesNotMatch(receiverSource, /studioRestoreDraft|autoSave|AICS_SESSIONS\.create/);
+console.log('IndexedDB Studio Handoff tests passed.');

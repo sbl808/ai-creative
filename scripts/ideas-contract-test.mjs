@@ -38,7 +38,11 @@ for (const studio of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
   assert.ok(ideaUi.includes("id:'" + studio + "'"), 'missing handoff target: ' + studio);
 }
 assert.match(ideaUi, /targetHasDraft\(studio\)&&!confirm\(/, 'handoff must confirm before replacing an existing draft');
-assert.match(ideaUi, /aics_draft_story/, 'Story handoff draft key missing');
+assert.match(
+  ideaUi,
+  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:idea\}\)/,
+  'Story handoff must send the complete Idea Result through the IndexedDB handoff contract'
+);
 assert.match(ideaUi, /aics_draft_content/, 'Content handoff draft key missing');
 assert.match(ideaUi, /aics_draft_short/, 'Short handoff draft key missing');
 assert.match(ideaUi, /aics_draft_image/, 'Image handoff draft key missing');
