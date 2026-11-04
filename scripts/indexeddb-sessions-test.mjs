@@ -358,7 +358,7 @@ const first = await window.AICS_SESSIONS.create({
   title: 'First session',
   draft: { input: { topic: 'A' } }
 });
-assert.equal(fakeIndexedDB.version, 4, 'database should initialize at schema v3 v4');
+assert.equal(fakeIndexedDB.version, 5, 'database should initialize at schema v5');
 assert.equal(first.ownerId, 'user-a');
 assert.equal(first.studio, 'STORY');
 assert.equal(first.status, 'active');
