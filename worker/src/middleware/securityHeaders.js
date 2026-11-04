@@ -10,7 +10,7 @@ const HTML_CSP_REPORT_ONLY = [
   "script-src 'self'",
   "script-src-elem 'self'",
   "script-src-attr 'none'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self'",
