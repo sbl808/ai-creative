@@ -159,7 +159,7 @@ vm.runInNewContext(source, context, { timeout: 1000 });
 
 assert.equal(fakeIndexedDB.version, 3, 'database should be v3 before handoff schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 4, 'database must upgrade from v3 to v4');
+assert.equal(fakeIndexedDB.version, 5, 'database must upgrade from v3 to v5');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
 assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');
@@ -170,6 +170,10 @@ assert.ok(fakeIndexedDB.records.has('session_results'), 'existing session_result
 assert.ok(fakeIndexedDB.indexes.get('studio_sessions').has('owner_updatedAt'), 'sessions must have owner-scoped pagination index');
 assert.ok(fakeIndexedDB.indexes.get('session_results').has('session_createdAt'), 'results must have session ordering index');
 assert.ok(fakeIndexedDB.records.has('studio_handoffs'), 'schema v4 must create studio_handoffs');
+assert.ok(fakeIndexedDB.records.has('drafts'), 'schema v5 must create drafts');
+assert.ok(fakeIndexedDB.indexes.get('drafts').has('ownerId'), 'drafts must have owner index');
+assert.ok(fakeIndexedDB.indexes.get('drafts').has('updatedAt'), 'drafts must have updatedAt index');
+assert.ok(fakeIndexedDB.indexes.get('drafts').has('owner_studio'), 'drafts must have owner/studio unique index');
 assert.ok(fakeIndexedDB.indexes.get('studio_handoffs').has('ownerId'), 'handoffs must have owner index');
 assert.ok(fakeIndexedDB.indexes.get('studio_handoffs').has('owner_target_createdAt'), 'handoffs must have owner/target/time index');
 
