@@ -139,6 +139,8 @@ jobs:
         run: node --experimental-default-type=module scripts/shared-delegated-events-test.mjs
       - name: Run frontend delegated event tests
         run: node --experimental-default-type=module scripts/frontend-delegated-events-test.mjs
+      - name: Run Content Studio delegated event tests
+        run: node --experimental-default-type=module scripts/content-delegated-events-test.mjs
       - name: Run Story Video Plan state and migration tests
         run: node --experimental-default-type=module scripts/story-video-plan-state-test.mjs
 
