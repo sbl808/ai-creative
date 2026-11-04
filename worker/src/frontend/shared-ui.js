@@ -174,6 +174,16 @@ function aicsHubEsc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function aicsHubRun(i) { var f = __aicsHubCbs[i]; if (typeof f === 'function') f(); }
+if (typeof document !== 'undefined' && !window.__aicsHubDelegationBound) {
+  window.__aicsHubDelegationBound = true;
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+    var action = target && target.closest ? target.closest('[data-aics-hub-action]') : null;
+    if (!action) return;
+    var index = Number(action.getAttribute('data-aics-hub-action'));
+    if (Number.isInteger(index)) aicsHubRun(index);
+  });
+}
 function aicsResultHub(o) {
   o = o || {};
   __aicsHubCbs = [];
@@ -191,7 +201,7 @@ function aicsResultHub(o) {
   if (o.tools && o.tools.length) {
     h += '<div class="aics-hub-tools">';
     o.tools.forEach(function (t) {
-      h += '<button type="button" class="aics-hub-tool" onclick="aicsHubRun(' + reg(t.fn) + ')">' + aicsHubEsc(t.label) + '</button>';
+      h += '<button type="button" class="aics-hub-tool" data-aics-hub-action="' + reg(t.fn) + '">' + aicsHubEsc(t.label) + '</button>';
     });
     h += '</div>';
   }
@@ -199,7 +209,7 @@ function aicsResultHub(o) {
   if (o.next && o.next.length) {
     h += '<div class="aics-hub-title">' + aicsHubEsc(o.nextTitle || 'Continue with this result') + '</div><div class="aics-hub-next-grid">';
     o.next.forEach(function (n) {
-      h += '<button type="button" class="aics-hub-next" onclick="aicsHubRun(' + reg(n.fn) + ')"><b>' + (n.icon ? aicsHubEsc(n.icon) + ' ' : '') + aicsHubEsc(n.label) + (n.locked ? ' <span class="aics-hub-lock">🔒 Pro</span>' : '') + '</b>' + (n.desc ? '<span>' + aicsHubEsc(n.desc) + '</span>' : '') + '</button>';
+      h += '<button type="button" class="aics-hub-next" data-aics-hub-action="' + reg(n.fn) + '"><b>' + (n.icon ? aicsHubEsc(n.icon) + ' ' : '') + aicsHubEsc(n.label) + (n.locked ? ' <span class="aics-hub-lock">🔒 Pro</span>' : '') + '</b>' + (n.desc ? '<span>' + aicsHubEsc(n.desc) + '</span>' : '') + '</button>';
     });
     h += '</div>';
   }
