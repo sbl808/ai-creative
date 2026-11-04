@@ -105,5 +105,5 @@ export function clientStorageScript() {
     backupRestoreScript(),
     storageStatusScript(),
     storagePersistScript()
-  ].join('\\n');
+  ].join('\n');
 }
