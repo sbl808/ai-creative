@@ -15,7 +15,7 @@ for (const id of [
   assert.ok(SETTINGS_HTML.includes(id), 'Settings page must include ' + id);
 }
 assert.match(SETTINGS_HTML, /backup:'tab-backup'/);
-assert.ok(SETTINGS_HTML.includes('backupRecoveryUiScript'));
+assert.ok(SETTINGS_HTML.includes('var pendingBackup = null;'), 'Settings page must inject the recovery UI script');
 assert.match(panel, /Browser Data Backup & Recovery/);
 assert.match(panel, /Safari/);
 assert.match(panel, /အလိုအလျောက် Sync မလုပ်ပါ/);

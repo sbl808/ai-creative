@@ -11,6 +11,8 @@ const PAGE_STYLES = `
 .aics-video-status{font-size:13px;line-height:1.7;color:var(--aics-text-muted,#a1aec2);margin-bottom:12px}
 .aics-video-error{color:var(--aics-danger,#fca5a5)}
 .aics-video-card{background:var(--aics-surface,#111827);border:1px solid var(--aics-border,#263247);border-radius:14px;padding:20px;margin-bottom:16px}
+#vidAdvFields{display:none}
+#vidAdvFields.open{display:grid}
 @media(max-width:767px){.aics-video-card{padding:15px}}
 </style>`;
 
