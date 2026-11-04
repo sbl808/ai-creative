@@ -99,6 +99,7 @@ const window = {
 const context = {
   window,
   localStorage: { getItem: key => key === 'aics_token' ? makeToken('user-a') : null },
+  atob: value => Buffer.from(value, 'base64').toString('binary'),
   Blob,
   Date,
   JSON,

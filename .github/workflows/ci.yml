@@ -54,6 +54,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-backup-format-test.mjs
       - name: Run IndexedDB Backup Export tests
         run: node --experimental-default-type=module scripts/indexeddb-backup-export-test.mjs
+      - name: Run IndexedDB Backup Import Validation tests
+        run: node --experimental-default-type=module scripts/indexeddb-backup-validation-test.mjs
       - name: Run IndexedDB Projects Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-projects-test.mjs
       - name: Run IndexedDB Sessions Repository tests

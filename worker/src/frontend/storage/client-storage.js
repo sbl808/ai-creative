@@ -6,6 +6,8 @@ import { sessionsRepositoryScript } from './repositories/sessions.js';
 import { sessionResultsRepositoryScript } from './repositories/session-results.js';
 import { handoffsRepositoryScript } from './repositories/handoffs.js';
 import { backupExportScript } from './backup/export.js';
+import { backupValidationScript } from './backup/validate.js';
+import { backupImportScript } from './backup/import.js';
 
 const CREATIONS_SCRIPT = String.raw`function __aicsGenId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }
 window.AICS_CREATIONS = {
@@ -94,6 +96,8 @@ export function clientStorageScript() {
     sessionsRepositoryScript(),
     sessionResultsRepositoryScript(),
     handoffsRepositoryScript(),
-    backupExportScript()
+    backupExportScript(),
+    backupValidationScript(),
+    backupImportScript()
   ].join('\n');
 }
