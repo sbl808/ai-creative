@@ -279,7 +279,45 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
 
 </style>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; ကူးယူပြီးပါပြီ</div>
-<script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}</script>
+<script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}
+
+(function(){
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(!target||!target.dataset)return;
+    if(target.dataset.aicsChange==='story-type')window.selectedStoryType=target.value;
+    if(target.dataset.aicsChange==='story-audience')window.aichAud=target.value;
+  });
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(!target||!target.dataset)return;
+    if(target.dataset.aicsInput==='story-content'&&typeof window.onStoryContentInput==='function')window.onStoryContentInput();
+    if(target.dataset.aicsInput==='story-edit'&&typeof window.onStoryEdit==='function')window.onStoryEdit();
+  });
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
+    if(!button)return;
+    switch(button.dataset.aicsAction){
+      case 'story-advanced-toggle':window.studioToggleAdvanced('advToggle','ideaFields');break;
+      case 'generate-story':window.generateStory();break;
+      case 'go-to-video-plan':window.goToVideoForm();break;
+      case 'focus-revise':window.focusRevise();break;
+      case 'copy-story':window.copyStory();break;
+      case 'save-story':window.saveStory();break;
+      case 'story-back-to-edit':window.stGoForce(1);break;
+      case 'revise-advanced-toggle':window.studioToggleAdvanced('reviseToggle','revisePanel');break;
+      case 'revise-story':window.reviseStory();break;
+    }
+  });
+  document.addEventListener('keydown',function(event){
+    var target=event.target;
+    if(target&&target.dataset&&target.dataset.aicsKeydown==='revise-story'&&event.key==='Enter'){
+      event.preventDefault();
+      window.reviseStory();
+    }
+  });
+})();
+</script>
 </body>
 </html>`;
 
