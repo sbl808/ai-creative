@@ -3,6 +3,7 @@ import { storageOwnerScript } from './storage-owner.js';
 import { storageErrorsScript } from './storage-errors.js';
 import { projectsRepositoryScript } from './repositories/projects.js';
 import { sessionsRepositoryScript } from './repositories/sessions.js';
+import { draftsRepositoryScript } from './repositories/drafts.js';
 import { sessionResultsRepositoryScript } from './repositories/session-results.js';
 import { handoffsRepositoryScript } from './repositories/handoffs.js';
 import { backupExportScript } from './backup/export.js';
@@ -97,6 +98,7 @@ export function clientStorageScript() {
     CREATIONS_SCRIPT,
     projectsRepositoryScript(),
     sessionsRepositoryScript(),
+    draftsRepositoryScript(),
     sessionResultsRepositoryScript(),
     handoffsRepositoryScript(),
     backupExportScript(),
