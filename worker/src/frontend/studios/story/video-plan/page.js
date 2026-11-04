@@ -44,6 +44,17 @@ ${VIDEO_PLAN_SESSION_SCRIPT}
 ${VIDEO_PLAN_STATE_SCRIPT}
 ${VIDEO_PLAN_ACTIONS_SCRIPT}
 (function(){
+  var advancedToggle=document.getElementById('vidAdvToggle');
+  var advancedFields=document.getElementById('vidAdvFields');
+  if(advancedToggle&&advancedFields){
+    advancedToggle.addEventListener('click',function(){
+      var open=advancedFields.classList.toggle('open');
+      advancedToggle.classList.toggle('open',open);
+      advancedToggle.setAttribute('aria-expanded',open?'true':'false');
+      var arrow=advancedToggle.querySelector('.aics-adv-arrow');
+      if(arrow)arrow.textContent=open?'▲':'▼';
+    });
+  }
   var status=document.getElementById('storyVideoLoadStatus');
   var storyNode=document.getElementById('videoStoryInput');
   var sessionId='';

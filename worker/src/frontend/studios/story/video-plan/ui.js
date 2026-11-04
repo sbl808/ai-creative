@@ -26,7 +26,7 @@ const STEP4_HTML = `
 <div class="form-group"><label for="vidLangSel">ဘာသာစကား (Language)</label><select id="vidLangSel"></select></div>
 </div>
 
-<button type="button" class="aics-advanced-toggle" id="vidAdvToggle" onclick="studioToggleAdvanced('vidAdvToggle','vidAdvFields')" aria-expanded="false"><span>&#8964; အပိုဆောင်း Video Settings (Advanced Video Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="vidAdvToggle" aria-expanded="false"><span>&#8964; အပိုဆောင်း Video Settings (Advanced Video Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div id="vidAdvFields" class="adv-grid aics-adv-panel" style="margin-top:2px;">
 <div class="form-group adv-check">
 <span class="group-label">ဇာတ်ကောင် ဆက်လက်ထားရှိမှု (Character Continuity)</span>
