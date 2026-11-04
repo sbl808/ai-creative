@@ -14,6 +14,7 @@ import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
+import { buildHtmlSecurityHeaders } from './middleware/securityHeaders.js';
 import { isApiRequestBodyTooLarge, buildCors, ndjsonResponse } from './platform/http/index.js';
 
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
@@ -67,7 +68,13 @@ function friendlyError(e) {
 }
 
 function htmlPage(html) {
-  return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      ...buildHtmlSecurityHeaders(),
+    },
+  });
 }
 
 function bearer(req) {
