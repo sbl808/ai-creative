@@ -32,7 +32,8 @@ const fresh = fakeDb();
 context.__aicsRunSchemaMigrations(fresh, 0, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(fresh.names(), expected);
 assert.deepEqual(Array.from(fresh.store('drafts').indexes.keys()).sort(), ['ownerId', 'owner_studio', 'updatedAt']);
-assert.deepEqual(fresh.store('drafts').indexes.get('owner_studio'), {
+const ownerStudioIndex = fresh.store('drafts').indexes.get('owner_studio');
+assert.deepEqual({ keyPath: Array.from(ownerStudioIndex.keyPath), unique: ownerStudioIndex.unique }, {
   keyPath: ['ownerId', 'studio'], unique: true
 });
 
