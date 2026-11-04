@@ -10,21 +10,31 @@ vm.runInNewContext(schemaMigrationsScript(), context);
 
 function fakeDb(existing) {
   const stores = new Map();
-  (existing || []).forEach(name => stores.set(name, { createIndex() {} }));
+  (existing || []).forEach(name => stores.set(name, { indexes: new Map(), createIndex() {} }));
   return {
     objectStoreNames: { contains: name => stores.has(name) },
     createObjectStore(name) {
-      const store = { createIndex() {} };
+      const store = {
+        indexes: new Map(),
+        createIndex(indexName, keyPath, options) {
+          store.indexes.set(indexName, { keyPath, unique: !!(options && options.unique) });
+        }
+      };
       stores.set(name, store);
       return store;
     },
-    names: () => Array.from(stores.keys()).sort()
+    names: () => Array.from(stores.keys()).sort(),
+    store: name => stores.get(name)
   };
 }
 const expected = ['creations', 'drafts', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'];
 const fresh = fakeDb();
 context.__aicsRunSchemaMigrations(fresh, 0, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(fresh.names(), expected);
+assert.deepEqual(Array.from(fresh.store('drafts').indexes.keys()).sort(), ['ownerId', 'owner_studio', 'updatedAt']);
+assert.deepEqual(fresh.store('drafts').indexes.get('owner_studio'), {
+  keyPath: ['ownerId', 'studio'], unique: true
+});
 
 const legacy = fakeDb(['creations', 'projects', 'studio_sessions', 'session_results']);
 context.__aicsRunSchemaMigrations(legacy, 3, STORAGE_SCHEMA_VERSION);
