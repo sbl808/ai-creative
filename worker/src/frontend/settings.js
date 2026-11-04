@@ -96,7 +96,7 @@ html[data-aics-theme="dark"] .aics-app{
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">${shellIcon('menu')}</button>
+<button type="button" class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">${shellIcon('menu')}</button>
 <div class="aics-brand"><span class="aics-brand-icon">${shellIcon('sparkles')}</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -106,16 +106,16 @@ ${renderSidebar('settings',{variant:'studio'})}
   <h1 class="page-title">${shellIcon('settings')} ဆက်တင်များ</h1>
   <p class="page-subtitle">သင့်အကောင့်၊ ဦးစားပေးချက်များနှင့် API Key ကို စီမံပါ — ဤအချက်များသည် သင့်အကောင့်တွင်သာ သက်ရောက်သည်။</p>
   <div class="tabs" role="tablist" aria-label="Settings sections">
-    <button type="button" class="tab active" id="tab-btn-profile" role="tab" aria-controls="tab-profile" aria-selected="true" tabindex="0" onclick="showTab('profile')">👤 Profile</button>
-    <button type="button" class="tab" id="tab-btn-prefs" role="tab" aria-controls="tab-prefs" aria-selected="false" tabindex="-1" onclick="showTab('prefs')">🎯 ဦးစားပေးချက်များ</button>
-    <button type="button" class="tab" id="tab-btn-apikey" role="tab" aria-controls="tab-apikey" aria-selected="false" tabindex="-1" onclick="showTab('apikey')">🔑 API Key</button>
-    <button type="button" class="tab" id="tab-btn-backup" role="tab" aria-controls="tab-backup" aria-selected="false" tabindex="-1" onclick="showTab('backup')">💾 ဒေတာ Backup</button>
+    <button type="button" class="tab active" id="tab-btn-profile" role="tab" aria-controls="tab-profile" aria-selected="true" tabindex="0" data-settings-tab="profile">👤 Profile</button>
+    <button type="button" class="tab" id="tab-btn-prefs" role="tab" aria-controls="tab-prefs" aria-selected="false" tabindex="-1" data-settings-tab="prefs">🎯 ဦးစားပေးချက်များ</button>
+    <button type="button" class="tab" id="tab-btn-apikey" role="tab" aria-controls="tab-apikey" aria-selected="false" tabindex="-1" data-settings-tab="apikey">🔑 API Key</button>
+    <button type="button" class="tab" id="tab-btn-backup" role="tab" aria-controls="tab-backup" aria-selected="false" tabindex="-1" data-settings-tab="backup">💾 ဒေတာ Backup</button>
   </div>
   <div id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-profile" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
   <div id="tab-prefs" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0" style="display:none;">
-    <form onsubmit="savePrefs(event)">
+    <form id="prefsForm">
       <div class="form-row">
         <label for="pref_studio">ပုံမှန် Studio (Default Studio)</label>
         <select id="pref_studio" class="form-select">
@@ -161,6 +161,24 @@ ${renderSidebar('settings',{variant:'studio'})}
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';
+document.addEventListener('click', function (event) {
+  var target = event.target;
+  var tab = target && target.closest ? target.closest('[data-settings-tab]') : null;
+  if (tab) { showTab(tab.getAttribute('data-settings-tab')); return; }
+  var action = target && target.closest ? target.closest('[data-settings-action]') : null;
+  if (!action) return;
+  var type = action.getAttribute('data-settings-action');
+  if (type === 'retry-key-status') loadKeyStatus();
+  else if (type === 'save-name') saveName();
+  else if (type === 'set-api-key') setApiKeyAndRefresh();
+  else if (type === 'test-api-key') testApiKey();
+  else if (type === 'remove-api-key') removeApiKey();
+});
+var prefsForm = document.getElementById('prefsForm');
+if (prefsForm) prefsForm.addEventListener('submit', function (event) {
+  event.preventDefault();
+  savePrefs(event);
+});
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
@@ -197,7 +215,7 @@ function loadSettings(){
     var s=d.settings||{};
     var u=d.usage||{};
     document.getElementById('tab-profile').innerHTML=
-      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" onclick="saveName()">သိမ်းပါ</button></span></div>'+
+      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" data-settings-action="save-name">သိမ်းပါ</button></span></div>'+
       '<div class="profile-row"><span class="profile-label">📧 အီးမေးလ်</span><span class="profile-value">'+escapeHtml(d.email||'')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">Plan</span><span class="profile-value"><span class="plan-badge'+(d.plan==='PRO'?' pro':'')+'">'+(d.plan==='PRO'?'PRO ⭐':'FREE')+'</span></span></div>'+
       '<div class="profile-row"><span class="profile-label">User ID</span><span class="profile-value">'+escapeHtml(String(d.user_id||''))+'</span></div>'+
@@ -285,13 +303,13 @@ function savePrefs(ev){
 }
 function loadKeyStatus(){
   api('/api/user/apikey/status').then(function(d){
-    if(d.error){document.getElementById('tab-apikey').innerHTML='<div class="empty-state">API Key အခြေအနေ မစစ်နိုင်ပါ။ နောက်မှ ပြန်ကြိုးစားပါ။ <button class="btn btn-secondary" onclick="loadKeyStatus()">Retry</button></div>';return;}
+    if(d.error){document.getElementById('tab-apikey').innerHTML='<div class="empty-state">API Key အခြေအနေ မစစ်နိုင်ပါ။ နောက်မှ ပြန်ကြိုးစားပါ။ <button class="btn btn-secondary" data-settings-action="retry-key-status">Retry</button></div>';return;}
     var has=!!d.hasKey;
     document.getElementById('tab-apikey').innerHTML=
       '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
-      '<button class="btn btn-primary" onclick="setApiKeyAndRefresh()">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
-      (has?'<button class="btn btn-secondary" onclick="testApiKey()">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" onclick="removeApiKey()">🗑️ API Key ဖျက်ရန်</button>':'')+
+      '<button class="btn btn-primary" data-settings-action="set-api-key">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
+      (has?'<button class="btn btn-secondary" data-settings-action="test-api-key">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" data-settings-action="remove-api-key">🗑️ API Key ဖျက်ရန်</button>':'')+
       '</div>'+
       '<div class="hint">သိမ်းထားသော Key အစစ်ကို UI မှာ ပြန်မပြပါ။ Server က စာဝှက်ထားသော Key ကို AI ခေါ်ယူချိန်တွင်သာ အသုံးပြုပါသည်။ Key အသစ် အစားထိုးလိုပါက အရင် Key ကို ဖျက်စရာမလိုပါ။</div>';
   }).catch(function(){
