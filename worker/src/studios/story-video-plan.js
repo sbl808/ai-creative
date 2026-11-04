@@ -1,13 +1,13 @@
 // AI Creative Studio — Story Video Plan module.
 // Owns video-plan generation, scene/character image generation and response parsing.
 
-import { getCMSData } from '../../cms/repositories/index.js';
-import { getGlobalPolicyConfig } from '../../cms/global-policies/index.js';
-import { getStudioVideoContext } from '../../cms/studio-brains/index.js';
-import { buildPromptContext } from '../../prompt/orchestrator/index.js';
-import { generateText, generateImage } from '../../core/ai/aiService.js';
-import { resolveModel } from '../../core/aiModels.js';
-import { mapLegacyCMSTemplate, mapBrainFields, buildStoryFactsBlock } from './shared.js';
+import { getCMSData } from '../cms/repositories/index.js';
+import { getGlobalPolicyConfig } from '../cms/global-policies/index.js';
+import { getStudioVideoContext } from '../cms/studio-brains/index.js';
+import { buildPromptContext } from '../prompt/orchestrator/index.js';
+import { generateText, generateImage } from '../core/ai/aiService.js';
+import { resolveModel } from '../core/aiModels.js';
+import { mapLegacyCMSTemplate, mapBrainFields, buildStoryFactsBlock } from './story/shared.js';
 
 const CMS_VIDEO = 'STORYVIDEO';
 
