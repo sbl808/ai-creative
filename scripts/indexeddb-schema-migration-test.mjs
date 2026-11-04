@@ -4,7 +4,7 @@ import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/ve
 import { schemaMigrationsScript } from '../worker/src/frontend/storage/schema/migrations.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 
-assert.equal(STORAGE_SCHEMA_VERSION, 4);
+assert.equal(STORAGE_SCHEMA_VERSION, 5);
 const context = {};
 vm.runInNewContext(schemaMigrationsScript(), context);
 
@@ -21,14 +21,18 @@ function fakeDb(existing) {
     names: () => Array.from(stores.keys()).sort()
   };
 }
-const expected = ['creations', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'];
+const expected = ['creations', 'drafts', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'];
 const fresh = fakeDb();
 context.__aicsRunSchemaMigrations(fresh, 0, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(fresh.names(), expected);
 
 const legacy = fakeDb(['creations', 'projects', 'studio_sessions', 'session_results']);
 context.__aicsRunSchemaMigrations(legacy, 3, STORAGE_SCHEMA_VERSION);
-assert.deepEqual(legacy.names(), expected, 'existing stores must remain while missing store is added');
+assert.deepEqual(legacy.names(), expected, 'existing stores must remain while missing stores are added');
+
+const versionFour = fakeDb(['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results']);
+context.__aicsRunSchemaMigrations(versionFour, 4, STORAGE_SCHEMA_VERSION);
+assert.deepEqual(versionFour.names(), expected, 'v4 data stores must remain while drafts is added');
 
 const current = fakeDb(expected);
 context.__aicsRunSchemaMigrations(current, STORAGE_SCHEMA_VERSION, STORAGE_SCHEMA_VERSION);
