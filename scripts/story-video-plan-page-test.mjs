@@ -24,9 +24,9 @@ assert.ok(videoUi.includes('storyVideoPlanBtn'), 'Video Plan module owns its gen
 assert.ok(videoUi.includes('id="finalResult"'), 'Video Plan module owns its result container');
 assert.ok(videoUi.includes('data-step="1"') && videoUi.includes('data-step="2"'), 'Video Plan uses independent step numbering');
 assert.ok(videoUi.includes('id="storyVideoPlanBtn" disabled'), 'Generate stays disabled until Video Plan session initialization');
-assert.ok(videoUi.includes('onclick="saveStoryVideoPlan()"'), 'Video Plan exposes an explicit save action');
-assert.ok(videoUi.includes('onclick="copyAllStoryVideoPlanResult()"'), 'Video Plan exposes a copy action');
-assert.ok(videoUi.includes('onclick="exportStoryVideoPlan()"'), 'Video Plan exposes an export action');
+assert.ok(videoUi.includes('data-aics-action="save-video-plan"'), 'Video Plan exposes an explicit save action without inline handlers');
+assert.ok(videoUi.includes('data-aics-action="copy-video-plan"'), 'Video Plan exposes a copy action without inline handlers');
+assert.ok(videoUi.includes('data-aics-action="export-video-plan"'), 'Video Plan exposes an export action without inline handlers');
 assert.ok(videoUi.includes('id="planRetryBtn"'), 'Video Plan retry button is wired');
 assert.ok(videoPage.includes('STORY_VIDEO_PLAN_CONTENT_HTML'), 'Dedicated page composes the Video Plan UI module');
 assert.ok(videoPage.includes("steps: [{ label: '01 Video Settings' }, { label: '02 Video Result'"), 'Dedicated page has its own stepper');
@@ -65,5 +65,14 @@ assert.ok(handoff.indexOf('autoSave()') < handoff.indexOf("window.location.assig
 assert.ok(handoff.includes('encodeURIComponent(session.id)'), 'Only the Story Session ID is passed in the URL');
 assert.ok(loaders.includes("'story-video-plan': () => import('./studios/story-video-plan/page.js')"), 'Dedicated page is registered');
 assert.ok(worker.includes("studioSlug === 'story-video-plan' ? 'story' : studioSlug"), 'Video Plan uses Story Studio enablement');
+
+
+assert.ok(storyUi.includes('data-aics-action="generate-story"'), 'Story actions use delegated event markers');
+assert.ok(storyUi.includes('data-aics-change="story-type"'), 'Story type changes use delegated events');
+assert.ok(storyUi.includes('data-aics-input="story-content"'), 'Story content input uses delegated events');
+assert.ok(!/\\s(?:onclick|onchange|oninput|onkeypress)\\s*=/i.test(storyUi), 'Story UI contains no inline event attributes');
+assert.ok(!/\\s(?:onclick|onchange|oninput|onkeypress)\\s*=/i.test(videoUi), 'Video Plan UI contains no inline event attributes');
+assert.ok(storyPage.includes("case 'generate-story':window.generateStory()"), 'Story page binds delegated action handlers');
+assert.ok(videoPage.includes("case 'save-video-plan':window.saveStoryVideoPlan()"), 'Video Plan page binds delegated action handlers');
 
 console.log('Story / Video Plan UI separation tests passed.');
