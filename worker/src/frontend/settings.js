@@ -190,7 +190,7 @@ document.querySelectorAll('[role="tab"]').forEach(function(tab){
       next.click();
     }
   });
-}
+});
 function loadSettings(){
   api('/api/users/me').then(function(d){
     if(d.error){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Data ရယူ၍ မရပါ — '+(d.error||'error')+'</div>';return;}
