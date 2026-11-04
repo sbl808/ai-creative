@@ -80,7 +80,28 @@ console.log('--- A) CORS enforcement ---');
   check('prod origin rejected under dev env', r9.headers.get('access-control-allow-origin') === null);
 }
 
-console.log('\n--- B) OAuth redirect and state security ---');
+console.log('\n--- B) HTML Content Security Policy rollout ---');
+{
+  const page = await worker.fetch(
+    new Request('https://w.dev/'),
+    envFor(DEV_ORIGIN),
+    {}
+  );
+  const policy = page.headers.get('content-security-policy-report-only') || '';
+  check('HTML pages receive CSP in report-only mode', !!policy && !page.headers.has('content-security-policy'));
+  check('CSP policy restricts script sources to the same origin', policy.includes("script-src 'self'"));
+  check('CSP disallows inline script attributes in target policy', policy.includes("script-src-attr 'none'"));
+  check('CSP disables object embeds and framing', policy.includes("object-src 'none'") && policy.includes("frame-ancestors 'none'"));
+  check('CSP does not allow unsafe-inline scripts', !policy.includes("'unsafe-inline'"));
+  const api = await worker.fetch(
+    new Request('https://w.dev/api/ai-models'),
+    envFor(DEV_ORIGIN),
+    {}
+  );
+  check('JSON API response does not receive HTML CSP header', !api.headers.has('content-security-policy-report-only'));
+}
+
+console.log('\n--- C) OAuth redirect and state security ---');
 {
   const workerOrigin = 'https://worker.example.com';
   const oauthEnv = {
@@ -158,7 +179,7 @@ console.log('\n--- B) OAuth redirect and state security ---');
     !sharedFrontend.includes("h.indexOf('#token=')") && !sharedFrontend.includes("decodeURIComponent(h.slice(7))"));
 }
 
-console.log('\n--- C) Auth signing key (no dev fallback) ---');
+console.log('\n--- D) Auth signing key (no dev fallback) ---');
 {
   // Import auth.js fresh per scenario: getKey() caches the first key at module level,
   // so each case needs a separate module instance.

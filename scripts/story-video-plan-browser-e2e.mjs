@@ -114,7 +114,12 @@ try {
 
   const environmentNotes = 'မိုးစိုနေသော သစ်တောလမ်း၊ အဝါရောင် မီးအိမ်အလင်း';
   await page.locator('#vidAdvToggle').click();
-  await page.locator('#vidAdvFields').waitFor({ state: 'visible' });
+  await page.waitForFunction(() => {
+    const toggle = document.getElementById('vidAdvToggle');
+    const panel = document.getElementById('vidAdvFields');
+    return !!toggle && !!panel && toggle.getAttribute('aria-expanded') === 'true' &&
+      panel.classList.contains('open') && getComputedStyle(panel).display !== 'none';
+  }, null, { timeout: 10000 });
   await page.locator('#vidEnvDetails').fill(environmentNotes);
   await page.waitForTimeout(1200);
 

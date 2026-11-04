@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import { sidebarScript } from '../worker/src/frontend/shared.js';
 
 const assembled = sidebarScript();
-const start = assembled.indexOf('function __aicsDbOpen() {');
+const start = assembled.indexOf('const __AICS_SCHEMA_MIGRATIONS = [');
 const end = assembled.indexOf('// ===== AI Creative Studio — Shared Sidebar Script', start);
 assert.ok(start >= 0 && end > start, 'IndexedDB store script must be present in sidebarScript()');
 const storeScript = assembled.slice(start, end);
@@ -151,7 +151,7 @@ function createFakeIndexedDB() {
       queueMicrotask(() => {
         if (!database) database = makeDatabase();
         request.result = database;
-        if (request.onupgradeneeded) request.onupgradeneeded();
+        if (request.onupgradeneeded) request.onupgradeneeded({ oldVersion: 0, newVersion: 4 });
         if (request.onsuccess) request.onsuccess();
       });
       return request;

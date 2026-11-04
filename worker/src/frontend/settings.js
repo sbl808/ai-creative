@@ -4,6 +4,7 @@
 
 import { renderSidebar, sidebarScript, shellIcon } from './shared.js';
 import { STUDIO_ORDER, getStudio } from '../config/studios.js';
+import { backupRecoveryPanelHtml, backupRecoveryUiScript } from './storage/backup/recovery-ui.js';
 
 // Studio စာရင်းကို Registry မှ အလိုအလျောက် ထုတ်သည် (ပြောင်းလဲမှု ရှိပါက ဤနေရာမှ အလိုအလျောက် ပြောင်းသည်)
 const studioOptions = STUDIO_ORDER.map(function (id) {
@@ -108,6 +109,7 @@ ${renderSidebar('settings',{variant:'studio'})}
     <button type="button" class="tab active" id="tab-btn-profile" role="tab" aria-controls="tab-profile" aria-selected="true" tabindex="0" onclick="showTab('profile')">👤 Profile</button>
     <button type="button" class="tab" id="tab-btn-prefs" role="tab" aria-controls="tab-prefs" aria-selected="false" tabindex="-1" onclick="showTab('prefs')">🎯 ဦးစားပေးချက်များ</button>
     <button type="button" class="tab" id="tab-btn-apikey" role="tab" aria-controls="tab-apikey" aria-selected="false" tabindex="-1" onclick="showTab('apikey')">🔑 API Key</button>
+    <button type="button" class="tab" id="tab-btn-backup" role="tab" aria-controls="tab-backup" aria-selected="false" tabindex="-1" onclick="showTab('backup')">💾 ဒေတာ Backup</button>
   </div>
   <div id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-profile" tabindex="0">
     <div class="loading-state">Loading...</div>
@@ -150,6 +152,9 @@ ${renderSidebar('settings',{variant:'studio'})}
   <div id="tab-apikey" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0" style="display:none;">
     <div class="loading-state">Loading...</div>
   </div>
+  <div id="tab-backup" role="tabpanel" aria-labelledby="tab-btn-backup" tabindex="0" style="display:none;">
+    ${backupRecoveryPanelHtml()}
+  </div>
 </main>
 </div>
 <div class="toast" id="toast"></div>
@@ -165,7 +170,7 @@ if(!TOKEN){
   loadSettings();
 }
 function showTab(name){
-  var tabs={profile:'tab-profile',prefs:'tab-prefs',apikey:'tab-apikey'};
+  var tabs={profile:'tab-profile',prefs:'tab-prefs',apikey:'tab-apikey',backup:'tab-backup'};
   if(!tabs[name]) return;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');t.setAttribute('aria-selected','false');t.setAttribute('tabindex','-1');});
   document.querySelectorAll('.tab-panel').forEach(function(p){p.style.display='none';});
@@ -185,7 +190,7 @@ document.querySelectorAll('[role="tab"]').forEach(function(tab){
       next.click();
     }
   });
-}
+});
 function loadSettings(){
   api('/api/users/me').then(function(d){
     if(d.error){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Data ရယူ၍ မရပါ — '+(d.error||'error')+'</div>';return;}
@@ -324,6 +329,7 @@ function removeApiKey(){
     loadKeyStatus();
   }).catch(function(){showToast('Network error','error');});
 }
+${backupRecoveryUiScript()}
 </script>
 </body>
 </html>`;

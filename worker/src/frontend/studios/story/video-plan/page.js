@@ -11,6 +11,8 @@ const PAGE_STYLES = `
 .aics-video-status{font-size:13px;line-height:1.7;color:var(--aics-text-muted,#a1aec2);margin-bottom:12px}
 .aics-video-error{color:var(--aics-danger,#fca5a5)}
 .aics-video-card{background:var(--aics-surface,#111827);border:1px solid var(--aics-border,#263247);border-radius:14px;padding:20px;margin-bottom:16px}
+#vidAdvFields{display:none}
+#vidAdvFields.open{display:grid}
 @media(max-width:767px){.aics-video-card{padding:15px}}
 </style>`;
 
@@ -42,6 +44,17 @@ ${VIDEO_PLAN_SESSION_SCRIPT}
 ${VIDEO_PLAN_STATE_SCRIPT}
 ${VIDEO_PLAN_ACTIONS_SCRIPT}
 (function(){
+  var advancedToggle=document.getElementById('vidAdvToggle');
+  var advancedFields=document.getElementById('vidAdvFields');
+  if(advancedToggle&&advancedFields){
+    advancedToggle.addEventListener('click',function(){
+      var open=advancedFields.classList.toggle('open');
+      advancedToggle.classList.toggle('open',open);
+      advancedToggle.setAttribute('aria-expanded',open?'true':'false');
+      var arrow=advancedToggle.querySelector('.aics-adv-arrow');
+      if(arrow)arrow.textContent=open?'▲':'▼';
+    });
+  }
   var status=document.getElementById('storyVideoLoadStatus');
   var storyNode=document.getElementById('videoStoryInput');
   var sessionId='';
