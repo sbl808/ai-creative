@@ -8,7 +8,7 @@ const STEP4_HTML = `
 <div class="aics-step" data-step="1">
 <div class="card">
 <div class="card-title">&#127916; Video ဇာတ်လမ်းဖန်တီးရန် <span class="card-title-sub">(Video Creation)</span></div>
-<div id="storyVideoLoadStatus" class="story-auto-status" role="status" aria-live="polite">Story Draft ကို ဖတ်နေပါသည်...</div>
+<div id="storyVideoPlanLoadStatus" class="story-auto-status" role="status" aria-live="polite">Story Draft ကို ဖတ်နေပါသည်...</div>
 <p class="story-intro">Step 02 မှ ဇာတ်လမ်းကို အောက်မှာ Preview ကြည့်နိုင်ပါသည်။ Video အတွက် ဆက်တင်များ ရွေးပြီး ဖန်တီးပါ။</p>
 <div class="form-group">
 <label for="videoStoryInput">အသုံးပြုမည့် ဇာတ်လမ်း (Story to Use)</label>
@@ -71,7 +71,7 @@ const STEP4_HTML = `
 </div>
 
 <div class="error-box" id="planError" role="alert" aria-live="assertive"></div>
-<button type="button" class="btn btn-primary video-generate-btn" id="videoPlanBtn" disabled aria-disabled="true">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
+<button type="button" class="btn btn-primary video-generate-btn" id="storyVideoPlanBtn" disabled aria-disabled="true">&#127916; Video ဇာတ်လမ်း ဖန်တီးရန်</button>
 </div>
 </div>`;
 
@@ -82,10 +82,10 @@ const STEP6_HTML = `
 <div class="aics-step" data-step="2">
 ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="finalResult"></div>
-<div id="videoPlanResultActions" class="btn-row" hidden>
-<button type="button" class="btn btn-secondary" onclick="saveVideoPlan()">&#128190; သိမ်းဆည်းရန်</button>
-<button type="button" class="btn btn-ghost" onclick="copyAllVideoPlanResult()">&#128203; အားလုံး Copy</button>
-<button type="button" class="btn btn-ghost" onclick="exportVideoPlan()">&#8681; Export TXT</button>
+<div id="storyVideoPlanResultActions" class="btn-row" hidden>
+<button type="button" class="btn btn-secondary" onclick="saveStoryVideoPlan()">&#128190; သိမ်းဆည်းရန်</button>
+<button type="button" class="btn btn-ghost" onclick="copyAllStoryVideoPlanResult()">&#128203; အားလုံး Copy</button>
+<button type="button" class="btn btn-ghost" onclick="exportStoryVideoPlan()">&#8681; Export TXT</button>
 </div>
 <div class="error-box" id="planError5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="planRetry5">
@@ -95,6 +95,6 @@ ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်..
 </div>`;
 
 
-const VIDEO_PLAN_CONTENT_HTML = STEP4_HTML + STEP6_HTML;
+const STORY_VIDEO_PLAN_CONTENT_HTML = STEP4_HTML + STEP6_HTML;
 
-export { STEP4_HTML, STEP6_HTML, VIDEO_PLAN_CONTENT_HTML };
+export { STEP4_HTML, STEP6_HTML, STORY_VIDEO_PLAN_CONTENT_HTML };

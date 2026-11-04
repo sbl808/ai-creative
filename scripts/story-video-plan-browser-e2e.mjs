@@ -108,7 +108,7 @@ try {
   }
   await page.waitForURL(/\/app\/story-video-plan\?session=/, { timeout: 10000 });
   await page.locator('#videoStoryInput').waitFor();
-  await page.waitForFunction(() => window.AICS_VIDEO_PLAN_STATE && window.AICS_VIDEO_PLAN_STATE.state.ready);
+  await page.waitForFunction(() => window.AICS_STORY_VIDEO_PLAN_STATE && window.AICS_STORY_VIDEO_PLAN_STATE.state.ready);
   assert.equal(await page.locator('#videoStoryInput').inputValue(), storyText,
     'Video Plan should receive the latest Story text');
 
@@ -130,7 +130,7 @@ try {
   assert.equal(planSession.draft.form.environmentDetails, environmentNotes);
 
   await page.reload();
-  await page.waitForFunction(() => window.AICS_VIDEO_PLAN_STATE && window.AICS_VIDEO_PLAN_STATE.state.ready);
+  await page.waitForFunction(() => window.AICS_STORY_VIDEO_PLAN_STATE && window.AICS_STORY_VIDEO_PLAN_STATE.state.ready);
   assert.equal(await page.locator('#vidEnvDetails').inputValue(), environmentNotes,
     'Video Plan settings should restore after reload');
   assert.equal(await page.locator('#videoStoryInput').inputValue(), storyText,

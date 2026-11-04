@@ -1,5 +1,5 @@
 // Story Video Plan — independent browser state and IndexedDB session lifecycle.
-export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
+export const STORY_VIDEO_PLAN_STATE_SCRIPT = String.raw`
   (function(){
     'use strict';
     var state = {
@@ -27,7 +27,7 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
     function objectCopy(value){return value&&typeof value==='object'&&!Array.isArray(value)?JSON.parse(JSON.stringify(value)):{};}
     function arrayCopy(value){return Array.isArray(value)?JSON.parse(JSON.stringify(value)):[];}
     function status(message,error){
-      var node=el('storyVideoLoadStatus');if(!node)return;
+      var node=el('storyVideoPlanLoadStatus');if(!node)return;
       node.textContent=message;node.classList.toggle('aics-video-error',!!error);
     }
     function fill(id,values,value){
@@ -174,6 +174,6 @@ export const VIDEO_PLAN_STATE_SCRIPT = String.raw`
         return state;
       });
     }
-    window.AICS_VIDEO_PLAN_STATE=Object.freeze({state:state,init:init,save:save,collectDraft:collectDraft,readForm:readForm,applyForm:applyForm});
+    window.AICS_STORY_VIDEO_PLAN_STATE=Object.freeze({state:state,init:init,save:save,collectDraft:collectDraft,readForm:readForm,applyForm:applyForm});
   })();
 `;

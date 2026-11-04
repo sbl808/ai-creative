@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { VIDEO_PLAN_STATE_SCRIPT } from '../worker/src/frontend/studios/story/video-plan/state.js';
+import { STORY_VIDEO_PLAN_STATE_SCRIPT } from '../worker/src/frontend/studios/story-video-plan/state.js';
 
 function makeContext(search) {
   const nodes = {};
@@ -58,7 +58,7 @@ function makeContext(search) {
     }
   };
   const context = { window, document, URL, URLSearchParams, Event: function Event() {}, Promise, JSON, String, Object, Array };
-  vm.runInNewContext(VIDEO_PLAN_STATE_SCRIPT, context);
+  vm.runInNewContext(STORY_VIDEO_PLAN_STATE_SCRIPT, context);
   return { context, nodes, created, updates, copiedImages, planImages, planSession };
 }
 
@@ -76,9 +76,9 @@ async function run() {
   };
   const original = JSON.stringify(source);
   const { context, nodes, created, updates, copiedImages, planImages, planSession } = makeContext('');
-  await context.window.AICS_VIDEO_PLAN_STATE.init(source);
+  await context.window.AICS_STORY_VIDEO_PLAN_STATE.init(source);
 
-  const state = context.window.AICS_VIDEO_PLAN_STATE.state;
+  const state = context.window.AICS_STORY_VIDEO_PLAN_STATE.state;
   assert.equal(state.sessionId, 'plan_1');
   assert.equal(state.sourceSessionId, 'story_1');
   assert.equal(state.story, 'User-edited Video Story');
@@ -100,7 +100,7 @@ async function run() {
 
   const updatesBeforeExplicitSave = updates.length;
   nodes.vidExtra.value = 'Updated after first save';
-  await context.window.AICS_VIDEO_PLAN_STATE.save();
+  await context.window.AICS_STORY_VIDEO_PLAN_STATE.save();
   assert.equal(
     updates.length,
     updatesBeforeExplicitSave + 1,
@@ -113,8 +113,8 @@ async function run() {
   // Separate page contexts share the same IndexedDB-backed result records.
   reload.planImages.push(...planImages);
   reload.context.window.AICS_SESSIONS.get = async () => planSession;
-  await reload.context.window.AICS_VIDEO_PLAN_STATE.init(source);
-  const restored = reload.context.window.AICS_VIDEO_PLAN_STATE.state;
+  await reload.context.window.AICS_STORY_VIDEO_PLAN_STATE.init(source);
+  const restored = reload.context.window.AICS_STORY_VIDEO_PLAN_STATE.state;
   assert.equal(restored.sessionId, 'plan_1');
   assert.equal(restored.story, 'User-edited Video Story');
   assert.equal(restored.form.additionalInstructions, 'Updated after first save');

@@ -1,8 +1,8 @@
 // Story Video Plan — browser actions, rendering and result persistence.
-export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
+export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
 (function(){
   'use strict';
-  var api=window.AICS_VIDEO_PLAN_STATE;
+  var api=window.AICS_STORY_VIDEO_PLAN_STATE;
   if(!api)return;
   var busy=false;
   function state(){return api.state;}
@@ -101,7 +101,7 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
       html+='</div>';
     }
     container.innerHTML=html||'<div class="card"><div class="empty-note">ရလဒ် မရှိသေးပါ — Video Plan ဖန်တီးပါ</div></div>';
-    var toolbar=byId('videoPlanResultActions');if(toolbar)toolbar.hidden=!characters.length&&!scenes.length;
+    var toolbar=byId('storyVideoPlanResultActions');if(toolbar)toolbar.hidden=!characters.length&&!scenes.length;
   }
   function resultText(){
     var parts=[],s=state();
@@ -142,10 +142,10 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
   }
   function setBusy(value){
     busy=!!value;
-    var button=byId('videoPlanBtn');
+    var button=byId('storyVideoPlanBtn');
     if(button){button.disabled=busy||!state().ready;button.setAttribute('aria-disabled',button.disabled?'true':'false');button.textContent=busy?'Video Plan ပြင်ဆင်နေသည်...':'🎬 Video ဇာတ်လမ်း ဖန်တီးရန်';}
   }
-  function generateVideoPlan(){
+  function generateStoryVideoPlan(){
     if(busy)return;
     var s=state(),form=api.readForm(),story=String(form.story||'').trim();
     if(!s.ready){showError('Story Session ကို ဖတ်ယူနေဆဲ ဖြစ်ပါသည်။');return;}
@@ -229,10 +229,10 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     },500);
   }
   function initActions(){
-    var button=byId('videoPlanBtn');
-    if(button)button.addEventListener('click',generateVideoPlan);
+    var button=byId('storyVideoPlanBtn');
+    if(button)button.addEventListener('click',generateStoryVideoPlan);
     var retry=byId('planRetryBtn');
-    if(retry)retry.addEventListener('click',generateVideoPlan);
+    if(retry)retry.addEventListener('click',generateStoryVideoPlan);
     var form=byId('videoStoryInput');
     document.addEventListener('input',function(event){
       if(event.target&&event.target.closest&&event.target.closest('.aics-work'))scheduleSave();
@@ -248,16 +248,16 @@ export const VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
       if(window.studioGoStep)window.studioGoStep(2);
     }
   }
-  window.generateVideoPlan=generateVideoPlan;
+  window.generateStoryVideoPlan=generateStoryVideoPlan;
   window.generateCharImage=function(index){generateImage('character',index);};
   window.generateEnvImage=function(index){generateImage('environment',index);};
   window.copyCharPrompt=copyCharPrompt;
   window.copyVideoPrompt=copyVideoPrompt;
   window.copyEnvPrompt=copyEnvPrompt;
-  window.copyAllVideoPlanResult=copyAllResult;
-  window.saveVideoPlan=savePlan;
-  window.exportVideoPlan=exportResult;
-  window.AICS_VIDEO_PLAN_ACTIONS=Object.freeze({init:initActions,generate:generateVideoPlan,render:render,save:savePlan});
+  window.copyAllStoryVideoPlanResult=copyAllResult;
+  window.saveStoryVideoPlan=savePlan;
+  window.exportStoryVideoPlan=exportResult;
+  window.AICS_STORY_VIDEO_PLAN_ACTIONS=Object.freeze({init:initActions,generate:generateStoryVideoPlan,render:render,save:savePlan});
   if(api.state.ready)initActions();
 })();
 `;
