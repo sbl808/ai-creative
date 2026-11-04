@@ -61,6 +61,21 @@ console.log('--- A) CORS enforcement ---');
   const r4 = await fetchCors('/api/ai-models', BOGUS, 'OPTIONS');
   check('OPTIONS preflight (bogus) → 204 but NO ACAO', r4.status === 204 && r4.headers.get('access-control-allow-origin') === null);
 
+  // JSON responses must not be cached, including Story Video Plan user-data routes.
+  const noStoreCases = [
+    { path: '/api/ai-models', method: 'GET', label: 'general JSON API' },
+    { path: '/api/studio/story/video', method: 'POST', label: 'Story Video Plan generation API' },
+    { path: '/api/studio/story/video-image', method: 'POST', label: 'Story Video Plan image API' },
+  ];
+  for (const testCase of noStoreCases) {
+    const response = await worker.fetch(new Request('https://w.dev' + testCase.path, {
+      method: testCase.method,
+    }), envFor(DEV_ORIGIN), {});
+    check(testCase.label + ' returns Cache-Control: no-store',
+      response.headers.get('cache-control') === 'no-store',
+      'Cache-Control=' + JSON.stringify(response.headers.get('cache-control')));
+  }
+
   // No Origin (same-origin/nav) → no ACAO
   const r5 = await fetchCors('/api/ai-models', null);
   check('no Origin → no ACAO', r5.headers.get('access-control-allow-origin') === null);
