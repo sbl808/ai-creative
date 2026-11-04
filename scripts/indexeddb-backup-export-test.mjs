@@ -116,7 +116,7 @@ const json = await window.AICS_BACKUP.exportJson();
 const backup = JSON.parse(json);
 assert.equal(backup.format, 'aics-browser-backup');
 assert.equal(backup.exportVersion, 1);
-assert.equal(backup.schemaVersion, 4);
+assert.equal(backup.schemaVersion, 5);
 assert.deepEqual(Object.keys(backup.stores).sort(), [
   'creations', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
 ]);
