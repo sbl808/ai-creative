@@ -99,7 +99,7 @@ try {
   }));
   assert.equal(storyHandoffState.isPro, true, 'Browser fixture should enable the Story Video Pro feature gate');
   assert.equal(storyHandoffState.currentStory, storyText, 'Story Studio should restore the completed Story');
-  await page.locator('button[onclick="goToVideoForm()"]').click();
+  await page.locator('button[data-aics-action="go-to-video-plan"]').click();
   await page.waitForTimeout(1200);
   if (!/\/app\/story-video-plan\?session=/.test(page.url())) {
     const visibleText = await page.locator('body').innerText();
