@@ -44,6 +44,21 @@ ${STORY_VIDEO_PLAN_SESSION_SCRIPT}
 ${STORY_VIDEO_PLAN_STATE_SCRIPT}
 ${STORY_VIDEO_PLAN_ACTIONS_SCRIPT}
 (function(){
+
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(target&&target.dataset&&target.dataset.aicsInput==='video-auto-expand'&&typeof window.autoExpand==='function')window.autoExpand(target);
+  });
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
+    if(!button)return;
+    switch(button.dataset.aicsAction){
+      case 'save-video-plan':window.saveStoryVideoPlan();break;
+      case 'copy-video-plan':window.copyAllStoryVideoPlanResult();break;
+      case 'export-video-plan':window.exportStoryVideoPlan();break;
+      case 'video-plan-back-to-edit':window.studioGoStep(1);break;
+    }
+  });
   var advancedToggle=document.getElementById('vidAdvToggle');
   var advancedFields=document.getElementById('vidAdvFields');
   if(advancedToggle&&advancedFields){
