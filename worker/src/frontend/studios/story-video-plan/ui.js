@@ -12,7 +12,7 @@ const STEP4_HTML = `
 <p class="story-intro">Step 02 မှ ဇာတ်လမ်းကို အောက်မှာ Preview ကြည့်နိုင်ပါသည်။ Video အတွက် ဆက်တင်များ ရွေးပြီး ဖန်တီးပါ။</p>
 <div class="form-group">
 <label for="videoStoryInput">အသုံးပြုမည့် ဇာတ်လမ်း (Story to Use)</label>
-<textarea id="videoStoryInput" class="video-story-input" oninput="autoExpand(this)"></textarea>
+<textarea id="videoStoryInput" class="video-story-input" data-aics-input="video-auto-expand"></textarea>
 </div>
 
 <div class="aics-section-label"><span class="aics-section-title">ဗီဒီယို သတ်မှတ်ချက်များ</span><span class="aics-section-sub">Video Settings</span></div>
@@ -83,14 +83,14 @@ const STEP6_HTML = `
 ${aicsResultLoadingHtml('planLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="finalResult"></div>
 <div id="storyVideoPlanResultActions" class="btn-row" hidden>
-<button type="button" class="btn btn-secondary" onclick="saveStoryVideoPlan()">&#128190; သိမ်းဆည်းရန်</button>
-<button type="button" class="btn btn-ghost" onclick="copyAllStoryVideoPlanResult()">&#128203; အားလုံး Copy</button>
-<button type="button" class="btn btn-ghost" onclick="exportStoryVideoPlan()">&#8681; Export TXT</button>
+<button type="button" class="btn btn-secondary" data-aics-action="save-video-plan">&#128190; သိမ်းဆည်းရန်</button>
+<button type="button" class="btn btn-ghost" data-aics-action="copy-video-plan">&#128203; အားလုံး Copy</button>
+<button type="button" class="btn btn-ghost" data-aics-action="export-video-plan">&#8681; Export TXT</button>
 </div>
 <div class="error-box" id="planError5" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="planRetry5">
 <button id="planRetryBtn" class="btn btn-primary" type="button">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="studioGoStep(1)">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-secondary" data-aics-action="video-plan-back-to-edit">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
 
