@@ -58,7 +58,14 @@ import { ADMIN_HTML, adminApi } from './admin/index.js';
 // the environment's ALLOWED_ORIGINS (wrangler.toml per env.dev/staging/prod)
 // are echoed back; same-origin / no-Origin requests simply get no ACAO header.
 function json(data, status, c) {
-  return new Response(JSON.stringify(data), { status: status || 200, headers: { 'Content-Type': 'application/json', ...c } });
+  return new Response(JSON.stringify(data), {
+    status: status || 200,
+    headers: {
+      'Content-Type': 'application/json',
+      ...c,
+      'Cache-Control': 'no-store',
+    },
+  });
 }
 
 // Rule 22 — Error Handling: User ကို Technical Error အပြည့်မပြပါ။
