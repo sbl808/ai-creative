@@ -154,7 +154,45 @@ ${sidebarScript()}
   .aics-work .aics-out-hub .aics-out-desc{display:none;}
 }
 </style>
-<script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${API_SCRIPT}${AUDIO_SCRIPT}${SHELL_SCRIPT}</script>
+<script>${STATE_SCRIPT}${CONSTANTS_SCRIPT}${HELPERS_SCRIPT}${API_SCRIPT}${AUDIO_SCRIPT}${SHELL_SCRIPT}
+(function(){
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(!target||!target.dataset)return;
+    if(target.dataset.aicsChange==='voice-gender-male')window.setVoiceGender('male');
+    if(target.dataset.aicsChange==='voice-gender-female')window.setVoiceGender('female');
+    if(target.dataset.aicsChange==='effective-voice')window.setEffectiveVoice();
+  });
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(target&&target.dataset&&target.dataset.aicsInput==='auto-grow')window.autoGrow(target);
+  });
+  document.addEventListener('click',function(event){
+    var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
+    if(!button)return;
+    switch(button.dataset.aicsAction){
+      case 'toggle-audio-advanced':window.studioToggleAdvanced('audioAdvToggle','audioAdvFields');break;
+      case 'generate-voice':window.generateVoice();break;
+      case 'content-nav-audio':window.csNav(22);break;
+      case 'download-audio':window.downloadAudio();break;
+      case 'generate-srt':window.generateSrt();break;
+      case 'copy-result-srt':window.copyText('resultSrt');break;
+      case 'download-result-srt':window.downloadSrt('resultSrt','content_subtitle.srt');break;
+      case 'translate-srt':window.translateSrt();break;
+      case 'select-direction':
+        window.selectDirection(button);
+        button.parentElement.querySelectorAll('.direction-chip').forEach(function(chip){
+          chip.setAttribute('aria-pressed',String(chip===button));
+        });
+        break;
+      case 'copy-translated-srt':window.copyText('resultSrtTranslated');break;
+      case 'download-translated-srt':window.downloadSrt('resultSrtTranslated','content_subtitle_translated.srt');break;
+      case 'back-to-content-result':window.backToContentResult();break;
+      case 'save-content-result':window.saveContentResult();break;
+    }
+  });
+})();
+</script>
 
 <style>
 /* Content Studio — Minimal SaaS visual layer; presentation-only overrides */

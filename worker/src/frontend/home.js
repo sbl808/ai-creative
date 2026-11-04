@@ -116,7 +116,7 @@ a{color:var(--cyan);text-decoration:none;}
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+<button type="button" class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -128,7 +128,7 @@ ${renderSidebar('home',{variant:'studio'})}
       <h1 id="greeting">မင်္ဂလာပါ 👋</h1>
       <p class="subtitle">ဒီနေ့ ဘာဖန်တီးချင်ပါသလဲ?</p>
     </div>
-    <div class="api-pill sparkle" role="button" tabindex="0" onclick="openFreeKeyGuide()" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();openFreeKeyGuide();}">✨ အခမဲ့ API KEY ယူရန်</div>
+    <div class="api-pill sparkle" role="button" tabindex="0" data-home-action="open-key-guide">✨ အခမဲ့ API KEY ယူရန်</div>
   </div>
   <div class="hero-banner">
     <div class="hero-banner-icons">
@@ -139,32 +139,32 @@ ${renderSidebar('home',{variant:'studio'})}
   </div>
   <div class="section-label">အမြန်ဖန်တီးရန်</div>
   <div class="quick-grid">
-    <div class="studio-card card-story" data-studio="story" role="link" tabindex="0" aria-label="Open story studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/story';}" onclick="location.href='/app/story'">
+    <div class="studio-card card-story" data-studio="story" role="link" tabindex="0" aria-label="Open story studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">📖</div>
       <div class="title">ဇာတ်လမ်း Studio</div>
       <div class="desc" id="desc-story">AI ဖြင့် Story ရေးပါ</div>
     </div>
-    <div class="studio-card card-content" data-studio="content" role="link" tabindex="0" aria-label="Open content studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/content';}" onclick="location.href='/app/content'">
+    <div class="studio-card card-content" data-studio="content" role="link" tabindex="0" aria-label="Open content studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">✍️</div>
       <div class="title">Content Studio</div>
       <div class="desc" id="desc-content">AI ဖြင့် Content ရေးပါ</div>
     </div>
-    <div class="studio-card card-short" data-studio="short" role="link" tabindex="0" aria-label="Open short studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/short';}" onclick="location.href='/app/short'">
+    <div class="studio-card card-short" data-studio="short" role="link" tabindex="0" aria-label="Open short studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎬</div>
       <div class="title">Short Studio</div>
       <div class="desc" id="desc-short">TikTok/Reels Script ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-image" data-studio="image" role="link" tabindex="0" aria-label="Open image studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/image';}" onclick="location.href='/app/image'">
+    <div class="studio-card card-image" data-studio="image" role="link" tabindex="0" aria-label="Open image studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎨</div>
       <div class="title">ပုံ Studio</div>
       <div class="desc" id="desc-image">AI Image Prompt ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-voice" data-studio="voice" role="link" tabindex="0" aria-label="Open voice studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/voice';}" onclick="location.href='/app/voice'">
+    <div class="studio-card card-voice" data-studio="voice" role="link" tabindex="0" aria-label="Open voice studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎙</div>
       <div class="title">အသံ Studio</div>
       <div class="desc" id="desc-voice">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
-    <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();location.href='/app/shop';}" onclick="location.href='/app/shop'">
+    <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
       <div class="title">ရောင်းချရေး Studio</div>
       <div class="desc" id="desc-shop">Marketing Content ဖန်တီးပါ</div>
@@ -172,7 +172,7 @@ ${renderSidebar('home',{variant:'studio'})}
   </div>
   <div class="section-label">
     နောက်ဆုံးဖန်တီးထားသော Project များ
-    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" onclick="location.href='/app/creations'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='/app/creations';}">အားလုံးကြည့်ရန် →</span>
+    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" data-home-action="navigate-creations">အားလုံးကြည့်ရန် →</span>
   </div>
   <div id="recentProjectsArea"><p style="color:var(--text3);">Loading...</p></div>
 </main>
@@ -180,7 +180,7 @@ ${renderSidebar('home',{variant:'studio'})}
 </div>
 <div class="modal-overlay" id="freeKeyModal">
   <div class="free-key-modal">
-    <button class="modal-close" onclick="closeFreeKeyGuide()" aria-label="Close">✕</button>
+    <button class="modal-close" data-home-action="close-key-guide" aria-label="Close">✕</button>
     <h3>✨ အခမဲ့ API Key ယူနည်း</h3>
     <div class="sub">Gemini API Key အခမဲ့ ရယူနည်း — အဆင့် ၅ ဆင့်သာ လိုပါသည်</div>
     <div class="free-key-step"><div class="num">1</div><div class="txt">အောက်က <b>အပြာရောင် ခလုတ်</b> ကို နှိပ်ပါ — Google AI Studio ၏ API Key စာမျက်နှာသို့ အလိုအလျောက် ရောက်ပါမည်</div></div>
@@ -198,6 +198,27 @@ ${renderSidebar('home',{variant:'studio'})}
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';
+document.addEventListener('click', function (event) {
+  var target = event.target;
+  var action = target && target.closest ? target.closest('[data-home-action]') : null;
+  if (!action) return;
+  var type = action.getAttribute('data-home-action');
+  if (type === 'open-key-guide') openFreeKeyGuide();
+  else if (type === 'close-key-guide') closeFreeKeyGuide();
+  else if (type === 'navigate-creations') location.href = '/app/creations';
+  else if (type === 'navigate-studio') {
+    var studio = action.getAttribute('data-studio');
+    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
+  }
+});
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  var target = event.target;
+  var action = target && target.closest ? target.closest('[data-home-action][role="button"], [data-home-action][role="link"]') : null;
+  if (!action) return;
+  event.preventDefault();
+  action.click();
+});
 var BANNER_MESSAGES = [
   "AI Creative Studio မှ ကြိုဆိုပါတယ် ✨",
   "သင့်ရဲ့ Creative Idea ကို AI နဲ့ အသက်သွင်းလိုက်ပါ 🚀",
@@ -253,7 +274,7 @@ if(!TOKEN){
     top3.forEach(function(c){
       var icon=STUDIO_ICONS[c.studio]||'📄';
       var dateStr=c.created_at?fmtHomeDate(c.created_at):'';
-      html+='<div class="project-card"><div class="p-icon">'+icon+'</div><div class="p-title">'+escapeHtml(c.title||'(Untitled)')+'</div><div class="p-date">'+dateStr+'</div><button class="project-open-btn" onclick="location.href=\\'/app/creations\\'">ဖွင့်ရန်</button></div>';
+      html+='<div class="project-card"><div class="p-icon">'+icon+'</div><div class="p-title">'+escapeHtml(c.title||'(Untitled)')+'</div><div class="p-date">'+dateStr+'</div><button class="project-open-btn" data-home-action="navigate-creations">ဖွင့်ရန်</button></div>';
     });
     html+='</div>';
     area.innerHTML=html;

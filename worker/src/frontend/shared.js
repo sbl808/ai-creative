@@ -66,7 +66,7 @@ function myWorkLinks(activeId) {
 function appShellSidebar(activeId) {
   const homeActive = activeId === 'home' ? ' active' : '';
   return (
-    '<div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>\n' +
+    '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
     '<nav class="sidebar" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
@@ -78,11 +78,11 @@ function appShellSidebar(activeId) {
     '  <div class="sidebar-bottom">\n' +
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
-    '    <button class="side-btn" onclick="setApiKey()">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
+    '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
     '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '    <button class="side-btn" onclick="logout()">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
+    '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
     '  </div>\n' +
     '</nav>'
   );
@@ -98,11 +98,11 @@ function studioPageSidebar(activeId) {
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
       '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" onclick="aicsLoadMoreStorySessions()">Load More</button>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
       '</section>'
     : '';
   return (
-    '<div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>\n' +
+    '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
     '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
@@ -116,11 +116,11 @@ function studioPageSidebar(activeId) {
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +
     '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
-    '  <a class="side-btn" onclick="setApiKey()">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
+    '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
-    '  <a class="side-btn" onclick="logout()">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
+    '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
   );
@@ -286,7 +286,7 @@ function sidebarSessionHistoryScript() {
     var html = '';
     items.forEach(function (session) {
       html += '<button type="button" class="aics-session-item" data-session-id="' +
-        escapeHtml(session.id) + '" onclick="aicsOpenStorySession(this)" title="' +
+        escapeHtml(session.id) + '" data-aics-sidebar-action="open-story-session" title="' +
         escapeHtml(session.title || 'Untitled Story') + '">' +
         '<span class="aics-session-title">' + escapeHtml(session.title || 'Untitled Story') + '</span>' +
         '<span class="aics-session-date">' + escapeHtml(formatDate(session.updatedAt)) + '</span>' +
@@ -410,6 +410,26 @@ export function sidebarScript() {
     '  localStorage.removeItem(\'aics_token\'); localStorage.removeItem(\'aics_email\'); localStorage.removeItem(\'aics_plan\');\n' +
     '  location.href = \'/api/auth/logout\';\n' +
     '}\n' +
+    'document.addEventListener(\'click\', function (event) {\n' +
+    '  var target = event.target;\n' +
+    '  if (!target || !target.closest) return;\n' +
+    '  var sidebarAction = target.closest(\'[data-aics-sidebar-action]\');\n' +
+    '  if (sidebarAction) {\n' +
+    '    var action = sidebarAction.getAttribute(\'data-aics-sidebar-action\');\n' +
+    '    if (action === \'toggle\' && typeof window.toggleSidebar === \'function\') window.toggleSidebar();\n' +
+    '    else if (action === \'set-api-key\' && typeof window.setApiKey === \'function\') window.setApiKey();\n' +
+    '    else if (action === \'logout\' && typeof window.logout === \'function\') window.logout();\n' +
+    '    else if (action === \'load-more-sessions\' && typeof window.aicsLoadMoreStorySessions === \'function\') window.aicsLoadMoreStorySessions();\n' +
+    '    else if (action === \'open-story-session\' && typeof window.aicsOpenStorySession === \'function\') window.aicsOpenStorySession(sidebarAction);\n' +
+    '    return;\n' +
+    '  }\n' +
+    '  var shellAction = target.closest(\'[data-aics-shell-action]\');\n' +
+    '  if (!shellAction) return;\n' +
+    '  var shellType = shellAction.getAttribute(\'data-aics-shell-action\');\n' +
+    '  if (shellType === \'step\' && typeof window.studioGoStep === \'function\') window.studioGoStep(Number(shellAction.getAttribute(\'data-step\')));\n' +
+    '  else if (shellType === \'audience\' && typeof window.aichPickAud === \'function\') window.aichPickAud(shellAction);\n' +
+    '  else if (shellType === \'studio-action\' && typeof window.studioAct === \'function\') window.studioAct(Number(shellAction.getAttribute(\'data-action-index\')));\n' +
+    '});\n' +
     'function setApiKey() {\n' +
     '  var key = prompt(\'မင်းရဲ့ Gemini API Key ကို ထည့်ပါ (aistudio.google.com ကနေ ရနိုင်ပါတယ်):\');\n' +
     '  if (!key) return Promise.resolve(false);\n' +
@@ -806,7 +826,7 @@ export function renderStudioShell(opts) {
     aicsDesignPatchCss() +
     '<div class="aics-app" id="aicsApp">\n' +
     '<header class="header aics-header">\n' +
-    '<button class="aics-menu-btn" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" title="Menu" onclick="toggleSidebar()">' + shellIcon('menu') + '</button>\n' +
+    '<button class="aics-menu-btn" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" title="Menu" data-aics-sidebar-action="toggle">' + shellIcon('menu') + '</button>\n' +
     '<div class="aics-brand"><span class="aics-brand-icon">' + shellIcon('sparkles') + '</span><span class="aics-title">' + nameMy + '</span></div>\n' +
     '<div class="aics-pro" id="sidePlan">FREE</div>\n' +
     '</header>\n' +
@@ -852,7 +872,7 @@ export function renderStudioShell(opts) {
     '    var html = \'<div class="aics-stepper-inner">\';\n' +
     '    for (var i = 0; i < STEPS.length; i++) {\n' +
     '      var s = STEPS[i];\n' +
-    '      html += \'<button class="aics-step-btn" data-step="\' + s.n + \'"\' + (s.lock ? \' data-lock="1"\' : \'\') + \' onclick="studioGoStep(\' + s.n + \')">\' +\n' +
+    '      html += \'<button class="aics-step-btn" data-step="\' + s.n + \'"\' + (s.lock ? \' data-lock="1"\' : \'\') + \' data-aics-shell-action="step">\' +\n' +
     '        \'<span class="aics-step-txt"><span class="aics-step-label">\' + s.label + \'</span></span>\' +\n' +
     '        \'<span class="aics-step-loading"><span class="aics-step-spinner"></span>ဖန်တီးနေသည်...</span></button>\';\n' +
     '      if (i < STEPS.length - 1) html += \'<span class="aics-step-link"></span>\';\n' +
@@ -953,7 +973,7 @@ export function renderStudioShell(opts) {
     '    var html = \'\';\n' +
     '    for (var i = 0; i < window.aichAudChoices.length; i++) {\n' +
     '      var v = window.aichAudChoices[i];\n' +
-    '      html += \'<button type="button" class="aich-chip\' + (v === window.aichAud ? \' active\' : \'\') + \'" onclick="aichPickAud(this)">\' + v + \'</button>\';\n' +
+    '      html += \'<button type="button" class="aich-chip\' + (v === window.aichAud ? \' active\' : \'\') + \'" data-aics-shell-action="audience">\' + v + \'</button>\';\n' +
     '    }\n' +
     '    c.innerHTML = html;\n' +
     '  };\n' +
@@ -971,7 +991,7 @@ export function renderStudioShell(opts) {
     '    var html = \'\';\n' +
     '    for (var i = 0; i < acts.length; i++) {\n' +
     '      var a = acts[i];\n' +
-    '      html += \'<button class="aics-act \' + (a.cls || "secondary") + \'" onclick="studioAct(\' + i + \')">\' + a.label + \'</button>\';\n' +
+    '      html += \'<button class="aics-act \' + (a.cls || "secondary") + \'" data-aics-shell-action="studio-action" data-action-index="\' + i + \'">\' + a.label + \'</button>\';\n' +
     '    }\n' +
     '    c.innerHTML = \'\';\n' +
     '    if (model) c.appendChild(model);\n' +

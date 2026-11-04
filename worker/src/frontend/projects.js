@@ -44,7 +44,7 @@ a{color:var(--primary);text-decoration:none;}
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu">${shellIcon('menu')}</button>
+<button class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu">${shellIcon('menu')}</button>
 <div class="aics-brand"><span class="aics-brand-icon">${shellIcon('sparkles')}</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -54,8 +54,8 @@ ${renderSidebar('projects',{variant:'studio'})}
   <h1 class="page-title">${shellIcon('folder')} Projects</h1>
   <p class="page-subtitle">သင့်ဖန်တီးမှုများကို Project များအတွင်း စုစည်းနိုင်ရန် — နောက်ဆင့်များတွင် Creation များနှင့် ချိတ်ဆက်ပါမည်။</p>
   <div class="create-box">
-    <input id="projectTitle" class="create-input" type="text" placeholder="Project အမည် ရိုက်ထည့်ပါ..." onkeydown="if(event.key==='Enter')createProject()">
-    <button class="btn btn-primary" onclick="createProject()">➕ Project အသစ်</button>
+    <input id="projectTitle" class="create-input" type="text" placeholder="Project အမည် ရိုက်ထည့်ပါ..." data-project-action="title-input">
+    <button class="btn btn-primary" data-project-action="create">➕ Project အသစ်</button>
   </div>
   <div id="loadingState" class="loading-state">Loading...</div>
   <div id="emptyState" class="empty-state" style="display:none;">📭 Project များ မရှိသေးပါ — အထက်ပါ အကွက်တွင် အမည်ရိုက်၍ "Project အသစ်" နှိပ်ပါ။</div>
@@ -66,6 +66,16 @@ ${renderSidebar('projects',{variant:'studio'})}
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';
+document.addEventListener('click', function (event) {
+  var target = event.target;
+  var action = target && target.closest ? target.closest('[data-project-action="create"]') : null;
+  if (action) createProject();
+});
+document.addEventListener('keydown', function (event) {
+  if (event.key !== 'Enter' || !event.target || event.target.id !== 'projectTitle') return;
+  event.preventDefault();
+  createProject();
+});
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function projectErrorMessage(error){
   var code=error&&error.code?error.code:(error&&error.message?error.message:'');

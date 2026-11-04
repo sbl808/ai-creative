@@ -29,7 +29,7 @@ const STEP1_HTML = `
 <div class="studio-form-grid">
 <div class="form-group aics-cms-type-field">
 <label for="storyTypeSel">ဇာတ်လမ်းအမျိုးအစား (Story Type)</label>
-<select id="storyTypeSel" onchange="selectedStoryType=this.value;">
+<select id="storyTypeSel" data-aics-change="story-type">
 <option value="1" selected>ဇာတ်လမ်း (Free)</option>
 <option value="2">ရုပ်ရှင် (Pro)</option>
 <option value="3">ဇာတ်လမ်းတွဲ (Pro)</option>
@@ -39,7 +39,7 @@ const STEP1_HTML = `
 </div>
 <div class="form-group">
 <label for="audSel">ပရိသတ် (Audience)</label>
-<select id="audSel" onchange="window.aichAud=this.value;"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select>
+<select id="audSel" data-aics-change="story-audience"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select>
 </div>
 <div class="form-group">
 <label for="toneSel">ရေးသားပုံစံ (Tone)</label>
@@ -53,15 +53,15 @@ const STEP1_HTML = `
 
 <div class="form-group story-content-group">
 <label for="field_0">ဇာတ်လမ်းအကြောင်းအရာ (Story Content) <span class="req-star" aria-hidden="true">*</span></label>
-<textarea id="field_0" class="story-content-input" aria-required="true" aria-describedby="field0Error" placeholder="ဥပမာ — ရန်ကုန်မှာ အောင်မြင်မှုရဖို့ ကြိုးစားနေတဲ့ လူငယ်တစ်ယောက်ရဲ့ ခရီး..." oninput="onStoryContentInput()"></textarea>
+<textarea id="field_0" class="story-content-input" aria-required="true" aria-describedby="field0Error" placeholder="ဥပမာ — ရန်ကုန်မှာ အောင်မြင်မှုရဖို့ ကြိုးစားနေတဲ့ လူငယ်တစ်ယောက်ရဲ့ ခရီး..." data-aics-input="story-content"></textarea>
 <div class="form-error" id="field0Error" role="status" aria-live="polite">ဇာတ်လမ်းအကြောင်းအရာကို အနည်းဆုံး ဖြည့်ရေးပါ</div>
 </div>
 
-<button type="button" class="aics-advanced-toggle" id="advToggle" onclick="studioToggleAdvanced('advToggle','ideaFields')" aria-expanded="false"><span>&#8964; အပိုဆောင်းသတ်မှတ်ချက် (Advanced Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advToggle" data-aics-action="story-advanced-toggle" aria-expanded="false"><span>&#8964; အပိုဆောင်းသတ်မှတ်ချက် (Advanced Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div id="ideaFields" class="adv-grid aics-adv-panel" style="margin-top:2px;"></div>
 
 <div class="error-box" id="genError" role="alert" aria-live="assertive"></div>
-<button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" onclick="generateStory()" disabled>&#10024; ဇာတ်လမ်းရေးသားရန်</button>
+<button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" data-aics-action="generate-story" disabled>&#10024; ဇာတ်လမ်းရေးသားရန်</button>
 </div>
 </div>`;
 
@@ -75,32 +75,32 @@ const STEP3_HTML = `
 ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...')}
 <div id="storyResultBody">
 <label class="result-label" for="storyResult">ဇာတ်လမ်း (Story)</label>
-<textarea class="result-textarea" id="storyResult" aria-describedby="storyResultHint" placeholder="ဇာတ်လမ်း ဒီနေရာမှာ ပေါ်လာပါမယ်..." oninput="onStoryEdit()"></textarea>
+<textarea class="result-textarea" id="storyResult" aria-describedby="storyResultHint" placeholder="ဇာတ်လမ်း ဒီနေရာမှာ ပေါ်လာပါမယ်..." data-aics-input="story-edit"></textarea>
 <p class="result-hint" id="storyResultHint">&#9997; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ ဇာတ်လမ်းကို Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
 
 <div class="story-actions-primary">
-<button class="btn btn-primary story-action-primary" onclick="goToVideoForm()">&#127916; Video ဆက်ဖန်တီးရန်</button>
+<button class="btn btn-primary story-action-primary" data-aics-action="go-to-video-plan">&#127916; Video ဆက်ဖန်တီးရန်</button>
 </div>
 <div class="story-actions-secondary">
-<button class="btn btn-secondary" onclick="focusRevise()">&#9999;&#65039; ပြန်ပြင်ရန်</button>
-<button class="btn btn-secondary" onclick="copyStory()">&#128203; Copy</button>
-<button class="btn btn-secondary" onclick="saveStory()">&#128190; သိမ်းရန်</button>
+<button class="btn btn-secondary" data-aics-action="focus-revise">&#9999;&#65039; ပြန်ပြင်ရန်</button>
+<button class="btn btn-secondary" data-aics-action="copy-story">&#128203; Copy</button>
+<button class="btn btn-secondary" data-aics-action="save-story">&#128190; သိမ်းရန်</button>
 </div>
 </div>
 <div class="error-box" id="genError2" role="alert" aria-live="assertive"></div>
 <div class="retry-row" id="genRetry2">
-<button class="btn btn-primary" onclick="generateStory()">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="stGoForce(1)">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-primary" data-aics-action="generate-story">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-aics-action="story-back-to-edit">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>
 <div class="card revise-section" id="revise-section">
-<button type="button" class="aics-advanced-toggle" id="reviseToggle" onclick="studioToggleAdvanced('reviseToggle','revisePanel')" aria-expanded="false"><span>&#8964; AI ကို ဆက်ညွှန်ကြားရန် (Revise with AI)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="reviseToggle" data-aics-action="revise-advanced-toggle" aria-expanded="false"><span>&#8964; AI ကို ဆက်ညွှန်ကြားရန် (Revise with AI)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div id="revisePanel" class="aics-adv-panel revise-panel">
 <p class="form-help" style="margin-bottom:10px;">ဥပမာ — 「နိဂုံးကို ပိုစိတ်လှုပ်ရှားစရာဖြစ်အောင် ပြင်ပါ」 ဆိုပြီး ရေးပြီး ပြင်ပါ ကို နှိပ်ပါ။</p>
 <div class="revise-history" id="reviseHistory"></div>
 <div class="revise-input-row">
-<input type="text" id="feedbackInput" placeholder="ဥပမာ — နိဂုံးကို ပိုစိတ်ခံစားရအောင်ပြင်ပေးပါ" style="flex:1;" onkeypress="if(event.key==='Enter'){reviseStory();}">
-<button class="btn btn-secondary" id="reviseBtn" onclick="reviseStory()">&#128260; ပြင်ပါ</button>
+<input type="text" id="feedbackInput" placeholder="ဥပမာ — နိဂုံးကို ပိုစိတ်ခံစားရအောင်ပြင်ပေးပါ" style="flex:1;" data-aics-keydown="revise-story">
+<button class="btn btn-secondary" id="reviseBtn" data-aics-action="revise-story">&#128260; ပြင်ပါ</button>
 </div>
 <div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
 <div class="error-box" id="revError" role="alert" aria-live="assertive"></div>

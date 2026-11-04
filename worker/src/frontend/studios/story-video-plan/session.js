@@ -1,6 +1,6 @@
 // Story Video Plan — browser-side Story Session bridge.
 // Reads the source Story Draft from IndexedDB without mutating it.
-export const VIDEO_PLAN_SESSION_SCRIPT = String.raw`(function(){
+export const STORY_VIDEO_PLAN_SESSION_SCRIPT = String.raw`(function(){
   'use strict';
 
   function loadStorySession(sessionId) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { VIDEO_PLAN_SESSION_SCRIPT } from '../worker/src/frontend/studios/story/video-plan/session.js';
+import { STORY_VIDEO_PLAN_SESSION_SCRIPT } from '../worker/src/frontend/studios/story-video-plan/session.js';
 
 async function run() {
   let reads = 0;
@@ -18,7 +18,7 @@ async function run() {
       }
     }
   };
-  vm.runInNewContext(VIDEO_PLAN_SESSION_SCRIPT, context);
+  vm.runInNewContext(STORY_VIDEO_PLAN_SESSION_SCRIPT, context);
   const result = await context.window.AICS_STORY_VIDEO_SESSION.load('s_story_1');
   assert.equal(result.sessionId, 's_story_1');
   assert.equal(result.story, 'A complete story result');

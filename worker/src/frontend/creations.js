@@ -101,7 +101,7 @@ html[data-aics-theme="dark"] .aics-app{
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button type="button" class="aics-menu-btn" onclick="toggleSidebar()" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+<button type="button" class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
@@ -116,8 +116,8 @@ ${renderSidebar('creations',{variant:'studio'})}
     Studio တစ်ခုခုမှာ Generate လုပ်ပြီး "ဖန်တီးမှုသိမ်းပါ" နှိပ်ကြည့်ပါ။
   </div>
   <div id="toolbar" class="toolbar" style="display:none;">
-    <input id="searchInput" class="search-input" type="search" aria-label="ဖန်တီးမှုများကို ခေါင်းစဉ် သို့မဟုတ် အကြောင်းအရာဖြင့် ရှာရန်" placeholder="ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." oninput="renderList()">
-    <select id="filterSelect" class="select" aria-label="ဖန်တီးမှုအမျိုးအစား စစ်ထုတ်ရန်" onchange="renderList()">
+    <input id="searchInput" class="search-input" type="search" aria-label="ဖန်တီးမှုများကို ခေါင်းစဉ် သို့မဟုတ် အကြောင်းအရာဖြင့် ရှာရန်" placeholder="ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." data-creations-filter="search">
+    <select id="filterSelect" class="select" aria-label="ဖန်တီးမှုအမျိုးအစား စစ်ထုတ်ရန်" data-creations-filter="select">
       <option value="ALL">အားလုံး</option>
       <option value="FAV">⭐ အနှစ်သက်ဆုံး</option>
       <option value="STORY">📖 Story</option>
@@ -127,7 +127,7 @@ ${renderSidebar('creations',{variant:'studio'})}
       <option value="VOICE">🎙 Voice</option>
       <option value="SHOP">🛒 Shop</option>
     </select>
-    <select id="sortSelect" class="select" aria-label="ဖန်တီးမှုများ စီရန်" onchange="renderList()">
+    <select id="sortSelect" class="select" aria-label="ဖန်တီးမှုများ စီရန်" data-creations-filter="select">
       <option value="newest">အသစ်ဆုံး</option>
       <option value="oldest">အဟောင်းဆုံး</option>
     </select>
@@ -140,6 +140,26 @@ ${renderSidebar('creations',{variant:'studio'})}
 ${sidebarScript()}
 <script>
 var TOKEN = localStorage.getItem('aics_token') || '';
+document.addEventListener('click', function (event) {
+  var target = event.target;
+  if (!target || !target.closest) return;
+  var image = target.closest('img[data-creation-action="open-image"]');
+  if (image) { window.open(image.src); return; }
+  var action = target.closest('[data-creation-action]');
+  if (!action) return;
+  var type = action.getAttribute('data-creation-action');
+  var id = action.getAttribute('data-creation-id');
+  if (type === 'favorite') toggleFav(id, action);
+  else if (type === 'toggle-full') toggleFull(id);
+  else if (type === 'copy') copyCreation(id, action);
+  else if (type === 'remove') removeCreation(id, action);
+});
+document.addEventListener('input', function (event) {
+  if (event.target && event.target.getAttribute('data-creations-filter') === 'search') renderList();
+});
+document.addEventListener('change', function (event) {
+  if (event.target && event.target.getAttribute('data-creations-filter') === 'select') renderList();
+});
 var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 // (toggleSidebar / logout / setApiKey / TG-FB link များကို Shared Sidebar Script သို့ ရွှေ့ပြီးပါပြီ — Phase 2)
@@ -202,7 +222,7 @@ function renderList(){
     var mediaHtml='';
     if(c.media_type==='image'&&c.media_data){
       var uri='data:'+(c.media_mime||'image/png')+';base64,'+c.media_data;
-      mediaHtml='<div class="creation-media"><img src="'+uri+'" alt="'+escapeHtml(c.title||'Image')+'" onclick="window.open(this.src)"></div>';
+      mediaHtml='<div class="creation-media"><img src="'+uri+'" alt="'+escapeHtml(c.title||'Image')+'" data-creation-action="open-image"></div>';
     }else if(c.media_type==='audio'&&c.media_data){
       var auri='data:'+(c.media_mime||'audio/wav')+';base64,'+c.media_data;
       mediaHtml='<div class="creation-media"><audio controls preload="none" src="'+auri+'"></audio></div>';
@@ -218,10 +238,10 @@ function renderList(){
       '<div class="creation-preview" id="preview-'+c.id+'">'+escapeHtml((c.ai_output||'').substring(0,120))+((c.ai_output||'').length>120?'...':'')+'</div>'+
       '<div class="creation-full" id="full-'+c.id+'">'+escapeHtml(c.ai_output||'')+'</div>'+
       '<div class="btn-row">'+
-      '<button class="btn btn-fav'+(c.is_favorite?' on':'')+'" onclick="toggleFav(\\''+c.id+'\\',this)">'+(c.is_favorite?'⭐':'☆')+'</button>'+
-      '<button class="btn btn-primary" onclick="toggleFull(\\''+c.id+'\\')">👁 View Full</button>'+
-      '<button class="btn btn-secondary" onclick="copyCreation(\\''+c.id+'\\',this)">📋 Copy</button>'+
-      '<button class="btn btn-danger" onclick="removeCreation(\\''+c.id+'\\',this)">🗑 Delete</button>'+
+      '<button class="btn btn-fav'+(c.is_favorite?' on':'')+'" data-creation-action="favorite" data-creation-id="'+escapeHtml(c.id)+'">'+(c.is_favorite?'⭐':'☆')+'</button>'+
+      '<button class="btn btn-primary" data-creation-action="toggle-full" data-creation-id="'+escapeHtml(c.id)+'">👁 View Full</button>'+
+      '<button class="btn btn-secondary" data-creation-action="copy" data-creation-id="'+escapeHtml(c.id)+'">📋 Copy</button>'+
+      '<button class="btn btn-danger" data-creation-action="remove" data-creation-id="'+escapeHtml(c.id)+'">🗑 Delete</button>'+
       '</div>';
     container.appendChild(card);
   });

@@ -9,7 +9,7 @@
 // API contract unchanged: same routes, same HTML output, same responses.
 export const STUDIO_LOADERS = {
   story: () => import('./studios/story/page.js'),
-  'story-video-plan': () => import('./studios/story/video-plan/page.js'),
+  'story-video-plan': () => import('./studios/story-video-plan/page.js'),
   content: () => import('./studios/content/page.js'),
   short: () => import('./studios/short/page.js'),
   image: () => import('./studios/image/page.js'),
