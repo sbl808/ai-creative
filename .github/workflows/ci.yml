@@ -58,6 +58,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-backup-validation-test.mjs
       - name: Run IndexedDB Backup Safe Restore tests
         run: node --experimental-default-type=module scripts/indexeddb-backup-restore-test.mjs
+      - name: Run IndexedDB Browser Persistence tests
+        run: node --experimental-default-type=module scripts/indexeddb-persistence-test.mjs
       - name: Run IndexedDB Projects Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-projects-test.mjs
       - name: Run IndexedDB Sessions Repository tests
@@ -149,7 +151,7 @@ jobs:
         shell: bash
         run: |
           key="$(openssl rand -hex 32)"
-          printf 'SESSION_SIGNING_KEY=%s\n' "$key" > worker/.dev.vars.dev
+          printf 'SESSION_SIGNING_KEY=%s\\n' "$key" > worker/.dev.vars.dev
           echo "AICS_TEST_SESSION_SIGNING_KEY=$key" >> "$GITHUB_ENV"
       - name: Install Playwright browser test runtime
         run: |

@@ -9,6 +9,8 @@ import { backupExportScript } from './backup/export.js';
 import { backupValidationScript } from './backup/validate.js';
 import { backupImportScript } from './backup/import.js';
 import { backupRestoreScript } from './backup/restore.js';
+import { storageStatusScript } from './persistence/status.js';
+import { storagePersistScript } from './persistence/persist.js';
 
 const CREATIONS_SCRIPT = String.raw`function __aicsGenId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }
 window.AICS_CREATIONS = {
@@ -100,6 +102,8 @@ export function clientStorageScript() {
     backupExportScript(),
     backupValidationScript(),
     backupImportScript(),
-    backupRestoreScript()
-  ].join('\n');
+    backupRestoreScript(),
+    storageStatusScript(),
+    storagePersistScript()
+  ].join('\\n');
 }
