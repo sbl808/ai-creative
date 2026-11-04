@@ -198,7 +198,7 @@ const sessionId = 'session-new';
 const backup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 4,
+  schemaVersion: 5,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{ id: 'creation-new', user_id: owner, title: 'New creation' }],

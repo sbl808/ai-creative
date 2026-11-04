@@ -30,6 +30,17 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
         store.createIndex('owner_sessionId', ['ownerId', 'sessionId'], { unique: false });
       }
     }
+  },
+  {
+    version: 5,
+    up: function (db) {
+      if (!db.objectStoreNames.contains('drafts')) {
+        var drafts = db.createObjectStore('drafts', { keyPath: 'id' });
+        drafts.createIndex('ownerId', 'ownerId', { unique: false });
+        drafts.createIndex('updatedAt', 'updatedAt', { unique: false });
+        drafts.createIndex('owner_studio', ['ownerId', 'studio'], { unique: true });
+      }
+    }
   }
 ];
 

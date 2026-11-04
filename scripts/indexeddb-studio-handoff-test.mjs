@@ -5,7 +5,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 import { ACTIONS_SCRIPT } from '../worker/src/frontend/studios/story/actions.js';
 
 const source = clientStorageScript();
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 4\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 5\)/);
 assert.match(source, /createObjectStore\('studio_handoffs'/);
 assert.match(source, /window\.AICS_HANDOFFS\s*=\s*\{/);
 assert.match(source, /contractVersion!==1/);
