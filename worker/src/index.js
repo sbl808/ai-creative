@@ -9,6 +9,7 @@ import { handleIdeasRoutes } from './routes/ideas.routes.js';
 import { handleGenericStudioRoute } from './routes/studio.routes.js';
 import { handleContentStudioRoutes } from './routes/studios/content.routes.js';
 import { handleStoryStudioRoutes } from './routes/studios/story.routes.js';
+import { handleStoryVideoPlanRoutes } from './routes/studios/story-video-plan.routes.js';
 import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
@@ -439,6 +440,9 @@ export default {
 
       const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
       if (storyStudioResponse) return storyStudioResponse;
+
+      const storyVideoPlanResponse = await handleStoryVideoPlanRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError });
+      if (storyVideoPlanResponse) return storyVideoPlanResponse;
 
       const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
       if (shortStudioResponse) return shortStudioResponse;

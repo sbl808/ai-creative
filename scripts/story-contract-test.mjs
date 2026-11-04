@@ -131,13 +131,19 @@ try {
   assert.equal(buildStoryFactsBlock('not an object'), '');
 
   // Story → Video handoff contract: the API route forwards structured facts and continuity settings.
-  const workerSource = readFileSync(new URL('../worker/src/routes/studios/story.routes.js', import.meta.url), 'utf8');
+  const storyRouteSource = readFileSync(new URL('../worker/src/routes/studios/story.routes.js', import.meta.url), 'utf8');
+  const storyVideoRouteSource = readFileSync(new URL('../worker/src/routes/studios/story-video-plan.routes.js', import.meta.url), 'utf8');
   const storySource = readFileSync(new URL('../worker/src/studios/story.js', import.meta.url), 'utf8');
   const storyVideoSource = readFileSync(new URL('../worker/src/studios/story-video-plan.js', import.meta.url), 'utf8');
   const storyActionsSource = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
-  assert.match(workerSource, /storyFacts:\s*body\.storyFacts/);
-  assert.match(workerSource, /characterContinuity:\s*body\.characterContinuity/);
-  assert.match(workerSource, /characterConsistency:\s*body\.characterConsistency/);
+  assert.match(storyVideoRouteSource, /storyFacts:\s*body\.storyFacts/);
+  assert.match(storyVideoRouteSource, /characterContinuity:\s*body\.characterContinuity/);
+  assert.match(storyVideoRouteSource, /characterConsistency:\s*body\.characterConsistency/);
+  assert.match(storyVideoRouteSource, /path === '\/api\/studio\/story\/video'/);
+  assert.match(storyVideoRouteSource, /path === '\/api\/studio\/story\/video-image'/);
+  assert.match(storyVideoRouteSource, /requireFeature\(env, 'story\.video'/);
+  assert.match(storyVideoRouteSource, /requireFeature\(env, 'story\.video_image'/);
+  assert.doesNotMatch(storyRouteSource, /\/api\/studio\/story\/video(?:-image)?'/);
   assert.match(storyVideoSource, /const factsBlock = buildStoryFactsBlock\(storyFacts\)/);
   assert.match(storyVideoSource, /STORY FACTS \(structured — video အတွက် လိုအပ်သော facts သာ\)/);
   assert.match(storySource, /from '\.\/story-video-plan\.js'/);
