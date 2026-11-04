@@ -11,4 +11,4 @@ export { buildStoryFactsBlock } from './shared.js';
 export {
   generateStoryVideoPlan,
   generateStoryVideoImage,
-} from './video-plan.js';
+} from '../story-video-plan.js';
