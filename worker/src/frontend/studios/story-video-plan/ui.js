@@ -1,5 +1,5 @@
 // Story Video Plan — dedicated form and result UI fragments.
-import { aicsResultLoadingHtml } from '../../../shared.js';
+import { aicsResultLoadingHtml } from '../../shared.js';
 
 // Step 03 — Video Branch: Video Setup Form
 // (Story Result ကို အလိုအလျောက် ထည့်ပေးထားသည် — Essential + Advanced accordion)
