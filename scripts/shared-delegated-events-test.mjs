@@ -7,7 +7,7 @@ const [shared, sharedUi] = await Promise.all([
   readFile(new URL('worker/src/frontend/shared-ui.js', root), 'utf8'),
 ]);
 
-const inlineHandler = /\\s(?:onclick|onchange|oninput|onkeydown|onkeypress)\\s*=/i;
+const inlineHandler = /\s(?:onclick|onchange|oninput|onkeydown|onkeypress)\s*=/i;
 assert.ok(!inlineHandler.test(shared), 'Shared shell and sidebar contain no inline event attributes');
 assert.ok(!inlineHandler.test(sharedUi), 'Shared UI components contain no inline event attributes');
 
