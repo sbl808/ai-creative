@@ -66,6 +66,7 @@ function resultLoadingCard(msg,hint){
 }
 var voiceDraftTouchedBeforeRestore=false;
 var voiceDraftSaveTimer=null;
+var voiceDraftSaveErrorShown=false;
 function voiceApplyDraftData(d){
   if(!d||typeof d!=='object')return false;
   var s=d.state||{};
@@ -103,7 +104,7 @@ function saveDraft(){
 }
 function scheduleVoiceDraftSave(){
   if(voiceDraftSaveTimer)clearTimeout(voiceDraftSaveTimer);
-  voiceDraftSaveTimer=setTimeout(function(){voiceDraftSaveTimer=null;saveDraft();},300);
+  voiceDraftSaveTimer=setTimeout(function(){voiceDraftSaveTimer=null;saveDraft().then(function(ok){if(ok){voiceDraftSaveErrorShown=false;return;}if(!voiceDraftSaveErrorShown){voiceDraftSaveErrorShown=true;if(typeof toast==='function')toast('IndexedDB ထဲ Voice Draft သိမ်းမအောင်မြင်ပါ','error');}});},300);
 }
 function val(id){var x=document.getElementById(id);return x?(x.value||''):'';}
 function restoreDraft(){
