@@ -149,11 +149,17 @@ function installBackupValidator(target, config) {
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
-    if (storeKeys.length !== storeNames.length) throw fail('backup_invalid_stores');
-    for (var s = 0; s < storeNames.length; s++) {
-      if (!hasOwn(envelope.stores, storeNames[s]) || !Array.isArray(envelope.stores[storeNames[s]])) {
+    var legacyStoreNames = storeNames.filter(function (name) { return name !== 'drafts'; });
+    if (storeKeys.length !== legacyStoreNames.length && storeKeys.length !== storeNames.length) {
+      throw fail('backup_invalid_stores');
+    }
+    for (var s = 0; s < legacyStoreNames.length; s++) {
+      if (!hasOwn(envelope.stores, legacyStoreNames[s]) || !Array.isArray(envelope.stores[legacyStoreNames[s]])) {
         throw fail('backup_invalid_stores');
       }
+    }
+    if (hasOwn(envelope.stores, 'drafts') && !Array.isArray(envelope.stores.drafts)) {
+      throw fail('backup_invalid_stores');
     }
     for (var k = 0; k < storeKeys.length; k++) {
       if (storeNames.indexOf(storeKeys[k]) === -1) throw fail('backup_unknown_store');
@@ -171,11 +177,25 @@ function installBackupValidator(target, config) {
       session_results: function (record) {
         validateResult(record, expectedOwnerId);
         resultSessionIds.push(record.sessionId);
+      },
+      drafts: function (record) {
+        validateOwnerRecord(record, expectedOwnerId, 'ownerId');
+        if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {
+          throw fail('backup_invalid_record');
+        }
+        if (hasOwn(record, 'draftVersion') &&
+            (!Number.isInteger(record.draftVersion) || record.draftVersion < 1)) {
+          throw fail('backup_invalid_record');
+        }
+        if (!isObject(record.data)) throw fail('backup_invalid_record');
+        optionalDate(record, 'createdAt');
+        optionalDate(record, 'updatedAt');
       }
     };
 
-    for (var n = 0; n < storeNames.length; n++) {
-      var storeName = storeNames[n];
+    var presentStoreNames = storeNames.filter(function (name) { return hasOwn(envelope.stores, name); });
+    for (var n = 0; n < presentStoreNames.length; n++) {
+      var storeName = presentStoreNames[n];
       var records = envelope.stores[storeName];
       seen[storeName] = {};
       for (var r = 0; r < records.length; r++) {
@@ -193,7 +213,7 @@ function installBackupValidator(target, config) {
     return {
       valid: true,
       backup: envelope,
-      recordCount: storeNames.reduce(function (total, name) {
+      recordCount: presentStoreNames.reduce(function (total, name) {
         return total + envelope.stores[name].length;
       }, 0)
     };
