@@ -60,11 +60,11 @@ assert.ok(stepper.includes("document.addEventListener('click',stHandleDelegatedA
   'Short delegated click listener is not registered');
 
 
-const uiActions = ["toggle-advanced","copy-short","save-short","focus-revise","go-to-video","generate-short","go-step","revise-short","generate-video-plan"];
+const uiActions = ["toggle-advanced","copy-short","save-short","focus-revise","go-to-video","generate-short","force-step","revise-short","generate-video-plan"];
 for (const action of uiActions) {
-  assert.ok(stepper.includes("case '" + action + "'") || action === 'go-step' && stepper.includes("case 'step-nav'"),
+  assert.ok(stepper.includes("case '" + action + "'") || action === 'force-step' && stepper.includes("case 'step-nav'"),
     'Missing delegated UI action: ' + action);
-  assert.ok(ui.includes('data-aics-action="' + action + '"') || action === 'go-step' && ui.includes('data-aics-action="go-step"'),
+  assert.ok(ui.includes('data-aics-action="' + action + '"') || action === 'force-step' && ui.includes('data-aics-action="force-step"'),
     'Missing UI action markup: ' + action);
 }
 assert.ok(stepper.includes("document.addEventListener('input',stHandleDelegatedInput)"),
