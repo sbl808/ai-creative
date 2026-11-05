@@ -11,9 +11,9 @@ assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(s
   'Short stepper must not contain inline event attributes');
 
 
-assert.equal(/\\bstyle\\s*=/i.test(actions), false,
+assert.equal(/\bstyle\s*=/i.test(actions), false,
   'Short dynamic actions must not contain inline style attributes');
-assert.equal(/\\bstyle\\s*=/i.test(page), false,
+assert.equal(/\bstyle\s*=/i.test(page), false,
   'Short page must not contain inline style attributes');
 
 const requiredStyleClasses = [
