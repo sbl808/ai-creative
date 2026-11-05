@@ -149,7 +149,7 @@ function studioRestoreDraft(d){
   }
   if(currentAudioBase64){
     var audioUrl='data:audio/wav;base64,'+currentAudioBase64;
-    document.getElementById('audioContainer').innerHTML='<audio controls src="'+audioUrl+'"></audio><div class="btn-row"><button class="btn-ghost" onclick="downloadAudio()">&#128190; Save Audio</button></div>';
+    document.getElementById('audioContainer').innerHTML='<audio controls src="'+audioUrl+'"></audio><div class="btn-row"><button class="btn-ghost" data-aics-action="download-audio">&#128190; Save Audio</button></div>';
     csMarkDone(22);
     csMarkDone(24);
     var ap=document.getElementById('audioContentPreview');
