@@ -153,6 +153,7 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('HTML pages receive CSP in report-only mode', !!policy && !page.headers.has('content-security-policy'));
   check('CSP policy restricts script sources to the same origin', policy.includes("script-src 'self'"));
   check('CSP disallows inline script attributes in target policy', policy.includes("script-src-attr 'none'"));
+  check('CSP disallows inline style attributes in target policy', policy.includes("style-src-attr 'none'"));
   check('CSP disables object embeds and framing', policy.includes("object-src 'none'") && policy.includes("frame-ancestors 'none'"));
   check('CSP does not allow unsafe-inline scripts', !policy.includes("'unsafe-inline'"));
   const nonceMatch = policy.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
