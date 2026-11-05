@@ -1079,7 +1079,7 @@ export function renderStudioShell(opts) {
           return;
         }
         if (legacy && legacy.data && typeof legacy.data === "object") {
-          if (legacyCache && typeof legacyCache === "object") legacy.data.data.imgCache = legacyCache;
+          if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
           return window.AICS_DRAFTS.save({
             studio: SHELL_ID,
             draftVersion: 1,
