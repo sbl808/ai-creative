@@ -1,1 +1,26 @@
-import assert from 'node:assert/strict';\nimport vm from 'node:vm';\nimport { legacyIdeaMigrationPanelHtml, legacyIdeaMigrationScript } from '../worker/src/frontend/ideas/legacy-migration.js';\nimport { ideasRepositoryScript } from '../worker/src/frontend/storage/repositories/ideas.js';\nimport { backupRecoveryUiScript } from '../worker/src/frontend/storage/backup/recovery-ui.js';\nconst panel = legacyIdeaMigrationPanelHtml();\nassert.match(panel, /legacyIdeaScan/);\nconst migration = legacyIdeaMigrationScript();\nnew vm.Script(migration);\nassert.match(migration, /indexedDB/);\nassert.match(migration, /user_id/);\nassert.match(migration, /importLegacy/);\nassert.doesNotMatch(migration, /deleteDatabase/);\nconst repository = ideasRepositoryScript();\nnew vm.Script(repository);\nassert.match(repository, /legacy_idea_owner_mismatch/);\nassert.match(repository, /legacySourceId/);\nconst recovery = backupRecoveryUiScript();\nnew vm.Script(recovery);\nassert.match(recovery, /ideas/);\nconsole.log('Legacy Idea migration contract tests passed.');\n
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { legacyIdeaMigrationPanelHtml, legacyIdeaMigrationScript } from '../worker/src/frontend/ideas/legacy-migration.js';
+import { ideasRepositoryScript } from '../worker/src/frontend/storage/repositories/ideas.js';
+import { backupRecoveryUiScript } from '../worker/src/frontend/storage/backup/recovery-ui.js';
+
+const panel = legacyIdeaMigrationPanelHtml();
+assert.match(panel, /legacyIdeaScan/);
+
+const migration = legacyIdeaMigrationScript();
+new vm.Script(migration);
+assert.match(migration, /indexedDB/);
+assert.match(migration, /user_id/);
+assert.match(migration, /importLegacy/);
+assert.doesNotMatch(migration, /deleteDatabase/);
+
+const repository = ideasRepositoryScript();
+new vm.Script(repository);
+assert.match(repository, /legacy_idea_owner_mismatch/);
+assert.match(repository, /legacySourceId/);
+
+const recovery = backupRecoveryUiScript();
+new vm.Script(recovery);
+assert.match(recovery, /ideas/);
+
+console.log('Legacy Idea migration contract tests passed.');
