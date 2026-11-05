@@ -44,13 +44,13 @@ categorySelect.addEventListener('change',function(){window.AICS_IDEA_FORMS.mount
 function el(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
 function showStatus(message,isError){var s=el('status');s.hidden=false;s.textContent=message;s.className='status'+(isError?' error':'')}
-function makeResult(idea){return {title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}}
+var generatedBrief=null;\nvar editingCategory='story';\nfunction makeResult(idea){return {title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}}
 function saveIdea(idea){return window.AICS_IDEAS.create({category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},result:makeResult(idea)})}
 function loadSaved(){return window.AICS_IDEAS.list()}
 var editingIdeaId=null;
 function closeEditor(){editingIdeaId=null;el('ideaEditor').hidden=true}
 function openEditor(item){
- editingIdeaId=item.id;var result=item.result||{};
+ editingIdeaId=item.id;editingCategory=item.category;var result=item.result||{};
  el('editTitle').value=result.title||'';el('editStudio').value=result.suggestedStudio||'story';
  el('editConcept').value=result.concept||'';el('editHook').value=result.hook||'';el('editOutline').value=result.outline||'';
  window.AICS_IDEA_FORMS.mount(el('editCategoryFields'),item.category);
@@ -67,7 +67,7 @@ function renderSaved(){
 }
 el('saveEditBtn').addEventListener('click',function(){
  if(!editingIdeaId)return;
- var fields=window.AICS_IDEA_FORMS.read(categorySelect.value);
+ var fields=window.AICS_IDEA_FORMS.read(editingCategory);
  var result={title:el('editTitle').value.trim(),concept:el('editConcept').value.trim(),hook:el('editHook').value.trim(),outline:el('editOutline').value.trim(),suggestedStudio:el('editStudio').value};
  if(Object.keys(fields).length===0||!result.title||!result.concept||!result.hook||!result.outline){showStatus('လိုအပ်သော အချက်အလက်အားလုံး ဖြည့်ပါ။',true);return}
  var btn=el('saveEditBtn');btn.disabled=true;
