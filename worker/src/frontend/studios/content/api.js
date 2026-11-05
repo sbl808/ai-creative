@@ -242,6 +242,12 @@ function generateVideo(){
     })
     .finally(function(){setLoading('videoGenLoading',false);setGenButtonsDisabled(false);csBusy=false;});
 }
+function sceneVideoPrompt(scene){
+  if(!scene)return '';
+  // Canonical Contract field first; legacy field remains as a compatibility fallback.
+  return scene.videoPrompt||scene.visualPrompt||'';
+}
+
 function renderVideoPlan(data){
   var charsCard=document.getElementById('charactersCard');
   var charsList=document.getElementById('charactersList');
@@ -270,9 +276,9 @@ function renderVideoPlan(data){
         var item=document.createElement('div');
         item.className='final-scene-card';
         var html='<div class="final-scene-title">&#127916; SCENE '+(s.number||(idx+1))+(s.duration?' <span style="color:var(--text2,#8b95a8);font-weight:400;">&#9201; '+escapeHtml(s.duration)+'</span>':'')+'</div>';
-        if(s.visualPrompt){
+        if(sceneVideoPrompt(s)){
           html+='<div class="final-scene-box"><div class="final-box-label">&#127916; Video Prompt</div>'+
-                '<div class="final-prompt-text" id="sceneVP_'+idx+'">'+escapeHtml(s.visualPrompt)+'</div>'+
+                '<div class="final-prompt-text" id="sceneVP_'+idx+'">'+escapeHtml(sceneVideoPrompt(s))+'</div>'+
                 '<div class="btn-row"><button class="btn-ghost" onclick="copySceneText('+idx+')">&#128203; Copy Video Prompt</button></div></div>';
         }
         if(s.description){
@@ -298,7 +304,7 @@ function renderVideoPlan(data){
 }
 function copySceneText(idx){
   if(!videoPlan||!videoPlan.scenes||!videoPlan.scenes[idx])return;
-  var text=videoPlan.scenes[idx].visualPrompt||'';
+  var text=sceneVideoPrompt(videoPlan.scenes[idx]);
   if(navigator.clipboard)navigator.clipboard.writeText(text).then(function(){showToastMsg();});
   else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToastMsg();}
 }
@@ -324,7 +330,7 @@ function copyDialogueText(idx){
 function generateSceneImage(idx){
   if(!videoPlan||!videoPlan.scenes||!videoPlan.scenes[idx])return;
   var scene=videoPlan.scenes[idx];
-  var prompt=scene.visualPrompt||scene.description||'';
+  var prompt=sceneVideoPrompt(scene)||scene.environmentPrompt||scene.visualDescription||scene.description||'';
   if(!prompt){alert('ဒီဖြစ်စဉ်တွင် Visual Prompt မရှိပါ');return;}
   var area=document.getElementById('sceneImg_'+idx);
   if(!area)return;
