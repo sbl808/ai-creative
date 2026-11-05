@@ -1006,8 +1006,9 @@ export function renderStudioShell(opts) {
     '    else if (a.fn && window[a.fn]) { try { window[a.fn](); } catch (e) { toast("Action error: " + (e && e.message || ""), true); } }\n' +
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
-    String.raw`  window.studioPersistDraft = function (showMessage) {
-    if (["content", "short", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
+    String.raw`  var studioDraftReady = false;
+  window.studioPersistDraft = function (showMessage) {
+    if (!studioDraftReady || ["content", "short", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
@@ -1098,13 +1099,17 @@ export function renderStudioShell(opts) {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
           restoreDraft(legacy);
         }
-      }).then(function () { showStep(cur); });
+      }).then(function () {
+        studioDraftReady = true;
+        showStep(cur);
+      });
       return;
     }
 
     if (raw) {
       try { restoreDraft(JSON.parse(raw)); } catch (e) {}
     }
+    studioDraftReady = true;
     showStep(cur);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
