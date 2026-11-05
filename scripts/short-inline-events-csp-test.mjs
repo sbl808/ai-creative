@@ -4,9 +4,9 @@ import { readFile } from 'node:fs/promises';
 const actions = await readFile(new URL('../worker/src/frontend/studios/short/actions.js', import.meta.url), 'utf8');
 const stepper = await readFile(new URL('../worker/src/frontend/studios/short/stepper.js', import.meta.url), 'utf8');
 
-assert.equal(/\\bonclick\\s*=|\\bonchange\\s*=|\\boninput\\s*=|\\bonsubmit\\s*=/i.test(actions), false,
+assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(actions), false,
   'Short dynamic actions must not contain inline event attributes');
-assert.equal(/\\bonclick\\s*=|\\bonchange\\s*=|\\boninput\\s*=|\\bonsubmit\\s*=/i.test(stepper), false,
+assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(stepper), false,
   'Short stepper must not contain inline event attributes');
 
 const requiredActions = [
