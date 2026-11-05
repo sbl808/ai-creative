@@ -214,6 +214,11 @@ ${sidebarScript()}
         break;
       case 'copy-translated-srt':window.copyText('resultSrtTranslated');break;
       case 'download-translated-srt':window.downloadSrt('resultSrtTranslated','content_subtitle_translated.srt');break;
+      case 'copy-character':window.copyCharText(Number(button.dataset.aicsIndex));break;
+      case 'copy-scene':window.copySceneText(Number(button.dataset.aicsIndex));break;
+      case 'copy-environment':window.copyEnvText(Number(button.dataset.aicsIndex));break;
+      case 'copy-dialogue':window.copyDialogueText(Number(button.dataset.aicsIndex));break;
+      case 'generate-scene-image':window.generateSceneImage(Number(button.dataset.aicsIndex));break;
       case 'back-to-content-result':window.backToContentResult();break;
       case 'save-content-result':window.saveContentResult();break;
     }
