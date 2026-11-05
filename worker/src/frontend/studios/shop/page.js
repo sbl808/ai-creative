@@ -243,7 +243,7 @@ html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input
 }
 
 /* Shop CSP-safe presentation classes */
-.aics-work .shop-hidden{display:none!important}
+.aics-work .shop-hidden{display:none}
 .aics-work .shop-style-mt-6{margin-top:6px}
 .aics-work .shop-style-minh-120{min-height:120px}
 .aics-work .shop-style-mt-16{margin-top:16px}
