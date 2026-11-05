@@ -34,7 +34,7 @@ assert.match(shortShell, /imgCache:imgCache/);
 assert.match(shortShell, /imgCache=d\.imgCache/);
 assert.match(shortShell, /queueShortDraftSave/);
 assert.match(shortShell, /autoSave\(\)/);
-assert.match(shortPage, /AICS_STUDIO_DRAFTS/);
+assert.match(shortPage, /SHELL_SCRIPT/);\nassert.match(shortPage, /STEPPER_SCRIPT/);
 
 // Short reset removes the IndexedDB draft and only clears legacy keys after confirmation.
 assert.match(shortStepper, /AICS_STUDIO_DRAFTS\.remove\('short'\)/);
