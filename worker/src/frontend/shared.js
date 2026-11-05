@@ -79,7 +79,7 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn" id="adminLink" href="/admin" class="aics-hidden">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
@@ -98,12 +98,12 @@ function studioPageSidebar(activeId) {
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
       '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more aics-hidden" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
       '</section>'
     : '';
   return (
     '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
-    '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
+    '<div class="sidebar aics-sidebar--column" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
@@ -119,7 +119,7 @@ function studioPageSidebar(activeId) {
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn" id="adminLink" href="/admin" class="aics-hidden">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -147,6 +147,9 @@ function responsiveStyles() {
     '.aics-app .layout{display:flex;align-items:stretch;min-height:calc(100vh - 63px);width:100%;}\n' +
     '.aics-app .layout > .sidebar{display:flex;flex-direction:column;width:232px;flex:0 0 232px;background:var(--aics-surface);border:1px solid var(--aics-border);border-radius:var(--aics-radius-lg);margin:16px 12px;padding:14px 12px;box-sizing:border-box;height:calc(100vh - 95px);position:sticky;top:79px;z-index:90;overflow:hidden;box-shadow:var(--aics-shadow-sm);}\n' +
     '.aics-app .layout > .sidebar .sidebar-nav{width:100%;box-sizing:border-box;}\n' +
+    '  .aics-app .aics-hidden{display:none!important;}\\n' +
+    '  .aics-app .aics-sidebar--column{display:flex;flex-direction:column;}\\n' +
+    '  .aics-app .aics-work--constrained{max-width:820px;margin:0 auto;width:100%;}\\n' +
     '.aics-app .nav-label{font-size:10px;font-weight:650;color:var(--aics-text-soft);letter-spacing:1.1px;margin:18px 0 7px 10px;text-transform:uppercase;}\n' +
     '.aics-app .nav-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;box-sizing:border-box;border-radius:var(--aics-radius-sm);color:var(--aics-text-muted);text-decoration:none;cursor:pointer;font-size:13px;margin-bottom:2px;border:1px solid transparent;transition:background .16s,color .16s,border-color .16s;line-height:1.45;}\n' +
     '.aics-app .nav-item:hover{background:var(--aics-surface-subtle);color:var(--aics-text);}\n' +
@@ -314,11 +317,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
+      if (moreButton) moreButton.classList.toggle('aics-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.style.display = 'none';
+      if (moreButton) moreButton.classList.add('aics-hidden');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
@@ -471,13 +474,13 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.style.display = d.is_admin ? \'\' : \'none\';\n' +
+    '      if (al) al.classList.toggle('aics-hidden', !d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
     '        for (var i = 0; i < links.length; i++) {\n' +
     '          var sid = links[i].getAttribute(\'data-studio\');\n' +
-    '          if (ss[sid] === false) links[i].style.display = \'none\';\n' +
+    '          if (ss[sid] === false) links[i].classList.add('aics-hidden');\n' +
     '        }\n' +
     '      }\n' +
     '      localStorage.setItem(\'aics_email\', d.email || \'\'); localStorage.setItem(\'aics_plan\', d.plan || \'\');\n' +
@@ -550,8 +553,8 @@ export function sidebarScript() {
     '    var h = box.querySelector(\'.aics-result-loading-hint\');\n' +
     '    if (h) {\n' +
     '      var t = hint == null ? \'\' : String(hint).replace(/\\s+/g, \' \').trim();\n' +
-    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.style.display = \'\'; }\n' +
-    '      else { h.textContent = \'\'; h.style.display = \'none\'; }\n' +
+    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.classList.remove('aics-hidden'); }\n' +
+    '      else { h.textContent = \'\'; h.classList.add('aics-hidden'); }\n' +
     '    }\n' +
     '    box.classList.add(\'show\');\n' +
     '  },\n' +
@@ -835,7 +838,7 @@ export function renderStudioShell(opts) {
     '<main class="main aics-main">\n' +
     '<div class="aics-stepper" id="aicsStepper"></div>\n' +
     '<div class="aics-grid">\n' +
-    '<section class="aics-work" id="aicsWork" style="max-width:820px;margin:0 auto;width:100%;">\n' +
+    '<section class="aics-work aics-work--constrained" id="aicsWork">\n' +
     content +
     '</section>\n' +
     '</div>\n' +
