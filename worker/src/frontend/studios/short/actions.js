@@ -225,6 +225,7 @@ function addRefImageFile(file){
       mimeType:file.type
     });
     renderRefPreviews();
+    autoSave();
   };
   reader.readAsDataURL(file);
 }
@@ -249,6 +250,7 @@ function renderRefPreviews(){
 function removeRefImage(idx){
   refImages.splice(idx,1);
   renderRefPreviews();
+  autoSave();
 }
 
 // ===================== Step 06 — Short MAP (Characters + Scenes) =====================
