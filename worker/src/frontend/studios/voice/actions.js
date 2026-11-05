@@ -7,8 +7,11 @@ function vEl(id){return document.getElementById(id);}
 function setStickyActions(list){if(window.studioSetActions)studioSetActions(list);}
 function voiceReset(){
   if(!confirm('ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?'))return;
-  try{localStorage.removeItem(voiceDraftKey);localStorage.removeItem('aics_voice_workflow_v2');localStorage.removeItem('aics_draft_voice');localStorage.removeItem('aics_voice_transfer');}catch(e){}
-  location.reload();
+  var removeDraft=window.AICS_STUDIO_DRAFTS?window.AICS_STUDIO_DRAFTS.remove('voice'):Promise.resolve();
+  removeDraft.then(function(){
+    try{localStorage.removeItem(voiceDraftKey);localStorage.removeItem('aics_voice_workflow_v2');localStorage.removeItem('aics_draft_voice');localStorage.removeItem('aics_voice_transfer');}catch(e){}
+    location.reload();
+  }).catch(function(){toast('IndexedDB ထဲမှ Voice Draft ဖျက်မအောင်မြင်ပါ','error');});
 }
 function bReset(){return {label:'Reset',cls:'ghost',fn:voiceReset};}
 function vPro(){
@@ -472,13 +475,20 @@ function vResultAvailable(k){
 (function initVoice(){
   if(!TOKEN){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
   hydratePlan();
-  var restored=restoreDraft();
-  if(!restored)resetVoiceBranch('text-to-voice','');
-  var s=VOICE_STATE;
-  if(restored&&s.view==='result'&&s.resultKind&&vResultAvailable(s.resultKind))vRenderResult(s.resultKind);
-  else if(restored&&s.view==='format')vRenderFormat();
-  else vRenderInput();
-  applyContentTransfer();
+  document.addEventListener('input',function(){voiceDraftTouchedBeforeRestore=true;scheduleVoiceDraftSave();},true);
+  document.addEventListener('change',function(){voiceDraftTouchedBeforeRestore=true;scheduleVoiceDraftSave();},true);
+  restoreDraft().then(function(restored){
+    if(!restored)resetVoiceBranch('text-to-voice','');
+    var s=VOICE_STATE;
+    if(restored&&s.view==='result'&&s.resultKind&&vResultAvailable(s.resultKind))vRenderResult(s.resultKind);
+    else if(restored&&s.view==='format')vRenderFormat();
+    else vRenderInput();
+    applyContentTransfer();
+    if(voiceDraftTouchedBeforeRestore)saveDraft();
+  }).catch(function(){
+    resetVoiceBranch('text-to-voice','');
+    vRenderInput();
+  });
   window.addEventListener('pagehide',function(){saveDraft();});
 })();
 `;
