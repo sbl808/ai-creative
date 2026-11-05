@@ -1007,16 +1007,15 @@ export function renderStudioShell(opts) {
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
     String.raw`  window.studioPersistDraft = function (showMessage) {
-    if ((SHELL_ID !== "short" && SHELL_ID !== "shop") || !window.AICS_DRAFTS) return Promise.resolve(false);
+    if (["content", "short", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
       if (!data || typeof data !== "object") return Promise.resolve(false);
-      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
-      return window.AICS_DRAFTS.save({
-        studio: SHELL_ID,
-        draftVersion: 1,
-        data: { step: cur, data: data, savedAt: new Date().toISOString() }
+      return window.AICS_STUDIO_DRAFTS.save(SHELL_ID, {
+        step: cur,
+        data: data,
+        savedAt: new Date().toISOString()
       }).then(function () {
         if (showMessage) toast("&#10004; Draft သိမ်းပြီးပါပြီ");
         return true;
@@ -1030,25 +1029,23 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (SHELL_ID === "short" || SHELL_ID === "shop") { window.studioPersistDraft(true); return; }
+    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1) {
+      window.studioPersistDraft(true);
+      return;
+    }
     var data = null;
     if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }
     try {
-      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
       localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));
       toast("&#10004; Draft သိမ်းပြီးပါပြီ");
     } catch (e) { toast("Save မအောင်မြင်ပါ", true); }
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
-      window.AICS_DRAFTS.remove(SHELL_ID).then(function () {
-        if (SHELL_ID === "short") {
-          try { localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
-        }
-        try { localStorage.removeItem(draftKey); } catch (e) {}
+    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+      window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
         location.reload();
-      }).catch(function () { toast("Draft ဖျက်မအောင်မြင်ပါ", true); });
+      }).catch(function () { toast("IndexedDB ထဲ Draft ဖျက်မအောင်မြင်ပါ", true); });
       return;
     }
     try { localStorage.removeItem(draftKey); } catch (e) {}
@@ -1063,7 +1060,8 @@ export function renderStudioShell(opts) {
     renderStepper();
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
-    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
+
+    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
@@ -1073,20 +1071,21 @@ export function renderStudioShell(opts) {
           if (cacheRaw) legacyCache = JSON.parse(cacheRaw);
         } catch (e) {}
       }
-      window.AICS_DRAFTS.get(SHELL_ID).then(function (record) {
+
+      window.AICS_STUDIO_DRAFTS.load(SHELL_ID).then(function (record) {
         if (record && record.data) {
           restoreDraft(record.data);
           return;
         }
         if (legacy && legacy.data && typeof legacy.data === "object") {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
-          return window.AICS_DRAFTS.save({
-            studio: SHELL_ID,
-            draftVersion: 1,
-            data: legacy
-          }).then(function (saved) { restoreDraft(saved.data); });
+          return window.AICS_STUDIO_DRAFTS.importLegacy(SHELL_ID, legacy).then(function (result) {
+            var importedRecord = result && result.record;
+            if (importedRecord && importedRecord.data) restoreDraft(importedRecord.data);
+          });
         }
       }).catch(function () {
+        // Read-only fallback: keep the original legacy value untouched.
         if (legacy && legacy.data) {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
           restoreDraft(legacy);
@@ -1094,21 +1093,14 @@ export function renderStudioShell(opts) {
       }).then(function () { showStep(cur); });
       return;
     }
+
     if (raw) {
-      try {
-        var d = JSON.parse(raw);
-        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {
-          delete d.data.byok; delete d.data.videoByok;
-          localStorage.setItem(draftKey, JSON.stringify(d));
-        }
-        restoreDraft(d);
-      } catch (e) {}
+      try { restoreDraft(JSON.parse(raw)); } catch (e) {}
     }
     showStep(cur);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
-})();
-</script>`
+})();`
   );
 }
