@@ -30,7 +30,7 @@ ${renderSidebar('ideas')}
 <div class="field full"><label for="editConcept">Concept</label><textarea id="editConcept"></textarea></div>
 <div class="field full"><label for="editHook">Hook</label><textarea id="editHook"></textarea></div>
 <div class="field full"><label for="editOutline">Outline</label><textarea id="editOutline"></textarea></div>
-</div><div id="editCategoryFields"></div><div class="actions"><button id="saveEditBtn">ပြင်ဆင်ချက် သိမ်းရန်</button><button class="secondary" id="cancelEditBtn">မလုပ်တော့ပါ</button></div></section>
+</div><div id="editCategoryFields"></div><div class="field full"><label for="revisionInstruction">AI ကို ပြင်စေလိုသည့်အချက်</label><textarea id="revisionInstruction" maxlength="2000" placeholder="ဥပမာ - Hook ကို ပိုစိတ်ဝင်စားဖွယ်ဖြစ်အောင် ပြင်ပါ။"></textarea></div><div class="actions"><button class="secondary" id="reviseIdeaBtn">AI ဖြင့် ပြင်ဆင်ရန်</button><button id="saveEditBtn">ကိုယ်တိုင်ပြင်ထားသည်များ သိမ်းရန်</button><button class="secondary" id="cancelEditBtn">မလုပ်တော့ပါ</button></div><section id="revisionPreview" class="panel" hidden><h3>AI ပြင်ဆင်ချက် Preview</h3><h4 id="previewTitle"></h4><p id="previewConcept"></p><h4>Hook</h4><p id="previewHook"></p><h4>Outline</h4><p id="previewOutline"></p><p class="muted small" id="previewStudio"></p><div class="actions"><button id="applyRevisionBtn">ဒီပြင်ဆင်ချက်ကို သိမ်းရန်</button><button class="secondary" id="discardRevisionBtn">မူရင်းအတိုင်းထားရန်</button></div></section></section>
 </main>
 ${sidebarScript()}
 ${ideaFormsScript()}
@@ -49,11 +49,12 @@ var editingCategory='story';\nfunction makeResult(idea){return {title:idea.title
 function saveIdea(idea){return window.AICS_IDEAS.create({category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},result:makeResult(idea)})}
 function loadSaved(){return window.AICS_IDEAS.list()}
 var editingIdeaId=null;
-function closeEditor(){editingIdeaId=null;el('ideaEditor').hidden=true}
+var pendingRevision=null;
+function closeEditor(){editingIdeaId=null;pendingRevision=null;el('revisionPreview').hidden=true;el('ideaEditor').hidden=true}
 function openEditor(item){
  editingIdeaId=item.id;editingCategory=item.category;var result=item.result||{};
  el('editTitle').value=result.title||'';el('editStudio').value=result.suggestedStudio||'story';
- el('editConcept').value=result.concept||'';el('editHook').value=result.hook||'';el('editOutline').value=result.outline||'';
+ el('editConcept').value=result.concept||'';el('editHook').value=result.hook||'';el('editOutline').value=result.outline||'';el('revisionInstruction').value='';pendingRevision=null;el('revisionPreview').hidden=true;
  window.AICS_IDEA_FORMS.mount(el('editCategoryFields'),item.category);
  Object.keys(item.fields||{}).forEach(function(key){var input=el('editCategoryFields').querySelector('#'+key);if(input)input.value=item.fields[key]});
  el('ideaEditor').hidden=false;el('ideaEditor').scrollIntoView({behavior:'smooth',block:'start'});
@@ -66,6 +67,41 @@ function renderSaved(){
  target.querySelectorAll('[data-delete]').forEach(function(btn){btn.addEventListener('click',function(){if(!confirm('ဒီ Idea ကို ဖျက်မှာ သေချာပါသလား?'))return;window.AICS_IDEAS.remove(btn.getAttribute('data-delete')).then(function(){if(editingIdeaId===btn.getAttribute('data-delete'))closeEditor();renderSaved()}).catch(function(){showStatus('Idea ဖျက်မရပါ။',true)})})});
  }).catch(function(){el('saved').innerHTML='<p class="muted">IndexedDB ကို ဖွင့်မရပါ။ Login ဝင်ထားမှုနှင့် Browser Storage ကို စစ်ဆေးပါ။</p>'})
 }
+function currentEditorResult(){return {title:el('editTitle').value.trim(),concept:el('editConcept').value.trim(),hook:el('editHook').value.trim(),outline:el('editOutline').value.trim(),suggestedStudio:el('editStudio').value};}
+function showRevisionPreview(idea){
+ pendingRevision=idea;
+ el('previewTitle').textContent=idea.title;el('previewConcept').textContent=idea.concept;
+ el('previewHook').textContent=idea.hook;el('previewOutline').textContent=idea.outline;
+ el('previewStudio').textContent='အကြံပြု Studio: '+idea.suggestedStudio;
+ el('revisionPreview').hidden=false;
+ el('revisionPreview').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+el('reviseIdeaBtn').addEventListener('click',function(){
+ if(!editingIdeaId)return;
+ var instruction=el('revisionInstruction').value.trim();
+ if(!instruction){showStatus('AI ကို ပြင်စေလိုသည့်အချက်ကို ရေးပါ။',true);el('revisionInstruction').focus();return;}
+ var formCheck=window.AICS_IDEA_FORMS.validate(editingCategory,el('editCategoryFields'));
+ if(!formCheck.ok){showStatus('Category အချက်အလက် ဖြည့်ပါ။ ('+formCheck.label+')',true);return;}
+ var token='';try{token=localStorage.getItem('aics_token')||''}catch(e){}
+ if(!token){showStatus('Login ပြန်ဝင်ပါ။',true);return;}
+ var btn=el('reviseIdeaBtn');btn.disabled=true;btn.textContent='AI ပြင်ဆင်နေသည်…';
+ var body={category:editingCategory,idea:currentEditorResult(),fields:window.AICS_IDEA_FORMS.read(editingCategory,el('editCategoryFields')),instruction:instruction};
+ fetch('/api/ideas/revise',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)})
+ .then(function(res){return res.json().catch(function(){return {error:'invalid_response'}}).then(function(data){if(!res.ok){throw new Error(data.error||'revision_failed');}return data;});})
+ .then(function(data){if(!data||!data.idea)throw new Error('invalid_ai_output');showRevisionPreview(data.idea);showStatus('AI ပြင်ဆင်ချက် ရပါပြီ။ မူရင်းကို မပြောင်းသေးပါ။');})
+ .catch(function(error){var message=error.message==='cms_prompt_missing'?'Admin CMS မှာ IDEAS Prompt ကို စစ်ဆေးပါ။':error.message==='unauthorized'||error.message==='invalid_token'?'Login ပြန်ဝင်ပါ။':'AI ပြင်ဆင်မှု မအောင်မြင်ပါ။ ပြန်ကြိုးစားပါ။';showStatus(message,true);})
+ .finally(function(){btn.disabled=false;btn.textContent='AI ဖြင့် ပြင်ဆင်ရန်';});
+});
+el('applyRevisionBtn').addEventListener('click',function(){
+ if(!editingIdeaId||!pendingRevision)return;
+ var fields=window.AICS_IDEA_FORMS.read(editingCategory,el('editCategoryFields'));
+ var btn=el('applyRevisionBtn');btn.disabled=true;
+ window.AICS_IDEAS.update(editingIdeaId,{fields:fields,result:pendingRevision})
+ .then(function(){closeEditor();showStatus('AI ပြင်ဆင်ချက်ကို IndexedDB ထဲ သိမ်းပြီးပါပြီ။');renderSaved();})
+ .catch(function(){showStatus('AI ပြင်ဆင်ချက်ကို သိမ်းမရပါ။ မူရင်း Idea ကို မပြောင်းထားပါ။',true);})
+ .finally(function(){btn.disabled=false;});
+});
+el('discardRevisionBtn').addEventListener('click',function(){pendingRevision=null;el('revisionPreview').hidden=true;showStatus('AI ပြင်ဆင်ချက်ကို ပယ်ဖျက်ပြီး မူရင်း Idea ကို ထားရှိထားပါတယ်။');});
 el('saveEditBtn').addEventListener('click',function(){
  if(!editingIdeaId)return;
  var editorFields=el('editCategoryFields');var check=window.AICS_IDEA_FORMS.validate(editingCategory,editorFields);if(!check.ok){showStatus('လိုအပ်သော အချက်အလက် ဖြည့်ပါ။ ('+check.label+')',true);return}var fields=window.AICS_IDEA_FORMS.read(editingCategory,editorFields);
