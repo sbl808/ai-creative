@@ -19,8 +19,9 @@ assert.match(shared, /AICS_STUDIO_DRAFTS\.remove\(SHELL_ID\)/);
 assert.match(shared, /!studioDraftReady/);
 
 // Legacy localStorage is read for migration; the adapter-backed branch does not write it.
-const adapterBranchStart = shared.indexOf('if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS)');
-const adapterBranchEnd = shared.indexOf('function restoreDraft(d)', adapterBranchStart);
+const initStart = shared.indexOf('function init() {');
+const adapterBranchStart = shared.indexOf('if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS)', initStart);
+const adapterBranchEnd = shared.indexOf('if (raw) {', adapterBranchStart);
 assert.ok(adapterBranchStart >= 0 && adapterBranchEnd > adapterBranchStart);
 const adapterBranch = shared.slice(adapterBranchStart, adapterBranchEnd);
 assert.doesNotMatch(adapterBranch, /localStorage\.setItem/);
