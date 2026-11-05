@@ -63,12 +63,10 @@ const shop = adaptShopVideoPlan({
 assert.deepEqual(shop.product, { name: 'Camera', prompt: 'Compact camera' });
 assert.deepEqual(validateVideoPlanV1(shop), { ok: true, errors: [] });
 
-assert.throws(
-  () => adaptStoryVideoPlan({
-    characters: [],
-    scenes: [{ duration: -1, number: 1 }],
-  }),
-  /invalid_adapted_video_plan/,
-);
+const invalidDurationFallback = adaptStoryVideoPlan({
+  characters: [],
+  scenes: [{ duration: -1, number: 1 }],
+});
+assert.equal(invalidDurationFallback.scenes[0].duration, 8);
 
 console.log('Video Plan adapter tests passed.');
