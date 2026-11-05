@@ -404,7 +404,7 @@ function downloadVoiceAudio(){
   if(!LAST_AUDIO.url){toast('Download လုပ်ဖို့ Audio မရှိပါ','error');return;}
   var a=document.createElement('a');a.href=LAST_AUDIO.url;a.download='voice_output.wav';document.body.appendChild(a);a.click();a.remove();
 }
-function autoGrow(x){if(!x)return;var s=window.getComputedStyle(x),lh=parseFloat(s.lineHeight)||24,p=(parseFloat(s.paddingTop)||0)+(parseFloat(s.paddingBottom)||0),rows=Math.ceil(Math.max(0,x.scrollHeight-p)/lh);x.rows=Math.max(5,Math.min(22,rows));}
+function autoGrow(x){if(!x)return;x.rows=1;var s=window.getComputedStyle(x),lh=parseFloat(s.lineHeight)||24,p=(parseFloat(s.paddingTop)||0)+(parseFloat(s.paddingBottom)||0),rows=Math.ceil(Math.max(0,x.scrollHeight-p)/lh);x.rows=Math.max(5,Math.min(22,rows));}
 function copyValue(id){var x=document.getElementById(id),t=x?(x.value!==undefined?x.value:x.textContent):'';if(!t.trim()){toast('Copy လုပ်ဖို့ Result မရှိပါ','error');return;}if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){toast('✓ Copy ပြီးပါပြီ','success');});}
 function downloadValue(id,name){var x=document.getElementById(id),t=x?x.value:'';if(!t.trim()){toast('Save လုပ်ဖို့ Result မရှိပါ','error');return;}var u=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},500);}
 function saveVoiceCreation(){
