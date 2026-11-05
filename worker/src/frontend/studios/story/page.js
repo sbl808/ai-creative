@@ -194,10 +194,12 @@ a{color:var(--cyan);text-decoration:none}
   .aics-work .story-generate-btn,.aics-work .video-generate-btn,.aics-work .story-action-primary{min-height:50px;font-size:14.5px}
   .aics-work .aics-advanced-toggle{min-height:48px}
 }
+
+.aics-work .aics-login-overlay.is-hidden{display:none}
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Story Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/story" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay is-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Story Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/story" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'story',
   activeId: 'story',
@@ -295,6 +297,8 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
     if(target.dataset.aicsInput==='story-edit'&&typeof window.onStoryEdit==='function')window.onStoryEdit();
   });
   document.addEventListener('click',function(event){
+    var stepButton=event.target&&event.target.closest?event.target.closest('[data-story-step-nav]'):null;
+    if(stepButton){window.stNav(Number(stepButton.dataset.storyStepNav));return;}
     var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
     if(!button)return;
     switch(button.dataset.aicsAction){
@@ -311,6 +315,10 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
   });
   document.addEventListener('keydown',function(event){
     var target=event.target;
+    if(target&&target.matches&&target.matches('[data-story-step-nav]')){
+      window.stStepperKeydown(event,Number(target.dataset.storyStepNav));
+      return;
+    }
     if(target&&target.dataset&&target.dataset.aicsKeydown==='revise-story'&&event.key==='Enter'){
       event.preventDefault();
       window.reviseStory();
