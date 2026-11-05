@@ -127,9 +127,9 @@ function studioRestoreDraft(d){
   if(!d)return;
   imgCache=d.imgCache&&typeof d.imgCache==='object'&&!Array.isArray(d.imgCache)?d.imgCache:{};
   refImages=Array.isArray(d.referenceImages)?d.referenceImages.slice(0,MAX_REF_IMAGES).filter(function(img){
-    return img&&typeof img.dataUrl==='string'&&/^data:image\/[a-z0-9.+-]+;base64,/i.test(img.dataUrl);
+    return img&&typeof img.dataUrl==='string'&&/^data:image\\/[a-z0-9.+-]+;base64,/i.test(img.dataUrl);
   }).map(function(img){
-    var match=img.dataUrl.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+    var match=img.dataUrl.match(/^data:(image\\/[a-z0-9.+-]+);base64,/i);
     return {
       dataUrl:img.dataUrl,
       base64:img.dataUrl.split(',')[1]||'',
