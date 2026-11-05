@@ -107,3 +107,87 @@ export async function generateIdeas(env, { brief, plan, apiKey }) {
   });
   return parseIdeasOutput(raw);
 }
+
+
+export function validateIdeaRevision(body) {
+  if (!isPlainObject(body)) return { ok: false, error: 'invalid_request' };
+  const category = String(body.category || '').toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(CATEGORY_FIELDS, category)) {
+    return { ok: false, error: 'invalid_category', field: 'category' };
+  }
+  if (!isPlainObject(body.idea)) return { ok: false, error: 'invalid_idea' };
+  for (const key of ['title', 'concept', 'hook', 'outline']) {
+    if (typeof body.idea[key] !== 'string' || !body.idea[key].trim()) {
+      return { ok: false, error: 'invalid_idea', field: key };
+    }
+    if (body.idea[key].length > 5000) return { ok: false, error: 'field_too_long', field: key };
+  }
+  const studio = String(body.idea.suggestedStudio || '').toLowerCase();
+  if (!STUDIOS.has(studio)) return { ok: false, error: 'invalid_suggested_studio', field: 'suggestedStudio' };
+  if (typeof body.instruction !== 'string' || !body.instruction.trim()) {
+    return { ok: false, error: 'missing_instruction', field: 'instruction' };
+  }
+  if (body.instruction.length > 2000) return { ok: false, error: 'field_too_long', field: 'instruction' };
+  if (body.fields != null) {
+    if (!isPlainObject(body.fields)) return { ok: false, error: 'invalid_form_data', field: 'fields' };
+    const allowed = new Set([...COMMON_FIELDS, ...CATEGORY_FIELDS[category]]);
+    for (const [key, value] of Object.entries(body.fields)) {
+      if (!allowed.has(key) || typeof value !== 'string' || value.length > 2000) {
+        return { ok: false, error: 'invalid_form_field', field: key };
+      }
+    }
+  }
+  return { ok: true, category };
+}
+
+export function parseIdeaRevisionOutput(raw) {
+  let value = raw;
+  if (typeof value !== 'string') throw new Error('invalid_ai_output');
+  value = value.trim().replace(/^\x60\x60\x60(?:json)?\s*/i, '').replace(/\s*\x60\x60\x60$/, '');
+  let parsed;
+  try { parsed = JSON.parse(value); } catch (_) { throw new Error('invalid_ai_output'); }
+  const idea = Array.isArray(parsed) ? null : (parsed?.idea || parsed);
+  if (!isPlainObject(idea)) throw new Error('invalid_idea');
+  const clean = {};
+  for (const key of ['title', 'concept', 'hook', 'outline']) {
+    if (typeof idea[key] !== 'string' || !idea[key].trim()) throw new Error('invalid_idea');
+    clean[key] = idea[key].trim().slice(0, 5000);
+  }
+  const studio = String(idea.suggestedStudio || '').toLowerCase();
+  if (!STUDIOS.has(studio)) throw new Error('invalid_suggested_studio');
+  clean.suggestedStudio = studio;
+  return clean;
+}
+
+export async function reviseIdea(env, { category, idea, fields, instruction, plan, apiKey }) {
+  const cms = await getCMSData(env, 'IDEAS', plan, '1');
+  if (!cms) throw new Error('cms_prompt_missing');
+  const system = buildSystemPrompt(cms);
+  if (!system || !system.trim()) throw new Error('cms_prompt_missing');
+  const categoryInstructions = {
+    story: 'Keep the premise coherent; strengthen characters, conflict, and emotional arc.',
+    content: 'Improve audience value, message clarity, tone, and CTA where relevant.',
+    short: 'Strengthen the opening hook, pacing, and concise visual sequence.',
+    image: 'Improve composition, visual direction, environment, and lighting.',
+    shop: 'Improve product value communication and buyer relevance without inventing claims.',
+  };
+  const prompt = [
+    'Revise the single supplied creative idea according to the user instruction.',
+    'Do not create multiple alternatives. Return exactly one idea object.',
+    'Selected category: ' + category,
+    'Category direction: ' + categoryInstructions[category],
+    'Preserve correct facts. Do not invent prices, product claims, guarantees, or missing details.',
+    'Return only valid JSON in this shape: {"idea":{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|voice|shop"}}',
+    'All five fields are required. Keep suggestedStudio valid.',
+    'Current idea JSON:', JSON.stringify(idea),
+    'Category form fields JSON:', JSON.stringify(fields || {}),
+    'User revision instruction:', instruction,
+  ].join('\n\n');
+  const raw = await callGeminiText(env, {
+    model: await resolveModel(env, 'text', plan),
+    system,
+    prompt,
+    apiKey,
+  });
+  return parseIdeaRevisionOutput(raw);
+}
