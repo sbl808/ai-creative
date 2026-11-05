@@ -133,7 +133,7 @@ function loadProjects(){
       container.appendChild(card);
     });
   }).catch(function(error){
-    loading.style.display='block';
+    loading.classList.remove('is-hidden');
     loading.textContent=projectErrorMessage(error);
     showToast(projectErrorMessage(error),'error');
   });
