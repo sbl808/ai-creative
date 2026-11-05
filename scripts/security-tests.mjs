@@ -108,6 +108,17 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('CSP disallows inline script attributes in target policy', policy.includes("script-src-attr 'none'"));
   check('CSP disables object embeds and framing', policy.includes("object-src 'none'") && policy.includes("frame-ancestors 'none'"));
   check('CSP does not allow unsafe-inline scripts', !policy.includes("'unsafe-inline'"));
+  const nonceMatch = policy.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+  check('HTML CSP includes a valid per-response nonce', !!nonceMatch);
+  check('CSP nonce is shared by script elements and styles',
+    !!nonceMatch &&
+    policy.includes(`script-src-elem 'self' 'nonce-${nonceMatch[1]}'`) &&
+    policy.includes(`style-src 'self' 'nonce-${nonceMatch[1]}'`));
+  const page2 = await worker.fetch(new Request('https://w.dev/'), envFor(DEV_ORIGIN), {});
+  const policy2 = page2.headers.get('content-security-policy-report-only') || '';
+  const nonceMatch2 = policy2.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+  check('separate HTML responses receive different CSP nonces',
+    !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
