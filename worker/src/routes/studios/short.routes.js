@@ -1,4 +1,5 @@
 import { generateShort, reviseShort, generateShortVideoPlan, generateShortVideoImage } from '../../studios/short/index.js';
+import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleShortStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
@@ -92,19 +93,23 @@ export async function handleShortStudioRoutes(request, env, cors, deps) {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateShortVideoPlan(env, { model: body.model, 
-            idea: body.idea, type: reqType, plan, apiKey,
-            images: body.images || [],
-            // Short Video Production Setup (Step 04) — additive, backward compatible
-            videoStyle: body.videoStyle || '',
-            aspectRatio: body.aspectRatio || '9:16',
-            duration: body.duration || '30 sec',
-            sceneDuration: body.sceneDuration || '5 sec',
-            visualStyle: body.visualStyle || '',
-            cameraStyle: body.cameraStyle || '',
-            language: body.language || 'မြန်မာ',
-            characterContinuity: body.characterContinuity || 'true',
-            additionalInstructions: body.additionalInstructions || '',
+          const out = await generateVideoPlan({
+            studioId: 'short',
+            generate: () => generateShortVideoPlan(env, {
+              model: body.model,
+              idea: body.idea, type: reqType, plan, apiKey,
+              images: body.images || [],
+              // Short Video Production Setup (Step 04) — additive, backward compatible
+              videoStyle: body.videoStyle || '',
+              aspectRatio: body.aspectRatio || '9:16',
+              duration: body.duration || '30 sec',
+              sceneDuration: body.sceneDuration || '5 sec',
+              visualStyle: body.visualStyle || '',
+              cameraStyle: body.cameraStyle || '',
+              language: body.language || 'မြန်မာ',
+              characterContinuity: body.characterContinuity || 'true',
+              additionalInstructions: body.additionalInstructions || '',
+            }),
           });
           await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
