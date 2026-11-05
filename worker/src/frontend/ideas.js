@@ -44,7 +44,8 @@ categorySelect.addEventListener('change',function(){window.AICS_IDEA_FORMS.mount
 function el(id){return document.getElementById(id)}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
 function showStatus(message,isError){var s=el('status');s.hidden=false;s.textContent=message;s.className='status'+(isError?' error':'')}
-var generatedBrief=null;\nvar editingCategory='story';\nfunction makeResult(idea){return {title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}}
+var generatedBrief=null;
+var editingCategory='story';\nfunction makeResult(idea){return {title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}}
 function saveIdea(idea){return window.AICS_IDEAS.create({category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},result:makeResult(idea)})}
 function loadSaved(){return window.AICS_IDEAS.list()}
 var editingIdeaId=null;
