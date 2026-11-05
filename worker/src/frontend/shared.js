@@ -1008,7 +1008,7 @@ export function renderStudioShell(opts) {
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
     String.raw`  var studioDraftReady = false;
   window.studioPersistDraft = function (showMessage) {
-    if (!studioDraftReady || ["content", "short", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
+    if (!studioDraftReady || ["content", "short", "image", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
@@ -1030,7 +1030,7 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1) {
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1) {
       window.studioPersistDraft(true);
       return;
     }
@@ -1043,7 +1043,7 @@ export function renderStudioShell(opts) {
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
         // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးနောက် legacy draft ကိုသာ ရှင်းသည်။
         try { localStorage.removeItem(draftKey); } catch (e) {}
@@ -1070,7 +1070,7 @@ export function renderStudioShell(opts) {
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
 
-    if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
