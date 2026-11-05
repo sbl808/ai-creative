@@ -89,6 +89,9 @@ async function run() {
   assert.equal(created[0].studio, 'STORY_VIDEO_PLAN');
   assert.equal(created[0].draft.schemaVersion, 1);
   assert.equal(created[0].draft.sourceStorySnapshot, 'Current Story result');
+  assert.equal(created[0].draft.contractVersion, null, 'legacy Video Plan drafts keep an explicit unknown contract version');
+  assert.equal(created[0].draft.studioId, 'story');
+  assert.equal(created[0].draft.rawFallback, false);
   assert.equal(copiedImages.length, 2, 'both legacy character and environment images migrate');
   assert.equal(copiedImages[0].sessionId, 'plan_1');
   assert.equal(copiedImages[0].type, 'video_image');
@@ -99,6 +102,9 @@ async function run() {
   assert.equal(planSession.draft.characters[0].name, 'Hero');
 
   const updatesBeforeExplicitSave = updates.length;
+  state.contractVersion = 1;
+  state.studioId = 'story';
+  state.rawFallback = true;
   nodes.vidExtra.value = 'Updated after first save';
   await context.window.AICS_STORY_VIDEO_PLAN_STATE.save();
   assert.equal(
@@ -108,6 +114,9 @@ async function run() {
   );
   assert.equal(updates.at(-1).id, 'plan_1');
   assert.equal(planSession.draft.form.additionalInstructions, 'Updated after first save');
+  assert.equal(planSession.draft.contractVersion, 1);
+  assert.equal(planSession.draft.studioId, 'story');
+  assert.equal(planSession.draft.rawFallback, true);
 
   const reload = makeContext('?session=story_1&plan=plan_1');
   // Separate page contexts share the same IndexedDB-backed result records.
@@ -118,6 +127,9 @@ async function run() {
   assert.equal(restored.sessionId, 'plan_1');
   assert.equal(restored.story, 'User-edited Video Story');
   assert.equal(restored.form.additionalInstructions, 'Updated after first save');
+  assert.equal(restored.contractVersion, 1, 'contract version restores from the IndexedDB draft');
+  assert.equal(restored.studioId, 'story');
+  assert.equal(restored.rawFallback, true, 'raw fallback marker restores from the IndexedDB draft');
   assert.equal(restored.imageCache.char_0, 'data:image/png;base64,AA==');
   assert.equal(restored.imageCache.env_0, 'data:image/jpeg;base64,BB==');
   assert.equal(restored.imageResultIds.char_0, 'img_1');
