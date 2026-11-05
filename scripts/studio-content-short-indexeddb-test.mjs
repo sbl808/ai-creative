@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
-const [shared, contentPage, shortShell, shortStepper, shortPage] = await Promise.all([
+const [shared, contentPage, shortShell, shortActions, shortStepper, shortPage] = await Promise.all([
   read('../worker/src/frontend/shared.js'),
   read('../worker/src/frontend/studios/content/page.js'),
   read('../worker/src/frontend/studios/short/shell.js'),
@@ -30,10 +30,10 @@ assert.match(contentPage, /window\.studioPersistDraft\(false\)/);
 assert.match(shared, /window\.AICS_STUDIO_DRAFTS\.save\(SHELL_ID/);
 
 // Short fields and generated image cache are collected into the IndexedDB draft.
-assert.match(shortShell, /imgCache:imgCache/);
+assert.match(shortShell, /imgCache:imgCache/);\nassert.match(shortShell, /referenceImages:refImages\.map/);\nassert.match(shortShell, /renderRefPreviews\(\)/);
 assert.match(shortShell, /imgCache=d\.imgCache/);
 assert.match(shortShell, /queueShortDraftSave/);
-assert.match(shortShell, /autoSave\(\)/);
+assert.match(shortShell, /autoSave\(\)/);\nassert.match(shortActions, /renderRefPreviews\(\);\s*autoSave\(\);/);
 assert.match(shortPage, /SHELL_SCRIPT/);\nassert.match(shortPage, /STEPPER_SCRIPT/);
 
 // Short reset removes the IndexedDB draft and only clears legacy keys after confirmation.
