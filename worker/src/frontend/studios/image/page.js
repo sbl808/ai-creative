@@ -135,6 +135,22 @@ ${sidebarScript()}
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; အောင်မြင်ပါသည်</div>
 <script>${STATE_SCRIPT}${API_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}
 (function(){
+  var imageDraftSaveTimer=null;
+  function queueImageDraftSave(){
+    if(imageDraftSaveTimer!==null)clearTimeout(imageDraftSaveTimer);
+    imageDraftSaveTimer=setTimeout(function(){
+      imageDraftSaveTimer=null;
+      if(window.autoSave)window.autoSave();
+    },450);
+  }
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueImageDraftSave();
+  });
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueImageDraftSave();
+  });
   document.addEventListener('change',function(event){
     var target=event.target;
     if(!target||!target.dataset)return;
