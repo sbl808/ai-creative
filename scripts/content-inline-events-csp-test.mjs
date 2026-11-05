@@ -11,6 +11,12 @@ const inlineEventAttribute = /\bon(?:click|change|input|keypress|keydown|submit)
 assert.equal(inlineEventAttribute.test(ui), false, 'Content UI fragments must not contain inline event attributes');
 assert.equal(inlineEventAttribute.test(shell), false, 'Content audio shell must not contain inline event attributes');
 assert.equal(inlineEventAttribute.test(api), false, 'Content dynamic result HTML must not contain inline event attributes');
+const inlineStyleAttribute = /\\bstyle\\s*=/i;
+assert.equal(inlineStyleAttribute.test(api), false, 'Content dynamic result HTML must not contain inline style attributes');
+for (const className of ['scene-duration', 'scene-image-action', 'scene-empty-state', 'content-scene-loading', 'scene-image-error']) {
+  assert.ok(page.includes('.' + className), 'Missing Content Studio CSS class: ' + className);
+  assert.ok(api.includes('class="' + className + '"') || api.includes(' ' + className + '"'), 'Dynamic HTML does not use CSS class: ' + className);
+}
 
 const actions = [...ui.matchAll(/data-aics-action="([^"]+)"/g)].map((match) => match[1]);
 const dynamicActions = [...api.matchAll(/data-aics-action="([^"]+)"/g)].map((match) => match[1]);
