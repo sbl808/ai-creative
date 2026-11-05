@@ -178,5 +178,23 @@ function autoSaveImgCache(){
   if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 
-// Reset — Shared Reset ၏ Draft ဖျက်ခြင်းနှင့်အတူ Short Image Cache ကိုပါ ရှင်းသည်
+// Form fields နှင့် Image Cache တို့ကို IndexedDB ထဲ အလိုအလျောက် သိမ်းသည်။
+var shortDraftSaveTimer=null;
+function queueShortDraftSave(){
+  if(shortDraftSaveTimer!==null)clearTimeout(shortDraftSaveTimer);
+  shortDraftSaveTimer=setTimeout(function(){
+    shortDraftSaveTimer=null;
+    autoSave();
+  },500);
+}
+document.addEventListener('input',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShortDraftSave();
+});
+document.addEventListener('change',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShortDraftSave();
+});
+
+// Reset — အတည်ပြုပြီးနောက် IndexedDB နှင့် legacy Short draft များကို ရှင်းသည်။
 `;
