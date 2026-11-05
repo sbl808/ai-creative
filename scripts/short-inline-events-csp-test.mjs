@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+const ui = await readFile(new URL('../worker/src/frontend/studios/short/ui.js', import.meta.url), 'utf8');
 const actions = await readFile(new URL('../worker/src/frontend/studios/short/actions.js', import.meta.url), 'utf8');
 const stepper = await readFile(new URL('../worker/src/frontend/studios/short/stepper.js', import.meta.url), 'utf8');
 const page = await readFile(new URL('../worker/src/frontend/studios/short/page.js', import.meta.url), 'utf8');
 
+assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonkeypress\s*=|\bonsubmit\s*=/i.test(ui), false,
+  'Short UI must not contain inline event attributes');
+assert.equal(/\bstyle\s*=/i.test(ui), false,
+  'Short UI must not contain inline style attributes');
 assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(actions), false,
   'Short dynamic actions must not contain inline event attributes');
 assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(stepper), false,
@@ -53,5 +58,20 @@ for (const action of requiredActions) {
 }
 assert.ok(stepper.includes("document.addEventListener('click',stHandleDelegatedAction)"),
   'Short delegated click listener is not registered');
+
+
+const uiActions = ["toggle-advanced","copy-short","save-short","focus-revise","go-to-video","generate-short","go-step","revise-short","generate-video-plan"];
+for (const action of uiActions) {
+  assert.ok(stepper.includes("case '" + action + "'") || action === 'go-step' && stepper.includes("case 'step-nav'"),
+    'Missing delegated UI action: ' + action);
+  assert.ok(ui.includes('data-aics-action="' + action + '"') || action === 'go-step' && ui.includes('data-aics-action="go-step"'),
+    'Missing UI action markup: ' + action);
+}
+assert.ok(stepper.includes("document.addEventListener('input',stHandleDelegatedInput)"),
+  'Short delegated input listener is not registered');
+assert.ok(stepper.includes("document.addEventListener('change',stHandleDelegatedChange)"),
+  'Short delegated change listener is not registered');
+assert.ok(stepper.includes("document.addEventListener('keydown',stHandleDelegatedKeydown)"),
+  'Short delegated keydown listener is not registered');
 
 console.log('Short Studio inline event CSP checks passed');
