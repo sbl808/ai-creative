@@ -57,6 +57,8 @@ function expectCode(input, code, owner = ownerId) {
 }
 
 expectCode(validBackup, 'backup_owner_mismatch', 'other-user');
+expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId: 'user-b', studio: 'short', data: {} }] } }, 'backup_owner_mismatch');
+expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId, studio: 'unknown', data: {} }] } }, 'backup_invalid_record');
 const legacyBackup = JSON.parse(JSON.stringify(validBackup));
 delete legacyBackup.stores.drafts;
 assert.equal(validateBackupEnvelope(legacyBackup, ownerId).recordCount, 5, 'legacy backups without drafts remain importable');
@@ -127,7 +129,7 @@ const imported = await context.window.AICS_BACKUP_IMPORT.validateFile({
   size: Buffer.byteLength(validText),
   text: () => Promise.resolve(validText)
 });
-assert.equal(imported.recordCount, 5);
+assert.equal(imported.recordCount, 6);
 
 await assert.rejects(
   context.window.AICS_BACKUP_IMPORT.validateText('{bad json'),
