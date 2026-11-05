@@ -12,6 +12,14 @@ function __aicsValidateIdea(input) {
   if (!input.fields || typeof input.fields !== 'object' || Array.isArray(input.fields)) {
     throw __aicsStorageError('invalid_idea_fields');
   }
+  if (!input.result || typeof input.result !== 'object' || Array.isArray(input.result)) {
+    throw __aicsStorageError('invalid_idea_result');
+  }
+  ['title', 'concept', 'hook', 'outline', 'suggestedStudio'].forEach(function (key) {
+    if (typeof input.result[key] !== 'string' || !input.result[key].trim()) {
+      throw __aicsStorageError('invalid_idea_result');
+    }
+  });
 }
 window.AICS_IDEAS = {
   create: function (input) {
@@ -21,7 +29,7 @@ window.AICS_IDEAS = {
     var now = new Date().toISOString();
     var record = {
       id: __aicsIdeaId(), ownerId: ownerId, recordVersion: 1,
-      category: String(input.category), fields: input.fields,
+      category: String(input.category), fields: input.fields, result: input.result,
       isFavorite: input.isFavorite === true, createdAt: now, updatedAt: now
     };
     return __aicsDbOpen().then(function (db) {
@@ -54,6 +62,17 @@ window.AICS_IDEAS = {
           throw __aicsStorageError('invalid_idea_fields');
         }
         record.fields = changes.fields;
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'result')) {
+        if (!changes.result || typeof changes.result !== 'object' || Array.isArray(changes.result)) {
+          throw __aicsStorageError('invalid_idea_result');
+        }
+        ['title', 'concept', 'hook', 'outline', 'suggestedStudio'].forEach(function (key) {
+          if (typeof changes.result[key] !== 'string' || !changes.result[key].trim()) {
+            throw __aicsStorageError('invalid_idea_result');
+          }
+        });
+        record.result = changes.result;
       }
       if (Object.prototype.hasOwnProperty.call(changes, 'isFavorite')) {
         record.isFavorite = changes.isFavorite === true;
