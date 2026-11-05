@@ -55,7 +55,7 @@ function openEditor(item){
  el('editTitle').value=result.title||'';el('editStudio').value=result.suggestedStudio||'story';
  el('editConcept').value=result.concept||'';el('editHook').value=result.hook||'';el('editOutline').value=result.outline||'';
  window.AICS_IDEA_FORMS.mount(el('editCategoryFields'),item.category);
- Object.keys(item.fields||{}).forEach(function(key){var input=el('editCategoryFields').querySelector('[name="'+key+'"]');if(input)input.value=item.fields[key]});
+ Object.keys(item.fields||{}).forEach(function(key){var input=el('editCategoryFields').querySelector('#'+key);if(input)input.value=item.fields[key]});
  el('ideaEditor').hidden=false;el('ideaEditor').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderSaved(){
