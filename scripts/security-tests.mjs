@@ -12,6 +12,45 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
+// Node-only HTMLRewriter shim for this source-level test suite.
+// Production requests use Cloudflare Worker's native HTMLRewriter implementation.
+if (typeof globalThis.HTMLRewriter === 'undefined') {
+  globalThis.HTMLRewriter = class TestHTMLRewriter {
+    constructor() { this.rules = []; }
+    on(selector, handler) {
+      this.rules.push({ selector, handler });
+      return this;
+    }
+    transform(response) {
+      const body = response.text().then((html) => {
+        for (const rule of this.rules) {
+          const tag = rule.selector;
+          const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
+          html = html.replace(pattern, (match, attributes) => {
+            const element = {
+              attributes,
+              setAttribute(name, value) {
+                const existing = new RegExp('\\\\s' + name + '\\\\s*=\\\\s*(["\\\\']).*?\\\\1', 'i');
+                this.attributes = existing.test(this.attributes)
+                  ? this.attributes.replace(existing, ' ' + name + '="' + value + '"')
+                  : this.attributes + ' ' + name + '="' + value + '"';
+              },
+            };
+            rule.handler.element(element);
+            return '<' + tag + element.attributes + '>';
+          });
+        }
+        return html;
+      });
+      return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }
+  };
+}
+
 let passed = 0, failed = 0;
 function check(name, ok, extra) {
   if (ok) { passed++; console.log('  ✔ ' + name); }
@@ -119,6 +158,12 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   const nonceMatch2 = policy2.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
   check('separate HTML responses receive different CSP nonces',
     !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
+  const html = await page.clone().text();
+  const inlineElements = [...html.matchAll(/<(script|style)\\b([^>]*)>/gi)];
+  check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
+  check('every script/style element receives the CSP response nonce',
+    !!nonceMatch && inlineElements.length >= 2 &&
+    inlineElements.every((match) => match[2].includes('nonce="' + nonceMatch[1] + '"')));
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
