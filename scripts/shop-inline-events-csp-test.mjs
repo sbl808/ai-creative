@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const root='worker/src/frontend/studios/shop/';
-for(const file of ['ui.js','actions.js','video.js','image.js','page.js']){
+for(const file of ['ui.js','actions.js','video.js','audio.js','image.js','page.js']){
  const source=fs.readFileSync(root+file,'utf8');
  assert.doesNotMatch(source,/<[^>]*\son(?:click|input|change|keypress|keydown|keyup|submit)\s*=/i,file+' inline event attributes');
  assert.doesNotMatch(source,/<[^>]*\sstyle\s*=/i,file+' inline style attributes');
