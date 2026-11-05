@@ -143,6 +143,7 @@ function installBackupValidator(target, config) {
     requireString(record.result, 'outline', 30000);
     requireString(record.result, 'suggestedStudio', 40);
     if (typeof record.isFavorite !== 'boolean') throw fail('backup_invalid_record');
+    optionalString(record, 'legacySourceId', 200);
     optionalDate(record, 'createdAt');
     optionalDate(record, 'updatedAt');
   }
