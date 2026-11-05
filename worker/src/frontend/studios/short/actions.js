@@ -241,7 +241,8 @@ function renderRefPreviews(){
     var removeBtn=document.createElement('button');
     removeBtn.className='remove-x';
     removeBtn.textContent='✕';
-    removeBtn.dataset.aicsAction='remove-ref-image';\n    removeBtn.dataset.aicsIndex=String(idx);
+    removeBtn.dataset.aicsAction='remove-ref-image';
+    removeBtn.dataset.aicsIndex=String(idx);
     thumb.appendChild(imgEl);
     thumb.appendChild(removeBtn);
     container.appendChild(thumb);
