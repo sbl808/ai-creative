@@ -59,6 +59,7 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .ref-thumb img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block}
 .aics-work .ref-thumb .remove-x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:var(--error);color:#fff;border:none;font-size:12px;line-height:22px;text-align:center;cursor:pointer;padding:0}
 .aics-work .chat-section{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;display:none}
+.aics-work .chat-section.shop-chat-open{display:block}
 .aics-work .chat-log{max-height:240px;overflow-y:auto;background:var(--bg-input);border-radius:10px;padding:12px;margin-bottom:10px}
 .aics-work .chat-bubble{padding:8px 12px;border-radius:10px;margin-bottom:8px;max-width:85%;line-height:1.4;font-size:13px}
 .aics-work .chat-user{background:rgba(0,229,255,.1);margin-left:auto;text-align:right}
@@ -252,6 +253,7 @@ html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input
 .aics-work .shop-style-inline-margin{margin:0 8px 0 0;display:inline}
 .aics-work .shop-style-mt-8{margin-top:8px}
 .aics-shop-login-hidden{display:none}
+#aicsApp.aics-shop-app-hidden{display:none!important}
 </style>
 </head>
 <body>
