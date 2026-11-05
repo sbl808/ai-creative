@@ -150,6 +150,27 @@ html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[t
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
 
+/* CSP-safe Short UI presentation classes */
+.aics-work .short-ui-style-01{color:var(--text2);font-size:13px;margin-bottom:14px;}
+.aics-work .short-ui-style-02{margin-bottom:0;}
+.aics-work .short-ui-style-03{margin-bottom:0;}
+.aics-work .short-ui-style-04{margin-bottom:0;}
+.aics-work .short-ui-style-05{margin-bottom:0;}
+.aics-work .short-ui-style-06{min-height:110px;resize:vertical;}
+.aics-work .short-ui-style-07{min-height:70px;}
+.aics-work .short-ui-style-08{min-height:70px;}
+.aics-work .short-ui-style-09{min-height:60px;}
+.aics-work .short-ui-style-10{min-height:60px;}
+.aics-work .short-ui-style-11{min-height:60px;}
+.aics-work .short-ui-style-12{color:var(--text3);font-size:12px;margin-top:6px;font-style:italic;}
+.aics-work .short-ui-style-13{color:var(--text2);font-size:13px;margin-bottom:14px;}
+.aics-work .short-ui-style-14{min-height:150px;}
+.aics-work .short-ui-style-15{display:flex;align-items:center;gap:8px;margin:2px 0 16px;cursor:pointer;color:var(--text2);}
+.aics-work .short-ui-style-16{width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan);}
+.aics-work .short-ui-style-17{min-height:80px;}
+.aics-work .short-ui-style-18{margin-top:14px;}
+.aics-work .short-ui-style-19{flex:1;}
+
 /* CSP-safe dynamic image result states */
 .aics-work .scene-image-generate-btn{font-size:12px;padding:8px 14px;min-height:36px}
 .aics-work .scene-image-loading{display:flex;align-items:center;gap:8px;justify-content:center;padding:14px}
