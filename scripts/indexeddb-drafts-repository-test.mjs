@@ -213,6 +213,24 @@ assert.equal((await window.AICS_DRAFTS.get('short')).data.imgCache.char_0, 'data
   'Short image cache must survive IndexedDB draft round-trip');
 assert.equal((await window.AICS_DRAFTS.list()).length, 2);
 
+const shopDraft = await window.AICS_DRAFTS.save({
+  studio: 'shop',
+  draftVersion: 1,
+  data: {
+    step: 2,
+    data: {
+      shopState: { mainStep: 2, view: 'content', content: { result: 'Shop content draft' } },
+      contentType: '1',
+      videoType: '2'
+    }
+  }
+});
+assert.equal(shopDraft.studio, 'shop');
+const restoredShopDraft = await window.AICS_DRAFTS.get('shop');
+assert.equal(restoredShopDraft.data.data.shopState.content.result, 'Shop content draft',
+  'Shop Studio draft must survive IndexedDB save and restore');
+assert.equal((await window.AICS_DRAFTS.list()).length, 3);
+
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'story', data: {} }), /invalid_draft_studio/);
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'image', data: [] }), /invalid_draft_data/);
 
