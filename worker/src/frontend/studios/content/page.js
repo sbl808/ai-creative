@@ -113,7 +113,10 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .aics-transfer-box{background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow-y:auto;margin-bottom:14px}
 .aics-act:disabled{opacity:.5;cursor:not-allowed}
 /* ===== Content Studio — Local Additions (Branch Stepper / Transfer Note / Selected Voice) ===== */
- .aics-hidden{display:none!important;}\n.cs-branch-stepper-hidden{display:none!important;}\n.cs-preview-visible{display:block!important;}\n.aics-branch-stepper{display:flex;align-items:center;gap:2px;margin-top:-4px;}
+ .aics-hidden{display:none!important;}
+.cs-branch-stepper-hidden{display:none!important;}
+.cs-preview-visible{display:block!important;}
+.aics-branch-stepper{display:flex;align-items:center;gap:2px;margin-top:-4px;}
 .aics-branch-cap{display:inline-flex;align-items:center;font-size:10.5px;color:var(--purple,#b7a8ff);font-weight:700;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;padding-right:8px;flex-shrink:0;}
 .aics-work .aics-transfer-note{display:flex;align-items:center;gap:6px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.3);color:var(--success,#00e676);font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:10px;margin-bottom:10px;}
 .aics-work .selected-voice-chip{display:inline-block;background:var(--bg-input,#0a1020);border:1px solid var(--border-strong,rgba(0,229,255,.35));color:var(--cyan,#00e5ff);font-weight:700;padding:8px 14px;border-radius:10px;font-size:13px;}
