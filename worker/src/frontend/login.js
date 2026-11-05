@@ -77,6 +77,8 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 .password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);min-height:34px;padding:0 10px;border:1px solid #dce7f6;border-radius:9px;background:#f5f9ff;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer}
 .password-toggle:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
 @media(max-width:480px){.login-card{padding:26px 18px}}
+.is-hidden{display:none!important;}
+.btn-google.is-loading{pointer-events:none;opacity:.6;}
 
 </style>
 </head>
@@ -99,10 +101,10 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 
   <!-- Email / Password Sign In -->
   <form id="signinForm">
-    <div class="field" id="suNameField" style="display:none;"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" placeholder="မင်းရဲ့နာမည်" maxlength="60"></div>
+    <div class="field is-hidden" id="suNameField"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" placeholder="မင်းရဲ့နာမည်" maxlength="60"></div>
     <div class="field"><label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
     <div class="field"><label for="siPass">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" aria-pressed="false">Show</button></div></div>
-    <div class="field" id="suCfField" style="display:none;"><label for="suCf">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
+    <div class="field is-hidden" id="suCfField"><label for="suCf">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
     <div class="row2"><button type="button" class="link" id="forgotBtn">Forgot password?</button></div>
     <button class="btn btn-primary" id="signinBtn" type="submit">Sign In</button>
   </form>
@@ -135,8 +137,7 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
   function setLoading(on) {
     btn.disabled = on;
     btn.innerHTML = on ? '<span class="loading-dot"></span> Signing in…' : 'Sign In';
-    googleBtn.style.pointerEvents = on ? 'none' : '';
-    googleBtn.style.opacity = on ? '0.6' : '1';
+    googleBtn.classList.toggle('is-loading', on);
   }
 
   // ---- Submit — Mode (signin / signup) အလိုက် ခေါ်သည် ----
@@ -231,19 +232,19 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
     if (mode === 'signup') {
       headline.textContent = 'Create your account';
       subline.textContent = 'Sign up — စက္ကန့်ပိုင်းအတွင်း ပြီးပါသည်';
-      nameField.style.display = '';
-      cfField.style.display = '';
+      nameField.classList.remove('is-hidden');
+      cfField.classList.remove('is-hidden');
       btn.textContent = 'Create Account';
       document.getElementById('toSignup').textContent = 'Sign in';
-      document.getElementById('forgotBtn').style.display = 'none';
+      document.getElementById('forgotBtn').classList.add('is-hidden');
     } else {
       headline.textContent = 'Welcome back';
       subline.textContent = 'Sign in to your workspace';
-      nameField.style.display = 'none';
-      cfField.style.display = 'none';
+      nameField.classList.add('is-hidden');
+      cfField.classList.add('is-hidden');
       btn.textContent = 'Sign In';
       document.getElementById('toSignup').textContent = 'Sign up';
-      document.getElementById('forgotBtn').style.display = '';
+      document.getElementById('forgotBtn').classList.remove('is-hidden');
     }
     clearBox();
   });
