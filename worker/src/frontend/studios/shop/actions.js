@@ -247,7 +247,7 @@ function renderShopStepper(){
     else if(n===1&&hasResult)cls+=' done';
     else if(n===2)cls+=hasResult?' done':' todo';
     var loadingSpan='<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span>';
-    html+='<button type="button" class="'+cls+'" data-step="'+n+'" onclick="shopMainNav('+n+')">'+
+    html+='<button type="button" class="'+cls+'" data-step="'+n+'" data-shop-event="click" data-shop-action="shopMainNav" data-shop-pass="step">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+loadingSpan+'</button>';
     if(i<SHOP_MAIN_STEPS.length-1)html+='<span class="aics-step-link"></span>';
   }
@@ -372,5 +372,14 @@ function goImageBranch(){
   setActionsForCurrent();
   autoSave();
 }
+
+
+/* CSP-safe Shop event delegation. */
+(function installShopDelegatedEvents(){
+ if(window.__aicsShopDelegationInstalled)return;window.__aicsShopDelegationInstalled=true;
+ var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav']);
+ function dispatch(event){var el=event.target&&event.target.closest?event.target.closest('[data-shop-action]'):null;if(!el||!el.closest('.aics-work'))return;var expected=el.getAttribute('data-shop-event');if(expected&&expected!==event.type)return;if(event.type==='keydown'&&(event.key!=='Enter'||el.getAttribute('data-shop-key')!=='Enter'))return;var action=el.getAttribute('data-shop-action');if(action==='set-content-type'){contentType=el.value;return;}if(!allowed.has(action)||typeof window[action]!=='function')return;var args=[],pass=el.getAttribute('data-shop-pass');if(pass==='element')args=[el];else if(pass==='index')args=[Number(el.getAttribute('data-shop-index')||0)];else if(pass==='step')args=[Number(el.getAttribute('data-step')||1)];else{var a=el.getAttribute('data-shop-arg1'),b=el.getAttribute('data-shop-arg2');if(a!==null)args.push(a);if(b!==null)args.push(b);}window[action].apply(window,args);}
+ ['click','input','change','keydown'].forEach(function(type){document.addEventListener(type,dispatch);});
+})();
 
 `;
