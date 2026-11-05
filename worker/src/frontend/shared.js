@@ -1006,7 +1006,7 @@ export function renderStudioShell(opts) {
     '    else if (a.fn && window[a.fn]) { try { window[a.fn](); } catch (e) { toast("Action error: " + (e && e.message || ""), true); } }\n' +
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
-    window.studioPersistDraft = function (showMessage) {
+    String.raw`  window.studioPersistDraft = function (showMessage) {
     if (SHELL_ID !== "short" || !window.AICS_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
@@ -1081,7 +1081,6 @@ export function renderStudioShell(opts) {
           }).then(function (saved) { restoreDraft(saved.data); });
         }
       }).catch(function () {
-        // Keep legacy data readable if IndexedDB is temporarily unavailable.
         if (legacy && legacy.data) {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
           restoreDraft(legacy);
@@ -1104,6 +1103,6 @@ export function renderStudioShell(opts) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
-</script>
+</script>`
   );
 }
