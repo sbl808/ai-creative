@@ -79,6 +79,7 @@ function voiceApplyDraftData(d){
     MEDIA_AUDIO={base64:'',mime:'',fileName:String(d.mediaFileName||'')};
   }
   translatedSrt=String(d.translation||VOICE_STATE.translationResult||'');
+  LAST_AUDIO={base64:'',mime:'audio/wav',url:''};
   if(d.lastAudio&&typeof d.lastAudio==='object'){
     LAST_AUDIO={base64:String(d.lastAudio.base64||''),mime:String(d.lastAudio.mime||'audio/wav'),url:''};
   }else if(s.audioResult&&s.audioResult.data){
