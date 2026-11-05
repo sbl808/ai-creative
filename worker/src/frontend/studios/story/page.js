@@ -196,6 +196,7 @@ a{color:var(--cyan);text-decoration:none}
 }
 
 .aics-work .aics-login-overlay.is-hidden{display:none}
+.aics-work .story-handoff-panel.is-hidden{display:none!important}
 </style>
 </head>
 <body>
