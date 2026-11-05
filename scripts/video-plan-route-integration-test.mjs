@@ -20,6 +20,13 @@ for (const item of cases) {
   assert.ok(engineIndex > gateIndex, item.studioId + ' feature gate precedes engine call');
 }
 
+const contentUi = await readFile(new URL('../worker/src/frontend/studios/content/api.js', import.meta.url), 'utf8');
+assert.ok(contentUi.includes('function sceneVideoPrompt(scene)'), 'Content UI defines a shared prompt accessor');
+assert.ok(contentUi.includes('return scene.videoPrompt||scene.visualPrompt||\'\';'), 'Content UI reads canonical videoPrompt and keeps legacy visualPrompt fallback');
+assert.ok(contentUi.includes('if(sceneVideoPrompt(s))'), 'Content scene renderer uses canonical video prompt accessor');
+assert.ok(contentUi.includes('var text=sceneVideoPrompt(videoPlan.scenes[idx]);'), 'Content copy action uses canonical video prompt accessor');
+assert.ok(contentUi.includes('var prompt=sceneVideoPrompt(scene)||scene.environmentPrompt||scene.visualDescription||scene.description||\'\';'), 'Content image generation uses canonical video prompt and environment fallbacks');
+
 const story = await readFile(new URL('../worker/src/routes/studios/story-video-plan.routes.js', import.meta.url), 'utf8');
 assert.ok(story.includes("requireFeature(env, 'story.video', plan, '1', cors)"), 'Story Video feature-level PRO gate remains unchanged');
 console.log('Video Plan route integration tests passed.');
