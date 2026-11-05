@@ -1,7 +1,7 @@
 const PANEL = `
 <section class="panel" id="legacyIdeaMigration">
   <h2>အရင် Idea များ Import လုပ်ရန်</h2>
-  <p class="muted small">ယခင် `aics_ideas_v1` Database ထဲရှိ လက်ရှိ Login User ပိုင် Idea များကိုသာ ပြသပါမည်။ Category ကို ကိုယ်တိုင်ရွေးပြီး Import လုပ်ရပါမည်။ မူလဒေတာကို မဖျက်ပါ။</p>
+  <p class="muted small">ယခင် aics_ideas_v1 Database ထဲရှိ လက်ရှိ Login User ပိုင် Idea များကိုသာ ပြသပါမည်။ Category ကို ကိုယ်တိုင်ရွေးပြီး Import လုပ်ရပါမည်။ မူလဒေတာကို မဖျက်ပါ။</p>
   <div class="actions"><button type="button" class="secondary" id="legacyIdeaScan">အရင် Idea များ စစ်ဆေးရန်</button></div>
   <div id="legacyIdeaStatus" class="status" role="status" aria-live="polite"></div>
   <div id="legacyIdeaList"></div>
