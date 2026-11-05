@@ -1,11 +1,12 @@
 const SCRIPT = String.raw`(function () {
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results'];
+  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'drafts'];
   var ownerIndexes = {
     creations: 'user_id',
     projects: 'user_id',
     studio_sessions: 'ownerId',
     studio_handoffs: 'ownerId',
-    session_results: 'ownerId'
+    session_results: 'ownerId',
+    drafts: 'ownerId'
   };
 
   function restore(backup, options) {
@@ -30,17 +31,18 @@ const SCRIPT = String.raw`(function () {
       return Promise.reject(__aicsStorageError('backup_validation_failed'));
     }
 
+    var restoreStoreNames = Object.keys(validation.backup.stores);
     return __aicsDbOpen().then(function (db) {
       return new Promise(function (resolve, reject) {
         var transaction;
-        try { transaction = db.transaction(storeNames, 'readwrite'); }
+        try { transaction = db.transaction(restoreStoreNames, 'readwrite'); }
         catch (error) {
           reject(__aicsStorageError('backup_restore_transaction_failed'));
           return;
         }
 
         var settled = false;
-        var remainingStores = storeNames.length;
+        var remainingStores = restoreStoreNames.length;
         var removedCount = 0;
         var addedCount = 0;
 
@@ -54,7 +56,7 @@ const SCRIPT = String.raw`(function () {
         function addBackupRecords() {
           if (settled) return;
           try {
-            storeNames.forEach(function (storeName) {
+            restoreStoreNames.forEach(function (storeName) {
               var store = transaction.objectStore(storeName);
               var records = validation.backup.stores[storeName];
               records.forEach(function (record) {
@@ -131,7 +133,7 @@ const SCRIPT = String.raw`(function () {
           reject(__aicsStorageError('backup_restore_aborted'));
         };
 
-        storeNames.forEach(clearOwnerRecords);
+        restoreStoreNames.forEach(clearOwnerRecords);
       });
     }).catch(function (error) {
       if (error && error.code) throw error;
