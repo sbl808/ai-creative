@@ -50,7 +50,7 @@ export function validateIdeasBrief(body) {
 export function parseIdeasOutput(raw) {
   let value = raw;
   if (typeof value !== 'string') throw new Error('invalid_ai_output');
-  value = value.trim().replace(/^\x60\x60\x60(?:json)?\\s*/i, '').replace(/\\s*\x60\x60\x60$/, '');
+  value = value.trim().replace(/^\x60\x60\x60(?:json)?\s*/i, '').replace(/\s*\x60\x60\x60$/, '');
   let parsed;
   try { parsed = JSON.parse(value); } catch (_) { throw new Error('invalid_ai_output'); }
   const ideas = Array.isArray(parsed) ? parsed : parsed?.ideas;
@@ -77,7 +77,12 @@ export async function generateIdeas(env, { brief, plan, apiKey }) {
   if (!system || !system.trim()) throw new Error('cms_prompt_missing');
 
   // Exclude credentials and transport-only properties from the prompt payload.
-  const { apiKey: _apiKey, ...safeBrief } = brief;
+  const safeBrief = {
+    category,
+    ...Object.fromEntries([...COMMON_FIELDS].map((field) => [field, brief[field]])),
+    count: 3,
+    formData: brief.formData || null,
+  };
   const categoryInstructions = {
     story: 'Focus on premise, characters, conflict, emotional arc, and a satisfying story direction.',
     content: 'Focus on audience value, a clear message, platform fit, tone, key points, and an actionable CTA where relevant.',
