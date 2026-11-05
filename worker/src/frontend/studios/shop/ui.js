@@ -65,7 +65,7 @@ const STEP1_HTML = `
 </select>
 </div>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advProductToggle" aria-expanded="false" onclick="studioToggleAdvanced('advProductToggle','advProductPanel')"><span>&#9660; Advanced Product Details (အဆင့်မြင့် အချက်အလက်)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advProductToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advProductToggle" data-shop-arg2="advProductPanel"><span>&#9660; Advanced Product Details (အဆင့်မြင့် အချက်အလက်)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advProductPanel">
 <div class="form-group"><label>USP / အဓိကအားသာချက် (USP)</label><input type="text" id="advUsp" placeholder="ဥပမာ - ဈေးကွက်တွင် တစ်ခုတည်းသော ..."></div>
 <div class="form-group"><label>Offer / Discount (လျှော့စျေး)</label><input type="text" id="advOffer" placeholder="ဥပမာ - ၂၀% လျှော့စျေး / Free Delivery"></div>
@@ -168,7 +168,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 <div class="type-chips" id="videoTypes"></div>
 </div>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advVideoToggle" aria-expanded="false" onclick="studioToggleAdvanced('advVideoToggle','advVideoPanel')"><span>&#9660; Advanced Video Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advVideoToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advVideoToggle" data-shop-arg2="advVideoPanel"><span>&#9660; Advanced Video Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advVideoPanel">
 <div class="form-group"><label>Duration (ကြာချိန်)</label><select id="videoDuration"><option value="15">15 sec</option><option value="30" selected>30 sec</option><option value="45">45 sec</option><option value="60">60 sec</option><option value="90">90 sec</option><option value="120">120 sec</option></select></div>
 <div class="form-group"><label>Aspect Ratio (ပုံအချိုး)</label><select id="videoRatio"><option value="9:16" selected>9:16 (Vertical)</option><option value="16:9">16:9 (Horizontal)</option><option value="1:1">1:1 (Square)</option><option value="4:5">4:5</option><option value="21:9">21:9 (Cinematic)</option></select></div>
@@ -231,7 +231,7 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 <label>&#127908; Voice ရွေးချယ်ရန် (Voice Selection)</label>
 <select id="voiceSelect" data-shop-event="change" data-shop-action="onVoiceChange"></select>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advAudioToggle" aria-expanded="false" onclick="studioToggleAdvanced('advAudioToggle','advAudioPanel')"><span>&#9660; Advanced Audio Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advAudioToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advAudioToggle" data-shop-arg2="advAudioPanel"><span>&#9660; Advanced Audio Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advAudioPanel">
 <div class="form-group"><label>Voice Style (အသံပုံစံ)</label><input type="text" id="audioVoiceStyleSel" placeholder="ဥပမာ - Friendly / Professional / Energetic"></div>
 <div class="form-group"><label>Language (ဘာသာစကား)</label><select id="audioLangSel"><option value="မြန်မာ" selected>မြန်မာ</option><option value="English">English</option><option value="တရုတ်">တရုတ်</option><option value="ထိုင်း">ထိုင်း</option><option value="ဂျပန်">ဂျပန်</option></select></div>
@@ -341,7 +341,7 @@ ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်.
 <label>Image Purpose (Image Purpose)</label>
 <select id="imagePurposeSel"><option value="Product Image" selected>Product Image</option><option value="Product Showcase">Product Showcase</option><option value="Social Media Visual">Social Media Visual</option><option value="Advertisement Visual">Advertisement Visual</option><option value="Promotional Image">Promotional Image</option></select>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advImageToggle" aria-expanded="false" onclick="studioToggleAdvanced('advImageToggle','advImagePanel')"><span>&#9660; Advanced Image Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advImageToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advImageToggle" data-shop-arg2="advImagePanel"><span>&#9660; Advanced Image Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advImagePanel">
 <div class="form-group"><label>Image Style (ပုံစံ)</label><input type="text" id="imageStyleSel" placeholder="ဥပမာ - Photorealistic / Minimal / Cinematic"></div>
 <div class="form-group"><label>Background (နောက်ခံ)</label><input type="text" id="imageBg" placeholder="ဥပမာ - White studio / Nature / Urban"></div>
