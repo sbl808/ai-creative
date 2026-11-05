@@ -311,6 +311,8 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
       case 'story-back-to-edit':window.stGoForce(1);break;
       case 'revise-advanced-toggle':window.studioToggleAdvanced('reviseToggle','revisePanel');break;
       case 'revise-story':window.reviseStory();break;
+      case 'accept-story-idea-handoff':window.studioAcceptIdeaHandoff();break;
+      case 'dismiss-story-idea-handoff':window.studioDismissIdeaHandoff();break;
     }
   });
   document.addEventListener('keydown',function(event){
