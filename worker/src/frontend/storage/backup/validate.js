@@ -130,6 +130,23 @@ function installBackupValidator(target, config) {
     optionalDate(record, 'createdAt');
   }
 
+  function validateIdea(record, ownerId) {
+    validateOwnerRecord(record, ownerId, 'ownerId');
+    if (record.recordVersion !== 1 ||
+        ['story', 'content', 'short', 'image', 'shop'].indexOf(record.category) === -1 ||
+        !isObject(record.fields) || !isObject(record.result)) {
+      throw fail('backup_invalid_record');
+    }
+    requireString(record.result, 'title', 500);
+    requireString(record.result, 'concept', 20000);
+    requireString(record.result, 'hook', 10000);
+    requireString(record.result, 'outline', 30000);
+    requireString(record.result, 'suggestedStudio', 40);
+    if (typeof record.isFavorite !== 'boolean') throw fail('backup_invalid_record');
+    optionalDate(record, 'createdAt');
+    optionalDate(record, 'updatedAt');
+  }
+
   function validateEnvelope(envelope, expectedOwnerId) {
     if (!isObject(envelope) || typeof expectedOwnerId !== 'string' || !expectedOwnerId) {
       throw fail('backup_invalid_envelope');
@@ -151,14 +168,21 @@ function installBackupValidator(target, config) {
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
-    var legacyStoreNames = storeNames.filter(function (name) { return name !== 'drafts'; });
-    if (storeKeys.length !== legacyStoreNames.length && storeKeys.length !== storeNames.length) {
-      throw fail('backup_invalid_stores');
-    }
-    for (var s = 0; s < legacyStoreNames.length; s++) {
-      if (!hasOwn(envelope.stores, legacyStoreNames[s]) || !Array.isArray(envelope.stores[legacyStoreNames[s]])) {
+    var requiredStoreNames = storeNames.filter(function (name) {
+      return name !== 'drafts' && name !== 'ideas';
+    });
+    for (var s = 0; s < requiredStoreNames.length; s++) {
+      if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
+          !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
         throw fail('backup_invalid_stores');
       }
+    }
+    if (envelope.schemaVersion >= 6 &&
+        (!hasOwn(envelope.stores, 'ideas') || !Array.isArray(envelope.stores.ideas))) {
+      throw fail('backup_invalid_stores');
+    }
+    if (hasOwn(envelope.stores, 'ideas') && !Array.isArray(envelope.stores.ideas)) {
+      throw fail('backup_invalid_stores');
     }
     if (hasOwn(envelope.stores, 'drafts') && !Array.isArray(envelope.stores.drafts)) {
       throw fail('backup_invalid_stores');
@@ -180,6 +204,7 @@ function installBackupValidator(target, config) {
         validateResult(record, expectedOwnerId);
         resultSessionIds.push(record.sessionId);
       },
+      ideas: function (record) { validateIdea(record, expectedOwnerId); },
       drafts: function (record) {
         validateOwnerRecord(record, expectedOwnerId, 'ownerId');
         if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {
