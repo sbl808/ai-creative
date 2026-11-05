@@ -74,5 +74,5 @@ await new Promise((resolve) => setTimeout(resolve, 0));
 assert.equal(storyContext.handoff.target, 'story');
 assert.equal(storyContext.handoff.payload.category, 'content');
 
-assert.doesNotMatch(handoffSource, /localStorage\\.setItem/);
+assert.doesNotMatch(handoffSource, /localStorage\.setItem/);
 console.log('Idea Studio handoff tests passed.');
