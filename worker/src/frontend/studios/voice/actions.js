@@ -104,7 +104,7 @@ function vSrtFilePicked(){
   var f=vEl('srtFile')&&vEl('srtFile').files[0];if(!f)return;
   if(f.size>1024*1024){toast('ဖိုင်သည် 1MB ထက် မကျော်ရပါ','error');return;}
   var r=new FileReader();
-  r.onload=function(e){var t=vEl('srtSourceText');if(t){t.value=String(e.target.result||'');autoGrow(t);}};
+  r.onload=function(e){var t=vEl('srtSourceText');if(t){t.value=String(e.target.result||'');autoGrow(t);scheduleVoiceDraftSave();}};
   r.onerror=function(){toast('ဖိုင်ဖတ်ရာတွင် အခက်အခဲရှိနေပါသည်','error');};
   r.readAsText(f);
 }
@@ -117,7 +117,7 @@ function vReadMedia(cb){
   }
   if(f.size>5*1024*1024){toast('ဖိုင်သည် 5MB ထက် မကျော်ရပါ','error');return;}
   var r=new FileReader();
-  r.onload=function(e){MEDIA_AUDIO={base64:e.target.result.split(',')[1],mime:f.type||'application/octet-stream',fileName:f.name};cb();};
+  r.onload=function(e){MEDIA_AUDIO={base64:e.target.result.split(',')[1],mime:f.type||'application/octet-stream',fileName:f.name};scheduleVoiceDraftSave();cb();};
   r.onerror=function(){toast('ဖိုင်ဖတ်ရာတွင် အခက်အခဲရှိနေပါသည်','error');};
   r.readAsDataURL(f);
 }
