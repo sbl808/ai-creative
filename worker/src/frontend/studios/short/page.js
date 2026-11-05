@@ -149,10 +149,21 @@ html[data-aics-theme] .aics-app .toast{background:var(--aics-surface)!important;
 html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[tabindex]):focus-visible{outline-color:var(--aics-focus)!important}
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
+
+/* CSP-safe dynamic image result states */
+.aics-work .scene-image-generate-btn{font-size:12px;padding:8px 14px;min-height:36px}
+.aics-work .scene-image-loading{display:flex;align-items:center;gap:8px;justify-content:center;padding:14px}
+.aics-work .scene-image-loading-env{padding:12px}
+.aics-work .scene-image-loading-text{font-size:13px;color:var(--cyan)}
+.aics-work .scene-image-save{margin-top:8px}
+.aics-work .scene-image-error{color:var(--error);font-size:12px;padding:10px}
+.aics-work .scene-image-retry{text-align:center;margin-top:4px}
+.aics-work .aics-login-overlay.is-hidden{display:none}
+
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Short Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/short" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay is-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Short Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/short" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'short',
   activeId: 'short',
