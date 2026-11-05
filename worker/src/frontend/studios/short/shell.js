@@ -114,6 +114,7 @@ function studioCollectDraft(){
     },
     characters:currentCharacters,
     scenes:currentScenes,
+    imgCache:imgCache,
     refCount:refImages.length
   };
 }
@@ -170,13 +171,10 @@ window.studioRestoreDraft=studioRestoreDraft;
 
 // ===================== Auto Save (Refresh ပြီးနောက် Data မပျောက်စေရ) =====================
 function autoSave(){
-  try{
-    var data=studioCollectDraft();
-    localStorage.setItem('aics_draft_short',JSON.stringify({step:window.studioCur?window.studioCur():1,data:data,savedAt:new Date().toISOString()}));
-  }catch(e){}
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 function autoSaveImgCache(){
-  try{localStorage.setItem('aics_draft_short_imgcache',JSON.stringify(imgCache));}catch(e){}
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 
 // Reset — Shared Reset ၏ Draft ဖျက်ခြင်းနှင့်အတူ Short Image Cache ကိုပါ ရှင်းသည်
