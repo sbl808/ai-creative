@@ -1007,13 +1007,14 @@ export function renderStudioShell(opts) {
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
     String.raw`  window.studioPersistDraft = function (showMessage) {
-    if (SHELL_ID !== "short" || !window.AICS_DRAFTS) return Promise.resolve(false);
+    if ((SHELL_ID !== "short" && SHELL_ID !== "shop") || !window.AICS_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
       if (!data || typeof data !== "object") return Promise.resolve(false);
+      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
       return window.AICS_DRAFTS.save({
-        studio: "short",
+        studio: SHELL_ID,
         draftVersion: 1,
         data: { step: cur, data: data, savedAt: new Date().toISOString() }
       }).then(function () {
@@ -1029,7 +1030,7 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (SHELL_ID === "short") { window.studioPersistDraft(true); return; }
+    if (SHELL_ID === "short" || SHELL_ID === "shop") { window.studioPersistDraft(true); return; }
     var data = null;
     if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }
     try {
@@ -1040,9 +1041,12 @@ export function renderStudioShell(opts) {
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if (SHELL_ID === "short" && window.AICS_DRAFTS) {
-      window.AICS_DRAFTS.remove("short").then(function () {
-        try { localStorage.removeItem(draftKey); localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
+    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
+      window.AICS_DRAFTS.remove(SHELL_ID).then(function () {
+        if (SHELL_ID === "short") {
+          try { localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
+        }
+        try { localStorage.removeItem(draftKey); } catch (e) {}
         location.reload();
       }).catch(function () { toast("Draft ဖျက်မအောင်မြင်ပါ", true); });
       return;
@@ -1059,23 +1063,25 @@ export function renderStudioShell(opts) {
     renderStepper();
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
-    if (SHELL_ID === "short" && window.AICS_DRAFTS) {
+    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
-      try {
-        var cacheRaw = localStorage.getItem("aics_draft_short_imgcache");
-        if (cacheRaw) legacyCache = JSON.parse(cacheRaw);
-      } catch (e) {}
-      window.AICS_DRAFTS.get("short").then(function (record) {
+      if (SHELL_ID === "short") {
+        try {
+          var cacheRaw = localStorage.getItem("aics_draft_short_imgcache");
+          if (cacheRaw) legacyCache = JSON.parse(cacheRaw);
+        } catch (e) {}
+      }
+      window.AICS_DRAFTS.get(SHELL_ID).then(function (record) {
         if (record && record.data) {
           restoreDraft(record.data);
           return;
         }
         if (legacy && legacy.data && typeof legacy.data === "object") {
-          if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
+          if (legacyCache && typeof legacyCache === "object") legacy.data.data.imgCache = legacyCache;
           return window.AICS_DRAFTS.save({
-            studio: "short",
+            studio: SHELL_ID,
             draftVersion: 1,
             data: legacy
           }).then(function (saved) { restoreDraft(saved.data); });
