@@ -99,6 +99,10 @@ function sanitizeForDraft(state){
   return s;
 }
 function autoSave(){
+  if(window.studioPersistDraft){
+    window.studioPersistDraft(false);
+    return;
+  }
   try{
     var data=studioCollectDraft();
     localStorage.setItem('aics_draft_shop',JSON.stringify({step:window.studioCur?window.studioCur():1,data:data,savedAt:new Date().toISOString()}));
