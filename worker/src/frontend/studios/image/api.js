@@ -28,6 +28,7 @@ function addRefFile(file){
   reader.onload=function(e){
     refImages.push({dataUrl:e.target.result,base64:e.target.result.split(',')[1],mimeType:file.type});
     renderRefPreviews();
+    autoSave();
   };
   reader.readAsDataURL(file);
 }
@@ -52,6 +53,7 @@ function renderRefPreviews(){
 function removeRef(idx){
   refImages.splice(idx,1);
   renderRefPreviews();
+  autoSave();
 }
 
 // ===================== Step 01 → 02 → 03 (AI Prepare Prompt) =====================
