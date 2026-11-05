@@ -275,7 +275,7 @@ function renderVideoPlan(data){
         var s=data.scenes[idx];
         var item=document.createElement('div');
         item.className='final-scene-card';
-        var html='<div class="final-scene-title">&#127916; SCENE '+(s.number||(idx+1))+(s.duration?' <span style="color:var(--text2,#8b95a8);font-weight:400;">&#9201; '+escapeHtml(s.duration)+'</span>':'')+'</div>';
+        var html='<div class="final-scene-title">&#127916; SCENE '+(s.number||(idx+1))+(s.duration?' <span class="scene-duration">&#9201; '+escapeHtml(s.duration)+'</span>':'')+'</div>';
         if(sceneVideoPrompt(s)){
           html+='<div class="final-scene-box"><div class="final-box-label">&#127916; Video Prompt</div>'+
                 '<div class="final-prompt-text" id="sceneVP_'+idx+'">'+escapeHtml(sceneVideoPrompt(s))+'</div>'+
@@ -292,14 +292,14 @@ function renderVideoPlan(data){
                 '<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-dialogue" data-aics-index="'+idx+'">&#128203; Copy Dialogue</button></div></div>';
         }
         html+='<div class="scene-image-area" id="sceneImg_'+idx+'">'+
-              (imgCache['scene_'+idx]?'<img src="'+imgCache['scene_'+idx]+'"><div style="margin-top:8px;"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>':'<button class="btn btn-secondary" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128444; ဤဖြစ်စဉ်၏ ရုပ်ပုံဖန်တီးပါ</button>')+
+              (imgCache['scene_'+idx]?'<img src="'+imgCache['scene_'+idx]+'"><div class="scene-image-action"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>':'<button class="btn btn-secondary" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128444; ဤဖြစ်စဉ်၏ ရုပ်ပုံဖန်တီးပါ</button>')+
               '</div>';
         item.innerHTML=html;
         scenesList.appendChild(item);
       })(j);
     }
   }else{
-    scenesList.innerHTML='<div style="color:var(--text3);text-align:center;padding:20px;">Scenes မတွေ့ရှိပါ</div>';
+    scenesList.innerHTML='<div class="scene-empty-state">Scenes မတွေ့ရှိပါ</div>';
   }
 }
 function copySceneText(idx){
@@ -334,7 +334,7 @@ function generateSceneImage(idx){
   if(!prompt){alert('ဒီဖြစ်စဉ်တွင် Visual Prompt မရှိပါ');return;}
   var area=document.getElementById('sceneImg_'+idx);
   if(!area)return;
-  area.innerHTML='<div class="loading show" style="justify-content:center;position:static;transform:none;display:flex;"><div class="spinner"></div> ရုပ်ပုံဖန်တီးနေပါသည်...</div>';
+  area.innerHTML='<div class="loading show content-scene-loading"><div class="spinner"></div> ရုပ်ပုံဖန်တီးနေပါသည်...</div>';
   var byok=(document.getElementById('videoByokInput')||{value:''}).value.trim();
   var body={prompt:prompt};
   if(byok)body.apiKey=byok;
@@ -344,14 +344,14 @@ function generateSceneImage(idx){
         var imgSrc='data:'+(data.mimeType||'image/png')+';base64,'+data.data;
         imgCache['scene_'+idx]=imgSrc;
         area.innerHTML='<img src="'+imgSrc+'" alt="Scene '+(idx+1)+'">'+
-                       '<div style="margin-top:8px;"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>';
+                       '<div class="scene-image-action"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>';
       }else{
         area.innerHTML='<div class="scene-image-placeholder">ရုပ်ပုံမထွက်ပါ</div>';
       }
     })
     .catch(function(err){
       console.error(err);
-      area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">ရုပ်ပုံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။</div>'+
+      area.innerHTML='<div class="scene-image-error">ရုပ်ပုံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။</div>'+
                      '<button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">ထပ်စမ်းပါ</button>';
     });
 }
