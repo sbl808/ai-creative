@@ -180,7 +180,7 @@ window.studioRestoreDraft=studioRestoreDraft;
     var _ve2=document.getElementById('userEmail');if(_ve2)_ve2.textContent=d.email||'';
     var _vp2=document.getElementById('planBadge');if(_vp2)_vp2.textContent=d.plan||'FREE';
     var al=document.getElementById('adminLink');
-    if(al)al.classList.toggle('aics-shop-admin-visible',!!d.is_admin);
+    if(al)al.classList.toggle('aics-hidden',!d.is_admin);
     USER_PLAN=d.plan||'FREE';
     applyPlanGate();
   }).catch(function(){});
