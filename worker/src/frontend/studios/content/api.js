@@ -261,7 +261,7 @@ function renderVideoPlan(data){
       div.innerHTML='<div class="final-char-head"><span class="final-char-name">&#128100; '+escapeHtml(c.name||('Character '+(i+1)))+'</span></div>'+
                     '<div class="final-prompt-label">Character Reference</div>'+
                     '<div class="final-prompt-text">'+escapeHtml(c.description||'')+'</div>'+
-                    '<div class="btn-row"><button class="btn-ghost" onclick="copyCharText('+i+')">&#128203; Copy Prompt</button></div>';
+                    '<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-character" data-aics-index="'+i+'">&#128203; Copy Prompt</button></div>';
       charsList.appendChild(div);
     }
   }else{
@@ -279,20 +279,20 @@ function renderVideoPlan(data){
         if(sceneVideoPrompt(s)){
           html+='<div class="final-scene-box"><div class="final-box-label">&#127916; Video Prompt</div>'+
                 '<div class="final-prompt-text" id="sceneVP_'+idx+'">'+escapeHtml(sceneVideoPrompt(s))+'</div>'+
-                '<div class="btn-row"><button class="btn-ghost" onclick="copySceneText('+idx+')">&#128203; Copy Video Prompt</button></div></div>';
+                '<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-scene" data-aics-index="'+idx+'">&#128203; Copy Video Prompt</button></div></div>';
         }
         if(s.description){
           html+='<div class="final-scene-box"><div class="final-box-label">&#127757; Environment Reference</div>'+
                 '<div class="final-prompt-text">'+escapeHtml(s.description)+'</div>'+
-                '<div class="btn-row"><button class="btn-ghost" onclick="copyEnvText('+idx+')">&#128203; Copy Environment Prompt</button></div></div>';
+                '<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-environment" data-aics-index="'+idx+'">&#128203; Copy Environment Prompt</button></div></div>';
         }
         if(s.dialogue){
           html+='<div class="final-scene-box"><div class="final-box-label">&#128172; Dialogue</div>'+
                 '<div class="final-prompt-text">'+escapeHtml(s.dialogue)+'</div>'+
-                '<div class="btn-row"><button class="btn-ghost" onclick="copyDialogueText('+idx+')">&#128203; Copy Dialogue</button></div></div>';
+                '<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-dialogue" data-aics-index="'+idx+'">&#128203; Copy Dialogue</button></div></div>';
         }
         html+='<div class="scene-image-area" id="sceneImg_'+idx+'">'+
-              (imgCache['scene_'+idx]?'<img src="'+imgCache['scene_'+idx]+'"><div style="margin-top:8px;"><button class="btn-ghost" onclick="generateSceneImage('+idx+')">&#128260; ပြန်ဖန်တီးပါ</button></div>':'<button class="btn btn-secondary" onclick="generateSceneImage('+idx+')">&#128444; ဤဖြစ်စဉ်၏ ရုပ်ပုံဖန်တီးပါ</button>')+
+              (imgCache['scene_'+idx]?'<img src="'+imgCache['scene_'+idx]+'"><div style="margin-top:8px;"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>':'<button class="btn btn-secondary" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128444; ဤဖြစ်စဉ်၏ ရုပ်ပုံဖန်တီးပါ</button>')+
               '</div>';
         item.innerHTML=html;
         scenesList.appendChild(item);
@@ -344,7 +344,7 @@ function generateSceneImage(idx){
         var imgSrc='data:'+(data.mimeType||'image/png')+';base64,'+data.data;
         imgCache['scene_'+idx]=imgSrc;
         area.innerHTML='<img src="'+imgSrc+'" alt="Scene '+(idx+1)+'">'+
-                       '<div style="margin-top:8px;"><button class="btn-ghost" onclick="generateSceneImage('+idx+')">&#128260; ပြန်ဖန်တီးပါ</button></div>';
+                       '<div style="margin-top:8px;"><button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">&#128260; ပြန်ဖန်တီးပါ</button></div>';
       }else{
         area.innerHTML='<div class="scene-image-placeholder">ရုပ်ပုံမထွက်ပါ</div>';
       }
@@ -352,7 +352,7 @@ function generateSceneImage(idx){
     .catch(function(err){
       console.error(err);
       area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">ရုပ်ပုံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။</div>'+
-                     '<button class="btn-ghost" onclick="generateSceneImage('+idx+')">ထပ်စမ်းပါ</button>';
+                     '<button class="btn-ghost" data-aics-action="generate-scene-image" data-aics-index="'+idx+'">ထပ်စမ်းပါ</button>';
     });
 }
 
