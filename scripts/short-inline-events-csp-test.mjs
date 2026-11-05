@@ -3,11 +3,37 @@ import { readFile } from 'node:fs/promises';
 
 const actions = await readFile(new URL('../worker/src/frontend/studios/short/actions.js', import.meta.url), 'utf8');
 const stepper = await readFile(new URL('../worker/src/frontend/studios/short/stepper.js', import.meta.url), 'utf8');
+const page = await readFile(new URL('../worker/src/frontend/studios/short/page.js', import.meta.url), 'utf8');
 
 assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(actions), false,
   'Short dynamic actions must not contain inline event attributes');
 assert.equal(/\bonclick\s*=|\bonchange\s*=|\boninput\s*=|\bonsubmit\s*=/i.test(stepper), false,
   'Short stepper must not contain inline event attributes');
+
+
+assert.equal(/\\bstyle\\s*=/i.test(actions), false,
+  'Short dynamic actions must not contain inline style attributes');
+assert.equal(/\\bstyle\\s*=/i.test(page), false,
+  'Short page must not contain inline style attributes');
+
+const requiredStyleClasses = [
+  'scene-image-generate-btn',
+  'scene-image-loading',
+  'scene-image-loading-env',
+  'scene-image-loading-text',
+  'scene-image-save',
+  'scene-image-error',
+  'scene-image-retry',
+  'aics-login-overlay.is-hidden'
+];
+for (const className of requiredStyleClasses) {
+  assert.ok(page.includes('.' + className), 'Missing CSS class: ' + className);
+}
+for (const className of requiredStyleClasses.slice(0, 7)) {
+  assert.ok(actions.includes(className), 'Missing dynamic markup class: ' + className);
+}
+assert.ok(page.includes('class="aics-login-overlay is-hidden"'),
+  'Login overlay must use a CSS class instead of an inline style');
 
 const requiredActions = [
   'remove-ref-image',
