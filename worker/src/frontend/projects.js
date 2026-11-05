@@ -39,6 +39,10 @@ a{color:var(--primary);text-decoration:none;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:var(--aics-radius-md,12px);font-size:14px;z-index:9999;display:none;box-shadow:var(--aics-shadow-md,0 8px 24px rgba(16,24,40,.08));}
 .toast.show{display:block;}.toast.success{border-color:var(--success);}.toast.error{border-color:var(--error);}
 @media(prefers-reduced-motion:reduce){.btn{transition:none;}}
+.is-hidden{display:none!important;}
+.login-required{padding:40px;text-align:center;}
+.login-required__message{margin:16px 0;}
+.login-required__link{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -58,7 +62,7 @@ ${renderSidebar('projects',{variant:'studio'})}
     <button class="btn btn-primary" data-project-action="create">➕ Project အသစ်</button>
   </div>
   <div id="loadingState" class="loading-state">Loading...</div>
-  <div id="emptyState" class="empty-state" style="display:none;">📭 Project များ မရှိသေးပါ — အထက်ပါ အကွက်တွင် အမည်ရိုက်၍ "Project အသစ်" နှိပ်ပါ။</div>
+  <div id="emptyState" class="empty-state is-hidden">📭 Project များ မရှိသေးပါ — အထက်ပါ အကွက်တွင် အမည်ရိုက်၍ "Project အသစ်" နှိပ်ပါ။</div>
   <div id="projectsList"></div>
 </main>
 </div>
@@ -86,7 +90,7 @@ function projectErrorMessage(error){
   return 'သိမ်းဆည်းမှု မအောင်မြင်ပါ။ Browser Storage ကို စစ်ဆေးပါ။';
 }
 if(!TOKEN){
-  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="text-decoration:underline;">Login / Sign Up သို့ သွားရန်</a></p></div>';
+  document.querySelector('.main-content').innerHTML='<div class="login-required"><h2>🔒 Login လိုအပ်ပါသည်</h2><p class="login-required__message"><a href="/login" class="login-required__link">Login / Sign Up သို့ သွားရန်</a></p></div>';
 }else{
   loadProjects();
 }
@@ -94,13 +98,13 @@ function loadProjects(){
   var loading=document.getElementById('loadingState');
   var empty=document.getElementById('emptyState');
   var container=document.getElementById('projectsList');
-  loading.style.display='block';
+  loading.classList.remove('is-hidden');
   loading.textContent='Loading...';
-  empty.style.display='none';
+  empty.classList.add('is-hidden');
   return window.AICS_PROJECTS.list().then(function(items){
-    loading.style.display='none';
+    loading.classList.add('is-hidden');
     container.innerHTML='';
-    if(!items||items.length===0){empty.style.display='block';return;}
+    if(!items||items.length===0){empty.classList.remove('is-hidden');return;}
     items.forEach(function(project){
       var card=document.createElement('div');
       card.className='project-card';
@@ -142,7 +146,7 @@ function createProject(){
   btn.disabled=true;btn.textContent='⏳ ဖန်တီးနေသည်…';
   window.AICS_PROJECTS.create({title:title,description:''}).then(function(){
     input.value='';
-    document.getElementById('emptyState').style.display='none';
+    document.getElementById('emptyState').classList.add('is-hidden');
     showToast('✓ Project ဖန်တီးပြီးပါပြီ','success');
     return loadProjects();
   }).catch(function(error){
@@ -157,7 +161,7 @@ function removeProject(id,btn){
   window.AICS_PROJECTS.remove(id).then(function(){
     btn.closest('.project-card').remove();
     showToast('✓ Project ဖျက်ပြီးပါပြီ','success');
-    if(document.querySelectorAll('.project-card').length===0)document.getElementById('emptyState').style.display='block';
+    if(document.querySelectorAll('.project-card').length===0)document.getElementById('emptyState').classList.remove('is-hidden');
   }).catch(function(error){
     showToast(projectErrorMessage(error),'error');
     btn.textContent=original;btn.disabled=false;
