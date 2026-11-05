@@ -122,7 +122,7 @@ export function validateVideoPlanV1(value) {
       }
       for (const field of VIDEO_PLAN_V1_CONTRACT.sceneFields) {
         if (field === 'number' || field === 'duration' || field === 'characterIds') continue;
-        if (typeof scene[field] !== 'string) errors.push(`${prefix}.${field}_must_be_string`);
+        if (typeof scene[field] !== 'string') errors.push(`${prefix}.${field}_must_be_string`);
       }
       if (!Number.isInteger(scene.number) || scene.number < 1) {
         errors.push(`${prefix}.number_must_be_positive_integer`);
