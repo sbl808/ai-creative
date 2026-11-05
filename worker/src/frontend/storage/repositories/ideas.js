@@ -184,9 +184,9 @@ window.AICS_IDEAS = {
         fields: fields,
         result: {
           title: String(legacyRecord.title || 'Imported Idea'),
-          concept: String(legacyRecord.concept || ''),
-          hook: String(legacyRecord.hook || ''),
-          outline: String(legacyRecord.outline || ''),
+          concept: String(legacyRecord.concept || legacyRecord.title || 'Imported legacy idea'),
+          hook: String(legacyRecord.hook || legacyRecord.concept || legacyRecord.title || 'Imported legacy idea'),
+          outline: String(legacyRecord.outline || legacyRecord.concept || legacyRecord.title || 'Imported legacy idea'),
           suggestedStudio: String(legacyRecord.suggestedStudio || category)
         },
         legacySourceId: sourceId
