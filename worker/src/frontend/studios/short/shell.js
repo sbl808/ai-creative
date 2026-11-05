@@ -76,6 +76,7 @@ function studioOnStep(n){
     ]);
     renderFinalResult();
   }
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 window.studioOnStep=studioOnStep;
 
