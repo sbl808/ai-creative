@@ -1044,6 +1044,11 @@ export function renderStudioShell(opts) {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
     if (["content", "short", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
+        // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးနောက် legacy draft ကိုသာ ရှင်းသည်။
+        try { localStorage.removeItem(draftKey); } catch (e) {}
+        if (SHELL_ID === "short") {
+          try { localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
+        }
         location.reload();
       }).catch(function () { toast("IndexedDB ထဲ Draft ဖျက်မအောင်မြင်ပါ", true); });
       return;
