@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { IDEA_CATEGORIES, getIdeaCategory } from '../worker/src/frontend/ideas/categories.js';
 import { ideaFormsScript, renderIdeaCategoryOptions } from '../worker/src/frontend/ideas/forms.js';
 
