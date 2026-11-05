@@ -290,6 +290,7 @@ export const AICS_RESULT_BOX_CSS = `
 .aics-rbox-target-text.aics-rbox-preview-360{max-height:360px;}
 .aics-rbox-target-text.aics-rbox-expanded{max-height:none;overflow:visible;}
 .aics-rbox-target-text.aics-rbox-textarea{overflow:hidden;}
+.aics-rbox-target-text.aics-rbox-expanded.aics-rbox-textarea{overflow:hidden;}
 .aics-ui-hidden,.aics-modal-hidden{display:none!important;}
 .aics-ui-error-visible{display:block!important;}
 .aics-ui-error-prefix{opacity:.85;}
