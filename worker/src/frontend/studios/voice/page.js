@@ -70,6 +70,9 @@ html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[t
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
 .aics-login-overlay.is-hidden{display:none}
+.aics-app.is-hidden{display:none!important}
+.aics-actions-model.is-hidden{display:none!important}
+.voice-result-loading{margin-bottom:0}
 </style>
 </head>
 <body>
