@@ -74,11 +74,11 @@ assert.equal(imported.data.state.voiceMode, 'text-to-voice');
 assert.equal(context.VOICE_INPUTS.tts, 'legacy voice text');
 assert.equal(context.MEDIA_AUDIO.base64, '', 'legacy v3 did not persist the original media bytes');
 
-assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\\.save\\('voice'/);
-assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\\.load\\('voice'/);
-assert.match(HELPERS_SCRIPT, /importLegacy\\('voice'/);
-assert.doesNotMatch(HELPERS_SCRIPT, /localStorage\\.setItem\\(voiceDraftKey/);
-assert.match(ACTIONS_SCRIPT, /scheduleVoiceDraftSave\\(\\)/);
-assert.match(ACTIONS_SCRIPT, /AICS_STUDIO_DRAFTS\\.remove\\('voice'/);
-assert.match(ACTIONS_SCRIPT, /restoreDraft\\(\\)\\.then/);
+assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\.save\('voice'/);
+assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\.load\('voice'/);
+assert.match(HELPERS_SCRIPT, /importLegacy\('voice'/);
+assert.doesNotMatch(HELPERS_SCRIPT, /localStorage\.setItem\(voiceDraftKey/);
+assert.match(ACTIONS_SCRIPT, /scheduleVoiceDraftSave\(\)/);
+assert.match(ACTIONS_SCRIPT, /AICS_STUDIO_DRAFTS\.remove\('voice'/);
+assert.match(ACTIONS_SCRIPT, /restoreDraft\(\)\.then/);
 console.log('Voice Studio IndexedDB draft tests passed.');
