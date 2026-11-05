@@ -114,6 +114,7 @@ el('saveEditBtn').addEventListener('click',function(){
 });
 el('cancelEditBtn').addEventListener('click',closeEditor);
 var TARGET_STUDIOS=[{id:'story',label:'Story'},{id:'content',label:'Content'},{id:'short',label:'Short'},{id:'image',label:'Image'},{id:'voice',label:'Voice'},{id:'shop',label:'Shop'}];
+function ideaHandoffPayload(idea){return {kind:'idea-workspace',schemaVersion:1,category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},idea:makeResult(idea)}}
 function ideaPayload(idea){return 'Idea: '+idea.title+'\\n\\nConcept: '+idea.concept+'\\n\\nHook: '+idea.hook+'\\n\\nOutline: '+idea.outline;}
 function targetDraftKey(studio){return studio==='voice'?'aics_voice_workflow_v3':('aics_draft_'+studio);}
 function targetHasDraft(studio){try{return !!(localStorage.getItem(targetDraftKey(studio))||(studio==='voice'&&localStorage.getItem('aics_draft_voice')))}catch(e){return true}}
@@ -131,7 +132,7 @@ function handoffIdea(index,studio){
  var payload=ideaPayload(idea);
  if(studio==='story'){
   if(!window.AICS_HANDOFFS){showStatus('Idea ပို့ဆောင်မှု မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
-  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:idea})
+  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:ideaHandoffPayload(idea)})
    .then(function(result){showStatus('Idea Result ကို Story Studio သို့ ပို့နေပါသည်။');location.href='/app/story?handoff='+encodeURIComponent(result.id);})
    .catch(function(){showStatus('Idea Result ကို ပို့မရပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)});
   return;
