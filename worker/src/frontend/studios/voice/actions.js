@@ -38,7 +38,7 @@ function renderChips(){
   var h='';
   VOICE_MODES.forEach(function(m){
     var on=VOICE_STATE.voiceMode===m.id;
-    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" data-voice-action="switch-mode" data-voice-mode="'+esc(m.id)+'>'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
+    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" data-voice-action="switch-mode" data-voice-mode="'+esc(m.id)+'">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
   });
   vEl('voiceChips').innerHTML=h;
 }
@@ -130,7 +130,7 @@ function vRenderInput(){
   if(m==='text-to-voice'){
     b='<div class="vcard"><div class="vtitle">📝 စာသား</div><p class="hint">Voice အဖြစ် ဖန်တီးလိုသော စာသားကို ထည့်ပါ။</p>'
       +(VOICE_STATE.source?'<div class="source-note">Content Studio မှ နောက်ဆုံးပြင်ထားသော Content ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။</div>':'')
-      +'<div class="form-group"><label for="ttsText">စာသားအကြောင်းအရာ *</label><textarea id="ttsText" required aria-required="true" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" data-voice-input="grow-clear></textarea></div>'
+      +'<div class="form-group"><label for="ttsText">စာသားအကြောင်းအရာ *</label><textarea id="ttsText" required aria-required="true" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" data-voice-input="grow-clear"></textarea></div>'
       +'<div class="btn-row voice-space-top-0"><button type="button" class="btn ghost" data-voice-action="paste" data-voice-target="ttsText">📋 Paste</button><button type="button" class="btn ghost" data-voice-action="example">✨ ဥပမာ</button></div></div>';
   }else if(m==='media-to-text'){
     var note=MEDIA_AUDIO.base64?'<div class="source-note">ယခင်ဖိုင် — '+esc(MEDIA_AUDIO.fileName||'audio')+' ကို မှတ်ထားပါသည်။ ဖိုင်အသစ် မရွေးလျှင် ဒီဖိုင်ကို ဆက်သုံးမည်။</div>':'';
@@ -138,7 +138,7 @@ function vRenderInput(){
       +'<div class="form-group"><label for="mediaFile">Audio / Video File *</label><input type="file" id="mediaFile" required aria-required="true" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv" data-voice-change="clear-validation"></div></div>';
   }else{
     b='<div class="vcard"><div class="vtitle">🌐 SRT စာသား</div><p class="hint">ဘာသာပြန်လိုသော SRT ကို paste လုပ်ပါ သို့မဟုတ် .srt ဖိုင်တင်ပါ။</p>'
-      +'<div class="form-group"><label for="srtSourceText">SRT *</label><textarea id="srtSourceText" class="srt-box" required aria-required="true" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" data-voice-input="grow-clear></textarea></div>'
+      +'<div class="form-group"><label for="srtSourceText">SRT *</label><textarea id="srtSourceText" class="srt-box" required aria-required="true" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" data-voice-input="grow-clear"></textarea></div>'
       +'<div class="btn-row voice-space-top-0"><button type="button" class="btn ghost" data-voice-action="paste" data-voice-target="srtSourceText">📋 Paste</button></div>'
       +'<div class="form-group voice-space-top-14"><label>သို့မဟုတ် .srt ဖိုင်</label><input type="file" id="srtFile" accept=".srt,.txt,text/plain" data-voice-change="srt-file"></div></div>';
   }
