@@ -61,7 +61,7 @@ window.AICS_IDEAS = {
       record.updatedAt = new Date().toISOString();
       store.put(record);
       return record;
-    });
+    }, 'ownerId');
   },
   get: function (id) {
     var ownerId = __aicsUserId();
@@ -123,7 +123,7 @@ window.AICS_IDEAS = {
     });
   },
   remove: function (id) {
-    return __aicsOwnedStoreMutation('ideas', id, function (store) { store.delete(id); return true; });
+    return __aicsOwnedStoreMutation('ideas', id, function (store) { store.delete(id); return true; }, 'ownerId');
   },
   toggleFavorite: function (id) {
     return __aicsOwnedStoreMutation('ideas', id, function (store, record) {
@@ -131,7 +131,7 @@ window.AICS_IDEAS = {
       record.updatedAt = new Date().toISOString();
       store.put(record);
       return { isFavorite: record.isFavorite };
-    });
+    }, 'ownerId');
   }
 };`;
 
