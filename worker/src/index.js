@@ -81,7 +81,15 @@ const INDEX_PAGE_CSS = ".aics-index-style-1{font-family:sans-serif;background:#0
 
 function htmlPage(html) {
   const actionScript = '<script>document.addEventListener("click", function(event) { var target = event.target; if (!target || typeof target.closest !== "function") return; var action = target.closest("[data-action]"); if (!action) return; if (action.dataset.action === "copy-token" && typeof cp === "function") cp(); if (action.dataset.action === "run" && typeof run === "function") run(); });</script>';
-  const styledHtml = String(html).replace('</head>', '<style>' + INDEX_PAGE_CSS + '</style></head>').replace('</body>', actionScript + '</body>');
+  const htmlContent = String(html);
+  const needsIndexStyles = htmlContent.includes('aics-index-style-');
+  const needsActionHandler = htmlContent.includes('data-action=');
+  const withStyles = needsIndexStyles
+    ? htmlContent.replace('</head>', '<style>' + INDEX_PAGE_CSS + '</style></head>')
+    : htmlContent;
+  const styledHtml = needsActionHandler
+    ? withStyles.replace('</body>', actionScript + '</body>')
+    : withStyles;
   const nonce = createCspNonce();
   const response = new Response(styledHtml, {
     status: 200,
