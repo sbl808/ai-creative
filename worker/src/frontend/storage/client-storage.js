@@ -4,6 +4,7 @@ import { storageErrorsScript } from './storage-errors.js';
 import { projectsRepositoryScript } from './repositories/projects.js';
 import { sessionsRepositoryScript } from './repositories/sessions.js';
 import { draftsRepositoryScript } from './repositories/drafts.js';
+import { studioDraftsAdapterScript } from './studio-drafts.js';
 import { sessionResultsRepositoryScript } from './repositories/session-results.js';
 import { handoffsRepositoryScript } from './repositories/handoffs.js';
 import { ideasRepositoryScript } from './repositories/ideas.js';
@@ -100,6 +101,7 @@ export function clientStorageScript() {
     projectsRepositoryScript(),
     sessionsRepositoryScript(),
     draftsRepositoryScript(),
+    studioDraftsAdapterScript(),
     sessionResultsRepositoryScript(),
     handoffsRepositoryScript(),
     ideasRepositoryScript(),
