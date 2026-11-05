@@ -151,6 +151,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-drafts-repository-test.mjs
       - name: Run Short Studio IndexedDB persistence contract tests
         run: node --experimental-default-type=module scripts/short-indexeddb-persistence-contract-test.mjs
+      - name: Run Shop Studio IndexedDB persistence contract tests
+        run: node --experimental-default-type=module scripts/shop-indexeddb-persistence-contract-test.mjs
 
   wrangler-local-smoke:
     name: Wrangler local runtime smoke test
