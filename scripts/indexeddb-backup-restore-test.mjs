@@ -23,7 +23,8 @@ function createFakeIndexedDB(seed) {
       projects: { user_id: 'user_id' },
       studio_sessions: { ownerId: 'ownerId' },
       studio_handoffs: { ownerId: 'ownerId' },
-      session_results: { ownerId: 'ownerId' }
+      session_results: { ownerId: 'ownerId' },
+      drafts: { ownerId: 'ownerId' }
     };
     definitions.set(name, { keyPath: 'id', indexes: new Map(Object.entries(indexPaths[name] || {})) });
   }
@@ -211,7 +212,8 @@ const backup = {
     session_results: [{
       id: 'result-new', ownerId: owner, sessionId, type: 'story',
       content: { text: 'New story result' }
-    }]
+    }],
+    drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }]
   }
 };
 
@@ -227,7 +229,8 @@ function seedRecordSet(userId, suffix) {
     session_results: [{
       id: 'result-' + suffix, ownerId: userId, sessionId: 'session-' + suffix,
       type: 'story', content: { text: 'Old result' }
-    }]
+    }],
+    drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }]
   };
 }
 
@@ -256,9 +259,9 @@ await assert.rejects(
 const result = await window.AICS_BACKUP_IMPORT.restore(backup, { confirmReplace: true });
 assert.equal(result.restored, true);
 assert.equal(result.mode, 'replace');
-assert.equal(result.removedCount, 5);
-assert.equal(result.importedCount, 5);
-assert.equal(result.recordCount, 5);
+assert.equal(result.removedCount, 6);
+assert.equal(result.importedCount, 6);
+assert.equal(result.recordCount, 6);
 
 for (const [name, values] of Object.entries(backup.stores)) {
   const all = Array.from(fakeDb.records.get(name).values());
