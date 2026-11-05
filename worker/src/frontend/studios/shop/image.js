@@ -6,7 +6,7 @@ function showImagePhase(){
   var meta=imageBranchMeta();
   renderShopStepper();
   renderShopBranchStepper();
-  document.getElementById('imageSetupCard').style.display=shopState.image.step===1?'':'none';
+  document.getElementById('imageSetupCard').classList.toggle('shop-hidden',shopState.image.step!==1);
   document.getElementById('imageResultCard').classList.toggle('shop-hidden',shopState.image.step!==2);
   if(shopState.image.step===2)renderImageResult();
 }
