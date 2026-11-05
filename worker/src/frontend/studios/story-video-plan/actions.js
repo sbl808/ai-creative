@@ -167,6 +167,8 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     };
     apiCall('/api/studio/story/video',body).then(function(data){
       s.story=story;s.workflow=body.workflow;
+      s.contractVersion=Number.isInteger(data.contractVersion)?data.contractVersion:null;
+      s.studioId=String(data.studioId||'story');s.rawFallback=data.rawFallback===true;
       s.characters=Array.isArray(data.characters)?data.characters:[];
       s.scenes=Array.isArray(data.scenes)?data.scenes:[];
       return api.save();
