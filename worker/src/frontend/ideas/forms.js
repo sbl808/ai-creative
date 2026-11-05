@@ -54,20 +54,20 @@ export function ideaFormsScript() {
     container.innerHTML = '<p class="muted small">' + escapeHtml(category.description) + '</p>' +
       '<div class="grid">' + category.fields.map(renderField).join('') + '</div>';
   }
-  function read(categoryId) {
+  function read(categoryId, container) {
     var category = categories.find(function (item) { return item.id === categoryId; }) || categories[0];
     var values = {};
     category.fields.forEach(function (field) {
-      var input = document.getElementById(field.id);
+      var input = container ? container.querySelector('#' + field.id) : document.getElementById(field.id);
       values[field.id] = input ? String(input.value || '').trim() : '';
     });
     return values;
   }
-  function validate(categoryId) {
+  function validate(categoryId, container) {
     var category = categories.find(function (item) { return item.id === categoryId; }) || categories[0];
     for (var i = 0; i < category.fields.length; i++) {
       var field = category.fields[i];
-      var input = document.getElementById(field.id);
+      var input = container ? container.querySelector('#' + field.id) : document.getElementById(field.id);
       if (field.required && (!input || !String(input.value || '').trim())) {
         if (input) input.focus();
         return { ok: false, field: field.id, label: field.label };
