@@ -122,6 +122,7 @@ window.studioCollectDraft=studioCollectDraft;
 
 function studioRestoreDraft(d){
   if(!d)return;
+  imgCache=d.imgCache&&typeof d.imgCache==='object'&&!Array.isArray(d.imgCache)?d.imgCache:{};
   selectedShortType=d.shortType||'1';
   var sts=document.getElementById('shortTypeSel');if(sts)sts.value=selectedShortType;
   if(d.fields){var f0=document.getElementById('field_0');if(f0)f0.value=d.fields[0]||'';}
