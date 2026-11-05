@@ -5,8 +5,7 @@ export const HELPERS_SCRIPT = `(function init(){
   if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
   var _ue=document.getElementById('userEmail');if(_ue)_ue.textContent=userEmail||'—';
   var _pb=document.getElementById('planBadge');if(_pb)_pb.textContent=userPlan||'FREE';
-  try{var ic=localStorage.getItem('aics_draft_short_imgcache');if(ic){imgCache=JSON.parse(ic)||{};}}catch(e){}
-  buildShortTypeSel();
+  // Image cache is restored together with the Short draft from IndexedDB.\n  buildShortTypeSel();
   fillSelect('durSel',DURATIONS,'30 sec');
   fillSelect('toneSel',TONES,'Emotional');
   fillSelect('langSel',LANGUAGES,'မြန်မာ');

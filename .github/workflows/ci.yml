@@ -28,6 +28,14 @@ jobs:
         run: node --experimental-default-type=module scripts/regression-test.mjs
       - name: Run prompt merge engine contract tests
         run: node --experimental-default-type=module scripts/prompt-merge-engine-test.mjs
+      - name: Run Shared Video Plan engine contract tests
+        run: node --experimental-default-type=module scripts/video-plan-engine-test.mjs
+      - name: Run Shared Video Plan contract tests
+        run: node --experimental-default-type=module scripts/video-plan-contract-test.mjs
+      - name: Run Shared Video Plan Studio adapter tests
+        run: node --experimental-default-type=module scripts/video-plan-adapter-test.mjs
+      - name: Run Shared Video Plan route integration tests
+        run: node --experimental-default-type=module scripts/video-plan-route-integration-test.mjs
       - name: Run prompt orchestrator contract tests
         run: node --experimental-default-type=module scripts/prompt-orchestrator-test.mjs
       - name: Run Task Instructions Admin API contract tests
@@ -143,6 +151,12 @@ jobs:
         run: node --experimental-default-type=module scripts/content-delegated-events-test.mjs
       - name: Run Story Video Plan state and migration tests
         run: node --experimental-default-type=module scripts/story-video-plan-state-test.mjs
+      - name: Run IndexedDB Drafts Repository tests
+        run: node --experimental-default-type=module scripts/indexeddb-drafts-repository-test.mjs
+      - name: Run Short Studio IndexedDB persistence contract tests
+        run: node --experimental-default-type=module scripts/short-indexeddb-persistence-contract-test.mjs
+      - name: Run Shop Studio IndexedDB persistence contract tests
+        run: node --experimental-default-type=module scripts/shop-indexeddb-persistence-contract-test.mjs
 
   wrangler-local-smoke:
     name: Wrangler local runtime smoke test

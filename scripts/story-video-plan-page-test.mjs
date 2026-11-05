@@ -37,10 +37,14 @@ assert.ok(videoPage.includes('AICS_STORY_VIDEO_PLAN_STATE.init(session)'), 'Stor
 assert.ok(videoPage.includes('storyVideoPlanLoadStatus'), 'Source loading status is shown');
 assert.ok(videoState.includes("studio:'STORY_VIDEO_PLAN'"), 'Video Plan uses an independent IndexedDB session');
 assert.ok(videoState.includes('sourceStorySnapshot:state.sourceStory'), 'Video Plan preserves a source Story snapshot');
+assert.ok(videoState.includes('contractVersion:Number.isInteger(state.contractVersion)?state.contractVersion:null'), 'Video Plan drafts persist the shared contract version');
+assert.ok(videoState.includes("studioId:String(state.studioId||'story'),rawFallback:state.rawFallback===true"), 'Video Plan drafts persist studio identity and raw fallback metadata');
 assert.ok(videoState.includes('legacyVideoPlan'), 'Video Plan migrates legacy settings and results');
 assert.ok(videoState.includes("type:'video_image'"), 'Legacy Story images are copied into the Video Plan session');
 assert.ok(videoSession.includes('legacyVideoPlan:'), 'Read-only bridge exposes legacy data without writing to Story');
 assert.ok(videoActions.includes("'/api/studio/story/video'"), 'Video Plan actions call the existing generation endpoint');
+assert.ok(videoActions.includes('s.contractVersion=Number.isInteger(data.contractVersion)?data.contractVersion:null'), 'Video Plan captures the shared contract version from API responses');
+assert.ok(videoActions.includes("s.studioId=String(data.studioId||'story');s.rawFallback=data.rawFallback===true"), 'Video Plan captures studio identity and raw fallback metadata from API responses');
 assert.ok(videoActions.includes("'/api/studio/story/video-image'"), 'Video Plan actions call the existing image endpoint');
 assert.ok(videoActions.includes("type:'video_image'"), 'Generated images are saved under the Video Plan session');
 assert.ok(videoActions.includes('function savePlan()'), 'Video Plan has an independent IndexedDB save action');

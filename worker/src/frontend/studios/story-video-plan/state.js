@@ -4,7 +4,7 @@ export const STORY_VIDEO_PLAN_STATE_SCRIPT = String.raw`
     'use strict';
     var state = {
       sourceSessionId:'', sourceStory:'', sourceStoryFacts:{}, sourceUpdatedAt:'',
-      sessionId:'', story:'', workflow:'CINEMATIC_FEATURE', form:{}, characters:[],
+      sessionId:'', story:'', workflow:'CINEMATIC_FEATURE', contractVersion:null, studioId:'story', rawFallback:false, form:{}, characters:[],
       scenes:[], imageCache:{}, imageResultIds:{}, legacyImagesMigrated:false, saveQueue:Promise.resolve(), ready:false
     };
     var defaults = {
@@ -79,7 +79,9 @@ export const STORY_VIDEO_PLAN_STATE_SCRIPT = String.raw`
         schemaVersion:1,sourceStorySessionId:state.sourceSessionId,
         sourceStoryUpdatedAt:state.sourceUpdatedAt,sourceStorySnapshot:state.sourceStory,
         sourceStoryFacts:objectCopy(state.sourceStoryFacts),story:String((el('videoStoryInput')||{}).value||state.story),
-        workflow:String((el('vidWorkflowSel')||{}).value||state.workflow),form:readForm(),
+        workflow:String((el('vidWorkflowSel')||{}).value||state.workflow),
+        contractVersion:Number.isInteger(state.contractVersion)?state.contractVersion:null,
+        studioId:String(state.studioId||'story'),rawFallback:state.rawFallback===true,form:readForm(),
         characters:arrayCopy(state.characters),scenes:arrayCopy(state.scenes),
         legacyImagesMigrated:state.legacyImagesMigrated
       };
@@ -137,6 +139,8 @@ export const STORY_VIDEO_PLAN_STATE_SCRIPT = String.raw`
       state.sourceStoryFacts=objectCopy(draft.sourceStoryFacts);
       state.sourceUpdatedAt=String(draft.sourceStoryUpdatedAt||'');
       state.story=String(draft.story||state.sourceStory);state.workflow=String(draft.workflow||'CINEMATIC_FEATURE');
+      state.contractVersion=Number.isInteger(draft.contractVersion)?draft.contractVersion:null;
+      state.studioId=String(draft.studioId||'story');state.rawFallback=draft.rawFallback===true;
       state.characters=arrayCopy(draft.characters);state.scenes=arrayCopy(draft.scenes);
       state.legacyImagesMigrated=draft.legacyImagesMigrated===true;
       applyForm(Object.assign({},draft.form||{},{story:state.story,workflow:state.workflow}));
@@ -148,6 +152,8 @@ export const STORY_VIDEO_PLAN_STATE_SCRIPT = String.raw`
     function migrateLegacy(source){
       var legacy=source.legacyVideoPlan||{},form=objectCopy(legacy.videoForm);
       state.story=String(form.story||source.story);state.workflow=String(form.workflow||'CINEMATIC_FEATURE');
+      state.contractVersion=Number.isInteger(legacy.contractVersion)?legacy.contractVersion:null;
+      state.studioId=String(legacy.studioId||'story');state.rawFallback=legacy.rawFallback===true;
       state.characters=arrayCopy(legacy.characters);state.scenes=arrayCopy(legacy.scenes);
       applyForm(Object.assign({},form,{story:state.story,workflow:state.workflow}));
       if(!hasLegacy(legacy)){state.legacyImagesMigrated=true;return Promise.resolve(null);}

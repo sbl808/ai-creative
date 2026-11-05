@@ -1,4 +1,5 @@
 import { generateStoryVideoPlan, generateStoryVideoImage } from '../../studios/story-video-plan.js';
+import { generateVideoPlan } from '../../video-plans/engine.js';
 
 // Story Video Plan API routes are isolated from Story Studio routes.
 export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
@@ -21,33 +22,36 @@ export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateStoryVideoPlan(env, {
-            model: body.model,
-            story: body.story || body.idea || '',
-            idea: body.idea || body.story || '',
-            type: body.type || '1',
-            videoType: body.videoType,
-            workflow: body.workflow,
-            visualStyle: body.visualStyle,
-            storyFacts: body.storyFacts,
-            duration: body.duration,
-            sceneDuration: body.sceneDuration,
-            aspectRatio: body.aspectRatio,
-            cameraStyle: body.cameraStyle,
-            language: body.language,
-            environmentStyle: body.environmentStyle,
-            characterContinuity: body.characterContinuity,
-            characterConsistency: body.characterConsistency,
-            referenceImage: body.referenceImage,
-            characterDirection: body.characterDirection || '',
-            cameraDirection: body.cameraDirection || '',
-            lighting: body.lighting || '',
-            environmentDetails: body.environmentDetails || '',
-            colorMood: body.colorMood || '',
-            transitionPacing: body.transitionPacing || '',
-            audioDirection: body.audioDirection || '',
-            additionalInstructions: body.additionalInstructions,
-            plan, apiKey,
+          const out = await generateVideoPlan({
+            studioId: 'story',
+            generate: () => generateStoryVideoPlan(env, {
+              model: body.model,
+              story: body.story || body.idea || '',
+              idea: body.idea || body.story || '',
+              type: body.type || '1',
+              videoType: body.videoType,
+              workflow: body.workflow,
+              visualStyle: body.visualStyle,
+              storyFacts: body.storyFacts,
+              duration: body.duration,
+              sceneDuration: body.sceneDuration,
+              aspectRatio: body.aspectRatio,
+              cameraStyle: body.cameraStyle,
+              language: body.language,
+              environmentStyle: body.environmentStyle,
+              characterContinuity: body.characterContinuity,
+              characterConsistency: body.characterConsistency,
+              referenceImage: body.referenceImage,
+              characterDirection: body.characterDirection || '',
+              cameraDirection: body.cameraDirection || '',
+              lighting: body.lighting || '',
+              environmentDetails: body.environmentDetails || '',
+              colorMood: body.colorMood || '',
+              transitionPacing: body.transitionPacing || '',
+              audioDirection: body.audioDirection || '',
+              additionalInstructions: body.additionalInstructions,
+              plan, apiKey,
+            }),
           });
           await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);

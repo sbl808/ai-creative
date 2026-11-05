@@ -1006,40 +1006,109 @@ export function renderStudioShell(opts) {
     '    else if (a.fn && window[a.fn]) { try { window[a.fn](); } catch (e) { toast("Action error: " + (e && e.message || ""), true); } }\n' +
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
-    '  window.studioSaveDraft = function () {\n' +
-    '    var data = null;\n' +
-    '    if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }\n' +
-    '    try {\n' +
-    '      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }\n' +
-    '      localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));\n' +
-    '      toast("&#10004; Draft သိမ်းပြီးပါပြီ");\n' +
-    '    } catch (e) { toast("Save မအောင်မြင်ပါ", true); }\n' +
-    '  };\n' +
-    '  window.studioReset = function () {\n' +
-    '    if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;\n' +
-    '    try { localStorage.removeItem(draftKey); } catch (e) {}\n' +
-    '    location.reload();\n' +
-    '  };\n' +
-    '  function init() {\n' +
-    '    renderStepper();\n' +
-    '    var raw = null;\n' +
-    '    try { raw = localStorage.getItem(draftKey); } catch (e) {}\n' +
-    '    if (raw) {\n' +
-    '      try {\n' +
-    '        var d = JSON.parse(raw);\n' +
-    '        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {\n' +
-    '          delete d.data.byok; delete d.data.videoByok;\n' +
-    '          localStorage.setItem(draftKey, JSON.stringify(d));\n' +
-    '        }\n' +
-    '        if (d && d.data && window.studioRestoreDraft) { window.studioRestoreDraft(d.data); }\n' +
-    '        if (d && d.step && allowed(d.step)) cur = d.step;\n' +
-    '      } catch (e) {}\n' +
-    '    }\n' +
-    '    showStep(cur);\n' +
-    '  }\n' +
-    '  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);\n' +
-    '  else init();\n' +
-    '})();\n' +
-    '</script>'
+    String.raw`  window.studioPersistDraft = function (showMessage) {
+    if ((SHELL_ID !== "short" && SHELL_ID !== "shop") || !window.AICS_DRAFTS) return Promise.resolve(false);
+    var data = null;
+    try {
+      if (window.studioCollectDraft) data = window.studioCollectDraft();
+      if (!data || typeof data !== "object") return Promise.resolve(false);
+      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
+      return window.AICS_DRAFTS.save({
+        studio: SHELL_ID,
+        draftVersion: 1,
+        data: { step: cur, data: data, savedAt: new Date().toISOString() }
+      }).then(function () {
+        if (showMessage) toast("&#10004; Draft သိမ်းပြီးပါပြီ");
+        return true;
+      }).catch(function () {
+        if (showMessage) toast("IndexedDB ထဲ Draft သိမ်းမအောင်မြင်ပါ", true);
+        return false;
+      });
+    } catch (e) {
+      if (showMessage) toast("Draft သိမ်းမအောင်မြင်ပါ", true);
+      return Promise.resolve(false);
+    }
+  };
+  window.studioSaveDraft = function () {
+    if (SHELL_ID === "short" || SHELL_ID === "shop") { window.studioPersistDraft(true); return; }
+    var data = null;
+    if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }
+    try {
+      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
+      localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));
+      toast("&#10004; Draft သိမ်းပြီးပါပြီ");
+    } catch (e) { toast("Save မအောင်မြင်ပါ", true); }
+  };
+  window.studioReset = function () {
+    if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
+    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
+      window.AICS_DRAFTS.remove(SHELL_ID).then(function () {
+        if (SHELL_ID === "short") {
+          try { localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
+        }
+        try { localStorage.removeItem(draftKey); } catch (e) {}
+        location.reload();
+      }).catch(function () { toast("Draft ဖျက်မအောင်မြင်ပါ", true); });
+      return;
+    }
+    try { localStorage.removeItem(draftKey); } catch (e) {}
+    location.reload();
+  };
+  function restoreDraft(d) {
+    if (!d || !d.data || !window.studioRestoreDraft) return;
+    window.studioRestoreDraft(d.data);
+    if (d.step && allowed(d.step)) cur = d.step;
+  }
+  function init() {
+    renderStepper();
+    var raw = null;
+    try { raw = localStorage.getItem(draftKey); } catch (e) {}
+    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
+      var legacy = null;
+      var legacyCache = null;
+      try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
+      if (SHELL_ID === "short") {
+        try {
+          var cacheRaw = localStorage.getItem("aics_draft_short_imgcache");
+          if (cacheRaw) legacyCache = JSON.parse(cacheRaw);
+        } catch (e) {}
+      }
+      window.AICS_DRAFTS.get(SHELL_ID).then(function (record) {
+        if (record && record.data) {
+          restoreDraft(record.data);
+          return;
+        }
+        if (legacy && legacy.data && typeof legacy.data === "object") {
+          if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
+          return window.AICS_DRAFTS.save({
+            studio: SHELL_ID,
+            draftVersion: 1,
+            data: legacy
+          }).then(function (saved) { restoreDraft(saved.data); });
+        }
+      }).catch(function () {
+        if (legacy && legacy.data) {
+          if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
+          restoreDraft(legacy);
+        }
+      }).then(function () { showStep(cur); });
+      return;
+    }
+    if (raw) {
+      try {
+        var d = JSON.parse(raw);
+        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {
+          delete d.data.byok; delete d.data.videoByok;
+          localStorage.setItem(draftKey, JSON.stringify(d));
+        }
+        restoreDraft(d);
+      } catch (e) {}
+    }
+    showStep(cur);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>`
   );
 }

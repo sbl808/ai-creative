@@ -6,7 +6,8 @@ const OWNER_INDEX_BY_STORE = Object.freeze({
   projects: 'user_id',
   studio_sessions: 'ownerId',
   studio_handoffs: 'ownerId',
-  session_results: 'ownerId'
+  session_results: 'ownerId',
+  drafts: 'ownerId'
 });
 
 const SCRIPT = String.raw`window.AICS_BACKUP = (function () {

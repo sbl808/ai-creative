@@ -1,4 +1,5 @@
 import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from '../../studios/content/index.js';
+import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
@@ -145,12 +146,15 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         try {
           let apiKey = body.apiKey;
           if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
-          const out = await generateContentVideo(env, {
-            model: body.model,
-            idea: body.idea,
-            generationLevel: genLevel,
-            contentType: String(body.contentType || 'Other'),
-            plan, apiKey,
+          const out = await generateVideoPlan({
+            studioId: 'content',
+            generate: () => generateContentVideo(env, {
+              model: body.model,
+              idea: body.idea,
+              generationLevel: genLevel,
+              contentType: String(body.contentType || 'Other'),
+              plan, apiKey,
+            }),
           });
           await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
