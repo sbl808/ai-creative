@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 const root='worker/src/frontend/studios/shop/';
 for(const file of ['ui.js','actions.js','video.js','image.js','page.js']){
  const source=fs.readFileSync(root+file,'utf8');
- assert.doesNotMatch(source,/<[^>]*\\son(?:click|input|change|keypress|keydown|keyup|submit)\\s*=/i,file+' inline event attributes');
- assert.doesNotMatch(source,/<[^>]*\\sstyle\\s*=/i,file+' inline style attributes');
+ assert.doesNotMatch(source,/<[^>]*\son(?:click|input|change|keypress|keydown|keyup|submit)\s*=/i,file+' inline event attributes');
+ assert.doesNotMatch(source,/<[^>]*\sstyle\s*=/i,file+' inline style attributes');
 }
 const actions=fs.readFileSync(root+'actions.js','utf8');
 assert.match(actions,/installShopDelegatedEvents/);
-assert.match(actions,/addEventListener\\(type,dispatch\\)/);
+assert.match(actions,/addEventListener\(type,dispatch\)/);
 const ui=fs.readFileSync(root+'ui.js','utf8');
 assert.match(ui,/data-shop-action="generateContent"/);
 assert.match(ui,/data-shop-event="keydown"/);
