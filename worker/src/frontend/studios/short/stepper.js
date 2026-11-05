@@ -93,7 +93,7 @@ function stRenderStepper(){
   for(var i=0;i<steps.length;i++){
     var s=steps[i];
     var label=((i+1<10)?'0':'')+(i+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" onclick="stNav('+s.n+')">'+
+    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" data-aics-action="step-nav" data-aics-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
       '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
     if(i<steps.length-1)html+='<span class="aics-step-link"></span>';
@@ -108,6 +108,23 @@ window.studioForceGoStep=stGoForce;
 window.studioMarkDone=stMarkDone;
 window.studioUnmarkDone=stUnmarkDone;
 window.studioCur=function(){return stCur;};
+function stHandleDelegatedAction(event){
+  var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
+  if(!button)return;
+  var action=button.dataset.aicsAction;
+  var idx=Number(button.dataset.aicsIndex);
+  switch(action){
+    case 'remove-ref-image': removeRefImage(idx); break;
+    case 'copy-char-prompt': copyCharPrompt(idx); break;
+    case 'generate-char-image': generateCharImage(idx); break;
+    case 'copy-video-prompt': copyVideoPrompt(idx); break;
+    case 'copy-env-prompt': copyEnvPrompt(idx); break;
+    case 'generate-env-image': generateEnvImage(idx); break;
+    case 'step-nav': stNav(Number(button.dataset.aicsStep)); break;
+    default: return;
+  }
+}
+document.addEventListener('click',stHandleDelegatedAction);
 function stBoot(){
   stRenderStepper();
   stShow(stCur);
