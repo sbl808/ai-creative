@@ -129,6 +129,7 @@ function stHandleDelegatedAction(event){
     case 'generate-short': generateShort(); break;
     case 'revise-short': reviseShort(); break;
     case 'generate-video-plan': generateShortVideoPlan(); break;
+    case 'force-step': stGoForce(Number(button.dataset.aicsStep)); break;
     case 'step-nav': stNav(Number(button.dataset.aicsStep)); break;
     default: return;
   }
