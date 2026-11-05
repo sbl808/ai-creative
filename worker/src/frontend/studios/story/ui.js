@@ -15,11 +15,11 @@ const STEP1_HTML = `
 <div class="card-title">&#128221; ဇာတ်လမ်းရေးရန် <span class="card-title-sub">(Story Creator)</span></div>
 <p class="story-intro">ဇာတ်လမ်းအကြောင်းအရာ ဖြည့်ပြီး အောက်က <b>「ဇာတ်လမ်းရေးသားရန်」</b> ခလုတ်ကို နှိပ်လိုက်ရင် AI က သင့်အတွက် ဇာတ်လမ်းတစ်ပုဒ် အပြည့်အစုံ ရေးပေးပါမယ်။</p>
 
-<div id="ideaHandoffPanel" class="card" style="display:none;margin:0 0 16px;border-color:var(--success);" aria-live="polite">
+<div id="ideaHandoffPanel" class="card" class="card story-handoff-panel is-hidden" aria-live="polite">
 <div class="card-title">&#128161; Idea Workspace မှ ရရှိသော Idea</div>
-<div id="ideaHandoffSummary" class="story-intro" style="white-space:pre-wrap;"></div>
+<div id="ideaHandoffSummary" class="story-intro" class="story-intro story-handoff-summary"></div>
 <p class="form-help">မူရင်း Idea Result ကို မပြောင်းလဲဘဲ ထားရှိပါမည်။ ဒီ Idea ကို Story အဖြစ် စတင်အသုံးပြုလိုမှ အောက်ပါခလုတ်ကို နှိပ်ပါ။</p>
-<div class="story-actions-primary" style="margin-top:12px;">
+<div class="story-actions-primary story-handoff-actions">
 <button type="button" class="btn btn-primary" id="acceptIdeaHandoffBtn">ဒီ Idea နဲ့ Story စတင်ရန်</button>
 <button type="button" class="btn btn-secondary" id="dismissIdeaHandoffBtn">မလုပ်တော့ပါ</button>
 </div>
@@ -58,7 +58,7 @@ const STEP1_HTML = `
 </div>
 
 <button type="button" class="aics-advanced-toggle" id="advToggle" data-aics-action="story-advanced-toggle" aria-expanded="false"><span>&#8964; အပိုဆောင်းသတ်မှတ်ချက် (Advanced Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
-<div id="ideaFields" class="adv-grid aics-adv-panel" style="margin-top:2px;"></div>
+<div id="ideaFields" class="adv-grid aics-adv-panel story-idea-fields"></div>
 
 <div class="error-box" id="genError" role="alert" aria-live="assertive"></div>
 <button type="button" class="btn btn-primary story-generate-btn" id="genStoryBtn" data-aics-action="generate-story" disabled>&#10024; ဇာတ်လမ်းရေးသားရန်</button>
@@ -96,10 +96,10 @@ ${aicsResultLoadingHtml('storyLoading','AI ရေးသားနေသည်...'
 <div class="card revise-section" id="revise-section">
 <button type="button" class="aics-advanced-toggle" id="reviseToggle" data-aics-action="revise-advanced-toggle" aria-expanded="false"><span>&#8964; AI ကို ဆက်ညွှန်ကြားရန် (Revise with AI)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div id="revisePanel" class="aics-adv-panel revise-panel">
-<p class="form-help" style="margin-bottom:10px;">ဥပမာ — 「နိဂုံးကို ပိုစိတ်လှုပ်ရှားစရာဖြစ်အောင် ပြင်ပါ」 ဆိုပြီး ရေးပြီး ပြင်ပါ ကို နှိပ်ပါ။</p>
+<p class="form-help story-revise-help">ဥပမာ — 「နိဂုံးကို ပိုစိတ်လှုပ်ရှားစရာဖြစ်အောင် ပြင်ပါ」 ဆိုပြီး ရေးပြီး ပြင်ပါ ကို နှိပ်ပါ။</p>
 <div class="revise-history" id="reviseHistory"></div>
 <div class="revise-input-row">
-<input type="text" id="feedbackInput" placeholder="ဥပမာ — နိဂုံးကို ပိုစိတ်ခံစားရအောင်ပြင်ပေးပါ" style="flex:1;" data-aics-keydown="revise-story">
+<input type="text" id="feedbackInput" class="story-revise-input" placeholder="ဥပမာ — နိဂုံးကို ပိုစိတ်ခံစားရအောင်ပြင်ပေးပါ" data-aics-keydown="revise-story">
 <button class="btn btn-secondary" id="reviseBtn" data-aics-action="revise-story">&#128260; ပြင်ပါ</button>
 </div>
 <div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
