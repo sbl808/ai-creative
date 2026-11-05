@@ -1056,8 +1056,11 @@ export function renderStudioShell(opts) {
     try { localStorage.removeItem(draftKey); } catch (e) {}
     location.reload();
   };
+  var draftTouchedBeforeRestore = false;
+  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; }, true);
+  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; }, true);
   function restoreDraft(d) {
-    if (!d || !d.data || !window.studioRestoreDraft) return;
+    if (!d || !d.data || !window.studioRestoreDraft || draftTouchedBeforeRestore) return;
     window.studioRestoreDraft(d.data);
     if (d.step && allowed(d.step)) cur = d.step;
   }
