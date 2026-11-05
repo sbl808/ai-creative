@@ -40,10 +40,9 @@ context.window.window = context.window;
 vm.runInNewContext(STATE_SCRIPT + HELPERS_SCRIPT, context, { filename: 'voice-draft-scripts.js' });
 
 const data = {
-  state: { voiceMode: 'media-to-text', voiceStep: 2, view: 'format', audioResult: null },
+  state: { voiceMode: 'media-to-text', voiceStep: 2, view: 'format', audioResult: { data: 'BAUG', mimeType: 'audio/mpeg' } },
   inputs: { tts: 'hello', speaking: '', voice: 'Kore', instruction: '', audience: 'လူတိုင်း', srt: '' },
   mediaAudio: { base64: 'AQID', mime: 'audio/wav', fileName: 'sample.wav' },
-  lastAudio: { base64: 'BAUG', mime: 'audio/mpeg' },
   translation: 'translated subtitle'
 };
 assert.equal(context.voiceApplyDraftData(data), true);
@@ -55,7 +54,6 @@ assert.equal(context.translatedSrt, 'translated subtitle');
 assert.equal(await context.saveDraft(), true);
 assert.equal(saved.step, 2);
 assert.equal(saved.data.mediaAudio.base64, 'AQID');
-assert.equal(saved.data.lastAudio.base64, 'BAUG');
 assert.equal(saved.data.translation, 'translated subtitle');
 
 stored = { data: { data } };
