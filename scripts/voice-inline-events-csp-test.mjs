@@ -13,19 +13,13 @@ for (const [name, source] of [['ui.js', ui], ['actions.js', actions], ['page.js'
   assert.equal(inlineStyleAttribute.test(source), false, name + ' must not contain inline style attributes');
 }
 
-assert.match(actions, /data-voice-action=\"switch-mode\"/);
-assert.match(actions, /data-voice-action=\"paste\"/);
-assert.match(actions, /data-voice-action=\"example\"/);
-assert.match(actions, /data-voice-action=\"set-media-output\"/);
-assert.match(actions, /data-voice-input=\"grow-clear\"/);
-assert.match(actions, /data-voice-input=\"grow\"/);
-assert.match(actions, /data-voice-change=\"clear-validation\"/);
-assert.match(actions, /data-voice-change=\"srt-file\"/);
-assert.match(actions, /addEventListener\\('click',vHandleDelegatedAction\\)/);
-assert.match(actions, /addEventListener\\('input',vHandleDelegatedInput\\)/);
-assert.match(actions, /addEventListener\\('change',vHandleDelegatedChange\\)/);
-assert.match(actions, /data-voice-mode=\"'\\+esc\\(m\\.id\\)\\+'\">/);
-
+for (const marker of ['data-voice-action=\"switch-mode\"', 'data-voice-action=\"paste\"', 'data-voice-action=\"example\"', 'data-voice-action=\"set-media-output\"', 'data-voice-input=\"grow-clear\"', 'data-voice-input=\"grow\"', 'data-voice-change=\"clear-validation\"', 'data-voice-change=\"srt-file\"']) {
+  assert.ok(actions.includes(marker), 'Missing delegated marker: ' + marker);
+}
+for (const listener of [\"addEventListener('click',vHandleDelegatedAction)\", \"addEventListener('input',vHandleDelegatedInput)\", \"addEventListener('change',vHandleDelegatedChange)\"]) {
+  assert.ok(actions.includes(listener), 'Missing delegated listener: ' + listener);
+}
+assert.ok(actions.includes(\"data-voice-mode=\\\"'+esc(m.id)+'\\\">\"), 'Mode chip value binding is missing');
 for (const cssClass of ['voice-model-store', 'voice-space-top-0', 'voice-space-top-14', 'aics-login-overlay.is-hidden']) {
   assert.ok(page.includes(cssClass), 'Missing CSS class: ' + cssClass);
 }
