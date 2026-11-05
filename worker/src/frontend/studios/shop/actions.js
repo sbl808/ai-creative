@@ -92,8 +92,7 @@ function renderRefPreview(id,arr){
   arr.forEach(function(img,idx){
     var d=document.createElement('div');d.className='ref-thumb';
     var im=document.createElement('img');im.src='data:'+img.mimeType+';base64,'+img.base64;
-    var x=document.createElement('button');x.className='remove-x';x.textContent='✕';
-    x.onclick=function(){arr.splice(idx,1);renderRefPreview(id,arr);scheduleSave();};
+    var x=document.createElement('button');x.className='remove-x';x.type='button';x.textContent='✕';x.setAttribute('aria-label','Remove reference image');x.setAttribute('data-shop-event','click');x.setAttribute('data-shop-action','shopRemoveReference');x.setAttribute('data-shop-pass','element');x.setAttribute('data-shop-ref-id',id);x.setAttribute('data-shop-index',String(idx));
     d.appendChild(im);d.appendChild(x);c.appendChild(d);
   });
 }
@@ -107,15 +106,29 @@ function buildTypes(containerId,types,varName){
     var d=document.createElement('div');
     d.className='type-chip'+(t.pro?' pro':'')+(t.val==='1'?' active':'');
     d.setAttribute('data-val',t.val);
+    d.setAttribute('data-shop-event','click');
+    d.setAttribute('data-shop-action','shopSelectTypeChip');
+    d.setAttribute('data-shop-pass','element');
+    d.setAttribute('data-shop-var',varName);
+    d.setAttribute('data-shop-pro',t.pro?'1':'0');
     d.textContent=t.label;
-    d.onclick=function(){
-      if(t.pro&&USER_PLAN!=='PRO'){showToast('ဒီ Type ကို Pro User သာ သုံးနိုင်ပါတယ်','error');return;}
-      c.querySelectorAll('.type-chip').forEach(function(x){x.classList.remove('active');});
-      d.classList.add('active');
-      if(varName==='video'){videoType=t.val;shopState.video.input.type=t.val;scheduleSave();}
-    };
     c.appendChild(d);
   });
+}
+function shopRemoveReference(button){
+  var id=button.getAttribute('data-shop-ref-id'),idx=Number(button.getAttribute('data-shop-index'));
+  var lists={refPreviewContent:refImagesContent,refPreviewVideo:refImagesVideo,refPreviewImage:refImagesImage};
+  var arr=lists[id];if(!arr||!Number.isInteger(idx)||idx<0||idx>=arr.length)return;
+  arr.splice(idx,1);renderRefPreview(id,arr);scheduleSave();
+}
+function shopSelectTypeChip(chip){
+  if(chip.getAttribute('data-shop-pro')==='1'&&USER_PLAN!=='PRO'){showToast('ဒီ Type ကို Pro User သာ သုံးနိုင်ပါတယ်','error');return;}
+  var container=chip.parentNode;if(!container)return;
+  container.querySelectorAll('.type-chip').forEach(function(item){item.classList.remove('active');});
+  chip.classList.add('active');
+  if(chip.getAttribute('data-shop-var')==='video'){
+    videoType=chip.getAttribute('data-val');shopState.video.input.type=videoType;scheduleSave();
+  }
 }
 function setTypeChip(containerId,val){
   var c=document.getElementById(containerId);
@@ -197,7 +210,7 @@ function saveContent(){
   .then(function(){showToast('💾 Save ပြီးပါပြီ','success');})
   .catch(function(){showToast('Browser Storage မအောင်မြင်','error');});
 }
-function toggleChat(){var s=document.getElementById('chatSection');if(!s)return;s.style.display=s.style.display==='block'?'none':'block';}
+function toggleChat(){var s=document.getElementById('chatSection');if(!s)return;s.classList.toggle('shop-chat-open');}
 function sendRevision(){
   var instr=document.getElementById('chatInput').value.trim();
   if(!instr){showToast('ညွှန်ကြားချက် ထည့်ပါ','error');return;}
@@ -377,7 +390,7 @@ function goImageBranch(){
 /* CSP-safe Shop event delegation. */
 (function installShopDelegatedEvents(){
  if(window.__aicsShopDelegationInstalled)return;window.__aicsShopDelegationInstalled=true;
- var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav']);
+ var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav','shopRemoveReference','shopSelectTypeChip']);
  function dispatch(event){var el=event.target&&event.target.closest?event.target.closest('[data-shop-action]'):null;if(!el||!el.closest('.aics-work'))return;var expected=el.getAttribute('data-shop-event');if(expected&&expected!==event.type)return;if(event.type==='keydown'&&(event.key!=='Enter'||el.getAttribute('data-shop-key')!=='Enter'))return;var action=el.getAttribute('data-shop-action');if(action==='set-content-type'){contentType=el.value;return;}if(!allowed.has(action)||typeof window[action]!=='function')return;var args=[],pass=el.getAttribute('data-shop-pass');if(pass==='element')args=[el];else if(pass==='index')args=[Number(el.getAttribute('data-shop-index')||0)];else if(pass==='step')args=[Number(el.getAttribute('data-step')||1)];else{var a=el.getAttribute('data-shop-arg1'),b=el.getAttribute('data-shop-arg2');if(a!==null)args.push(a);if(b!==null)args.push(b);}window[action].apply(window,args);}
  ['click','input','change','keydown'].forEach(function(type){document.addEventListener(type,dispatch);});
 })();
