@@ -35,6 +35,9 @@ body{margin:0;font-family:'Noto Sans Myanmar','Roboto','Segoe UI',Arial,sans-ser
 .aics-work .audio-box{background:var(--input);border:1px solid var(--border);border-radius:10px;padding:16px}.aics-work .audio-box audio{width:100%;max-width:100%}.aics-work .result-text{background:var(--input);border:1px solid var(--strong);border-radius:8px;padding:13px;white-space:pre-wrap;min-height:120px}.aics-work .srt-box{font-family:'Courier New',monospace;font-size:12.5px;line-height:1.6;min-height:230px}.aics-work .result-label{font-weight:700;color:var(--text);margin:12px 0 7px}.aics-work .pro-note{color:var(--warn);font-size:12px;margin-top:10px}.aics-work .error-box{background:#321e28;border:1px solid #75404b;color:#ffc0c8;border-radius:8px;padding:12px;margin-top:12px}.aics-work .top-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}.aics-work .source-note{font-size:12px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:12px}
 .spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:11000;background:var(--card2);border:1px solid var(--strong);padding:11px 16px;border-radius:9px;max-width:min(92vw,520px);display:none;box-shadow:0 8px 24px rgba(0,0,0,.24)}.toast.show{display:block}.toast.error{border-color:var(--error);color:#ffc0c8}.toast.success{border-color:var(--success);color:#b8f5da}
+.aics-work .voice-model-store{display:none}
+.aics-work .voice-space-top-0{margin-top:0}
+.aics-work .voice-space-top-14{margin-top:14px}
 .aics-work .voice-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;max-width:100%;margin:0 0 14px}
 .aics-work .vchip{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .16s ease,border-color .16s ease}
 .aics-work .vchip:hover{border-color:var(--strong);color:var(--text)}.aics-work .vchip:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
@@ -66,10 +69,11 @@ html[data-aics-theme] .aics-app .toast{background:var(--aics-surface)!important;
 html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[tabindex]):focus-visible{outline-color:var(--aics-focus)!important}
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
+.aics-login-overlay.is-hidden{display:none}
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Voice Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/voice" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay is-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Voice Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/voice" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({id:'voice',activeId:'voice',nameMy:'အသံ Studio',desc:'Text to voice, voice to text',icon:'🎙️',modelCat:'voice',steps:[],content:HOME_HTML})}
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 ${sidebarScript()}
