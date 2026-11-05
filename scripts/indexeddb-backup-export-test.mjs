@@ -11,7 +11,7 @@ function makeDb(data) {
     transaction(storeNames, mode) {
       assert.equal(mode, 'readonly');
       assert.deepEqual(Array.from(storeNames), [
-        'creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results'
+        'creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'drafts'
       ]);
       let pending = storeNames.length;
       let completeQueued = false;
@@ -76,6 +76,10 @@ const sourceData = {
   session_results: [
     { id: 'r-a', ownerId: 'user-a', sessionId: 's-a', content: { text: 'A result' } },
     { id: 'r-b', ownerId: 'user-b', sessionId: 's-b', content: { text: 'B private result' } }
+  ],
+  drafts: [
+    { id: 'd-a', ownerId: 'user-a', studio: 'short', draftVersion: 1, data: { prompt: 'A draft' } },
+    { id: 'd-b', ownerId: 'user-b', studio: 'short', draftVersion: 1, data: { prompt: 'B private draft' } }
   ]
 };
 
@@ -118,13 +122,14 @@ assert.equal(backup.format, 'aics-browser-backup');
 assert.equal(backup.exportVersion, 1);
 assert.equal(backup.schemaVersion, 5);
 assert.deepEqual(Object.keys(backup.stores).sort(), [
-  'creations', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
+  'creations', 'drafts', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
 ]);
 assert.deepEqual(backup.stores.creations.map(record => record.id), ['c-a']);
 assert.deepEqual(backup.stores.projects.map(record => record.id), ['p-a']);
 assert.deepEqual(backup.stores.studio_sessions.map(record => record.id), ['s-a']);
 assert.deepEqual(backup.stores.studio_handoffs.map(record => record.id), ['h-a']);
 assert.deepEqual(backup.stores.session_results.map(record => record.id), ['r-a']);
+assert.deepEqual(backup.stores.drafts.map(record => record.id), ['d-a']);
 assert.ok(!json.includes('B private'));
 assert.equal(sourceData.creations.length, 2, 'export must not mutate IndexedDB records');
 
