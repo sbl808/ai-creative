@@ -16,7 +16,7 @@ new vm.Script(ACTIONS_SCRIPT, { filename: 'story-actions.js' });
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
 const storyUi = readFileSync(new URL('../worker/src/frontend/studios/story/ui.js', import.meta.url), 'utf8');
-assert.match(idea, /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:ideaHandoffPayload\(idea\)\}\)/);
+assert.match(idea, /window\.AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:ideaHandoffPayload\(idea\)\}\)/);
 assert.match(idea, /kind:'idea-workspace',schemaVersion:1,category:generatedBrief/);
 assert.match(idea, /location\.href='\/app\/story\?handoff='/);
 assert.doesNotMatch(idea, /AICS_SESSIONS/);
