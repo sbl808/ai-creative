@@ -8,7 +8,7 @@ import { SHORT_HTML } from '../worker/src/frontend/studios/short/page.js';
 
 assert.match(SHORT_HTML, /window\.AICS_DRAFTS\.get\("short"\)/,
   'Short Studio must restore its draft from the owner-scoped IndexedDB repository');
-assert.match(SHORT_HTML, /window\.AICS_DRAFTS\.save\(\{[\s\S]*?studio: "short"/,
+assert.match(SHORT_HTML, /window\.AICS_DRAFTS\.save\(\{[\s\S]*?studio: SHELL_ID/,
   'Short Studio must save its draft to IndexedDB');
 assert.match(SHORT_HTML, /imgCache:imgCache/,
   'Short draft must persist the image cache together with the draft');
