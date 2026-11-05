@@ -241,10 +241,21 @@ html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input
 @media(prefers-reduced-motion:reduce){
   .aics-work *, .aics-work *::before, .aics-work *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
+
+/* Shop CSP-safe presentation classes */
+.aics-work .shop-hidden{display:none!important}
+.aics-work .shop-style-mt-6{margin-top:6px}
+.aics-work .shop-style-minh-120{min-height:120px}
+.aics-work .shop-style-mt-16{margin-top:16px}
+.aics-work .shop-style-audio-player{flex:1;min-width:220px}
+.aics-work .shop-style-mt-2{margin-top:2px}
+.aics-work .shop-style-inline-margin{margin:0 8px 0 0;display:inline}
+.aics-work .shop-style-mt-8{margin-top:8px}
+.aics-work .aics-shop-login-hidden{display:none}
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Shop Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/shop" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay aics-shop-login-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Shop Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/shop" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'shop',
   activeId: 'shop',
