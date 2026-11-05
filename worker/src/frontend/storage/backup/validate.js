@@ -144,7 +144,9 @@ function installBackupValidator(target, config) {
     }
     if (envelope.format !== formatId) throw fail('backup_format_unsupported');
     if (envelope.exportVersion !== exportVersion) throw fail('backup_export_version_unsupported');
-    if (envelope.schemaVersion !== schemaVersion) throw fail('backup_schema_version_unsupported');
+    if (envelope.schemaVersion !== schemaVersion && envelope.schemaVersion !== 5) {
+      throw fail('backup_schema_version_unsupported');
+    }
     if (!validDate(envelope.exportedAt)) throw fail('backup_invalid_exported_at');
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
