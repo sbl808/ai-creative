@@ -9,14 +9,14 @@ const [ui, page, stepper] = await Promise.all([
 ]);
 
 for (const [name, source] of [['ui.js', ui], ['page.js', page], ['stepper.js', stepper]]) {
-  assert.equal(/\\son[a-z]+\\s*=\\s*["']/i.test(source), false, name + ' must not contain inline event attributes');
-  assert.equal(/\\sstyle\\s*=\\s*["']/i.test(source), false, name + ' must not contain inline style attributes');
+  assert.equal(/\son[a-z]+\s*=\s*["']/i.test(source), false, name + ' must not contain inline event attributes');
+  assert.equal(/\sstyle\s*=\s*["']/i.test(source), false, name + ' must not contain inline style attributes');
 }
 assert.match(ui, /story-handoff-panel/);
-assert.match(page, /aics-login-overlay\\.is-hidden\\{display:none\\}/);
+assert.match(page, /aics-login-overlay\.is-hidden\{display:none\}/);
 assert.match(page, /data-story-step-nav/);
-assert.match(page, /window\\.stNav\\(Number\\(stepButton\\.dataset\\.storyStepNav\\)\\)/);
-assert.match(page, /window\\.stStepperKeydown\\(event,Number\\(target\\.dataset\\.storyStepNav\\)\\)/);
+assert.match(page, /window\.stNav\(Number\(stepButton\.dataset\.storyStepNav\)\)/);
+assert.match(page, /window\.stStepperKeydown\(event,Number\(target\.dataset\.storyStepNav\)\)/);
 assert.match(stepper, /data-story-step-nav/);
 assert.doesNotMatch(stepper, /onclick=|onkeydown=/);
 console.log('Story Studio CSP static contract: PASS');
