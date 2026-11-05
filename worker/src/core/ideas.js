@@ -93,7 +93,7 @@ export async function generateIdeas(env, { brief, plan, apiKey }) {
     'Return only valid JSON in this exact shape: {"ideas":[{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|voice|shop"}]}',
     'Do not add markdown fences or text outside JSON. Each idea must include all five fields.',
     'Brief JSON:', JSON.stringify(safeBrief),
-  ].join('\\n\\n');
+  ].join('\n\n');
   const raw = await callGeminiText(env, {
     model: await resolveModel(env, 'text', plan),
     system,
