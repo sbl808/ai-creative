@@ -83,11 +83,12 @@ assert.throws(
     && error.details.includes('unsupported_contract_version'),
 );
 
+const malformedPlan = {};
+Object.defineProperty(malformedPlan, 'characters', {
+  get() { throw new Error('malformed_plan'); },
+});
 await assert.rejects(
-  generateVideoPlan({
-    studioId: 'content',
-    generate: async () => ({ characters: 'invalid', scenes: 'invalid' }),
-  }),
+  generateVideoPlan({ studioId: 'content', generate: async () => malformedPlan }),
   (error) => error instanceof VideoPlanEngineError && error.code === 'invalid_video_plan',
 );
 
