@@ -114,6 +114,18 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-act:disabled{opacity:.5;cursor:not-allowed}
 /* ===== Content Studio — Local Additions (Branch Stepper / Transfer Note / Selected Voice) ===== */
  .aics-hidden{display:none!important;}
+.aics-work .cs-hidden{display:none!important;}
+.aics-work .cs-mb-14{margin-bottom:14px;}
+.aics-work .cs-min-h-130{min-height:130px;}
+.aics-work .cs-grid-span-all{grid-column:1/-1;}
+.aics-work .cs-mt-4{margin-top:4px;}
+.aics-work .cs-mt-14{margin-top:14px;}
+.aics-work .cs-justify-center{justify-content:center;}
+.aics-work .cs-mb-12{margin-bottom:12px;}
+.aics-work .cs-no-top-border{border-top:0;padding-top:0;}
+.aics-work .cs-mt-16{margin-top:16px;}
+.aics-work .cs-mt-2{margin-top:2px;}
+.aics-work .cs-mt-12{margin-top:12px;}
 .cs-branch-stepper-hidden{display:none!important;}
 .cs-preview-visible{display:block!important;}
 .aics-branch-stepper{display:flex;align-items:center;gap:2px;margin-top:-4px;}
