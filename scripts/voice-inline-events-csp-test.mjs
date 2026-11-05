@@ -6,8 +6,8 @@ const ui = read('../worker/src/frontend/studios/voice/ui.js');
 const actions = read('../worker/src/frontend/studios/voice/actions.js');
 const page = read('../worker/src/frontend/studios/voice/page.js');
 
-const inlineEventAttribute = /\\s+on[a-z]+\\s*=\\s*[\"']/i;
-const inlineStyleAttribute = /\\s+style\\s*=\\s*[\"']/i;
+const inlineEventAttribute = /\s+on[a-z]+\s*=\s*[\"']/i;
+const inlineStyleAttribute = /\s+style\s*=\s*[\"']/i;
 for (const [name, source] of [['ui.js', ui], ['actions.js', actions], ['page.js', page]]) {
   assert.equal(inlineEventAttribute.test(source), false, name + ' must not contain inline event attributes');
   assert.equal(inlineStyleAttribute.test(source), false, name + ' must not contain inline style attributes');
@@ -39,6 +39,6 @@ for (const cssClass of ['voice-model-store', 'voice-space-top-0', 'voice-space-t
 }
 assert.ok(ui.includes('class=\"voice-model-store\"'), 'Model store must use a hidden CSS class');
 assert.ok(page.includes('class=\"aics-login-overlay is-hidden\"'), 'Login overlay must start hidden');
-assert.match(actions, /data-voice-mode=\"'\+esc\(m\.id\)\+'\"/);
+assert.ok(actions.includes('data-voice-mode=\"'+esc(m.id)+'\">'), 'Mode chips must retain their mode value');
 
 process.stdout.write('Voice Studio CSP static contract: PASS\\n');
