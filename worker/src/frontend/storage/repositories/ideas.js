@@ -29,10 +29,10 @@ window.AICS_IDEAS = {
     var now = new Date().toISOString();
     var record = {
       id: __aicsIdeaId(), ownerId: ownerId, recordVersion: 1,
-      legacySourceId: input.legacySourceId ? String(input.legacySourceId) : undefined,
       category: String(input.category), fields: input.fields, result: input.result,
       isFavorite: input.isFavorite === true, createdAt: now, updatedAt: now
     };
+    if (input.legacySourceId) record.legacySourceId = String(input.legacySourceId);
     return __aicsDbOpen().then(function (db) {
       return new Promise(function (resolve, reject) {
         var transaction;
