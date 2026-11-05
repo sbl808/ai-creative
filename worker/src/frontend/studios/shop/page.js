@@ -251,7 +251,7 @@ html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input
 .aics-work .shop-style-mt-2{margin-top:2px}
 .aics-work .shop-style-inline-margin{margin:0 8px 0 0;display:inline}
 .aics-work .shop-style-mt-8{margin-top:8px}
-.aics-work .aics-shop-login-hidden{display:none}
+.aics-shop-login-hidden{display:none}
 </style>
 </head>
 <body>
