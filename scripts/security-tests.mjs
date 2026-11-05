@@ -30,11 +30,9 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
             const element = {
               attributes,
               setAttribute(name, value) {
-                const existing = new RegExp('\\\\s' + name + '\\\\s*=\\\\s*(["\\\\']).*?\\\\1', 'i');
-                this.attributes = existing.test(this.attributes)
-                  ? this.attributes.replace(existing, ' ' + name + '="' + value + '"')
-                  : this.attributes + ' ' + name + '="' + value + '"';
-              },
+                if (!this.attributes.includes(name + '=')) {
+                  this.attributes += ' ' + name + '="' + value + '"';
+                }
             };
             rule.handler.element(element);
             return '<' + tag + element.attributes + '>';
@@ -159,7 +157,7 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('separate HTML responses receive different CSP nonces',
     !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
   const html = await page.clone().text();
-  const inlineElements = [...html.matchAll(/<(script|style)\\b([^>]*)>/gi)];
+  const inlineElements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
   check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
   check('every script/style element receives the CSP response nonce',
     !!nonceMatch && inlineElements.length >= 2 &&
