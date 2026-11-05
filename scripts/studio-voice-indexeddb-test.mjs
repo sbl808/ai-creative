@@ -56,6 +56,7 @@ assert.equal(await context.saveDraft(), true);
 assert.equal(saved.step, 2);
 assert.equal(saved.data.mediaAudio.base64, 'AQID');
 assert.equal(saved.data.translation, 'translated subtitle');
+assert.equal('lastAudio' in saved.data, false, 'generated audio is stored once inside voiceState');
 
 stored = { data: { data } };
 assert.equal(await context.restoreDraft(), true);
@@ -73,6 +74,7 @@ assert.equal(await context.restoreDraft(), true);
 assert.equal(imported.data.state.voiceMode, 'text-to-voice');
 assert.equal(context.VOICE_INPUTS.tts, 'legacy voice text');
 assert.equal(context.MEDIA_AUDIO.base64, '', 'legacy v3 did not persist the original media bytes');
+assert.equal(context.LAST_AUDIO.base64, '', 'restore clears stale audio when the legacy draft has no result');
 
 assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\.save\('voice'/);
 assert.match(HELPERS_SCRIPT, /AICS_STUDIO_DRAFTS\.load\('voice'/);
