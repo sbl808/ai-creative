@@ -39,6 +39,6 @@ const validOutput = JSON.stringify({ ideas: [1, 2, 3].map((n) => ({
   outline: 'Outline ' + n, suggestedStudio: 'story',
 })) });
 assert.equal(parseIdeasOutput(validOutput).length, 3);
-assert.equal(parseIdeasOutput('```json\\n' + validOutput + '\\n```').length, 3);
+assert.equal(parseIdeasOutput('```json\n' + validOutput + '\n```').length, 3);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: [] })), /invalid_ideas_count/);
 console.log('Idea generation contract tests passed.');
