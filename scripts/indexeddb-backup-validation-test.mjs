@@ -36,15 +36,17 @@ const validBackup = {
     session_results: [{
       id: 'r-1', ownerId, sessionId: 's-1', type: 'story',
       content: { text: 'Story result' }, createdAt: '2026-11-04T07:00:00.000Z'
-    }]
+    }],
+    drafts: [{ id: 'd-1', ownerId, studio: 'short', draftVersion: 1, data: { prompt: 'Draft' }, createdAt: '2026-11-04T07:00:00.000Z', updatedAt: '2026-11-04T07:00:00.000Z' }]
   }
 };
 
 const valid = validateBackupEnvelope(validBackup, ownerId);
 assert.equal(valid.valid, true);
-assert.equal(valid.recordCount, 5);
+assert.equal(valid.recordCount, 6);
 assert.equal(valid.backup.stores.creations[0].media_data, 'data:image/png;base64,AA==');
-assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 5);
+assert.equal(valid.backup.stores.drafts[0].studio, 'short');
+assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 6);
 
 function expectCode(input, code, owner = ownerId) {
   assert.throws(
@@ -55,6 +57,9 @@ function expectCode(input, code, owner = ownerId) {
 }
 
 expectCode(validBackup, 'backup_owner_mismatch', 'other-user');
+const legacyBackup = JSON.parse(JSON.stringify(validBackup));
+delete legacyBackup.stores.drafts;
+assert.equal(validateBackupEnvelope(legacyBackup, ownerId).recordCount, 5, 'legacy backups without drafts remain importable');
 expectCode({ ...validBackup, exportVersion: 2 }, 'backup_export_version_unsupported');
 expectCode({ ...validBackup, schemaVersion: 3 }, 'backup_schema_version_unsupported');
 expectCode({ ...validBackup, exportedAt: 'invalid' }, 'backup_invalid_exported_at');
