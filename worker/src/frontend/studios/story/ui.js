@@ -15,9 +15,9 @@ const STEP1_HTML = `
 <div class="card-title">&#128221; ဇာတ်လမ်းရေးရန် <span class="card-title-sub">(Story Creator)</span></div>
 <p class="story-intro">ဇာတ်လမ်းအကြောင်းအရာ ဖြည့်ပြီး အောက်က <b>「ဇာတ်လမ်းရေးသားရန်」</b> ခလုတ်ကို နှိပ်လိုက်ရင် AI က သင့်အတွက် ဇာတ်လမ်းတစ်ပုဒ် အပြည့်အစုံ ရေးပေးပါမယ်။</p>
 
-<div id="ideaHandoffPanel" class="card" class="card story-handoff-panel is-hidden" aria-live="polite">
+<div id="ideaHandoffPanel" class="card story-handoff-panel is-hidden" aria-live="polite">
 <div class="card-title">&#128161; Idea Workspace မှ ရရှိသော Idea</div>
-<div id="ideaHandoffSummary" class="story-intro" class="story-intro story-handoff-summary"></div>
+<div id="ideaHandoffSummary" class="story-intro story-handoff-summary"></div>
 <p class="form-help">မူရင်း Idea Result ကို မပြောင်းလဲဘဲ ထားရှိပါမည်။ ဒီ Idea ကို Story အဖြစ် စတင်အသုံးပြုလိုမှ အောက်ပါခလုတ်ကို နှိပ်ပါ။</p>
 <div class="story-actions-primary story-handoff-actions">
 <button type="button" class="btn btn-primary" id="acceptIdeaHandoffBtn">ဒီ Idea နဲ့ Story စတင်ရန်</button>
