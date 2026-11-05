@@ -5,15 +5,21 @@ const root = new URL('../worker/src/frontend/studios/content/', import.meta.url)
 const ui = await readFile(new URL('ui.js', root), 'utf8');
 const page = await readFile(new URL('page.js', root), 'utf8');
 const shell = await readFile(new URL('shell.js', root), 'utf8');
+const api = await readFile(new URL('api.js', root), 'utf8');
 
 const inlineEventAttribute = /\bon(?:click|change|input|keypress|keydown|submit)\s*=/i;
 assert.equal(inlineEventAttribute.test(ui), false, 'Content UI fragments must not contain inline event attributes');
 assert.equal(inlineEventAttribute.test(shell), false, 'Content audio shell must not contain inline event attributes');
+assert.equal(inlineEventAttribute.test(api), false, 'Content dynamic result HTML must not contain inline event attributes');
 
 const actions = [...ui.matchAll(/data-aics-action="([^"]+)"/g)].map((match) => match[1]);
+const dynamicActions = [...api.matchAll(/data-aics-action="([^"]+)"/g)].map((match) => match[1]);
 const delegatedCases = [...page.matchAll(/case '([^']+)':/g)].map((match) => match[1]);
 for (const action of new Set(actions)) {
   assert.ok(delegatedCases.includes(action), 'Missing delegated click handler: ' + action);
+}
+for (const action of new Set(dynamicActions)) {
+  assert.ok(delegatedCases.includes(action), 'Missing dynamic delegated click handler: ' + action);
 }
 
 assert.match(ui, /data-aics-change="update-conditional-fields"/);
