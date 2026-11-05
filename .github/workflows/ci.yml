@@ -30,6 +30,10 @@ jobs:
         run: node --experimental-default-type=module scripts/prompt-merge-engine-test.mjs
       - name: Run Shared Video Plan engine contract tests
         run: node --experimental-default-type=module scripts/video-plan-engine-test.mjs
+      - name: Run Shared Video Plan contract tests
+        run: node --experimental-default-type=module scripts/video-plan-contract-test.mjs
+      - name: Run Shared Video Plan Studio adapter tests
+        run: node --experimental-default-type=module scripts/video-plan-adapter-test.mjs
       - name: Run Shared Video Plan route integration tests
         run: node --experimental-default-type=module scripts/video-plan-route-integration-test.mjs
       - name: Run prompt orchestrator contract tests
