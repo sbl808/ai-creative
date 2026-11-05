@@ -6,6 +6,7 @@ const HTML_CSP_DIRECTIVES = [
   "frame-ancestors 'none'",
   "form-action 'self'",
   "script-src-attr 'none'",
+  "style-src-attr 'none'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self'",
