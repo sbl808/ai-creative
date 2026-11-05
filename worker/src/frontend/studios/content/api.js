@@ -1,7 +1,11 @@
 // AI Creative Studio — Content Studio / api.js (V2 refactor)
 // Browser-side api — extracted VERBATIM from frontend/content.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
-export const API_SCRIPT = `// ===== Step 01 — Conditional Fields (Section 8 — Content Type ပေါ်မူတည်၍ ပြသည်) =====
+export const API_SCRIPT = `function setContentVisible(element, visible){
+  if(element)element.classList.toggle('cs-hidden',!visible);
+}
+
+// ===== Step 01 — Conditional Fields (Section 8 — Content Type ပေါ်မူတည်၍ ပြသည်) =====
 function updateConditionalFields(){
   var ct=(document.getElementById('contentTypeSel')||{}).value||'';
   var showPlatform=(ct==='Social Media Post');
@@ -11,11 +15,11 @@ function updateConditionalFields(){
   var pr=document.getElementById('productGroup');
   var go=document.getElementById('goalGroup');
   var cg=document.getElementById('ctaGroup');
-  if(pg)pg.style.display=showPlatform?'':'none';
-  if(pr)pr.style.display=showCampaign?'':'none';
-  if(go)go.style.display=showCampaign?'':'none';
-  if(cg)cg.style.display=showCampaign?'':'none';
-  if(cf)cf.style.display=(showPlatform||showCampaign)?'':'none';
+  setContentVisible(pg,showPlatform);
+  setContentVisible(pr,showCampaign);
+  setContentVisible(go,showCampaign);
+  setContentVisible(cg,showCampaign);
+  setContentVisible(cf,showPlatform||showCampaign);
 }
 function conditionalValues(){
   function v(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';}
@@ -59,15 +63,15 @@ function generateContent(){
   var notes=collectIdeaNotes();
   if(notes.length)idea+='\\n\\n'+notes.join('\\n');
   hideError('genError'); hideError('genError2');
-  document.getElementById('genRetryRow').style.display='none';
+  setContentVisible(document.getElementById('genRetryRow'),false);
   contentState.input={idea:idea,contentType:contentType,generationLevel:generationLevel};
   contentState.status='processing';
   csBusy=true;
   setGenButtonsDisabled(true);
   csMarkDone(1);
   // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
-  var grid=document.getElementById('resultGrid');if(grid)grid.style.display='block';
-  var hint=document.getElementById('noResultHint');if(hint)hint.style.display='none';
+  var grid=document.getElementById('resultGrid');setContentVisible(grid,true);
+  var hint=document.getElementById('noResultHint');setContentVisible(hint,false);
   var rbox=contentResultBox();
   rbox.start('AI ရေးသားနေသည်...');
   csGoForce(2);
@@ -99,7 +103,7 @@ function generateContent(){
       rbox.setError('Content ဖန်တီးရာတွင် ပြဿနာရှိပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။');
       // Error State (Section 8) — Form Data မပျောက်၊ Retry ရှိသည်
       showError('genError2','⚠️ Content ဖန်တီးရာတွင် ပြဿနာရှိပါသည်။');
-      document.getElementById('genRetryRow').style.display='flex';
+      setContentVisible(document.getElementById('genRetryRow'),true);
       csUnmarkDone(2);
       showToastMsg('⚠️ Content ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ');
     }
@@ -108,17 +112,17 @@ function generateContent(){
 
 function renderContentResult(instant){
   if(!lastResult){
-    if(document.getElementById('resultGrid'))document.getElementById('resultGrid').style.display='none';
-    if(document.getElementById('noResultHint'))document.getElementById('noResultHint').style.display='block';
+    setContentVisible(document.getElementById('resultGrid'),false);
+    setContentVisible(document.getElementById('noResultHint'),true);
     return;
   }
   var ta=document.getElementById('contentOut');
-  if(document.getElementById('resultGrid'))document.getElementById('resultGrid').style.display='block';
-  if(document.getElementById('noResultHint'))document.getElementById('noResultHint').style.display='none';
+  setContentVisible(document.getElementById('resultGrid'),true);
+  setContentVisible(document.getElementById('noResultHint'),false);
   if(instant&&ta){ta.value=lastResult.content||'(empty)';autoGrow(ta);}
   if(document.getElementById('speakingOut'))document.getElementById('speakingOut').textContent=lastResult.speakingStyle||'(empty)';
   if(document.getElementById('voiceOut'))document.getElementById('voiceOut').textContent=lastResult.voiceStyle||'(empty)';
-  if(document.getElementById('resultActionsRow'))document.getElementById('resultActionsRow').style.display='flex';
+  setContentVisible(document.getElementById('resultActionsRow'),true);
 }
 
 // ===== Revise (AI ပြန်ပြင်ရန် — Existing ကို ဆက်သုံးသည် — GLOBAL RESULT UI Streaming) =====
@@ -201,7 +205,7 @@ function generateVideo(){
   var byok=(document.getElementById('videoByokInput')||{value:''}).value.trim();
   if(!content){showError('videoError','Content မရှိသေးပါ — Content ကို အရင်ဖန်တီးပါ။');return;}
   hideError('videoError'); hideError('videoError2');
-  document.getElementById('videoRetryRow').style.display='none';
+  setContentVisible(document.getElementById('videoRetryRow'),false);
   videoState.content=content;
   var extras=collectVideoExtras();
   var idea=content;
@@ -213,7 +217,7 @@ function generateVideo(){
   csMarkDone(12);
   // Unified: Video Result section အတွင်း loading ပြသည်
   if(window.aicsResultLoading)window.aicsResultLoading.show('videoLoading','AI က သင့်အတွက် Video ကို ပြင်ဆင်နေသည်...',content);
-  var vrc=document.getElementById('videoResult');if(vrc)vrc.style.display='none';
+  var vrc=document.getElementById('videoResult');setContentVisible(vrc,false);
   csGoForce(14);
   setLoading('videoGenLoading',true);
   var body={idea:idea,generationLevel:generationLevel,contentType:contentType};
@@ -225,7 +229,7 @@ function generateVideo(){
       videoState.status='done';
       if(window.aicsResultLoading)window.aicsResultLoading.hide('videoLoading');
       renderVideoPlan(data);
-      document.getElementById('videoResult').style.display='block';
+      setContentVisible(document.getElementById('videoResult'),true);
       csMarkDone(12);
       csMarkDone(14);
       showToastMsg('&#10004; Video Plan ပြီးပါပြီ');
@@ -236,7 +240,7 @@ function generateVideo(){
       videoState.status='error';
       if(window.aicsResultLoading)window.aicsResultLoading.hide('videoLoading');
       showError('videoError2','Video ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ပြန်လည်ကြိုးစားပါ။');
-      document.getElementById('videoRetryRow').style.display='flex';
+      setContentVisible(document.getElementById('videoRetryRow'),true);
       csUnmarkDone(14);
       showToastMsg('⚠️ Video ဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ');
     })
@@ -252,7 +256,7 @@ function renderVideoPlan(data){
   var charsCard=document.getElementById('charactersCard');
   var charsList=document.getElementById('charactersList');
   if(data.characters&&data.characters.length>0){
-    charsCard.style.display='block';
+    setContentVisible(charsCard,true);
     charsList.innerHTML='';
     for(var i=0;i<data.characters.length;i++){
       var c=data.characters[i];
@@ -265,7 +269,7 @@ function renderVideoPlan(data){
       charsList.appendChild(div);
     }
   }else{
-    charsCard.style.display='none';
+    setContentVisible(charsCard,false);
   }
   var scenesList=document.getElementById('scenesList');
   scenesList.innerHTML='';
