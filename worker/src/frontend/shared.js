@@ -317,11 +317,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.classList.toggle('aics-hidden', !hasMore);
+      if (moreButton) moreButton.classList.toggle(\'aics-hidden\', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.classList.add('aics-hidden');
+      if (moreButton) moreButton.classList.add(\'aics-hidden\');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
@@ -474,13 +474,13 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.classList.toggle('aics-hidden', !d.is_admin);\n' +
+    '      if (al) al.classList.toggle(\'aics-hidden\', !d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
     '        for (var i = 0; i < links.length; i++) {\n' +
     '          var sid = links[i].getAttribute(\'data-studio\');\n' +
-    '          if (ss[sid] === false) links[i].classList.add('aics-hidden');\n' +
+    '          if (ss[sid] === false) links[i].classList.add(\'aics-hidden\');\n' +
     '        }\n' +
     '      }\n' +
     '      localStorage.setItem(\'aics_email\', d.email || \'\'); localStorage.setItem(\'aics_plan\', d.plan || \'\');\n' +
@@ -554,7 +554,7 @@ export function sidebarScript() {
     '    if (h) {\n' +
     '      var t = hint == null ? \'\' : String(hint).replace(/\\s+/g, \' \').trim();\n' +
     '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.classList.remove('aics-hidden'); }\n' +
-    '      else { h.textContent = \'\'; h.classList.add('aics-hidden'); }\n' +
+    '      else { h.textContent = \'\'; h.classList.add(\'aics-hidden\'); }\n' +
     '    }\n' +
     '    box.classList.add(\'show\');\n' +
     '  },\n' +
