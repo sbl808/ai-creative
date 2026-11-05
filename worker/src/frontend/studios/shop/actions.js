@@ -77,6 +77,7 @@ function setupRefUpload(inputId,previewId,arr){
           var b64=ev.target.result.split(',')[1];
           arr.push({base64:b64,mimeType:file.type||'image/png'});
           renderRefPreview(previewId,arr);
+          scheduleSave();
         };
         reader.readAsDataURL(file);
       })(files[i]);
@@ -92,7 +93,7 @@ function renderRefPreview(id,arr){
     var d=document.createElement('div');d.className='ref-thumb';
     var im=document.createElement('img');im.src='data:'+img.mimeType+';base64,'+img.base64;
     var x=document.createElement('button');x.className='remove-x';x.textContent='✕';
-    x.onclick=function(){arr.splice(idx,1);renderRefPreview(id,arr);};
+    x.onclick=function(){arr.splice(idx,1);renderRefPreview(id,arr);scheduleSave();};
     d.appendChild(im);d.appendChild(x);c.appendChild(d);
   });
 }
