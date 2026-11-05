@@ -268,8 +268,8 @@ function renderShopBranchStepper(){
   if(shopState.view==='video')meta=videoBranchMeta();
   else if(shopState.view==='audio')meta=audioBranchMeta();
   else if(shopState.view==='image')meta=imageBranchMeta();
-  if(!meta){c.style.display='none';return;}
-  c.style.display='';
+  if(!meta){c.classList.add('shop-hidden');return;}
+  c.classList.remove('shop-hidden');
   var html='<span class="shop-branch-label">Branch Stepper</span><div class="shop-branch-inner">';
   for(var i=0;i<meta.steps.length;i++){
     var done=meta.done.indexOf(i)!==-1;
@@ -309,10 +309,10 @@ function imageBranchMeta(){
 
 // ===================== View Switching (Branch ပြောင်းလျှင် state မပျောက် — Branch Isolation) =====================
 function showBranchViews(){
-  document.getElementById('viewContent').style.display=shopState.view==='content'?'':'none';
-  document.getElementById('viewVideo').style.display=shopState.view==='video'?'':'none';
-  document.getElementById('viewAudio').style.display=shopState.view==='audio'?'':'none';
-  document.getElementById('viewImage').style.display=shopState.view==='image'?'':'none';
+  document.getElementById('viewContent').classList.toggle('shop-hidden',shopState.view!=='content');
+  document.getElementById('viewVideo').classList.toggle('shop-hidden',shopState.view!=='video');
+  document.getElementById('viewAudio').classList.toggle('shop-hidden',shopState.view!=='audio');
+  document.getElementById('viewImage').classList.toggle('shop-hidden',shopState.view!=='image');
   // Main Stepper ကို မဖျောက်ဘဲ Branch Stepper ကို သီးခြား render သည်
   renderShopStepper();
   renderShopBranchStepper();
