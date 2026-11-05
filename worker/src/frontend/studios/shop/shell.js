@@ -70,6 +70,9 @@ function normalizeState(s){
 
 function studioCollectDraft(){
   syncContent();
+  shopState.content.input.images=refImagesContent;
+  shopState.video.input.images=refImagesVideo;
+  shopState.image.input.images=refImagesImage;
   var fields={};
   PRODUCT_FIELDS.concat(ADVANCED_FIELDS).forEach(function(f){fields[f.id]=fieldVal(f.id);});
   var cp=document.getElementById('contentPurposeSel');
@@ -208,4 +211,22 @@ function applyPlanGate(){
   }
 }
 window.applyPlanGate=applyPlanGate;
+
+// Form edits are debounced into the shared IndexedDB draft adapter.
+var shopDraftSaveTimer=null;
+function queueShopDraftSave(){
+  if(shopDraftSaveTimer!==null)clearTimeout(shopDraftSaveTimer);
+  shopDraftSaveTimer=setTimeout(function(){
+    shopDraftSaveTimer=null;
+    if(window.studioPersistDraft)window.studioPersistDraft(false);
+  },450);
+}
+document.addEventListener('input',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShopDraftSave();
+});
+document.addEventListener('change',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShopDraftSave();
+});
 `;
