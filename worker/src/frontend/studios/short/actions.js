@@ -37,7 +37,7 @@ function generateShort(){
   currentShort='';
   studioMarkDone(1);
   // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
-  var sb=document.getElementById('shortResultBody');if(sb)sb.style.display='';
+
   var rbox=shortResultBox();
   rbox.start('AI က သင့်အတွက် Short Script ကို ရေးသားနေသည်...');
   if(window.studioForceGoStep)window.studioForceGoStep(2);
@@ -63,7 +63,7 @@ function generateShort(){
       if(window.studioSetLoading)window.studioSetLoading({on:false});
       rbox.setError(friendlyMsg(err,'short'));
       shortBusy=false;
-      var sb3=document.getElementById('shortResultBody');if(sb3)sb3.style.display='';
+
       showStepError('genError2','genRetry2',friendlyMsg(err,'short'));
       // Error → Result section အတွင်းတွင် error + retry ပြသည် (existing error UI ကို ထိန်းထားသည်)
       if(window.studioUnmarkDone)window.studioUnmarkDone(2);
@@ -73,7 +73,7 @@ function generateShort(){
 }
 
 // ===================== Auto Expand (Global Result Box handles streaming display) =====================
-function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
+function autoExpand(ta){if(!ta)return;var lineHeight=22;try{var computed=window.getComputedStyle(ta);var measured=parseFloat(computed&&computed.lineHeight);if(Number.isFinite(measured)&&measured>0)lineHeight=measured;}catch(e){}ta.rows=Math.max(2,Math.ceil((ta.scrollHeight||lineHeight*2)/lineHeight));}
 function onShortEdit(){
   var ta=document.getElementById('shortResult');
   if(ta){currentShort=ta.value;autoExpand(ta);}
