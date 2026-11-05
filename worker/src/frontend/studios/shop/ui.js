@@ -82,7 +82,7 @@ const STEP1_HTML = `
 <input type="file" id="refImgContent" accept="image/*" multiple>
 <div class="ref-preview" id="refPreviewContent"></div>
 </div>
-<div class="btn-row" class="shop-style-mt-6">
+<div class="btn-row shop-style-mt-6" >
 <button class="btn btn-primary" data-shop-event="click" data-shop-action="generateContent">&#10024; Product Content ဖန်တီးရန်</button>
 </div>
 </div>
@@ -93,7 +93,7 @@ const STEP3_HTML = `
 <div class="aics-step" data-step="2">
 
 <!-- ===== BRANCH STEPPER (Main Stepper အောက်တွင် သီးခြားပြသည် — Branch ထဲဝင်မှသာ မြင်ရမည်) ===== -->
-<div class="shop-branch-stepper" id="shopBranchStepper" class="shop-hidden"></div>
+<div class="shop-branch-stepper shop-hidden" id="shopBranchStepper" ></div>
 
 <!-- ===== VIEW: Product Content Result + Output Hub ===== -->
 <div id="viewContent">
@@ -156,7 +156,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 <div class="auto-note">&#9989; Product Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>Product Content * (Video ဖန်တီးရန် Content)</label>
-<textarea id="videoText" class="shop-result" class="shop-style-minh-120" data-shop-event="input" data-shop-action="onVideoTextEdit"></textarea>
+<textarea id="videoText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onVideoTextEdit"></textarea>
 </div>
 <div class="studio-form-grid">
 <div class="form-group">
@@ -189,7 +189,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 </div>
 </div>
 
-<div class="card" id="videoResultCard" class="shop-hidden">
+<div class="card shop-hidden" id="videoResultCard" >
 <div class="card-title">&#127916; Video Plan ရလဒ် — Story Map</div>
 ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="videoResultMap"></div>
@@ -198,7 +198,7 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 <button class="btn btn-primary" data-shop-event="click" data-shop-action="retryVideo">&#8635; ပြန်ကြိုးစားရန်</button>
 <button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromVideoLoading">&#8592; နောက်သို့</button>
 </div>
-<div class="btn-row" class="shop-style-mt-16">
+<div class="btn-row shop-style-mt-16" >
 <button class="btn btn-green" data-shop-event="click" data-shop-action="copyAllVideo">&#128203; Copy</button>
 <button class="btn btn-purple" data-shop-event="click" data-shop-action="saveAllVideo">&#128190; ဖန်တီးမှုအားလုံးသိမ်း</button>
 </div>
@@ -212,7 +212,7 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 <div class="auto-note">&#9989; Product Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>အသံဖတ်ရန် စာသား * (Product Content)</label>
-<textarea id="audioText" class="shop-result" class="shop-style-minh-120" data-shop-event="input" data-shop-action="onAudioTextEdit"></textarea>
+<textarea id="audioText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onAudioTextEdit"></textarea>
 </div>
 <div class="studio-form-grid">
 <div class="form-group">
@@ -248,7 +248,7 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 </div>
 </div>
 
-<div class="card" id="audioResultCard" class="shop-hidden">
+<div class="card shop-hidden" id="audioResultCard" >
 <div class="card-title">&#128266; Audio ရလဒ် (Audio Result)</div>
 ${aicsResultLoadingHtml('audioLoading','AI ပြင်ဆင်နေသည်...')}
 <div class="audio-player-row">
@@ -271,7 +271,7 @@ ${aicsResultLoadingHtml('audioLoading','AI ပြင်ဆင်နေသည်.
 </div>
 </div>
 
-<div class="card" id="srtResultCard" class="shop-hidden">
+<div class="card shop-hidden" id="srtResultCard" >
 <div class="shop-view-subhead">
 <button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="backToAudioResult">&#8592; Audio Result</button>
 <span class="shop-view-title">&#128221; မူရင်း SRT</span>
@@ -284,7 +284,7 @@ ${aicsResultLoadingHtml('srtLoading','AI ပြင်ဆင်နေသည်...
 <button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="downloadSrt">&#128190; Save .srt</button>
 </div>
 <hr class="divider">
-<div class="card-title" class="shop-style-mt-2">&#127760; ဘာသာပြန် <span class="pro-tag">PRO</span></div>
+<div class="card-title shop-style-mt-2" >&#127760; ဘာသာပြန် <span class="pro-tag">PRO</span></div>
 <div class="form-group">
 <label>ဘာသာစကား (Language)</label>
 <select id="transLangSel" data-shop-event="change" data-shop-action="onTransLangChange">
@@ -308,7 +308,7 @@ ${aicsResultLoadingHtml('srtLoading','AI ပြင်ဆင်နေသည်...
 </div>
 </div>
 
-<div class="card" id="transResultCard" class="shop-hidden">
+<div class="card shop-hidden" id="transResultCard" >
 <div class="shop-view-subhead">
 <button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="backToSrtResult">&#8592; Original SRT</button>
 <span class="shop-view-title">&#127760; Translated SRT</span>
@@ -335,7 +335,7 @@ ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်.
 <div class="auto-note">&#9989; Product Content Result နှင့် Product Reference ပုံများကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>Product Content * (Image ဖန်တီးရန် Content)</label>
-<textarea id="imageText" class="shop-result" class="shop-style-minh-120" data-shop-event="input" data-shop-action="onImageTextEdit"></textarea>
+<textarea id="imageText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onImageTextEdit"></textarea>
 </div>
 <div class="form-group">
 <label>Image Purpose (Image Purpose)</label>
@@ -361,7 +361,7 @@ ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်.
 </div>
 </div>
 
-<div class="card" id="imageResultCard" class="shop-hidden">
+<div class="card shop-hidden" id="imageResultCard" >
 <div class="card-title">&#128444; Image ရလဒ် (Image Result)</div>
 ${aicsResultLoadingHtml('imageLoading','AI ဖန်တီးနေသည်...')}
 <div id="imageResultView"></div>
