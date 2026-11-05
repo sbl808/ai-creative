@@ -49,7 +49,7 @@ const STEP3_HTML = `
 <div class="card">
 <div class="card-title">&#128221; Image Prompt Result</div>
 ${aicsResultLoadingHtml('promptLoading','AI က သင့်အတွက် Image Prompt ကို ပြင်ဆင်နေသည်...')}
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">AI က သင့်အချက်အလက်ကို အခြေခံပြီး Image Prompt ပြင်ဆင်ပေးပြီးပါပြီ — အောက်က Prompt ကို တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
+<p class="image-intro-note">AI က သင့်အချက်အလက်ကို အခြေခံပြီး Image Prompt ပြင်ဆင်ပေးပြီးပါပြီ — အောက်က Prompt ကို တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
 <textarea class="result-textarea" id="promptResult" aria-describedby="promptHint" placeholder="Prompt ဒီနေရာမှာ ပေါ်ပါမယ် — တိုက်ရိုက်ပြင်နိုင်ပါတယ်" data-image-input="promptEdit"></textarea>
 <p class="hint-note" id="promptHint">&#9997; ပြင်ဆင်ထားသော Prompt ကို နောက်အဆင့်သို့ အလိုအလျောက် ပို့ပေးပါမည် — Copy / Paste မလိုပါ</p>
 <div class="error-box" id="prepareErr2" role="alert" aria-live="assertive"></div>
@@ -64,7 +64,7 @@ const STEP4_HTML = `
 <div class="aics-step" data-step="3">
 <div class="card">
 <div class="card-title">&#128295; Image ဖန်တီးရန် ပြင်ဆင်ခြင်း</div>
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">Step 02 မှာ သင်ပြင်ဆင်ထားသော နောက်ဆုံး Prompt ကို အလိုအလျောက် ထည့်ပေးထားပါသည် — လိုအပ်ရင် ထပ်ပြင်ပြီး "AI ပုံဖန်တီးရန်" နှိပ်ပါ။</p>
+<p class="image-intro-note">Step 02 မှာ သင်ပြင်ဆင်ထားသော နောက်ဆုံး Prompt ကို အလိုအလျောက် ထည့်ပေးထားပါသည် — လိုအပ်ရင် ထပ်ပြင်ပြီး "AI ပုံဖန်တီးရန်" နှိပ်ပါ။</p>
 <div class="form-group">
 <label for="prepPromptInput">&#128221; အသုံးပြုမည့် နောက်ဆုံး Prompt</label>
 <textarea id="prepPromptInput" class="image-prep-prompt" placeholder="Prompt ဒီနေရာမှာ အလိုအလျောက် ရောက်ပါမယ်" data-image-input="autoExpand"></textarea>
