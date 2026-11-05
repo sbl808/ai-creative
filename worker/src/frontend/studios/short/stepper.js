@@ -3,9 +3,13 @@
 // The whole <script> is reassembled in page.js in the original source order.
 export const STEPPER_SCRIPT = `window.studioReset=function(){
   if(!confirm('ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?'))return;
-  try{localStorage.removeItem('aics_draft_short');}catch(e){}
-  try{localStorage.removeItem('aics_draft_short_imgcache');}catch(e){}
-  location.reload();
+  if(!window.AICS_STUDIO_DRAFTS){showToastMsg('IndexedDB Draft စနစ် မရရှိပါ');return;}
+  window.AICS_STUDIO_DRAFTS.remove('short').then(function(){
+    // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးမှသာ legacy data ကို ရှင်းသည်။
+    try{localStorage.removeItem('aics_draft_short');}catch(e){}
+    try{localStorage.removeItem('aics_draft_short_imgcache');}catch(e){}
+    location.reload();
+  }).catch(function(){showToastMsg('IndexedDB Draft ဖျက်မအောင်မြင်ပါ');});
 };
 
 // ============================================================
