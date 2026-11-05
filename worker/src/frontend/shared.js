@@ -1101,6 +1101,7 @@ export function renderStudioShell(opts) {
         }
       }).then(function () {
         studioDraftReady = true;
+        if (draftTouchedBeforeRestore && window.studioCollectDraft) window.studioPersistDraft(false);
         showStep(cur);
       });
       return;
