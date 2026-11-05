@@ -7,7 +7,7 @@ function showVideoPhase(){
   renderShopStepper();
   renderShopBranchStepper();
   document.getElementById('videoSetupCard').style.display=shopState.video.step===1?'':'none';
-  document.getElementById('videoResultCard').style.display=shopState.video.step===2?'':'none';
+  document.getElementById('videoResultCard').classList.toggle('shop-hidden',shopState.video.step!==2);
   if(shopState.video.step===2)renderVideoResultMap();
 }
 function onVideoTextEdit(){
