@@ -1,4 +1,4 @@
-import { generateIdeas, validateIdeasBrief } from '../core/ideas.js';
+import { generateIdeas, validateIdeasBrief, reviseIdea, validateIdeaRevision } from '../core/ideas.js';
 
 function noStore(response) {
   const headers = new Headers(response.headers);
@@ -51,6 +51,50 @@ export async function handleIdeasRoutes(request, env, cors, deps) {
       }
       // Do not expose provider errors, prompts, credentials, or user-supplied content.
       return noStore(json({ error: 'ideas_generation_failed' }, 502, cors));
+    }
+  }
+
+
+  if (path === '/api/ideas/revise' && request.method === 'POST') {
+    const token = bearer(request);
+    if (!token) return noStore(json({ error: 'unauthorized' }, 401, cors));
+    const payload = await verifyTokenSafe(env, token);
+    if (!payload || !payload.sub) return noStore(json({ error: 'invalid_token' }, 401, cors));
+
+    const body = await request.json().catch(() => null);
+    const validation = validateIdeaRevision(body);
+    if (!validation.ok) {
+      return noStore(json({ error: validation.error, field: validation.field }, 400, cors));
+    }
+
+    const plan = await resolvePlan(env, payload);
+    const denied = await requireFeature(env, 'ideas.generate', plan, '1', cors);
+    if (denied) return noStore(denied);
+
+    try {
+      const apiKey = body.apiKey || await getUserApiKey(env, payload.sub);
+      const idea = await reviseIdea(env, {
+        category: validation.category,
+        idea: body.idea,
+        fields: body.fields || {},
+        instruction: body.instruction.trim(),
+        plan,
+        apiKey,
+      });
+      await trackUsageSafe(env, payload.sub, 'ai');
+      return noStore(json({ ok: true, category: validation.category, idea }, 200, cors));
+    } catch (error) {
+      if (error && error.message === 'cms_prompt_missing') {
+        return noStore(json({
+          error: 'cms_prompt_missing',
+          detail: 'Idea Workspace Prompt ကို Admin CMS မှာ အရင်ပြင်ဆင်ပါ။',
+        }, 503, cors));
+      }
+      if (error && /^invalid_(?:ai_output|idea|suggested_studio)$/.test(error.message)) {
+        return noStore(json({ error: error.message }, 502, cors));
+      }
+      // Do not expose provider errors, prompts, credentials, or user-supplied content.
+      return noStore(json({ error: 'idea_revision_failed' }, 502, cors));
     }
   }
 
