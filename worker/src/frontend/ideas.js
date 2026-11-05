@@ -1,6 +1,7 @@
 // Idea Workspace — category-driven browser UI.
 import { renderSidebar, sidebarScript } from './shared.js';
 import { ideaFormsScript } from './ideas/forms.js';
+import { legacyIdeaMigrationPanelHtml, legacyIdeaMigrationScript } from './ideas/legacy-migration.js';
 
 export const IDEAS_HTML = `<!doctype html>
 <html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -23,6 +24,7 @@ ${renderSidebar('ideas')}
 <div class="actions"><button id="generateBtn">Idea ၃ ခု ထုတ်ရန်</button></div><div id="status" class="status" hidden role="status"></div>
 </section>
 <section><h2>ထုတ်ပေးထားသော Ideas</h2><div id="results" class="ideas"><p class="muted">Brief ဖြည့်ပြီး Generate ကိုနှိပ်ပါ။</p></div></section>
+${legacyIdeaMigrationPanelHtml()}
 <section class="panel"><h2>သိမ်းထားသော Ideas</h2><p class="muted small">ဒီစာရင်းက ဒီ Browser ရဲ့ IndexedDB ထဲမှာပဲ သိမ်းထားပါတယ်။ Browser data ဖျက်လျှင် ပျောက်နိုင်ပါတယ်။</p><div id="saved"><p class="muted">ဖတ်နေသည်…</p></div></section>
 <section class="panel" id="ideaEditor" hidden><h2>Idea ပြင်ဆင်ရန်</h2><div class="grid">
 <div class="field"><label for="editTitle">ခေါင်းစဉ်</label><input id="editTitle" maxlength="500"></div>
@@ -145,4 +147,7 @@ function renderIdeas(){var target=el('results');if(!generated.length){target.inn
 el('generateBtn').addEventListener('click',function(){var category=categorySelect.value;var validation=window.AICS_IDEA_FORMS.validate(category);if(!validation.ok){showStatus('လိုအပ်သော အချက်အလက်ကို ဖြည့်ပါ။ ('+validation.label+')',true);return}var formData=window.AICS_IDEA_FORMS.read(category);var brief={category:category,formData:formData,idea:formData.idea,audience:formData.audience,goal:formData.goal,language:formData.language,platform:formData.platform,contentType:formData.contentType,count:3};var token='';try{token=localStorage.getItem('aics_token')||''}catch(e){}if(!token){showStatus('Login မဝင်ရသေးပါ။ အရင် Login ဝင်ပါ။',true);return}var btn=el('generateBtn');btn.disabled=true;btn.textContent='ထုတ်နေသည်…';showStatus('Idea ၃ ခု ထုတ်နေပါသည်။');fetch('/api/ideas/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(brief)}).then(function(res){return res.json().catch(function(){return {error:'invalid_response'}}).then(function(data){if(!res.ok){var e=new Error(data.error||'generation_failed');e.status=res.status;throw e}return data})}).then(function(data){if(!data||data.count!==3||!Array.isArray(data.ideas)||data.ideas.length!==3)throw new Error('invalid_ai_output');generated=data.ideas;generatedBrief=brief;renderIdeas();showStatus('Idea ၃ ခု ရရှိပါပြီ။ သိမ်းလိုသော Idea တစ်ခုချင်းစီကို Save လုပ်ပါ။')}).catch(function(e){var msg=e.message==='cms_prompt_missing'?'Admin CMS မှာ IDEAS Prompt ကို အရင်ထည့်သွင်းပါ။':e.message==='feature_disabled'?'Idea Workspace ကို Admin မှ ပိတ်ထားပါသည်။':e.message==='feature_settings_unavailable'?'Feature Settings ကို စစ်ဆေးမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။':e.message==='unauthorized'||e.message==='invalid_token'?'Session သက်တမ်းကုန်သွားနိုင်ပါသည်။ ပြန် Login ဝင်ပါ။':'Idea ထုတ်မရပါ ('+e.message+'). ခဏနေမှ ပြန်ကြိုးစားပါ။';showStatus(msg,true)}).finally(function(){btn.disabled=false;btn.textContent='Idea ၃ ခု ထုတ်ရန်'})});
 renderSaved();
 })();
+</script>
+<script>
+${legacyIdeaMigrationScript()}
 </script></body></html>`;
