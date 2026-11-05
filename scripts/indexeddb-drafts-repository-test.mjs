@@ -199,6 +199,20 @@ assert.equal(updatedA.id, savedA.id, 'saving the same studio draft should update
 assert.equal(updatedA.createdAt, savedA.createdAt, 'update must preserve createdAt');
 assert.equal((await window.AICS_DRAFTS.list()).length, 1);
 
+const shortDraft = await window.AICS_DRAFTS.save({
+  studio: 'short',
+  draftVersion: 1,
+  data: {
+    step: 4,
+    data: { short: 'Short script draft' },
+    imgCache: { char_0: 'data:image/png;base64,AA==' }
+  }
+});
+assert.equal(shortDraft.studio, 'short');
+assert.equal((await window.AICS_DRAFTS.get('short')).data.imgCache.char_0, 'data:image/png;base64,AA==',
+  'Short image cache must survive IndexedDB draft round-trip');
+assert.equal((await window.AICS_DRAFTS.list()).length, 2);
+
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'story', data: {} }), /invalid_draft_studio/);
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'image', data: [] }), /invalid_draft_data/);
 
