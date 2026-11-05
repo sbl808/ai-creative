@@ -22,24 +22,32 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
       return this;
     }
     transform(response) {
-      const body = response.text().then((html) => {
-        for (const rule of this.rules) {
-          const tag = rule.selector;
-          const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
-          html = html.replace(pattern, (match, attributes) => {
-            const element = {
-              attributes,
-              setAttribute(name, value) {
-                if (!this.attributes.includes(name + '=')) {
-                  this.attributes += ' ' + name + '="' + value + '"';
-                }
-              },
-            };
-            rule.handler.element(element);
-            return '<' + tag + element.attributes + '>';
-          });
-        }
-        return html;
+      const body = new ReadableStream({
+        async start(controller) {
+          try {
+            let html = await response.text();
+            for (const rule of this.rules || []) {
+              const tag = rule.selector;
+              const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
+              html = html.replace(pattern, (match, attributes) => {
+                const element = {
+                  attributes,
+                  setAttribute(name, value) {
+                    if (!this.attributes.includes(name + '=')) {
+                      this.attributes += ' ' + name + '="' + value + '"';
+                    }
+                  },
+                };
+                rule.handler.element(element);
+                return '<' + tag + element.attributes + '>';
+              });
+            }
+            controller.enqueue(new TextEncoder().encode(html));
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          }
+        },
       });
       return new Response(body, {
         status: response.status,
