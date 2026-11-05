@@ -56,6 +56,24 @@ a{color:var(--primary);text-decoration:none;}
 .loading-state{text-align:center;color:var(--primary);padding:40px 20px;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:var(--aics-radius-md,12px);font-size:14px;z-index:9999;display:none;box-shadow:var(--aics-shadow-md,0 8px 24px rgba(16,24,40,.08));}
 .toast.show{display:block;}.toast.success{border-color:var(--success);}.toast.error{border-color:var(--error);}
+.is-hidden{display:none!important;}
+.login-required{padding:40px;text-align:center;}
+.login-required__message{margin:16px 0;}
+.login-required__link{text-decoration:underline;}
+.model-hint{font-size:11px;color:var(--text3);}
+.profile-name-input{width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px;}
+.profile-save-button{padding:8px 14px;min-height:40px;}
+.plan-catalog-user{margin-top:20px;padding:18px;border:1px solid var(--aics-border);border-radius:12px;background:var(--aics-surface);}
+.plan-catalog-heading{font-weight:700;font-size:16px;margin-bottom:4px;}
+.plan-catalog-heading--plain{font-weight:700;font-size:16px;}
+.plan-catalog-hint{margin-bottom:14px;}
+.plan-catalog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.plan-card{border:1px solid var(--aics-border);border-radius:10px;padding:14px;background:var(--aics-surface-subtle);}
+.plan-card__name{font-weight:700;font-size:15px;}
+.plan-card__price{font-size:20px;font-weight:750;margin:8px 0;}
+.plan-card__features{padding-left:20px;margin:10px 0;font-size:12.5px;}
+.plan-catalog-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.key-actions{display:flex;gap:10px;flex-wrap:wrap;}
 @media(max-width:600px){.tab-panel{padding:17px;}.profile-value{text-align:left;width:100%;}.tabs{gap:6px;}.tab{min-height:44px;flex:1 1 auto;}}
 @media(prefers-reduced-motion:reduce){.tab,.btn{transition:none;}}
 
@@ -114,7 +132,7 @@ ${renderSidebar('settings',{variant:'studio'})}
   <div id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-profile" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
-  <div id="tab-prefs" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0" style="display:none;">
+  <div id="tab-prefs" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0">
     <form id="prefsForm">
       <div class="form-row">
         <label for="pref_studio">ပုံမှန် Studio (Default Studio)</label>
@@ -129,7 +147,7 @@ ${renderSidebar('settings',{variant:'studio'})}
       <div class="form-row">
         <label for="pref_model">ပုံမှန် AI Model</label>
         <select id="pref_model" class="form-select"><option value="">Loading…</option></select>
-        <span style="font-size:11px;color:var(--text3);">Studio များတွင် ရွေးထားသော Model ကို ဤနေရာမှ ပုံသေထားနိုင်သည် (Phase C)</span>
+        <span class="model-hint">Studio များတွင် ရွေးထားသော Model ကို ဤနေရာမှ ပုံသေထားနိုင်သည် (Phase C)</span>
       </div>
       <div class="form-row">
         <label for="pref_lang">ဘာသာစကား (Language)</label>
@@ -149,10 +167,10 @@ ${renderSidebar('settings',{variant:'studio'})}
       <button type="submit" class="btn btn-primary" id="saveBtn">💾 သိမ်းပါ</button>
     </form>
   </div>
-  <div id="tab-apikey" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0" style="display:none;">
+  <div id="tab-apikey" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
-  <div id="tab-backup" role="tabpanel" aria-labelledby="tab-btn-backup" tabindex="0" style="display:none;">
+  <div id="tab-backup" class="is-hidden" role="tabpanel" aria-labelledby="tab-btn-backup" tabindex="0">
     ${backupRecoveryPanelHtml()}
   </div>
 </main>
@@ -183,7 +201,7 @@ function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
 if(!TOKEN){
-  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="text-decoration:underline;">Login / Sign Up သို့ သွားရန်</a></p></div>';
+  document.querySelector('.main-content').innerHTML='<div class="login-required"><h2>🔒 Login လိုအပ်ပါသည်</h2><p class="login-required__message"><a href="/login" class="login-required__link">Login / Sign Up သို့ သွားရန်</a></p></div>';
 }else{
   loadSettings();
 }
@@ -191,8 +209,8 @@ function showTab(name){
   var tabs={profile:'tab-profile',prefs:'tab-prefs',apikey:'tab-apikey',backup:'tab-backup'};
   if(!tabs[name]) return;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');t.setAttribute('aria-selected','false');t.setAttribute('tabindex','-1');});
-  document.querySelectorAll('.tab-panel').forEach(function(p){p.style.display='none';});
-  document.getElementById(tabs[name]).style.display='block';
+  document.querySelectorAll('.tab-panel,[role="tabpanel"]').forEach(function(p){p.classList.add('is-hidden');});
+  document.getElementById(tabs[name]).classList.remove('is-hidden');
   var selected=document.getElementById('tab-btn-'+name);
   if(selected){selected.classList.add('active');selected.setAttribute('aria-selected','true');selected.setAttribute('tabindex','0');}
 }
@@ -215,7 +233,7 @@ function loadSettings(){
     var s=d.settings||{};
     var u=d.usage||{};
     document.getElementById('tab-profile').innerHTML=
-      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" data-settings-action="save-name">သိမ်းပါ</button></span></div>'+
+      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" class="profile-name-input" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'"> <button class="btn btn-secondary profile-save-button" data-settings-action="save-name">သိမ်းပါ</button></span></div>'+
       '<div class="profile-row"><span class="profile-label">📧 အီးမေးလ်</span><span class="profile-value">'+escapeHtml(d.email||'')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">Plan</span><span class="profile-value"><span class="plan-badge'+(d.plan==='PRO'?' pro':'')+'">'+(d.plan==='PRO'?'PRO ⭐':'FREE')+'</span></span></div>'+
       '<div class="profile-row"><span class="profile-label">User ID</span><span class="profile-value">'+escapeHtml(String(d.user_id||''))+'</span></div>'+
@@ -250,18 +268,18 @@ function loadPlanCatalog(){
     host=document.createElement('section');
     host.id='planCatalogUser';
     host.className='plan-catalog-user';
-    host.style.cssText='margin-top:20px;padding:18px;border:1px solid var(--aics-border);border-radius:12px;background:var(--aics-surface)';
+    host.className='plan-catalog-user';
     document.getElementById('tab-profile').appendChild(host);
   }
-  host.innerHTML='<div style="font-weight:700;font-size:16px;margin-bottom:4px">Plans & Pricing</div><div class="hint">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div class="loading-state">Loading plans…</div>';
+  host.innerHTML='<div class="plan-catalog-heading">Plans & Pricing</div><div class="hint">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div class="loading-state">Loading plans…</div>';
   fetch('/api/plans').then(function(r){return r.json();}).then(function(d){
-    if(!d||!d.ok){host.innerHTML='<div style="font-weight:700;font-size:16px">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';return;}
-    var html='<div style="font-weight:700;font-size:16px;margin-bottom:4px">Plans & Pricing</div><div class="hint" style="margin-bottom:14px">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">';
+    if(!d||!d.ok){host.innerHTML='<div class="plan-catalog-heading--plain">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';return;}
+    var html='<div class="plan-catalog-heading">Plans & Pricing</div><div class="hint plan-catalog-hint">Plan descriptions are informational. Feature access is enforced separately by the server.</div><div class="plan-catalog-grid">';
     (d.items||[]).forEach(function(p){
       var features=Array.isArray(p.features)?p.features:[];
       var price=p.price_amount===null||p.price_amount===undefined?'Contact us':(String(p.price_currency||'')+' '+String(p.price_amount)+(p.billing_period?' / '+p.billing_period:''));
-      html+='<article style="border:1px solid var(--aics-border);border-radius:10px;padding:14px;background:var(--aics-surface-subtle)"><div style="font-weight:700;font-size:15px">'+escapeHtml(p.icon||'✦')+' '+escapeHtml(p.name||p.plan_key)+'</div><div style="font-size:20px;font-weight:750;margin:8px 0">'+escapeHtml(price)+'</div><div class="hint">'+escapeHtml(p.description||'')+'</div>';
-      if(features.length){html+='<ul style="padding-left:20px;margin:10px 0;font-size:12.5px">';features.forEach(function(item){html+='<li>'+escapeHtml(item)+'</li>';});html+='</ul>';}
+      html+='<article class="plan-card"><div class="plan-card__name">'+escapeHtml(p.icon||'✦')+' '+escapeHtml(p.name||p.plan_key)+'</div><div class="plan-card__price">'+escapeHtml(price)+'</div><div class="hint">'+escapeHtml(p.description||'')+'</div>';
+      if(features.length){html+='<ul class="plan-card__features">';features.forEach(function(item){html+='<li>'+escapeHtml(item)+'</li>';});html+='</ul>';}
       html+='</article>';
     });
     html+='</div>';
@@ -269,9 +287,9 @@ function loadPlanCatalog(){
     var links='';
     if(contacts.facebook_messenger_url)links+='<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(contacts.facebook_messenger_url)+'">Facebook Messenger · Upgrade / Contact</a>';
     if(contacts.telegram_url)links+='<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="'+escapeHtml(contacts.telegram_url)+'">Telegram · Upgrade / Contact</a>';
-    if(links)html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">'+links+'</div>';
+    if(links)html+='<div class="plan-catalog-links">'+links+'</div>';
     host.innerHTML=html;
-  }).catch(function(){host.innerHTML='<div style="font-weight:700;font-size:16px">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';});
+  }).catch(function(){host.innerHTML='<div class="plan-catalog-heading--plain">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';});
 }
 function saveName(){
   var name=document.getElementById('profileName').value.trim();
@@ -307,7 +325,7 @@ function loadKeyStatus(){
     var has=!!d.hasKey;
     document.getElementById('tab-apikey').innerHTML=
       '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
-      '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+      '<div class="key-actions">'+
       '<button class="btn btn-primary" data-settings-action="set-api-key">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
       (has?'<button class="btn btn-secondary" data-settings-action="test-api-key">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" data-settings-action="remove-api-key">🗑️ API Key ဖျက်ရန်</button>':'')+
       '</div>'+
