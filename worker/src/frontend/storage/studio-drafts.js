@@ -14,7 +14,8 @@ const SCRIPT = String.raw`(function () {
   function safeDraftData(studio, value) {
     if (!isRecord(value)) throw __aicsStorageError('invalid_draft_data');
     // BYOK credentials are runtime secrets, never part of a persisted user draft.
-    var data = value.data && isRecord(value.data) ? value.data : value;
+    if (!isRecord(value.data)) throw __aicsStorageError('invalid_draft_data');
+    var data = value.data;
     if (studio === 'content') {
       delete data.byok;
       delete data.videoByok;
@@ -26,6 +27,7 @@ const SCRIPT = String.raw`(function () {
     if (!isRecord(value)) throw __aicsStorageError('invalid_draft_envelope');
     var step = Number(value.step);
     if (!isFinite(step) || step < 1) step = 1;
+    if (!isRecord(value.data)) throw __aicsStorageError('invalid_draft_data');
     return {
       step: Math.floor(step),
       data: value.data,
