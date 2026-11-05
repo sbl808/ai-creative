@@ -68,7 +68,7 @@ function renderSaved(){
 }
 el('saveEditBtn').addEventListener('click',function(){
  if(!editingIdeaId)return;
- var fields=window.AICS_IDEA_FORMS.read(editingCategory);
+ var editorFields=el('editCategoryFields');var check=window.AICS_IDEA_FORMS.validate(editingCategory,editorFields);if(!check.ok){showStatus('လိုအပ်သော အချက်အလက် ဖြည့်ပါ။ ('+check.label+')',true);return}var fields=window.AICS_IDEA_FORMS.read(editingCategory,editorFields);
  var result={title:el('editTitle').value.trim(),concept:el('editConcept').value.trim(),hook:el('editHook').value.trim(),outline:el('editOutline').value.trim(),suggestedStudio:el('editStudio').value};
  if(Object.keys(fields).length===0||!result.title||!result.concept||!result.hook||!result.outline){showStatus('လိုအပ်သော အချက်အလက်အားလုံး ဖြည့်ပါ။',true);return}
  var btn=el('saveEditBtn');btn.disabled=true;
