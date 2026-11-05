@@ -44,7 +44,7 @@ function downloadImage(){
 }
 
 // ===================== Auto Expand (Global Result Box handles streaming display) =====================
-function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
+function autoExpand(ta){if(!ta)return;ta.rows=1;var lineHeight=parseFloat(window.getComputedStyle(ta).lineHeight)||22;ta.rows=Math.max(1,Math.ceil(ta.scrollHeight/lineHeight));}
 function onPromptEdit(ta){
   if(ta){latestPrompt=ta.value;autoExpand(ta);}
 }
