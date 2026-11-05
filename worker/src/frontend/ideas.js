@@ -116,33 +116,48 @@ el('cancelEditBtn').addEventListener('click',closeEditor);
 var TARGET_STUDIOS=[{id:'story',label:'Story'},{id:'content',label:'Content'},{id:'short',label:'Short'},{id:'image',label:'Image'},{id:'voice',label:'Voice'},{id:'shop',label:'Shop'}];
 function ideaHandoffPayload(idea){return {kind:'idea-workspace',schemaVersion:1,category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},idea:makeResult(idea)}}
 function ideaPayload(idea){return 'Idea: '+idea.title+'\\n\\nConcept: '+idea.concept+'\\n\\nHook: '+idea.hook+'\\n\\nOutline: '+idea.outline;}
-function targetDraftKey(studio){return studio==='voice'?'aics_voice_workflow_v3':('aics_draft_'+studio);}
-function targetHasDraft(studio){try{return !!(localStorage.getItem(targetDraftKey(studio))||(studio==='voice'&&localStorage.getItem('aics_draft_voice')))}catch(e){return true}}
-function makeTargetDraft(studio,idea,payload){
+function targetLegacyDraftExists(studio){
+ var keys={content:['aics_draft_content'],short:['aics_draft_short'],image:['aics_draft_image'],voice:['aics_voice_workflow_v3','aics_voice_workflow_v2','aics_draft_voice','aics_voice_transfer'],shop:['aics_draft_shop']};
+ try{return (keys[studio]||[]).some(function(key){return !!localStorage.getItem(key);});}catch(e){return true;}
+}
+function makeTargetDraft(studio,idea,payload,fullPayload){
  var now=new Date().toISOString();
- if(studio==='short')return {key:'aics_draft_short',value:{step:1,data:{stepNow:1,mode:'main',shortType:'1',fields:{0:payload},aud:'',dur:'',tone:'',lang:'',mainMsg:'',extraInstr:'',adv:{},short:'',shortIdea:payload,videoStarted:false,characters:[],scenes:[]},savedAt:now}};
- if(studio==='image')return {key:'aics_draft_image',value:{step:1,data:{stepNow:1,mode:'main',imageType:'1',aud:'',idea:payload,ideaText:payload,refCount:0,latestPrompt:'',prepPrompt:'',resultText:'',map:{subject:'',style:'',environment:'',lighting:'',camera:'',finalPrompt:''},finalPromptManual:false,hasFinalImage:false,finalImage:null},savedAt:now}};
- if(studio==='content')return {key:'aics_draft_content',value:{step:1,data:{mode:'content',csCur:1,idea:payload,generationLevel:'1',aud:'လူတိုင်း',contentType:'Social Media Post',tone:'',lang:'Burmese',platform:'Facebook',product:'',goal:'',cta:'',keyPoints:'',mainMessage:'',length:'',additionalInstr:'',videoContent:'',videoGenerationLevel:'1',videoTypeSel:'',videoDuration:'',videoAspect:'',videoVisualStyle:'',videoCameraStyle:'',videoMotion:'',videoLanguage:'',videoSceneSettings:'',videoVisualSettings:'',videoReference:'',videoAdditionalInstructions:'',ttsText:'',srt:'',srtTranslated:'',direction:'MY_TO_CN',lastResult:null,videoPlan:null,audio:null},savedAt:now}};
- if(studio==='shop')return {key:'aics_draft_shop',value:{step:1,data:{shopState:{mainStep:1,view:'content',content:{input:{idea:payload,type:'1',images:[]},result:''},video:{step:1,input:{text:'',type:'1',images:[],purpose:'Product Promotion'},result:{product:null,characters:[],scenes:[]}},audio:{step:1,input:{text:'',voiceName:'Puck',voiceGender:'male',purpose:'Product Description',settings:''},result:{data:'',mimeType:'audio/wav',url:'',voiceName:''},srt:{text:''},translation:{dir:'MY_TO_CN',srt:'',text:''}},image:{step:1,input:{text:'',images:[],purpose:'Product Image'},result:{data:'',mimeType:'image/png',url:'',prompt:''}}},contentType:'1',videoType:'1',fields:{prodDesc:payload},purpose:'1'},savedAt:now}};
+ if(studio==='short')return {step:1,savedAt:now,data:{stepNow:1,mode:'main',shortType:'1',fields:{0:payload},aud:'',dur:'',tone:'',lang:'',mainMsg:'',extraInstr:'',adv:{},short:'',shortIdea:payload,videoStarted:false,characters:[],scenes:[],ideaHandoff:fullPayload}};
+ if(studio==='image')return {step:1,savedAt:now,data:{stepNow:1,mode:'main',imageType:'1',aud:'',idea:payload,ideaText:payload,refCount:0,latestPrompt:'',prepPrompt:'',resultText:'',map:{subject:'',style:'',environment:'',lighting:'',camera:'',finalPrompt:''},finalPromptManual:false,hasFinalImage:false,finalImage:null,ideaHandoff:fullPayload}};
+ if(studio==='content')return {step:1,savedAt:now,data:{mode:'content',csCur:1,idea:payload,generationLevel:'1',aud:'လူတိုင်း',contentType:'Social Media Post',tone:'',lang:'Burmese',platform:'Facebook',product:'',goal:'',cta:'',keyPoints:'',mainMessage:'',length:'',additionalInstr:'',videoContent:'',videoGenerationLevel:'1',videoTypeSel:'',videoDuration:'',videoAspect:'',videoVisualStyle:'',videoCameraStyle:'',videoMotion:'',videoLanguage:'',videoSceneSettings:'',videoVisualSettings:'',videoReference:'',videoAdditionalInstructions:'',ttsText:'',srt:'',srtTranslated:'',direction:'MY_TO_CN',lastResult:null,videoPlan:null,audio:null,ideaHandoff:fullPayload}};
+ if(studio==='shop')return {step:1,savedAt:now,data:{shopState:{mainStep:1,view:'content',content:{input:{idea:payload,type:'1',images:[]},result:''},video:{step:1,input:{text:'',type:'1',images:[],purpose:'Product Promotion'},result:{product:null,characters:[],scenes:[]}},audio:{step:1,input:{text:'',voiceName:'Puck',voiceGender:'male',purpose:'Product Description',settings:''},result:{data:'',mimeType:'audio/wav',url:'',voiceName:''},srt:{text:''},translation:{dir:'MY_TO_CN',srt:'',text:''}},image:{step:1,input:{text:'',images:[],purpose:'Product Image'},result:{data:'',mimeType:'image/png',url:'',prompt:''}}},contentType:'1',videoType:'1',fields:{prodDesc:payload},purpose:'1',ideaHandoff:fullPayload}};
+ if(studio==='voice')return {step:1,savedAt:now,data:{state:{voiceMode:'text-to-voice',voiceStep:1,view:'input',resultKind:null,voiceInput:null,voiceResult:null,audioResult:null,srtResult:null,translationDirection:'MY_TO_CN',translationResult:null,mediaOutput:'text',srtSource:null,transSource:null,processingState:null,errorState:null,source:'ideas'},inputs:{tts:payload,speaking:'',voice:'Kore',instruction:'',audience:'လူတိုင်း',srt:''},mediaAudio:{base64:'',mime:'',fileName:''},translation:'',ideaHandoff:fullPayload}};
  return null;
 }
 function handoffIdea(index,studio){
  var idea=generated[index];if(!idea){showStatus('Idea မရှိပါ။',true);return}
  var target=TARGET_STUDIOS.find(function(s){return s.id===studio});if(!target)return;
  var payload=ideaPayload(idea);
+ var fullPayload=ideaHandoffPayload(idea);
  if(studio==='story'){
   if(!window.AICS_HANDOFFS){showStatus('Idea ပို့ဆောင်မှု မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
-  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:ideaHandoffPayload(idea)})
+  window.AICS_HANDOFFS.create({contractVersion:1,source:'ideas',target:'story',payload:fullPayload})
    .then(function(result){showStatus('Idea Result ကို Story Studio သို့ ပို့နေပါသည်။');location.href='/app/story?handoff='+encodeURIComponent(result.id);})
    .catch(function(){showStatus('Idea Result ကို ပို့မရပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)});
   return;
  }
- if(targetHasDraft(studio)&&!confirm(target.label+' Studio မှာ Draft ရှိပြီးသားပါ။ ဒီ Idea နဲ့ အစားထိုးမှာ သေချာပါသလား?\\n\\nCancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ။'))return;
- try{
-  if(studio==='voice')localStorage.setItem('aics_voice_transfer',JSON.stringify({text:payload,source:'ideas',audience:'လူတိုင်း'}));
-  else{var draft=makeTargetDraft(studio,idea,payload);if(!draft)throw new Error('unsupported_studio');localStorage.setItem(draft.key,JSON.stringify(draft.value));}
-  showStatus('Idea ကို '+target.label+' Studio သို့ လွှဲပို့နေပါသည်။');location.href='/app/'+studio;
- }catch(e){showStatus('Studio သို့ လွှဲမပို့နိုင်ပါ။ Browser Storage နေရာလွတ်နှင့် permission ကို စစ်ပါ။',true)}
+ if(!window.AICS_STUDIO_DRAFTS){showStatus('Studio Draft IndexedDB မရရှိပါ။ Page ကို ပြန်ဖွင့်ပြီး စမ်းပါ။',true);return}
+ var btns=document.querySelectorAll('[data-handoff="'+index+'"]');
+ btns.forEach(function(btn){if(btn.getAttribute('data-studio')===studio)btn.disabled=true;});
+ window.AICS_STUDIO_DRAFTS.load(studio).then(function(existing){
+  var hasLegacy=targetLegacyDraftExists(studio);
+  if((existing&&existing.data)||hasLegacy){
+   if(!confirm(target.label+' Studio မှာ Draft ရှိပြီးသားပါ။ ဒီ Idea နဲ့ အစားထိုးမှာ သေချာပါသလား?\\n\\nCancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ။'))return false;
+  }
+  var draft=makeTargetDraft(studio,idea,payload,fullPayload);
+  if(!draft)throw new Error('unsupported_studio');
+  return window.AICS_STUDIO_DRAFTS.save(studio,draft).then(function(){
+   showStatus('Idea ကို '+target.label+' Studio ရဲ့ IndexedDB Draft ထဲ ပို့ပြီးပါပြီ။');
+   location.href='/app/'+studio;
+   return true;
+  });
+ }).catch(function(){showStatus('Studio သို့ Idea ပို့မရပါ။ Browser Storage နေရာလွတ်နှင့် permission ကို စစ်ပါ။',true);})
+ .finally(function(){btns.forEach(function(btn){if(btn.getAttribute('data-studio')===studio)btn.disabled=false;});});
 }
 function renderIdeas(){var target=el('results');if(!generated.length){target.innerHTML='<p class="muted">Idea မရှိသေးပါ။</p>';return}target.innerHTML=generated.map(function(x,i){return '<article class="idea"><h3>'+(i+1)+'. '+esc(x.title)+'</h3><h4>Concept</h4><p>'+esc(x.concept)+'</p><h4>Hook</h4><p>'+esc(x.hook)+'</p><h4>Outline</h4><p>'+esc(x.outline)+'</p><h4>အကြံပြု Studio</h4><p>'+esc(x.suggestedStudio)+'</p><div class="actions"><button data-save="'+i+'">Idea သိမ်းရန်</button></div><div class="handoff-actions">'+TARGET_STUDIOS.map(function(s){return '<button type="button" class="secondary" data-handoff="'+i+'" data-studio="'+s.id+'">→ '+s.label+'</button>'}).join('')+'</div></article>'}).join('');target.querySelectorAll('[data-save]').forEach(function(btn){btn.addEventListener('click',function(){var item=generated[Number(btn.getAttribute('data-save'))];btn.disabled=true;saveIdea(item).then(function(){showStatus('Idea ကို Local IndexedDB ထဲ သိမ်းပြီးပါပြီ။');renderSaved()}).catch(function(){showStatus('Idea မသိမ်းနိုင်ပါ။ Browser Storage နေရာလွတ်နှင့် permission ကို စစ်ပါ။',true)}).finally(function(){btn.disabled=false})})});target.querySelectorAll('[data-handoff]').forEach(function(btn){btn.addEventListener('click',function(){handoffIdea(Number(btn.getAttribute('data-handoff')),btn.getAttribute('data-studio'))})})}
 el('generateBtn').addEventListener('click',function(){var category=categorySelect.value;var validation=window.AICS_IDEA_FORMS.validate(category);if(!validation.ok){showStatus('လိုအပ်သော အချက်အလက်ကို ဖြည့်ပါ။ ('+validation.label+')',true);return}var formData=window.AICS_IDEA_FORMS.read(category);var brief={category:category,formData:formData,idea:formData.idea,audience:formData.audience,goal:formData.goal,language:formData.language,platform:formData.platform,contentType:formData.contentType,count:3};var token='';try{token=localStorage.getItem('aics_token')||''}catch(e){}if(!token){showStatus('Login မဝင်ရသေးပါ။ အရင် Login ဝင်ပါ။',true);return}var btn=el('generateBtn');btn.disabled=true;btn.textContent='ထုတ်နေသည်…';showStatus('Idea ၃ ခု ထုတ်နေပါသည်။');fetch('/api/ideas/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(brief)}).then(function(res){return res.json().catch(function(){return {error:'invalid_response'}}).then(function(data){if(!res.ok){var e=new Error(data.error||'generation_failed');e.status=res.status;throw e}return data})}).then(function(data){if(!data||data.count!==3||!Array.isArray(data.ideas)||data.ideas.length!==3)throw new Error('invalid_ai_output');generated=data.ideas;generatedBrief=brief;renderIdeas();showStatus('Idea ၃ ခု ရရှိပါပြီ။ သိမ်းလိုသော Idea တစ်ခုချင်းစီကို Save လုပ်ပါ။')}).catch(function(e){var msg=e.message==='cms_prompt_missing'?'Admin CMS မှာ IDEAS Prompt ကို အရင်ထည့်သွင်းပါ။':e.message==='feature_disabled'?'Idea Workspace ကို Admin မှ ပိတ်ထားပါသည်။':e.message==='feature_settings_unavailable'?'Feature Settings ကို စစ်ဆေးမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။':e.message==='unauthorized'||e.message==='invalid_token'?'Session သက်တမ်းကုန်သွားနိုင်ပါသည်။ ပြန် Login ဝင်ပါ။':'Idea ထုတ်မရပါ ('+e.message+'). ခဏနေမှ ပြန်ကြိုးစားပါ။';showStatus(msg,true)}).finally(function(){btn.disabled=false;btn.textContent='Idea ၃ ခု ထုတ်ရန်'})});
