@@ -47,7 +47,7 @@ function generateVoice(){
   var extras=collectAudioExtras();
   var byok=(document.getElementById('byokInput')||{value:''}).value.trim();
   hideError('voiceError'); hideError('voiceError2');
-  document.getElementById('voiceRetryRow').style.display='none';
+  setContentVisible(document.getElementById('voiceRetryRow'),false);
   audioState.content=text;
   audioState.input={voiceName:voiceName,voiceGender:currentVoiceGender(),settings:extras};
   audioState.status='processing';
@@ -73,7 +73,7 @@ function generateVoice(){
       var audioUrl='data:'+(data.mimeType||'audio/wav')+';base64,'+data.data;
       var container=document.getElementById('audioContainer');
       container.innerHTML='<audio controls src="'+audioUrl+'"></audio>'+
-        '<div class="btn-row"><button class="btn-ghost" onclick="downloadAudio()">&#128190; Save Audio</button></div>';
+        '<div class="btn-row"><button type="button" class="btn-ghost" data-aics-action="download-audio">&#128190; Save Audio</button></div>';
       csMarkDone(22);
       csMarkDone(24);
       showToastMsg('&#10004; အသံပြီးပါပြီ');
@@ -84,7 +84,7 @@ function generateVoice(){
       audioState.status='error';
       if(window.aicsResultLoading)window.aicsResultLoading.hide('audioLoading');
       showError('voiceError2','အသံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ပြန်လည်ကြိုးစားပါ။');
-      document.getElementById('voiceRetryRow').style.display='flex';
+      setContentVisible(document.getElementById('voiceRetryRow'),true);
       csUnmarkDone(24);
       showToastMsg('⚠️ အသံဖန်တီး၍ မရပါ — ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ');
     })
@@ -147,7 +147,7 @@ function translateSrt(){
   apiCall('/api/studio/content/translate-srt',body)
     .then(function(data){
       document.getElementById('resultSrtTranslated').value=data.srt||'';
-      document.getElementById('translatedLabel').style.display='block';
+      setContentVisible(document.getElementById('translatedLabel'),true);
     })
     .catch(function(err){
       console.error(err);
