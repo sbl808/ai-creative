@@ -141,7 +141,7 @@ function studioRestoreDraft(d){
   }
   if(videoPlan){
     renderVideoPlan(videoPlan);
-    document.getElementById('videoResult').style.display='block';
+    setContentVisible(document.getElementById('videoResult'),true);
     csMarkDone(12);
     csMarkDone(14);
     var vp=document.getElementById('videoContentPreview');
