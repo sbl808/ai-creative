@@ -75,8 +75,12 @@ function hideStepError(id,rid){
 // ===================== Auto-expand (Global Result Box handles streaming display) =====================
 function autoExpand(ta){
   if(!ta)return;
-  ta.style.height='auto';
-  ta.style.height=(ta.scrollHeight+2)+'px';
+  ta.rows=1;
+  var style=window.getComputedStyle(ta);
+  var lineHeight=parseFloat(style.lineHeight)||24;
+  var verticalPadding=(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0);
+  var lines=Math.ceil(Math.max(0,ta.scrollHeight-verticalPadding)/lineHeight);
+  ta.rows=Math.max(3,Math.min(24,lines));
 }
 // ===== GLOBAL RESULT UI — Shop Result Box (state machine lives in shared-ui.js) =====
 function shopResultBox(){
