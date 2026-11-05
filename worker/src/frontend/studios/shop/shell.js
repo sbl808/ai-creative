@@ -151,8 +151,8 @@ window.studioRestoreDraft=studioRestoreDraft;
 // ===================== Init =====================
 (function init(){
   if(!TOKEN){
-    document.getElementById('loginView').style.display='flex';
-    document.getElementById('aicsApp').style.display='none';
+    document.getElementById('loginView').classList.remove('aics-shop-login-hidden');
+    document.getElementById('aicsApp').classList.add('aics-shop-app-hidden');
     return;
   }
   var _ve=document.getElementById('userEmail');if(_ve)_ve.textContent=localStorage.getItem('aics_email')||'—';
@@ -180,7 +180,7 @@ window.studioRestoreDraft=studioRestoreDraft;
     var _ve2=document.getElementById('userEmail');if(_ve2)_ve2.textContent=d.email||'';
     var _vp2=document.getElementById('planBadge');if(_vp2)_vp2.textContent=d.plan||'FREE';
     var al=document.getElementById('adminLink');
-    if(al)al.style.display=d.is_admin?'flex':'none';
+    if(al)al.classList.toggle('aics-shop-admin-visible',!!d.is_admin);
     USER_PLAN=d.plan||'FREE';
     applyPlanGate();
   }).catch(function(){});
