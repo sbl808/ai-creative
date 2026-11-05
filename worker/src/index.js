@@ -77,13 +77,26 @@ function friendlyError(e) {
 
 function htmlPage(html) {
   const nonce = createCspNonce();
-  return new Response(html, {
+  const response = new Response(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       ...buildHtmlSecurityHeaders(nonce),
     },
   });
+
+  return new HTMLRewriter()
+    .on('script', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .on('style', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .transform(response);
 }
 
 function bearer(req) {
