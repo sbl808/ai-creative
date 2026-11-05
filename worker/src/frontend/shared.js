@@ -553,7 +553,7 @@ export function sidebarScript() {
     '    var h = box.querySelector(\'.aics-result-loading-hint\');\n' +
     '    if (h) {\n' +
     '      var t = hint == null ? \'\' : String(hint).replace(/\\s+/g, \' \').trim();\n' +
-    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.classList.remove('aics-hidden'); }\n' +
+    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.classList.remove(\'aics-hidden\'); }\n' +
     '      else { h.textContent = \'\'; h.classList.add(\'aics-hidden\'); }\n' +
     '    }\n' +
     '    box.classList.add(\'show\');\n' +
