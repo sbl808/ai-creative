@@ -79,7 +79,7 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" class="aics-hidden">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn aics-hidden" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
@@ -119,7 +119,7 @@ function studioPageSidebar(activeId) {
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" class="aics-hidden">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn aics-hidden" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -147,7 +147,7 @@ function responsiveStyles() {
     '.aics-app .layout{display:flex;align-items:stretch;min-height:calc(100vh - 63px);width:100%;}\n' +
     '.aics-app .layout > .sidebar{display:flex;flex-direction:column;width:232px;flex:0 0 232px;background:var(--aics-surface);border:1px solid var(--aics-border);border-radius:var(--aics-radius-lg);margin:16px 12px;padding:14px 12px;box-sizing:border-box;height:calc(100vh - 95px);position:sticky;top:79px;z-index:90;overflow:hidden;box-shadow:var(--aics-shadow-sm);}\n' +
     '.aics-app .layout > .sidebar .sidebar-nav{width:100%;box-sizing:border-box;}\n' +
-    '  .aics-app .aics-hidden{display:none!important;}\\n' +
+    '  .aics-hidden{display:none!important;}\\n' +
     '  .aics-app .aics-sidebar--column{display:flex;flex-direction:column;}\\n' +
     '  .aics-app .aics-work--constrained{max-width:820px;margin:0 auto;width:100%;}\\n' +
     '.aics-app .nav-label{font-size:10px;font-weight:650;color:var(--aics-text-soft);letter-spacing:1.1px;margin:18px 0 7px 10px;text-transform:uppercase;}\n' +
