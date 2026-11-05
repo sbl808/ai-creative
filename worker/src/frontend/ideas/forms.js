@@ -15,7 +15,6 @@ export function renderIdeaCategoryOptions(selected = 'story') {
 }
 
 export function ideaFormsScript() {
-  const registry = JSON.stringify(IDEA_CATEGORIES);
   return String.raw`<script>
 (function () {
   'use strict';
