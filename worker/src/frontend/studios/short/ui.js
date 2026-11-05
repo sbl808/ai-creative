@@ -84,7 +84,7 @@ ${aicsResultLoadingHtml('shortLoading','AI က သင့်အတွက် Short
 <div class="error-box" id="genError2"></div>
 <div class="retry-row" id="genRetry2">
 <button class="btn btn-primary" data-aics-action="generate-short">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" data-aics-action="go-step" data-aics-step="1">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-secondary" data-aics-action="force-step" data-aics-step="1">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>
 <div class="card revise-section" id="revise-section">
@@ -145,7 +145,7 @@ ${aicsResultLoadingHtml('planLoading','AI က သင့်အတွက် Short 
 <div class="error-box" id="planError5"></div>
 <div class="retry-row" id="planRetry5">
 <button class="btn btn-primary" data-aics-action="generate-video-plan">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" data-aics-action="go-step" data-aics-step="3">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-secondary" data-aics-action="force-step" data-aics-step="3">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
 
