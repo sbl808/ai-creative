@@ -29,6 +29,7 @@ window.AICS_IDEAS = {
     var now = new Date().toISOString();
     var record = {
       id: __aicsIdeaId(), ownerId: ownerId, recordVersion: 1,
+      legacySourceId: input.legacySourceId ? String(input.legacySourceId) : undefined,
       category: String(input.category), fields: input.fields, result: input.result,
       isFavorite: input.isFavorite === true, createdAt: now, updatedAt: now
     };
@@ -143,6 +144,56 @@ window.AICS_IDEAS = {
   },
   remove: function (id) {
     return __aicsOwnedStoreMutation('ideas', id, function (store) { store.delete(id); return true; }, 'ownerId');
+  },
+  importLegacy: function (legacyRecord, category) {
+    var ownerId;
+    try {
+      ownerId = __aicsRequireUserId();
+      if (!legacyRecord || typeof legacyRecord !== 'object' ||
+          String(legacyRecord.user_id || '') !== String(ownerId) ||
+          !legacyRecord.id) throw __aicsStorageError('legacy_idea_owner_mismatch');
+      if (['story', 'content', 'short', 'image', 'shop'].indexOf(category) === -1) {
+        throw __aicsStorageError('invalid_idea_category');
+      }
+    } catch (error) { return Promise.reject(error); }
+
+    return window.AICS_IDEAS.list().then(function (existing) {
+      var sourceId = String(legacyRecord.id);
+      if (existing.some(function (item) { return item.legacySourceId === sourceId; })) {
+        return { imported: false, duplicate: true };
+      }
+      var brief = legacyRecord.brief && typeof legacyRecord.brief === 'object'
+        ? legacyRecord.brief : {};
+      var formData = brief.formData && typeof brief.formData === 'object'
+        ? brief.formData : brief;
+      function value(key, fallback) {
+        var candidate = formData[key];
+        if (typeof candidate !== 'string') candidate = legacyRecord[key];
+        return typeof candidate === 'string' ? candidate : (fallback || '');
+      }
+      var fields = {
+        idea: value('idea', legacyRecord.concept || ''),
+        audience: value('audience', ''),
+        goal: value('goal', ''),
+        language: value('language', 'Burmese'),
+        platform: value('platform', 'Other'),
+        contentType: value('contentType', 'Imported legacy idea')
+      };
+      return window.AICS_IDEAS.create({
+        category: category,
+        fields: fields,
+        result: {
+          title: String(legacyRecord.title || 'Imported Idea'),
+          concept: String(legacyRecord.concept || ''),
+          hook: String(legacyRecord.hook || ''),
+          outline: String(legacyRecord.outline || ''),
+          suggestedStudio: String(legacyRecord.suggestedStudio || category)
+        },
+        legacySourceId: sourceId
+      }).then(function (record) {
+        return { imported: true, record: record };
+      });
+    });
   },
   toggleFavorite: function (id) {
     return __aicsOwnedStoreMutation('ideas', id, function (store, record) {
