@@ -19,6 +19,7 @@ function studioOnStep(n){
   }else if(n===14||n===24){
     studioSetActions([backHub,{label:'&#128190; ဖန်တီးမှုသိမ်းပါ',cls:'purple',fn:saveContentResult}]);
   }
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 window.studioOnStep=studioOnStep;
 
