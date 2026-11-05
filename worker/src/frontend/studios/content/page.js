@@ -163,9 +163,22 @@ ${sidebarScript()}
     if(target.dataset.aicsChange==='voice-gender-female')window.setVoiceGender('female');
     if(target.dataset.aicsChange==='effective-voice')window.setEffectiveVoice();
   });
+  var contentDraftSaveTimer=null;
+  function queueContentDraftSave(){
+    if(contentDraftSaveTimer!==null)clearTimeout(contentDraftSaveTimer);
+    contentDraftSaveTimer=setTimeout(function(){
+      contentDraftSaveTimer=null;
+      if(window.studioPersistDraft)window.studioPersistDraft(false);
+    },500);
+  }
   document.addEventListener('input',function(event){
     var target=event.target;
     if(target&&target.dataset&&target.dataset.aicsInput==='auto-grow')window.autoGrow(target);
+    if(target&&target.closest&&target.closest('.aics-work'))queueContentDraftSave();
+  });
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueContentDraftSave();
   });
   document.addEventListener('click',function(event){
     var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
