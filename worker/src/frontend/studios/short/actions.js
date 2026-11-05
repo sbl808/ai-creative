@@ -241,7 +241,7 @@ function renderRefPreviews(){
     var removeBtn=document.createElement('button');
     removeBtn.className='remove-x';
     removeBtn.textContent='✕';
-    removeBtn.onclick=function(){removeRefImage(idx);};
+    removeBtn.dataset.aicsAction='remove-ref-image';\n    removeBtn.dataset.aicsIndex=String(idx);
     thumb.appendChild(imgEl);
     thumb.appendChild(removeBtn);
     container.appendChild(thumb);
@@ -294,7 +294,7 @@ function renderFinalResult(){
         html+='<div class="final-char-img" id="charImg_'+idx+'">'+(img?'<img class="aics-pv-img" src="'+img+'">':'<div class="empty-note">ရုပ်ပုံ မရှိသေးပါ</div>')+'</div>';
         html+='<div class="final-prompt-label">Character Reference Prompt</div>';
         html+='<div class="final-prompt-text">'+escapeHtml(prompt)+'</div>';
-        html+='<div class="btn-row"><button class="btn-ghost" onclick="copyCharPrompt('+idx+')">&#128203; Copy Prompt</button><button class="btn-ghost" onclick="generateCharImage('+idx+')">&#127912; Character Image ဖန်တီးရန်</button></div>';
+        html+='<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-char-prompt" data-aics-index="'+idx+'">&#128203; Copy Prompt</button><button class="btn-ghost" data-aics-action="generate-char-image" data-aics-index="'+idx+'">&#127912; Character Image ဖန်တီးရန်</button></div>';
         html+='</div>';
       })(i);
     }
@@ -309,10 +309,10 @@ function renderFinalResult(){
         var title=s.title?(' — '+escapeHtml(s.title)):'';
         html+='<div class="final-scene-card">';
         html+='<div class="final-scene-title">&#127916; SCENE '+num+title+'</div>';
-        html+='<div class="final-scene-box"><div class="final-box-label">&#127916; Video Prompt</div><div class="final-prompt-text">'+escapeHtml(s.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button class="btn-ghost" onclick="copyVideoPrompt('+idx+')">&#128203; Copy Video Prompt</button></div></div>';
+        html+='<div class="final-scene-box"><div class="final-box-label">&#127916; Video Prompt</div><div class="final-prompt-text">'+escapeHtml(s.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button class="btn-ghost" data-aics-action="copy-video-prompt" data-aics-index="'+idx+'">&#128203; Copy Video Prompt</button></div></div>';
         html+='<div class="final-scene-box"><div class="final-box-label">&#127757; Environment Reference</div><div class="final-prompt-text">'+escapeHtml(s.environmentPrompt||'(မရှိပါ)')+'</div>';
-        html+='<div class="scene-image-area" id="envImg_'+idx+'">'+(imgCache['env_'+idx]?'<img src="'+imgCache['env_'+idx]+'">':'<button class="btn btn-orange" style="font-size:12px;padding:8px 14px;min-height:36px;" onclick="generateEnvImage('+idx+')">&#127912; Environment Image ဖန်တီးပါ</button>')+'</div>';
-        html+='<div class="btn-row"><button class="btn-ghost" onclick="copyEnvPrompt('+idx+')">&#128203; Copy Environment Prompt</button></div></div>';
+        html+='<div class="scene-image-area" id="envImg_'+idx+'">'+(imgCache['env_'+idx]?'<img src="'+imgCache['env_'+idx]+'">':'<button class="btn btn-orange" style="font-size:12px;padding:8px 14px;min-height:36px;" data-aics-action="generate-env-image" data-aics-index="'+idx+'">&#127912; Environment Image ဖန်တီးပါ</button>')+'</div>';
+        html+='<div class="btn-row"><button class="btn-ghost" data-aics-action="copy-env-prompt" data-aics-index="'+idx+'">&#128203; Copy Environment Prompt</button></div></div>';
         html+='<div class="final-scene-meta"><span>&#128100; Characters: '+escapeHtml(resolveSceneCharacters(idx))+'</span><span>&#9201; '+escapeHtml(durText(s.duration))+'</span></div>';
         html+='</div>';
       })(j);
@@ -364,7 +364,7 @@ function generateCharImage(idx){
         autoSave();autoSaveImgCache();
       }else{if(area)area.innerHTML='<div class="empty-note">ရုပ်ပုံ မထွက်ပါ — ထပ်စမ်းပါ</div>';}
     })
-    .catch(function(err){if(area)area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">'+escapeHtml(friendlyMsg(err,'image'))+'</div><div style="text-align:center;margin-top:4px;"><button class="btn-ghost" onclick="generateCharImage('+idx+')">&#8635; ထပ်စမ်းပါ</button></div>';});
+    .catch(function(err){if(area)area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">'+escapeHtml(friendlyMsg(err,'image'))+'</div><div style="text-align:center;margin-top:4px;"><button class="btn-ghost" data-aics-action="generate-char-image" data-aics-index="'+idx+'">&#8635; ထပ်စမ်းပါ</button></div>';});
 }
 function generateEnvImage(idx){
   if(!currentScenes[idx]||!currentScenes[idx].environmentPrompt){showToastMsg('Prompt မရှိပါ');return;}
@@ -379,7 +379,7 @@ function generateEnvImage(idx){
         autoSave();autoSaveImgCache();
       }else{if(area)area.innerHTML='<div class="empty-note">ရုပ်ပုံ မထွက်ပါ — ထပ်စမ်းပါ</div>';}
     })
-    .catch(function(err){if(area)area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">'+escapeHtml(friendlyMsg(err,'image'))+'</div><div style="text-align:center;margin-top:4px;"><button class="btn-ghost" onclick="generateEnvImage('+idx+')">&#8635; ထပ်စမ်းပါ</button></div>';});
+    .catch(function(err){if(area)area.innerHTML='<div style="color:var(--error);font-size:12px;padding:10px;">'+escapeHtml(friendlyMsg(err,'image'))+'</div><div style="text-align:center;margin-top:4px;"><button class="btn-ghost" data-aics-action="generate-env-image" data-aics-index="'+idx+'">&#8635; ထပ်စမ်းပါ</button></div>';});
 }
 
 // ===================== Result Text / Export =====================
