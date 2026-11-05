@@ -24,6 +24,13 @@ ${renderSidebar('ideas')}
 </section>
 <section><h2>ထုတ်ပေးထားသော Ideas</h2><div id="results" class="ideas"><p class="muted">Brief ဖြည့်ပြီး Generate ကိုနှိပ်ပါ။</p></div></section>
 <section class="panel"><h2>သိမ်းထားသော Ideas</h2><p class="muted small">ဒီစာရင်းက ဒီ Browser ရဲ့ IndexedDB ထဲမှာပဲ သိမ်းထားပါတယ်။ Browser data ဖျက်လျှင် ပျောက်နိုင်ပါတယ်။</p><div id="saved"><p class="muted">ဖတ်နေသည်…</p></div></section>
+<section class="panel" id="ideaEditor" hidden><h2>Idea ပြင်ဆင်ရန်</h2><div class="grid">
+<div class="field"><label for="editTitle">ခေါင်းစဉ်</label><input id="editTitle" maxlength="500"></div>
+<div class="field"><label for="editStudio">အကြံပြု Studio</label><select id="editStudio"><option>story</option><option>content</option><option>short</option><option>image</option><option>voice</option><option>shop</option></select></div>
+<div class="field full"><label for="editConcept">Concept</label><textarea id="editConcept"></textarea></div>
+<div class="field full"><label for="editHook">Hook</label><textarea id="editHook"></textarea></div>
+<div class="field full"><label for="editOutline">Outline</label><textarea id="editOutline"></textarea></div>
+</div><div id="editCategoryFields"></div><div class="actions"><button id="saveEditBtn">ပြင်ဆင်ချက် သိမ်းရန်</button><button class="secondary" id="cancelEditBtn">မလုပ်တော့ပါ</button></div></section>
 </main>
 ${sidebarScript()}
 ${ideaFormsScript()}
@@ -34,18 +41,39 @@ var generated=[];
 var categorySelect=el('ideaCategory');
 window.AICS_IDEA_FORMS.mount(el('ideaFields'), categorySelect.value);
 categorySelect.addEventListener('change',function(){window.AICS_IDEA_FORMS.mount(el('ideaFields'),categorySelect.value)});
-var DB_NAME='aics_ideas_v1', STORE='ideas';
 function el(id){return document.getElementById(id)}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
 function showStatus(message,isError){var s=el('status');s.hidden=false;s.textContent=message;s.className='status'+(isError?' error':'')}
-function openDB(){return new Promise(function(resolve,reject){if(!window.indexedDB){reject(new Error('no_indexeddb'));return}var req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=function(){var db=req.result;if(!db.objectStoreNames.contains(STORE)){var st=db.createObjectStore(STORE,{keyPath:'id'});st.createIndex('user_id','user_id',{unique:false})}};req.onsuccess=function(){resolve(req.result)};req.onerror=function(){reject(req.error||new Error('indexeddb_open_failed'))}})}
-function currentUserId(){try{var token=localStorage.getItem('aics_token')||'';var part=token.split('.')[1]||'';part=part.replace(/-/g,'+').replace(/_/g,'/');while(part.length%4)part+='=';var payload=JSON.parse(atob(part));return payload.sub||payload.user_id||''}catch(e){return ''}}
-function tx(mode,fn){return openDB().then(function(db){return new Promise(function(resolve,reject){var t=db.transaction(STORE,mode),st=t.objectStore(STORE),out;try{out=fn(st)}catch(e){db.close();reject(e);return}t.oncomplete=function(){db.close();resolve(out)};t.onerror=function(){db.close();reject(t.error||new Error('indexeddb_transaction_failed'))};t.onabort=function(){db.close();reject(t.error||new Error('indexeddb_transaction_aborted'))}})})}
-function makeId(){return 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)}
-function saveIdea(idea){var record={id:makeId(),user_id:currentUserId(),category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio,brief:generatedBrief,created_at:new Date().toISOString()};return tx('readwrite',function(st){st.add(record);return record})}
-var generatedBrief=null;
-function loadSaved(){return openDB().then(function(db){return new Promise(function(resolve,reject){var t=db.transaction(STORE,'readonly'),req=t.objectStore(STORE).getAll();req.onsuccess=function(){var uid=currentUserId(),items=(req.result||[]).filter(function(x){return !uid||(x.user_id||'')===uid});items.sort(function(a,b){return (b.created_at||'').localeCompare(a.created_at||'')});db.close();resolve(items)};req.onerror=function(){db.close();reject(req.error)}})})}
-function renderSaved(){loadSaved().then(function(items){var target=el('saved');if(!items.length){target.innerHTML='<p class="muted">Idea မသိမ်းရသေးပါ။</p>';return}target.innerHTML=items.map(function(x){return '<article class="saved-item"><strong>'+esc(x.title)+'</strong><p>'+esc(x.concept)+'</p><p class="muted small">Studio အကြံပြုချက်: '+esc(x.suggestedStudio)+' · '+esc(x.created_at)+'</p><button class="secondary" data-delete="'+esc(x.id)+'">ဖျက်ရန်</button></article>'}).join('');target.querySelectorAll('[data-delete]').forEach(function(btn){btn.addEventListener('click',function(){if(!confirm('ဒီ Idea ကို ဖျက်မှာ သေချာပါသလား?'))return;tx('readwrite',function(st){st.delete(btn.getAttribute('data-delete'))}).then(renderSaved).catch(function(){showStatus('Idea ဖျက်မရပါ။ Browser Storage ကို စစ်ဆေးပါ။',true)})})})}).catch(function(){el('saved').innerHTML='<p class="muted">IndexedDB ကို ဖွင့်မရပါ။ ဒီ Browser က IndexedDB ကို ပံ့ပိုးမှုရှိမရှိ စစ်ဆေးပါ။</p>'})}
+function makeResult(idea){return {title:idea.title,concept:idea.concept,hook:idea.hook,outline:idea.outline,suggestedStudio:idea.suggestedStudio}}
+function saveIdea(idea){return window.AICS_IDEAS.create({category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},result:makeResult(idea)})}
+function loadSaved(){return window.AICS_IDEAS.list()}
+var editingIdeaId=null;
+function closeEditor(){editingIdeaId=null;el('ideaEditor').hidden=true}
+function openEditor(item){
+ editingIdeaId=item.id;var result=item.result||{};
+ el('editTitle').value=result.title||'';el('editStudio').value=result.suggestedStudio||'story';
+ el('editConcept').value=result.concept||'';el('editHook').value=result.hook||'';el('editOutline').value=result.outline||'';
+ window.AICS_IDEA_FORMS.mount(el('editCategoryFields'),item.category);
+ Object.keys(item.fields||{}).forEach(function(key){var input=el('editCategoryFields').querySelector('[name="'+key+'"]');if(input)input.value=item.fields[key]});
+ el('ideaEditor').hidden=false;el('ideaEditor').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderSaved(){
+ loadSaved().then(function(items){var target=el('saved');if(!items.length){target.innerHTML='<p class="muted">Idea မသိမ်းရသေးပါ။</p>';return}
+ target.innerHTML=items.map(function(x){var r=x.result||{};return '<article class="saved-item"><strong>'+esc(r.title)+'</strong><p>'+esc(r.concept)+'</p><p class="muted small">'+esc(x.category)+' · '+(x.isFavorite?'⭐ Favorite':'')+' · '+esc(x.updatedAt||x.createdAt)+'</p><div class="actions"><button class="secondary" data-edit="'+esc(x.id)+'">ပြင်ရန်</button><button class="secondary" data-favorite="'+esc(x.id)+'">'+(x.isFavorite?'Favorite ဖြုတ်ရန်':'Favorite ထည့်ရန်')+'</button><button class="danger" data-delete="'+esc(x.id)+'">ဖျက်ရန်</button></div></article>'}).join('');
+ target.querySelectorAll('[data-edit]').forEach(function(btn){btn.addEventListener('click',function(){var item=items.find(function(x){return x.id===btn.getAttribute('data-edit')});if(item)openEditor(item)})});
+ target.querySelectorAll('[data-favorite]').forEach(function(btn){btn.addEventListener('click',function(){window.AICS_IDEAS.toggleFavorite(btn.getAttribute('data-favorite')).then(renderSaved).catch(function(){showStatus('Favorite ပြင်မရပါ။',true)})})});
+ target.querySelectorAll('[data-delete]').forEach(function(btn){btn.addEventListener('click',function(){if(!confirm('ဒီ Idea ကို ဖျက်မှာ သေချာပါသလား?'))return;window.AICS_IDEAS.remove(btn.getAttribute('data-delete')).then(function(){if(editingIdeaId===btn.getAttribute('data-delete'))closeEditor();renderSaved()}).catch(function(){showStatus('Idea ဖျက်မရပါ။',true)})})});
+ }).catch(function(){el('saved').innerHTML='<p class="muted">IndexedDB ကို ဖွင့်မရပါ။ Login ဝင်ထားမှုနှင့် Browser Storage ကို စစ်ဆေးပါ။</p>'})
+}
+el('saveEditBtn').addEventListener('click',function(){
+ if(!editingIdeaId)return;
+ var fields=window.AICS_IDEA_FORMS.read(categorySelect.value);
+ var result={title:el('editTitle').value.trim(),concept:el('editConcept').value.trim(),hook:el('editHook').value.trim(),outline:el('editOutline').value.trim(),suggestedStudio:el('editStudio').value};
+ if(Object.keys(fields).length===0||!result.title||!result.concept||!result.hook||!result.outline){showStatus('လိုအပ်သော အချက်အလက်အားလုံး ဖြည့်ပါ။',true);return}
+ var btn=el('saveEditBtn');btn.disabled=true;
+ window.AICS_IDEAS.update(editingIdeaId,{fields:fields,result:result}).then(function(){closeEditor();showStatus('Idea ပြင်ဆင်ချက် သိမ်းပြီးပါပြီ။');renderSaved()}).catch(function(){showStatus('ပြင်ဆင်ချက် သိမ်းမရပါ။',true)}).finally(function(){btn.disabled=false})
+});
+el('cancelEditBtn').addEventListener('click',closeEditor);
 var TARGET_STUDIOS=[{id:'story',label:'Story'},{id:'content',label:'Content'},{id:'short',label:'Short'},{id:'image',label:'Image'},{id:'voice',label:'Voice'},{id:'shop',label:'Shop'}];
 function ideaPayload(idea){return 'Idea: '+idea.title+'\\n\\nConcept: '+idea.concept+'\\n\\nHook: '+idea.hook+'\\n\\nOutline: '+idea.outline;}
 function targetDraftKey(studio){return studio==='voice'?'aics_voice_workflow_v3':('aics_draft_'+studio);}
