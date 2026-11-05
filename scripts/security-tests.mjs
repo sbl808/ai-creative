@@ -33,6 +33,7 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
                 if (!this.attributes.includes(name + '=')) {
                   this.attributes += ' ' + name + '="' + value + '"';
                 }
+              },
             };
             rule.handler.element(element);
             return '<' + tag + element.attributes + '>';
