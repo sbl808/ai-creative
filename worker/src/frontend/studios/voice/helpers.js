@@ -56,7 +56,7 @@ function shortHint(t){
   return t.length>90?t.slice(0,87)+'…':t;
 }
 function resultLoadingCard(msg,hint){
-  var h='<div class="aics-result-loading show" style="margin-bottom:0;">'+
+  var h='<div class="aics-result-loading show voice-result-loading">'+
     '<div class="aics-result-loading-inner">'+
     '<div class="aics-result-loading-spinner"></div>'+
     '<div class="aics-result-loading-msg">'+esc(msg)+'</div>';
