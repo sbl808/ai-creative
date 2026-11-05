@@ -162,6 +162,7 @@ ${sidebarScript()}
     if(target.dataset.aicsChange==='voice-gender-male')window.setVoiceGender('male');
     if(target.dataset.aicsChange==='voice-gender-female')window.setVoiceGender('female');
     if(target.dataset.aicsChange==='effective-voice')window.setEffectiveVoice();
+    if(target.dataset.aicsChange==='update-conditional-fields')window.updateConditionalFields();
   });
   var contentDraftSaveTimer=null;
   function queueContentDraftSave(){
@@ -173,7 +174,11 @@ ${sidebarScript()}
   }
   document.addEventListener('input',function(event){
     var target=event.target;
-    if(target&&target.dataset&&target.dataset.aicsInput==='auto-grow')window.autoGrow(target);
+    if(target&&target.dataset&&target.dataset.aicsInput){
+      var inputActions=target.dataset.aicsInput.split(/\s+/);
+      if(inputActions.indexOf('auto-grow')!==-1)window.autoGrow(target);
+      if(inputActions.indexOf('content-edit')!==-1&&typeof window.onContentEdit==='function')window.onContentEdit();
+    }
     if(target&&target.closest&&target.closest('.aics-work'))queueContentDraftSave();
   });
   document.addEventListener('change',function(event){
@@ -184,6 +189,15 @@ ${sidebarScript()}
     var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
     if(!button)return;
     switch(button.dataset.aicsAction){
+      case 'toggle-advanced':window.studioToggleAdvanced(button.dataset.aicsToggle,button.dataset.aicsTarget);break;
+      case 'generate-content':window.generateContent();break;
+      case 'copy-text':window.copyText(button.dataset.aicsTarget);break;
+      case 'open-branch':window.openBranch(button.dataset.aicsBranch);break;
+      case 'scroll-to-revise':window.scrollToRevise();break;
+      case 'copy-all-result':window.copyAllResult();break;
+      case 'revise-content':window.reviseContent();break;
+      case 'generate-video':window.generateVideo();break;
+      case 'content-nav':window.csNav(Number(button.dataset.aicsStep));break;
       case 'toggle-audio-advanced':window.studioToggleAdvanced('audioAdvToggle','audioAdvFields');break;
       case 'generate-voice':window.generateVoice();break;
       case 'content-nav-audio':window.csNav(22);break;
