@@ -96,7 +96,6 @@ function saveDraft(){
         state:VOICE_STATE,
         inputs:VOICE_INPUTS,
         mediaAudio:MEDIA_AUDIO,
-        lastAudio:{base64:LAST_AUDIO.base64||'',mime:LAST_AUDIO.mime||'audio/wav'},
         translation:translatedSrt
       }
     }).then(function(){return true;}).catch(function(){return false;});
