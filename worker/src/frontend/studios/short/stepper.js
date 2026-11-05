@@ -120,11 +120,41 @@ function stHandleDelegatedAction(event){
     case 'copy-video-prompt': copyVideoPrompt(idx); break;
     case 'copy-env-prompt': copyEnvPrompt(idx); break;
     case 'generate-env-image': generateEnvImage(idx); break;
+
+    case 'toggle-advanced': studioToggleAdvanced('advToggle','advFields'); break;
+    case 'copy-short': copyShort(); break;
+    case 'save-short': saveShort(); break;
+    case 'focus-revise': focusRevise(); break;
+    case 'go-to-video': goToVideoForm(); break;
+    case 'generate-short': generateShort(); break;
+    case 'revise-short': reviseShort(); break;
+    case 'generate-video-plan': generateShortVideoPlan(); break;
     case 'step-nav': stNav(Number(button.dataset.aicsStep)); break;
     default: return;
   }
 }
 document.addEventListener('click',stHandleDelegatedAction);
+
+function stHandleDelegatedInput(event){
+  var target=event.target;
+  if(!target||!target.dataset)return;
+  if(target.dataset.aicsInput==='short-edit')onShortEdit();
+  else if(target.dataset.aicsInput==='auto-expand')autoExpand(target);
+}
+function stHandleDelegatedChange(event){
+  var target=event.target;
+  if(target&&target.dataset&&target.dataset.aicsChange==='reference-images')onRefImageSelected();
+}
+function stHandleDelegatedKeydown(event){
+  var target=event.target;
+  if(target&&target.dataset&&target.dataset.aicsKeyAction==='revise-on-enter'&&event.key==='Enter'){
+    reviseShort();
+  }
+}
+document.addEventListener('input',stHandleDelegatedInput);
+document.addEventListener('change',stHandleDelegatedChange);
+document.addEventListener('keydown',stHandleDelegatedKeydown);
+
 function stBoot(){
   stRenderStepper();
   stShow(stCur);
