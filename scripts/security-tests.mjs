@@ -22,11 +22,12 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
       return this;
     }
     transform(response) {
+      const rules = this.rules;
       const body = new ReadableStream({
         async start(controller) {
           try {
             let html = await response.text();
-            for (const rule of this.rules || []) {
+            for (const rule of rules) {
               const tag = rule.selector;
               const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
               html = html.replace(pattern, (match, attributes) => {
