@@ -100,6 +100,7 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .image-prep-prompt{min-height:160px}
 .aics-work .map-loading-title{font-size:15px}
 .aics-login-overlay.is-hidden{display:none}
+.aics-app.is-hidden{display:none!important}
 .aics-work .map-loading .spinner{width:34px;height:34px;border-width:4px;margin:0 auto 14px}
 .aics-work .map-card .error-box{margin-top:12px}
 @media(max-width:767px){.aics-work .studio-form-grid{grid-template-columns:minmax(0,1fr);gap:12px}.aics-work .card{padding:16px}.aics-work .btn-row{display:grid;grid-template-columns:minmax(0,1fr)}.aics-work .btn-row .btn{width:100%}.aics-work .ref-thumb,.aics-work .ref-thumb img{width:64px;height:64px}.aics-work .map-img-actions{flex-direction:column}.aics-work .map-img-actions .btn{width:100%}.aics-work .card{padding:14px}.aics-work .map-card-head{padding:12px 14px}.aics-work .map-card-body{padding:12px 14px}}
