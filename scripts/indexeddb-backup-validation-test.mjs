@@ -16,7 +16,7 @@ const ownerId = 'user-a';
 const validBackup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 5,
+  schemaVersion: 6,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{
@@ -37,16 +37,28 @@ const validBackup = {
       id: 'r-1', ownerId, sessionId: 's-1', type: 'story',
       content: { text: 'Story result' }, createdAt: '2026-11-04T07:00:00.000Z'
     }],
+    ideas: [{
+      id: 'i-1', ownerId, recordVersion: 1, category: 'story',
+      fields: { premise: 'A story idea' },
+      result: {
+        title: 'A story idea', concept: 'A concept', hook: 'A hook',
+        outline: 'An outline', suggestedStudio: 'story'
+      },
+      isFavorite: false,
+      createdAt: '2026-11-04T07:00:00.000Z',
+      updatedAt: '2026-11-04T07:00:00.000Z'
+    }],
     drafts: [{ id: 'd-1', ownerId, studio: 'short', draftVersion: 1, data: { prompt: 'Draft' }, createdAt: '2026-11-04T07:00:00.000Z', updatedAt: '2026-11-04T07:00:00.000Z' }]
   }
 };
 
 const valid = validateBackupEnvelope(validBackup, ownerId);
 assert.equal(valid.valid, true);
-assert.equal(valid.recordCount, 6);
+assert.equal(valid.recordCount, 7);
 assert.equal(valid.backup.stores.creations[0].media_data, 'data:image/png;base64,AA==');
 assert.equal(valid.backup.stores.drafts[0].studio, 'short');
-assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 6);
+assert.equal(valid.backup.stores.ideas[0].result.title, 'A story idea');
+assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 7);
 
 function expectCode(input, code, owner = ownerId) {
   assert.throws(
@@ -61,11 +73,13 @@ expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId, studio: 'unknown', data: {} }] } }, 'backup_invalid_record');
 const legacyBackup = JSON.parse(JSON.stringify(validBackup));
 delete legacyBackup.stores.drafts;
-assert.equal(validateBackupEnvelope(legacyBackup, ownerId).recordCount, 5, 'legacy backups without drafts remain importable');
+delete legacyBackup.stores.ideas;
+legacyBackup.schemaVersion = 5;
+assert.equal(validateBackupEnvelope(legacyBackup, ownerId).recordCount, 5, 'legacy v5 backups without drafts or ideas remain importable');
 expectCode({ ...validBackup, exportVersion: 2 }, 'backup_export_version_unsupported');
 expectCode({ ...validBackup, schemaVersion: 3 }, 'backup_schema_version_unsupported');
 expectCode({ ...validBackup, exportedAt: 'invalid' }, 'backup_invalid_exported_at');
-expectCode({ ...validBackup, stores: { ...validBackup.stores, unexpected: [] } }, 'backup_invalid_stores');
+expectCode({ ...validBackup, stores: { ...validBackup.stores, unexpected: [] } }, 'backup_unknown_store');
 expectCode({
   ...validBackup,
   stores: { ...validBackup.stores, creations: [{ id: 'c-1', user_id: 'user-b' }] }
