@@ -70,8 +70,8 @@ function json(data, status, c) {
 
 // Rule 22 — Error Handling: User ကို Technical Error အပြည့်မပြပါ။
 // အသေးစိတ် Error ကို Server Log ထဲတွင် သိမ်းပြီး User ကို ဖော်ရွေသော Message သာ ပြသည်
-function friendlyError(e) {
-  try { console.error('[AICS]', (e && e.stack) || e); } catch (_) {}
+function friendlyError() {
+  try { console.error('[AICS] request failed'); } catch (_) {}
   return 'Something went wrong. Please try again.';
 }
 
@@ -352,11 +352,7 @@ export default {
         } catch (e) {
           const errId = Math.random().toString(36).slice(2, 10);
           try {
-            console.error('[AICS] studio page load failed ' + JSON.stringify({
-              slug: studioSlug,
-              errId: errId,
-              message: (e && e.message) ? String(e.message) : String(e),
-            }));
+            console.error('[AICS] studio page load failed ' + errId);
           } catch (_) {}
           return new Response('STUDIO_PAGE_LOAD_FAILED', {
             status: 500,

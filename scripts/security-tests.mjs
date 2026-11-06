@@ -185,6 +185,25 @@ console.log('\\n--- B) Shared error message XSS regression ---');
   }
 }
 
+console.log('\\n--- B) Worker log data minimization contract ---');
+{
+  const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const friendlyStart = index.indexOf('function friendlyError()');
+  const friendlyEnd = friendlyStart >= 0 ? index.indexOf('\\n}', friendlyStart) : -1;
+  const friendlyBlock = friendlyStart >= 0 && friendlyEnd > friendlyStart
+    ? index.slice(friendlyStart, friendlyEnd + 2)
+    : '';
+  const studioLogStart = index.indexOf("console.error('[AICS] studio page load failed");
+  const studioLogEnd = studioLogStart >= 0 ? index.indexOf('} catch (_) {}', studioLogStart) : -1;
+  const studioLogBlock = studioLogStart >= 0 && studioLogEnd > studioLogStart
+    ? index.slice(studioLogStart, studioLogEnd)
+    : '';
+  check('generic error logging excludes exception details',
+    !!friendlyBlock && !/\\.stack|\\.message|JSON\\.stringify|String\\(e\\)/.test(friendlyBlock));
+  check('studio load error logging excludes slug and exception details',
+    !!studioLogBlock && !/slug:|message:|\\.stack|\\.message|JSON\\.stringify|String\\(e\\)/.test(studioLogBlock));
+}
+
 console.log('\n--- B) HTML Content Security Policy rollout ---');
 {
   const page = await worker.fetch(
