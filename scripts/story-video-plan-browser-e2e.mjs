@@ -29,7 +29,8 @@ function createProTestToken(userId, email) {
 const browser = await chromium.launch({ headless: true });
 let context;
 try {
-  const page = await browser.newPage();
+  context = await browser.newContext();
+  const page = await context.newPage();
   const browserErrors = [];
   page.on('pageerror', (error) => {
     const message = String(error && error.message || error);
@@ -48,6 +49,14 @@ try {
   assert.ok(account.user_id, 'Signup should return a local test user ID');
 
   const token = createProTestToken(account.user_id, email);
+  await context.addCookies([{
+    name: 'aics_token',
+    value: token,
+    url: baseURL,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+  }]);
   await page.addInitScript((value) => {
     localStorage.setItem('aics_token', value);
     localStorage.setItem('aics_plan', 'PRO');
