@@ -26,20 +26,123 @@ function createProTestToken(userId, email) {
   return unsigned + '.' + signature;
 }
 
+// Diagnostic output must never include credentials, query-string values, or user content.
+function safeDiagnosticText(value) {
+  return String(value || '')
+    .replace(/Bearer\\s+[^\\s"'<>]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/https?:\\/\\/[^\\s"'<>]+/g, (url) => {
+      try { return new URL(url).origin + new URL(url).pathname; }
+      catch { return '[URL]'; }
+    })
+    .slice(0, 500);
+}
+
+function safePath(value) {
+  try { return new URL(value, baseURL).pathname; }
+  catch { return '[unavailable]'; }
+}
+
+function parseInlineScripts(scripts) {
+  return scripts.map((script, index) => {
+    const type = String(script.type || '').trim().toLowerCase();
+    const isJavaScript = !type || [
+      'text/javascript', 'application/javascript', 'text/ecmascript',
+      'application/ecmascript',
+    ].includes(type);
+    if (script.src || !isJavaScript) return null;
+    try {
+      new Script(script.text || '', { filename: 'inline-script-' + index });
+      return null;
+    } catch (error) {
+      const message = String(error && error.message || error);
+      const match = message.match(/:(\\d+)(?::(\\d+))?/);
+      return {
+        index,
+        type: type || 'classic',
+        error: safeDiagnosticText(message),
+        line: match ? Number(match[1]) : null,
+      };
+    }
+  }).filter(Boolean);
+}
+
+async function collectPageDiagnostics(page, events) {
+  const pageState = await page.evaluate(() => ({
+    path: location.pathname,
+    readyState: document.readyState,
+    handoffsApi: typeof window.AICS_HANDOFFS,
+    sessionsApi: typeof window.AICS_SESSIONS,
+    scriptElements: Array.from(document.scripts).map((script, index) => ({
+      index,
+      src: script.src ? new URL(script.src, location.href).pathname : null,
+      type: script.type || 'classic',
+      hasNonce: !!script.nonce,
+      inlineLength: script.src ? 0 : (script.textContent || '').length,
+      inlineSource: script.src ? '' : (script.textContent || ''),
+    })),
+  }));
+  const inlineScripts = pageState.scriptElements
+    .filter((script) => !script.src)
+    .map((script) => ({ type: script.type, text: script.inlineSource }));
+  const inlineParseErrors = parseInlineScripts(inlineScripts);
+  pageState.scriptElements = pageState.scriptElements.map(({ inlineSource, ...script }) => script);
+  return {
+    ...pageState,
+    inlineParseErrors,
+    scriptResponses: events.scriptResponses.slice(-40),
+    failedScriptRequests: events.failedScriptRequests.slice(-40),
+    htmlReturnedForScript: events.scriptResponses
+      .filter((item) => /text\\/html/i.test(item.contentType || ''))
+      .map(({ path, status, contentType }) => ({ path, status, contentType })),
+    browserErrors: events.browserErrors.slice(-20),
+  };
+}
+
 const browser = await chromium.launch({ headless: true });
 let context;
 try {
   context = await browser.newContext();
   const page = await context.newPage();
-  const browserErrors = [];
+  const events = {
+    browserErrors: [],
+    scriptResponses: [],
+    failedScriptRequests: [],
+  };
   page.on('pageerror', (error) => {
-    const message = String(error && error.message || error);
-    const stack = String(error && error.stack || '').split('\n').slice(0, 5).join(' | ');
-    browserErrors.push('pageerror: ' + message + (stack ? ' [stack: ' + stack + ']' : ''));
+    events.browserErrors.push({
+      source: 'pageerror',
+      name: safeDiagnosticText(error && error.name || 'Error'),
+      message: safeDiagnosticText(error && error.message || error),
+    });
   });
   page.on('console', (message) => {
-    if (message.type() === 'error') browserErrors.push('console: ' + message.text());
+    if (message.type() === 'error') {
+      events.browserErrors.push({
+        source: 'console',
+        message: safeDiagnosticText(message.text()),
+      });
+    }
   });
+  page.on('response', (response) => {
+    const request = response.request();
+    if (request.resourceType() !== 'script') return;
+    const headers = response.headers();
+    events.scriptResponses.push({
+      path: safePath(response.url()),
+      status: response.status(),
+      contentType: safeDiagnosticText(headers['content-type'] || '[missing]'),
+    });
+  });
+  page.on('requestfailed', (request) => {
+    if (request.resourceType() !== 'script') return;
+    events.failedScriptRequests.push({
+      path: safePath(request.url()),
+      error: safeDiagnosticText(request.failure()?.errorText || '[unknown]'),
+    });
+  });
+
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
     data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
@@ -68,32 +171,9 @@ try {
     !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.create === 'function'),
   null, { timeout: 10000 }).then(() => true).catch(() => false);
   if (!storageReady) {
-    const state = await page.evaluate(() => ({
-      url: location.pathname,
-      readyState: document.readyState,
-      handoffsApi: typeof window.AICS_HANDOFFS,
-      ideasApi: typeof window.AICS_IDEAS,
-      scriptCount: document.scripts.length,
-      inlineScriptsWithNonce: Array.from(document.scripts).filter((script) => !script.src && !!script.nonce).length,
-      inlineScripts: Array.from(document.scripts).filter((script) => !script.src).map((script) => script.textContent || ''),
-    }));
-    const scriptParseErrors = state.inlineScripts.map((source, index) => {
-      try { new Script(source, { filename: 'inline-script-' + index }); return null; }
-      catch (error) {
-        const match = String(error.message || error).match(/:(\d+)(?::(\d+))?/);
-        const line = match ? Number(match[1]) : null;
-        const lines = source.split('\n');
-        return {
-          index,
-          error: String(error.message || error),
-          line,
-          excerpt: line ? lines.slice(Math.max(0, line - 3), line + 2).join('\n') : source.slice(0, 500),
-        };
-      }
-    }).filter(Boolean);
-    delete state.inlineScripts;
+    const diagnostics = await collectPageDiagnostics(page, events);
     throw new Error('Idea Workspace browser bootstrap incomplete: ' +
-      JSON.stringify({ state, scriptParseErrors, browserErrors: browserErrors.slice(0, 12) }));
+      JSON.stringify(diagnostics));
   }
 
   const idea = {
@@ -118,6 +198,7 @@ try {
   const summaryRendered = handoffRendered && await page.locator('#ideaHandoffSummary').getByText(idea.title)
     .waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
   if (!summaryRendered) {
+    const diagnostics = await collectPageDiagnostics(page, events);
     const state = await page.evaluate(async (id) => {
       const panel = document.getElementById('ideaHandoffPanel');
       const summary = document.getElementById('ideaHandoffSummary');
@@ -133,11 +214,11 @@ try {
         } : null;
       } catch (error) { readError = String(error && error.message || error); }
       return {
-        url: location.pathname + location.search,
+        url: location.pathname,
         handoffsApi: typeof window.AICS_HANDOFFS,
         sessionsApi: typeof window.AICS_SESSIONS,
         record,
-        readError,
+        readError: readError ? 'IndexedDB handoff read failed' : '',
         panelExists: !!panel,
         panelClass: panel ? panel.className : '',
         summaryTextLength: summary ? (summary.textContent || '').length : 0,
@@ -145,7 +226,7 @@ try {
       };
     }, handoff.id);
     throw new Error('Story Idea Handoff was not rendered: ' +
-      JSON.stringify({ state, browserErrors: browserErrors.slice(0, 12) }));
+      JSON.stringify({ state, diagnostics }));
   }
 
   const sessionsBeforeAccept = await page.evaluate(async () => window.AICS_SESSIONS.list({ limit: 50 }));
@@ -183,12 +264,12 @@ try {
   assert.equal(storyHandoffState.currentStory, storyText, 'Story Studio should restore the completed Story');
   await page.locator('button[data-aics-action="go-to-video-plan"]').click();
   await page.waitForTimeout(1200);
-  if (!/\/app\/story-video-plan\?session=/.test(page.url())) {
+  if (!/\\/app\\/story-video-plan\\?session=/.test(page.url())) {
     const visibleText = await page.locator('body').innerText();
-    throw new Error('Story-to-Video-Plan navigation did not complete. Current URL: ' + page.url() +
-      '. Page message: ' + visibleText.slice(-800));
+    throw new Error('Story-to-Video-Plan navigation did not complete. Current URL: ' + safePath(page.url()) +
+      '. Page message length: ' + visibleText.length);
   }
-  await page.waitForURL(/\/app\/story-video-plan\?session=/, { timeout: 10000 });
+  await page.waitForURL(/\\/app\\/story-video-plan\\?session=/, { timeout: 10000 });
   await page.locator('#videoStoryInput').waitFor();
   await page.waitForFunction(() => window.AICS_STORY_VIDEO_PLAN_STATE && window.AICS_STORY_VIDEO_PLAN_STATE.state.ready);
   assert.equal(await page.locator('#videoStoryInput').inputValue(), storyText,
