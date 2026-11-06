@@ -168,7 +168,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
     };
     const hostilePrefix = '<svg onload=alert(1)>';
     const hostileMessage = '<img src=x onerror=alert(1)>';
-    vm.runInNewContext(errorScript + '\\naicsShowError(prefix, error);', {
+    vm.runInNewContext(errorScript + '\naicsShowError(prefix, error);', {
       document, String, prefix: hostilePrefix, error: { message: hostileMessage },
     });
 
