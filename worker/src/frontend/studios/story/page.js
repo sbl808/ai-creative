@@ -195,7 +195,7 @@ a{color:var(--cyan);text-decoration:none}
   .aics-work .aics-advanced-toggle{min-height:48px}
 }
 
-.aics-work .aics-login-overlay.is-hidden{display:none}
+.aics-login-overlay.is-hidden{display:none!important}
 .aics-work .story-handoff-panel.is-hidden{display:none!important}
 </style>
 </head>
