@@ -11,7 +11,7 @@ const brief = {
   contentType: 'Educational short video',
   count: 3,
 };
-assert.deepEqual(validateIdeasBrief(brief), { ok: true });
+assert.deepEqual(validateIdeasBrief(brief), { ok: true, category: 'story' });
 assert.equal(validateIdeasBrief({ ...brief, count: 2 }).error, 'count_must_be_3');
 assert.equal(validateIdeasBrief({ ...brief, idea: '' }).error, 'missing_idea');
 assert.equal(validateIdeasBrief(null).error, 'invalid_request');
