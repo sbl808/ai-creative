@@ -115,6 +115,7 @@ try {
       source: 'pageerror',
       name: safeDiagnosticText(error && error.name || 'Error'),
       message: safeDiagnosticText(error && error.message || error),
+      stack: safeDiagnosticText(String(error && error.stack || '').split('\\n').slice(0, 5).join(' | ')),
     });
   });
   page.on('console', (message) => {
