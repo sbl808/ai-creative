@@ -59,7 +59,10 @@ assert.equal(safeDiagnosticText('password local-e2e-password-2026'), 'password [
 assert.equal(safeDiagnosticText('Bearer abc.def'), 'Bearer [REDACTED]');
 assert.equal(safeDiagnosticText('eyJhbGci.eyJzdWIi.signature'), '[REDACTED_TOKEN]');
 assert.equal(safeDiagnosticText('user@example.com'), '[REDACTED_EMAIL]');
-assert.equal(safeDiagnosticText('https://example.test/path?token=secret'), 'https://example.test/path');
+assert.equal(safeDiagnosticText('https://example.test/path?token=secret#private'), 'https://example.test/path');
+const fixtureProbe = 'fixture-private-story-content';
+sensitiveDiagnosticValues.add(fixtureProbe);
+assert.equal(safeDiagnosticText('diagnostic: ' + fixtureProbe), 'diagnostic: [REDACTED]');
 
 async function collectInlineScriptDiagnostics(page) {
   const scripts = await page.evaluate(() => Array.from(document.scripts).map((script, index) => ({
@@ -174,6 +177,7 @@ try {
   assert.equal(signup.status(), 201, 'Local test account should be created');
   const account = await signup.json();
   assert.ok(account.user_id, 'Signup should return a local test user ID');
+  sensitiveDiagnosticValues.add(String(account.user_id));
 
   const token = createProTestToken(account.user_id, email);
   sensitiveDiagnosticValues.add(token);
@@ -221,6 +225,7 @@ try {
     outline: 'ကလေးတစ်ဦးက မီးအိမ်ကို လိုက်ရှာရင်း မိသားစုအတိတ်ကို သိလာသည်။',
     suggestedStudio: 'Story',
   };
+  Object.values(idea).forEach((value) => sensitiveDiagnosticValues.add(String(value)));
   const handoff = await page.evaluate((payload) => {
     return window.AICS_HANDOFFS.create({
       contractVersion: 1,
@@ -314,6 +319,7 @@ try {
   assert.match(storySession.draft.fields['0'], /ရွာလေးတစ်ရွာ/);
 
   const storyText = 'မိုးရွာသောညတွင် မီးအိမ်လေးတစ်လုံးသည် လမ်းဟောင်းကို လင်းပေးခဲ့သည်။';
+  sensitiveDiagnosticValues.add(storyText);
   await page.evaluate(async ({ id, story }) => {
     const current = await window.AICS_SESSIONS.get(id);
     await window.AICS_SESSIONS.update(id, {
@@ -344,6 +350,7 @@ try {
     'Video Plan should receive the latest Story text');
 
   const environmentNotes = 'မိုးစိုနေသော သစ်တောလမ်း၊ အဝါရောင် မီးအိမ်အလင်း';
+  sensitiveDiagnosticValues.add(environmentNotes);
   await page.locator('#vidAdvToggle').click();
   await page.waitForFunction(() => {
     const toggle = document.getElementById('vidAdvToggle');
