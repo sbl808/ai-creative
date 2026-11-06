@@ -405,6 +405,7 @@ function studioReceiveIdeaHandoff(){
     if(idea.outline)lines.push('အကြမ်းဖျဉ်း: '+String(idea.outline));
     if(pendingIdeaResult.category)lines.push('အမျိုးအစား: '+String(pendingIdeaResult.category));
     summary.textContent=lines.join('\\n\\n')||'Idea Result ကို ရရှိပါပြီ။';
+    panel.classList.remove('is-hidden');
     panel.style.display='block';
     accept.disabled=false;
     accept.onclick=studioAcceptIdeaHandoff;
