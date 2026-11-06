@@ -29,6 +29,13 @@ const browser = await chromium.launch({ headless: true });
 let context;
 try {
   const page = await browser.newPage();
+  const browserErrors = [];
+  page.on('pageerror', (error) => {
+    browserErrors.push('pageerror: ' + String(error && error.message || error));
+  });
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push('console: ' + message.text());
+  });
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
     data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
@@ -45,6 +52,21 @@ try {
 
   await page.goto(baseURL + '/app/ideas');
   await page.locator('h1').filter({ hasText: 'Idea Workspace' }).waitFor();
+  const storageReady = await page.waitForFunction(() =>
+    !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.create === 'function'),
+  null, { timeout: 10000 }).then(() => true).catch(() => false);
+  if (!storageReady) {
+    const state = await page.evaluate(() => ({
+      url: location.pathname,
+      readyState: document.readyState,
+      handoffsApi: typeof window.AICS_HANDOFFS,
+      ideasApi: typeof window.AICS_IDEAS,
+      scriptCount: document.scripts.length,
+      inlineScriptsWithNonce: Array.from(document.scripts).filter((script) => !script.src && !!script.nonce).length,
+    }));
+    throw new Error('Idea Workspace browser bootstrap incomplete: ' +
+      JSON.stringify({ state, browserErrors: browserErrors.slice(0, 12) }));
+  }
 
   const idea = {
     title: 'မိုးရွာသောညက မီးအိမ်',
@@ -63,8 +85,40 @@ try {
   }, idea);
 
   await page.goto(baseURL + '/app/story?handoff=' + encodeURIComponent(handoff.id));
-  await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible' });
-  await page.locator('#ideaHandoffSummary').getByText(idea.title).waitFor();
+  const handoffRendered = await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible', timeout: 10000 })
+    .then(() => true).catch(() => false);
+  const summaryRendered = handoffRendered && await page.locator('#ideaHandoffSummary').getByText(idea.title)
+    .waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+  if (!summaryRendered) {
+    const state = await page.evaluate(async (id) => {
+      const panel = document.getElementById('ideaHandoffPanel');
+      const summary = document.getElementById('ideaHandoffSummary');
+      let record = null;
+      let readError = '';
+      try {
+        const value = window.AICS_HANDOFFS && await window.AICS_HANDOFFS.get(id);
+        record = value ? {
+          contractVersion: value.contractVersion,
+          source: value.source,
+          target: value.target,
+          payloadKeys: Object.keys(value.payload || {}),
+        } : null;
+      } catch (error) { readError = String(error && error.message || error); }
+      return {
+        url: location.pathname + location.search,
+        handoffsApi: typeof window.AICS_HANDOFFS,
+        sessionsApi: typeof window.AICS_SESSIONS,
+        record,
+        readError,
+        panelExists: !!panel,
+        panelClass: panel ? panel.className : '',
+        summaryTextLength: summary ? (summary.textContent || '').length : 0,
+        toastTextLength: (document.getElementById('toast')?.textContent || '').length,
+      };
+    }, handoff.id);
+    throw new Error('Story Idea Handoff was not rendered: ' +
+      JSON.stringify({ state, browserErrors: browserErrors.slice(0, 12) }));
+  }
 
   const sessionsBeforeAccept = await page.evaluate(async () => window.AICS_SESSIONS.list({ limit: 50 }));
   assert.equal(sessionsBeforeAccept.items.length, 0, 'Receiving an Idea must not auto-create a Story Draft');
