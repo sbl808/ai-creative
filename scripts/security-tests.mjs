@@ -189,7 +189,7 @@ console.log('\\n--- B) Worker log data minimization contract ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const friendlyStart = index.indexOf('function friendlyError()');
-  const friendlyEnd = friendlyStart >= 0 ? index.indexOf('\\n}', friendlyStart) : -1;
+  const friendlyEnd = friendlyStart >= 0 ? index.indexOf('\n}', friendlyStart) : -1;
   const friendlyBlock = friendlyStart >= 0 && friendlyEnd > friendlyStart
     ? index.slice(friendlyStart, friendlyEnd + 2)
     : '';
@@ -199,9 +199,9 @@ console.log('\\n--- B) Worker log data minimization contract ---');
     ? index.slice(studioLogStart, studioLogEnd)
     : '';
   check('generic error logging excludes exception details',
-    !!friendlyBlock && !/\\.stack|\\.message|JSON\\.stringify|String\\(e\\)/.test(friendlyBlock));
+    !!friendlyBlock && !friendlyBlock.includes('.stack') && !friendlyBlock.includes('.message') && !friendlyBlock.includes('JSON.stringify') && !friendlyBlock.includes('String(e)'));
   check('studio load error logging excludes slug and exception details',
-    !!studioLogBlock && !/slug:|message:|\\.stack|\\.message|JSON\\.stringify|String\\(e\\)/.test(studioLogBlock));
+    !!studioLogBlock && !studioLogBlock.includes('slug:') && !studioLogBlock.includes('message:') && !studioLogBlock.includes('.stack') && !studioLogBlock.includes('.message') && !studioLogBlock.includes('JSON.stringify') && !studioLogBlock.includes('String(e)'));
 }
 
 console.log('\n--- B) HTML Content Security Policy rollout ---');
