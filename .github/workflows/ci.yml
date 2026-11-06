@@ -173,7 +173,7 @@ jobs:
         shell: bash
         run: |
           key="$(openssl rand -hex 32)"
-          printf 'SESSION_SIGNING_KEY=%s\\n' "$key" > worker/.dev.vars.dev
+          printf 'SESSION_SIGNING_KEY=%s\n' "$key" > worker/.dev.vars.dev
           echo "AICS_TEST_SESSION_SIGNING_KEY=$key" >> "$GITHUB_ENV"
       - name: Install Playwright browser test runtime
         run: |
