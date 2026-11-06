@@ -26,19 +26,119 @@ function createProTestToken(userId, email) {
   return unsigned + '.' + signature;
 }
 
+function safeUrlPath(value) {
+  try {
+    const url = new URL(value);
+    return url.origin + url.pathname;
+  } catch {
+    return '[invalid-url]';
+  }
+}
+
+async function collectInlineScriptDiagnostics(page) {
+  const scripts = await page.evaluate(() => Array.from(document.scripts).map((script, index) => ({
+    index,
+    type: (script.getAttribute('type') || '').trim().toLowerCase(),
+    src: script.src || '',
+    noncePresent: !!script.nonce,
+    source: script.src ? '' : (script.textContent || ''),
+  })));
+
+  const inventory = [];
+  const syntaxErrors = [];
+  for (const script of scripts) {
+    inventory.push({
+      index: script.index,
+      type: script.type || 'classic',
+      src: script.src ? safeUrlPath(script.src) : null,
+      noncePresent: script.noncePresent,
+      inline: !script.src,
+      sourceLength: script.source.length,
+    });
+    if (script.src || (script.type && ![
+      'text/javascript',
+      'application/javascript',
+      'text/ecmascript',
+      'application/ecmascript',
+    ].includes(script.type))) continue;
+
+    try {
+      new Script(script.source, { filename: 'inline-script-' + script.index });
+    } catch (error) {
+      const message = String(error && error.message || error);
+      const match = message.match(/:(\d+)(?::(\d+))?/);
+      syntaxErrors.push({
+        index: script.index,
+        error: message.slice(0, 300),
+        line: match ? Number(match[1]) : null,
+        column: match && match[2] ? Number(match[2]) : null,
+      });
+    }
+  }
+  return { scriptCount: scripts.length, inventory, syntaxErrors };
+}
+
 const browser = await chromium.launch({ headless: true });
 let context;
 try {
   context = await browser.newContext();
   const page = await context.newPage();
   const browserErrors = [];
+  const networkDiagnostics = [];
   page.on('pageerror', (error) => {
-    const message = String(error && error.message || error);
-    const stack = String(error && error.stack || '').split('\n').slice(0, 5).join(' | ');
-    browserErrors.push('pageerror: ' + message + (stack ? ' [stack: ' + stack + ']' : ''));
+    const name = String(error && error.name || 'JavaScript error');
+    const rawMessage = String(error && error.message || '');
+    const safeMessage = name === 'SyntaxError' && /Unexpected token/.test(rawMessage)
+      ? 'SyntaxError: Unexpected token'
+      : name;
+    const stack = String(error && error.stack || '');
+    const frame = stack.split('\n').slice(1).find((line) => /https?:\/\//.test(line)) || '';
+    const match = frame.match(/(https?:\/\/[^\s)]+):(\d+):(\d+)/);
+    browserErrors.push({
+      type: 'pageerror',
+      name,
+      message: safeMessage,
+      url: match ? safeUrlPath(match[1]) : null,
+      line: match ? Number(match[2]) : null,
+      column: match ? Number(match[3]) : null,
+    });
   });
   page.on('console', (message) => {
-    if (message.type() === 'error') browserErrors.push('console: ' + message.text());
+    if (message.type() !== 'error') return;
+    const location = message.location() || {};
+    const rawMessage = String(message.text() || '');
+    const safeMessage = /Unexpected token\s+['"]?</.test(rawMessage)
+      ? 'SyntaxError: Unexpected token <'
+      : (/SyntaxError/.test(rawMessage) ? 'SyntaxError' : 'Console error (details withheld)');
+    browserErrors.push({
+      type: 'console',
+      message: safeMessage,
+      url: location.url ? safeUrlPath(location.url) : null,
+      line: Number.isInteger(location.lineNumber) ? location.lineNumber : null,
+      column: Number.isInteger(location.columnNumber) ? location.columnNumber : null,
+    });
+  });
+  page.on('requestfailed', (request) => {
+    const resourceType = request.resourceType();
+    if (!['document', 'script'].includes(resourceType)) return;
+    networkDiagnostics.push({
+      type: 'requestfailed',
+      resourceType,
+      url: safeUrlPath(request.url()),
+      failure: String(request.failure()?.errorText || 'unknown').slice(0, 250),
+    });
+  });
+  page.on('response', (response) => {
+    const request = response.request();
+    const resourceType = request.resourceType();
+    if (!['document', 'script'].includes(resourceType)) return;
+    networkDiagnostics.push({
+      type: 'response',
+      resourceType,
+      url: safeUrlPath(response.url()),
+      status: response.status(),
+      contentType: String(response.headers()['content-type'] || '').slice(0, 120),
+    });
   });
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
@@ -75,25 +175,15 @@ try {
       ideasApi: typeof window.AICS_IDEAS,
       scriptCount: document.scripts.length,
       inlineScriptsWithNonce: Array.from(document.scripts).filter((script) => !script.src && !!script.nonce).length,
-      inlineScripts: Array.from(document.scripts).filter((script) => !script.src).map((script) => script.textContent || ''),
     }));
-    const scriptParseErrors = state.inlineScripts.map((source, index) => {
-      try { new Script(source, { filename: 'inline-script-' + index }); return null; }
-      catch (error) {
-        const match = String(error.message || error).match(/:(\d+)(?::(\d+))?/);
-        const line = match ? Number(match[1]) : null;
-        const lines = source.split('\n');
-        return {
-          index,
-          error: String(error.message || error),
-          line,
-          excerpt: line ? lines.slice(Math.max(0, line - 3), line + 2).join('\n') : source.slice(0, 500),
-        };
-      }
-    }).filter(Boolean);
-    delete state.inlineScripts;
+    const scripts = await collectInlineScriptDiagnostics(page);
     throw new Error('Idea Workspace browser bootstrap incomplete: ' +
-      JSON.stringify({ state, scriptParseErrors, browserErrors: browserErrors.slice(0, 12) }));
+      JSON.stringify({
+        state,
+        scripts,
+        browserErrors: browserErrors.slice(0, 12),
+        networkDiagnostics: networkDiagnostics.slice(0, 30),
+      }));
   }
 
   const idea = {
@@ -112,11 +202,34 @@ try {
     });
   }, idea);
 
+  // Keep the Story failure report scoped to the page under investigation.
+  browserErrors.length = 0;
+  networkDiagnostics.length = 0;
   await page.goto(baseURL + '/app/story?handoff=' + encodeURIComponent(handoff.id));
-  const handoffRendered = await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible', timeout: 10000 })
-    .then(() => true).catch(() => false);
+
+  // The shared sidebar script installs IndexedDB APIs. Wait for that bootstrap
+  // before polling the handoff record; do not treat a hidden panel as the first
+  // signal that the record has failed to load.
+  const storageApiReady = await page.waitForFunction(() =>
+    !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+      window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+  null, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRecordReady = storageApiReady && await page.waitForFunction(async (id) => {
+    try {
+      const record = await window.AICS_HANDOFFS.get(id);
+      return !!record && record.contractVersion === 1 &&
+        record.source === 'ideas' && record.target === 'story';
+    } catch (error) {
+      return false;
+    }
+  }, handoff.id, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRendered = handoffRecordReady && await page.locator('#ideaHandoffPanel')
+    .waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
   const summaryRendered = handoffRendered && await page.locator('#ideaHandoffSummary').getByText(idea.title)
     .waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+
   if (!summaryRendered) {
     const state = await page.evaluate(async (id) => {
       const panel = document.getElementById('ideaHandoffPanel');
@@ -133,9 +246,13 @@ try {
         } : null;
       } catch (error) { readError = String(error && error.message || error); }
       return {
-        url: location.pathname + location.search,
+        url: location.pathname,
         handoffsApi: typeof window.AICS_HANDOFFS,
         sessionsApi: typeof window.AICS_SESSIONS,
+        storageApiReady: !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+          window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+        handoffRecordReady: !!record && record.contractVersion === 1 &&
+          record.source === 'ideas' && record.target === 'story',
         record,
         readError,
         panelExists: !!panel,
@@ -144,8 +261,14 @@ try {
         toastTextLength: (document.getElementById('toast')?.textContent || '').length,
       };
     }, handoff.id);
-    throw new Error('Story Idea Handoff was not rendered: ' +
-      JSON.stringify({ state, browserErrors: browserErrors.slice(0, 12) }));
+    const scripts = await collectInlineScriptDiagnostics(page);
+    throw new Error('Story Idea Handoff bootstrap/fetch/render incomplete: ' +
+      JSON.stringify({
+        state,
+        scripts,
+        browserErrors: browserErrors.slice(0, 20),
+        networkDiagnostics: networkDiagnostics.slice(0, 40),
+      }));
   }
 
   const sessionsBeforeAccept = await page.evaluate(async () => window.AICS_SESSIONS.list({ limit: 50 }));
