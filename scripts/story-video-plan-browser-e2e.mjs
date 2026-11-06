@@ -31,7 +31,9 @@ try {
   const page = await browser.newPage();
   const browserErrors = [];
   page.on('pageerror', (error) => {
-    browserErrors.push('pageerror: ' + String(error && error.message || error));
+    const message = String(error && error.message || error);
+    const stack = String(error && error.stack || '').split('\\n').slice(0, 5).join(' | ');
+    browserErrors.push('pageerror: ' + message + (stack ? ' [stack: ' + stack + ']' : ''));
   });
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push('console: ' + message.text());
