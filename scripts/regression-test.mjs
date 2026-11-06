@@ -18,6 +18,53 @@ import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 
+// Node-only HTMLRewriter shim for route regression tests.
+// Production requests use Cloudflare Worker's native HTMLRewriter implementation.
+if (typeof globalThis.HTMLRewriter === 'undefined') {
+  globalThis.HTMLRewriter = class TestHTMLRewriter {
+    constructor() { this.rules = []; }
+    on(selector, handler) {
+      this.rules.push({ selector, handler });
+      return this;
+    }
+    transform(response) {
+      const rules = this.rules;
+      const body = new ReadableStream({
+        async start(controller) {
+          try {
+            let html = await response.text();
+            for (const rule of rules) {
+              const tag = rule.selector;
+              const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
+              html = html.replace(pattern, (match, attributes) => {
+                const element = {
+                  attributes,
+                  setAttribute(name, value) {
+                    if (!this.attributes.includes(name + '=')) {
+                      this.attributes += ' ' + name + '="' + value + '"';
+                    }
+                  },
+                };
+                rule.handler.element(element);
+                return '<' + tag + element.attributes + '>';
+              });
+            }
+            controller.enqueue(new TextEncoder().encode(html));
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+      });
+      return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }
+  };
+}
+
 const worker = (await import('../worker/src/index.js?r=' + Date.now())).default;
 
 // ---------------------------------------------------------------- mock env
