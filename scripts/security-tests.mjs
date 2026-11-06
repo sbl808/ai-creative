@@ -558,11 +558,13 @@ console.log('\n--- F) API request body size protection ---');
 console.log('--- F) Content draft secret exclusion ---');
 {
  const shell = readFileSync(new URL('../worker/src/frontend/studios/content/shell.js', import.meta.url), 'utf8');
- const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+ const adapter = readFileSync(new URL('../worker/src/frontend/storage/studio-drafts.js', import.meta.url), 'utf8');
  const collect = shell.split('function studioCollectDraft(){')[1].split('window.studioCollectDraft=')[0];
  check('Content draft excludes key inputs', !collect.includes("byok:val(") && !collect.includes("videoByok:val("));
- check('Legacy draft fields sanitized', shared.includes('delete d.data.byok; delete d.data.videoByok;'));
- check('New draft fields sanitized', shared.includes('delete data.byok; delete data.videoByok;'));
+ check('Legacy draft fields sanitized', adapter.includes('safeDraftData(studio, legacy)') &&
+   adapter.includes('delete data.byok;') && adapter.includes('delete data.videoByok;'));
+ check('New draft fields sanitized', adapter.includes('safeDraftData(studio, draft)') &&
+   adapter.includes('delete data.byok;') && adapter.includes('delete data.videoByok;'));
 }
 
 console.log('\n--- G) Multimodal request input limits ---');
