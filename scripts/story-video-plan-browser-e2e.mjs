@@ -86,18 +86,33 @@ try {
   const browserErrors = [];
   const networkDiagnostics = [];
   page.on('pageerror', (error) => {
+    const name = String(error && error.name || 'JavaScript error');
+    const rawMessage = String(error && error.message || '');
+    const safeMessage = name === 'SyntaxError' && /Unexpected token/.test(rawMessage)
+      ? 'SyntaxError: Unexpected token'
+      : name;
+    const stack = String(error && error.stack || '');
+    const frame = stack.split('\n').slice(1).find((line) => /https?:\/\//.test(line)) || '';
+    const match = frame.match(/(https?:\/\/[^\s)]+):(\d+):(\d+)/);
     browserErrors.push({
       type: 'pageerror',
-      message: String(error && error.message || error).slice(0, 500),
-      stack: String(error && error.stack || '').split('\n').slice(0, 6).join(' | ').slice(0, 1200),
+      name,
+      message: safeMessage,
+      url: match ? safeUrlPath(match[1]) : null,
+      line: match ? Number(match[2]) : null,
+      column: match ? Number(match[3]) : null,
     });
   });
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const location = message.location() || {};
+    const rawMessage = String(message.text() || '');
+    const safeMessage = /Unexpected token\s+['"]?</.test(rawMessage)
+      ? 'SyntaxError: Unexpected token <'
+      : (/SyntaxError/.test(rawMessage) ? 'SyntaxError' : 'Console error (details withheld)');
     browserErrors.push({
       type: 'console',
-      message: String(message.text() || '').slice(0, 500),
+      message: safeMessage,
       url: location.url ? safeUrlPath(location.url) : null,
       line: Number.isInteger(location.lineNumber) ? location.lineNumber : null,
       column: Number.isInteger(location.columnNumber) ? location.columnNumber : null,
@@ -187,6 +202,9 @@ try {
     });
   }, idea);
 
+  // Keep the Story failure report scoped to the page under investigation.
+  browserErrors.length = 0;
+  networkDiagnostics.length = 0;
   await page.goto(baseURL + '/app/story?handoff=' + encodeURIComponent(handoff.id));
   const handoffRendered = await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible', timeout: 10000 })
     .then(() => true).catch(() => false);
@@ -208,7 +226,7 @@ try {
         } : null;
       } catch (error) { readError = String(error && error.message || error); }
       return {
-        url: location.pathname + location.search,
+        url: location.pathname,
         handoffsApi: typeof window.AICS_HANDOFFS,
         sessionsApi: typeof window.AICS_SESSIONS,
         record,
