@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
+import { Script } from 'node:vm';
 
 const baseURL = process.env.AICS_BASE_URL || 'http://127.0.0.1:8787';
 const signingKey = String(process.env.AICS_TEST_SESSION_SIGNING_KEY || '').trim();
@@ -65,9 +66,25 @@ try {
       ideasApi: typeof window.AICS_IDEAS,
       scriptCount: document.scripts.length,
       inlineScriptsWithNonce: Array.from(document.scripts).filter((script) => !script.src && !!script.nonce).length,
+      inlineScripts: Array.from(document.scripts).filter((script) => !script.src).map((script) => script.textContent || ''),
     }));
+    const scriptParseErrors = state.inlineScripts.map((source, index) => {
+      try { new Script(source, { filename: 'inline-script-' + index }); return null; }
+      catch (error) {
+        const match = String(error.message || error).match(/:(\\d+)(?::(\\d+))?/);
+        const line = match ? Number(match[1]) : null;
+        const lines = source.split('\\n');
+        return {
+          index,
+          error: String(error.message || error),
+          line,
+          excerpt: line ? lines.slice(Math.max(0, line - 3), line + 2).join('\\n') : source.slice(0, 500),
+        };
+      }
+    }).filter(Boolean);
+    delete state.inlineScripts;
     throw new Error('Idea Workspace browser bootstrap incomplete: ' +
-      JSON.stringify({ state, browserErrors: browserErrors.slice(0, 12) }));
+      JSON.stringify({ state, scriptParseErrors, browserErrors: browserErrors.slice(0, 12) }));
   }
 
   const idea = {
