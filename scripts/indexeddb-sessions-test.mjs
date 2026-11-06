@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 import { storageErrorsScript } from '../worker/src/frontend/storage/storage-errors.js';
 import { storageOwnerScript } from '../worker/src/frontend/storage/storage-owner.js';
@@ -358,7 +359,7 @@ const first = await window.AICS_SESSIONS.create({
   title: 'First session',
   draft: { input: { topic: 'A' } }
 });
-assert.equal(fakeIndexedDB.version, 5, 'database should initialize at schema v5');
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION, 'database should initialize at the current storage schema version');
 assert.equal(first.ownerId, 'user-a');
 assert.equal(first.studio, 'STORY');
 assert.equal(first.status, 'active');
