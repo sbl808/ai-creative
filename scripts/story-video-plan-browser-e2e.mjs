@@ -26,9 +26,15 @@ function createProTestToken(userId, email) {
   return unsigned + '.' + signature;
 }
 
-// Diagnostic output must never include credentials, query-string values, or user content.
+// Diagnostic output must never include credentials, query-string values, or test fixture content.
+const sensitiveDiagnosticValues = new Set(['local-e2e-password-2026']);
+
 function safeDiagnosticText(value) {
-  return String(value || '')
+  let text = String(value || '');
+  for (const sensitiveValue of sensitiveDiagnosticValues) {
+    if (sensitiveValue) text = text.split(sensitiveValue).join('[REDACTED]');
+  }
+  return text
     .replace(/Bearer\s+[^\s"'<>]+/gi, 'Bearer [REDACTED]')
     .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
@@ -145,14 +151,17 @@ try {
   });
 
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
+  sensitiveDiagnosticValues.add(email);
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
     data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
   });
   assert.equal(signup.status(), 201, 'Local test account should be created');
   const account = await signup.json();
   assert.ok(account.user_id, 'Signup should return a local test user ID');
+  sensitiveDiagnosticValues.add(String(account.user_id));
 
   const token = createProTestToken(account.user_id, email);
+  sensitiveDiagnosticValues.add(token);
   await context.addCookies([{
     name: 'aics_token',
     value: token,
@@ -184,6 +193,7 @@ try {
     outline: 'ကလေးတစ်ဦးက မီးအိမ်ကို လိုက်ရှာရင်း မိသားစုအတိတ်ကို သိလာသည်။',
     suggestedStudio: 'Story',
   };
+  Object.values(idea).forEach((value) => sensitiveDiagnosticValues.add(String(value)));
   const handoff = await page.evaluate((payload) => {
     return window.AICS_HANDOFFS.create({
       contractVersion: 1,
@@ -245,6 +255,7 @@ try {
   assert.match(storySession.draft.fields['0'], /ရွာလေးတစ်ရွာ/);
 
   const storyText = 'မိုးရွာသောညတွင် မီးအိမ်လေးတစ်လုံးသည် လမ်းဟောင်းကို လင်းပေးခဲ့သည်။';
+  sensitiveDiagnosticValues.add(storyText);
   await page.evaluate(async ({ id, story }) => {
     const current = await window.AICS_SESSIONS.get(id);
     await window.AICS_SESSIONS.update(id, {
@@ -277,6 +288,7 @@ try {
     'Video Plan should receive the latest Story text');
 
   const environmentNotes = 'မိုးစိုနေသော သစ်တောလမ်း၊ အဝါရောင် မီးအိမ်အလင်း';
+  sensitiveDiagnosticValues.add(environmentNotes);
   await page.locator('#vidAdvToggle').click();
   await page.waitForFunction(() => {
     const toggle = document.getElementById('vidAdvToggle');
