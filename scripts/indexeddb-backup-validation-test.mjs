@@ -143,7 +143,7 @@ const imported = await context.window.AICS_BACKUP_IMPORT.validateFile({
   size: Buffer.byteLength(validText),
   text: () => Promise.resolve(validText)
 });
-assert.equal(imported.recordCount, 6);
+assert.equal(imported.recordCount, 7);
 
 await assert.rejects(
   context.window.AICS_BACKUP_IMPORT.validateText('{bad json'),
