@@ -179,7 +179,7 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
 .aics-work .scene-image-save{margin-top:8px}
 .aics-work .scene-image-error{color:var(--error);font-size:12px;padding:10px}
 .aics-work .scene-image-retry{text-align:center;margin-top:4px}
-.aics-work .aics-login-overlay.is-hidden{display:none}
+.aics-login-overlay.is-hidden{display:none!important}
 
 </style>
 </head>
