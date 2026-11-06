@@ -43,6 +43,11 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .final-prompt-text{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word;background:var(--bg-input,#0a1020);padding:10px 12px;border-radius:8px;min-height:20px;}
 .aics-work .final-scene-card{background:var(--bg-card2,#0e1626);border:1px solid var(--border,#26324a);border-radius:12px;padding:16px;margin-bottom:14px;}
 .aics-work .final-scene-title{font-weight:700;color:var(--purple,#b7a8ff);font-size:14.5px;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border,#26324a);}
+.aics-work .scene-duration{color:var(--text2,#8b95a8);font-weight:400;}
+.aics-work .scene-image-action{margin-top:8px;}
+.aics-work .scene-empty-state{color:var(--text3);text-align:center;padding:20px;}
+.aics-work .loading.content-scene-loading{justify-content:center;position:static;transform:none;display:flex;}
+.aics-work .scene-image-error{color:var(--error);font-size:12px;padding:10px;}
 .aics-work .final-scene-box{margin-bottom:12px;}
 .aics-work .final-box-label{font-size:11.5px;color:var(--cyan);font-weight:700;letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase;}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;min-height:44px;min-width:44px}
@@ -162,15 +167,42 @@ ${sidebarScript()}
     if(target.dataset.aicsChange==='voice-gender-male')window.setVoiceGender('male');
     if(target.dataset.aicsChange==='voice-gender-female')window.setVoiceGender('female');
     if(target.dataset.aicsChange==='effective-voice')window.setEffectiveVoice();
+    if(target.dataset.aicsChange==='update-conditional-fields')window.updateConditionalFields();
   });
+  var contentDraftSaveTimer=null;
+  function queueContentDraftSave(){
+    if(contentDraftSaveTimer!==null)clearTimeout(contentDraftSaveTimer);
+    contentDraftSaveTimer=setTimeout(function(){
+      contentDraftSaveTimer=null;
+      if(window.studioPersistDraft)window.studioPersistDraft(false);
+    },500);
+  }
   document.addEventListener('input',function(event){
     var target=event.target;
-    if(target&&target.dataset&&target.dataset.aicsInput==='auto-grow')window.autoGrow(target);
+    if(target&&target.dataset&&target.dataset.aicsInput){
+      var inputActions=target.dataset.aicsInput.split(/\s+/);
+      if(inputActions.indexOf('auto-grow')!==-1)window.autoGrow(target);
+      if(inputActions.indexOf('content-edit')!==-1&&typeof window.onContentEdit==='function')window.onContentEdit();
+    }
+    if(target&&target.closest&&target.closest('.aics-work'))queueContentDraftSave();
+  });
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueContentDraftSave();
   });
   document.addEventListener('click',function(event){
     var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
     if(!button)return;
     switch(button.dataset.aicsAction){
+      case 'toggle-advanced':window.studioToggleAdvanced(button.dataset.aicsToggle,button.dataset.aicsTarget);break;
+      case 'generate-content':window.generateContent();break;
+      case 'copy-text':window.copyText(button.dataset.aicsTarget);break;
+      case 'open-branch':window.openBranch(button.dataset.aicsBranch);break;
+      case 'scroll-to-revise':window.scrollToRevise();break;
+      case 'copy-all-result':window.copyAllResult();break;
+      case 'revise-content':window.reviseContent();break;
+      case 'generate-video':window.generateVideo();break;
+      case 'content-nav':window.csNav(Number(button.dataset.aicsStep));break;
       case 'toggle-audio-advanced':window.studioToggleAdvanced('audioAdvToggle','audioAdvFields');break;
       case 'generate-voice':window.generateVoice();break;
       case 'content-nav-audio':window.csNav(22);break;
@@ -187,6 +219,11 @@ ${sidebarScript()}
         break;
       case 'copy-translated-srt':window.copyText('resultSrtTranslated');break;
       case 'download-translated-srt':window.downloadSrt('resultSrtTranslated','content_subtitle_translated.srt');break;
+      case 'copy-character':window.copyCharText(Number(button.dataset.aicsIndex));break;
+      case 'copy-scene':window.copySceneText(Number(button.dataset.aicsIndex));break;
+      case 'copy-environment':window.copyEnvText(Number(button.dataset.aicsIndex));break;
+      case 'copy-dialogue':window.copyDialogueText(Number(button.dataset.aicsIndex));break;
+      case 'generate-scene-image':window.generateSceneImage(Number(button.dataset.aicsIndex));break;
       case 'back-to-content-result':window.backToContentResult();break;
       case 'save-content-result':window.saveContentResult();break;
     }

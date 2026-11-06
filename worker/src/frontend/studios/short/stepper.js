@@ -3,9 +3,13 @@
 // The whole <script> is reassembled in page.js in the original source order.
 export const STEPPER_SCRIPT = `window.studioReset=function(){
   if(!confirm('ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?'))return;
-  try{localStorage.removeItem('aics_draft_short');}catch(e){}
-  try{localStorage.removeItem('aics_draft_short_imgcache');}catch(e){}
-  location.reload();
+  if(!window.AICS_STUDIO_DRAFTS){showToastMsg('IndexedDB Draft စနစ် မရရှိပါ');return;}
+  window.AICS_STUDIO_DRAFTS.remove('short').then(function(){
+    // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးမှသာ legacy data ကို ရှင်းသည်။
+    try{localStorage.removeItem('aics_draft_short');}catch(e){}
+    try{localStorage.removeItem('aics_draft_short_imgcache');}catch(e){}
+    location.reload();
+  }).catch(function(){showToastMsg('IndexedDB Draft ဖျက်မအောင်မြင်ပါ');});
 };
 
 // ============================================================
@@ -89,7 +93,7 @@ function stRenderStepper(){
   for(var i=0;i<steps.length;i++){
     var s=steps[i];
     var label=((i+1<10)?'0':'')+(i+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" onclick="stNav('+s.n+')">'+
+    html+='<button type="button" class="aics-step-btn" data-step="'+s.n+'" data-aics-action="step-nav" data-aics-step="'+s.n+'" aria-label="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+
       '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
       '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
     if(i<steps.length-1)html+='<span class="aics-step-link"></span>';
@@ -104,6 +108,54 @@ window.studioForceGoStep=stGoForce;
 window.studioMarkDone=stMarkDone;
 window.studioUnmarkDone=stUnmarkDone;
 window.studioCur=function(){return stCur;};
+function stHandleDelegatedAction(event){
+  var button=event.target&&event.target.closest?event.target.closest('[data-aics-action]'):null;
+  if(!button)return;
+  var action=button.dataset.aicsAction;
+  var idx=Number(button.dataset.aicsIndex);
+  switch(action){
+    case 'remove-ref-image': removeRefImage(idx); break;
+    case 'copy-char-prompt': copyCharPrompt(idx); break;
+    case 'generate-char-image': generateCharImage(idx); break;
+    case 'copy-video-prompt': copyVideoPrompt(idx); break;
+    case 'copy-env-prompt': copyEnvPrompt(idx); break;
+    case 'generate-env-image': generateEnvImage(idx); break;
+
+    case 'toggle-advanced': studioToggleAdvanced('advToggle','advFields'); break;
+    case 'copy-short': copyShort(); break;
+    case 'save-short': saveShort(); break;
+    case 'focus-revise': focusRevise(); break;
+    case 'go-to-video': goToVideoForm(); break;
+    case 'generate-short': generateShort(); break;
+    case 'revise-short': reviseShort(); break;
+    case 'generate-video-plan': generateShortVideoPlan(); break;
+    case 'force-step': stGoForce(Number(button.dataset.aicsStep)); break;
+    case 'step-nav': stNav(Number(button.dataset.aicsStep)); break;
+    default: return;
+  }
+}
+document.addEventListener('click',stHandleDelegatedAction);
+
+function stHandleDelegatedInput(event){
+  var target=event.target;
+  if(!target||!target.dataset)return;
+  if(target.dataset.aicsInput==='short-edit')onShortEdit();
+  else if(target.dataset.aicsInput==='auto-expand')autoExpand(target);
+}
+function stHandleDelegatedChange(event){
+  var target=event.target;
+  if(target&&target.dataset&&target.dataset.aicsChange==='reference-images')onRefImageSelected();
+}
+function stHandleDelegatedKeydown(event){
+  var target=event.target;
+  if(target&&target.dataset&&target.dataset.aicsKeyAction==='revise-on-enter'&&event.key==='Enter'){
+    reviseShort();
+  }
+}
+document.addEventListener('input',stHandleDelegatedInput);
+document.addEventListener('change',stHandleDelegatedChange);
+document.addEventListener('keydown',stHandleDelegatedKeydown);
+
 function stBoot(){
   stRenderStepper();
   stShow(stCur);

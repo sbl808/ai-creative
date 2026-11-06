@@ -15,7 +15,7 @@ function __aicsRequireUserId() {
   if (!userId) throw __aicsStorageError('auth_required');
   return String(userId);
 }
-function __aicsOwnedStoreMutation(storeName, id, mutate) {
+function __aicsOwnedStoreMutation(storeName, id, mutate, ownerField) {
   var userId;
   try { userId = __aicsRequireUserId(); }
   catch (error) { return Promise.reject(error); }
@@ -39,7 +39,8 @@ function __aicsOwnedStoreMutation(storeName, id, mutate) {
       request.onsuccess = function () {
         var record = request.result;
         if (!record) { fail(__aicsStorageError('not_found')); return; }
-        if (String(record.user_id || '') !== userId) { fail(__aicsStorageError('forbidden')); return; }
+        var field = ownerField || 'user_id';
+        if (String(record[field] || '') !== userId) { fail(__aicsStorageError('forbidden')); return; }
         try { output = mutate(store, record); }
         catch (error) { fail(__aicsStorageError('indexeddb_write_failed', error)); }
       };

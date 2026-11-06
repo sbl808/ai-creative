@@ -56,7 +56,7 @@ const STEP1_HTML = `
 </div>
 <div class="form-group aics-cms-type-field">
 <label>Content Purpose (Content Purpose)</label>
-<select id="contentPurposeSel" onchange="contentType=this.value;">
+<select id="contentPurposeSel" data-shop-event="change" data-shop-action="set-content-type">
 <option value="1" selected>&#128230; Product Description (Free)</option>
 <option value="2">&#128176; Sales Copy (Pro)</option>
 <option value="3">&#128241; Social Media (Pro)</option>
@@ -65,7 +65,7 @@ const STEP1_HTML = `
 </select>
 </div>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advProductToggle" aria-expanded="false" onclick="studioToggleAdvanced('advProductToggle','advProductPanel')"><span>&#9660; Advanced Product Details (အဆင့်မြင့် အချက်အလက်)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advProductToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advProductToggle" data-shop-arg2="advProductPanel"><span>&#9660; Advanced Product Details (အဆင့်မြင့် အချက်အလက်)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advProductPanel">
 <div class="form-group"><label>USP / အဓိကအားသာချက် (USP)</label><input type="text" id="advUsp" placeholder="ဥပမာ - ဈေးကွက်တွင် တစ်ခုတည်းသော ..."></div>
 <div class="form-group"><label>Offer / Discount (လျှော့စျေး)</label><input type="text" id="advOffer" placeholder="ဥပမာ - ၂၀% လျှော့စျေး / Free Delivery"></div>
@@ -82,8 +82,8 @@ const STEP1_HTML = `
 <input type="file" id="refImgContent" accept="image/*" multiple>
 <div class="ref-preview" id="refPreviewContent"></div>
 </div>
-<div class="btn-row" style="margin-top:6px;">
-<button class="btn btn-primary" onclick="generateContent()">&#10024; Product Content ဖန်တီးရန်</button>
+<div class="btn-row shop-style-mt-6" >
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="generateContent">&#10024; Product Content ဖန်တီးရန်</button>
 </div>
 </div>
 </div>`;
@@ -93,7 +93,7 @@ const STEP3_HTML = `
 <div class="aics-step" data-step="2">
 
 <!-- ===== BRANCH STEPPER (Main Stepper အောက်တွင် သီးခြားပြသည် — Branch ထဲဝင်မှသာ မြင်ရမည်) ===== -->
-<div class="shop-branch-stepper" id="shopBranchStepper" style="display:none;"></div>
+<div class="shop-branch-stepper shop-hidden" id="shopBranchStepper" ></div>
 
 <!-- ===== VIEW: Product Content Result + Output Hub ===== -->
 <div id="viewContent">
@@ -104,25 +104,25 @@ const STEP3_HTML = `
 <div class="card-title">&#9997;&#65039; AI ရေးသားထားသော Product Content <span class="edit-hint">&#9999;&#65039; ပြင်ဆင်လို့ရသည်</span></div>
 ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်...')}
 <div id="shopContentResultBody">
-<textarea class="shop-result" id="resultContent" placeholder="(Generate လုပ်ပြီးရင် ဒီနေရာမှာ ပေါ်ပါမယ် — တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်)" oninput="onContentEdit()"></textarea>
+<textarea class="shop-result" id="resultContent" placeholder="(Generate လုပ်ပြီးရင် ဒီနေရာမှာ ပေါ်ပါမယ် — တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်)" data-shop-event="input" data-shop-action="onContentEdit"></textarea>
 <div class="btn-row">
-<button class="btn btn-green btn-sm" onclick="copyResult()">&#128203; Copy</button>
-<button class="btn btn-purple btn-sm" onclick="saveContent()">&#128190; သိမ်းရန်</button>
-<button class="btn btn-secondary btn-sm" onclick="toggleChat()">&#9999;&#65039; ပြန်ပြင်ရန်</button>
+<button class="btn btn-green btn-sm" data-shop-event="click" data-shop-action="copyResult">&#128203; Copy</button>
+<button class="btn btn-purple btn-sm" data-shop-event="click" data-shop-action="saveContent">&#128190; သိမ်းရန်</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="toggleChat">&#9999;&#65039; ပြန်ပြင်ရန်</button>
 </div>
 <div class="chat-section" id="chatSection">
 <div class="chat-log" id="chatLog"></div>
 <div class="chat-input-row">
-<input type="text" id="chatInput" placeholder="ဥပမာ - ပိုစိတ်ခံစားရအောင် ပြင်ပေးပါ" onkeypress="if(event.key==='Enter')sendRevision()">
-<button class="btn btn-primary btn-sm" onclick="sendRevision()">ပြင်ပါ</button>
+<input type="text" id="chatInput" placeholder="ဥပမာ - ပိုစိတ်ခံစားရအောင် ပြင်ပေးပါ" data-shop-event="keydown" data-shop-action="sendRevision" data-shop-key="Enter">
+<button class="btn btn-primary btn-sm" data-shop-event="click" data-shop-action="sendRevision">ပြင်ပါ</button>
 </div>
 <div class="loading" id="loadingChat">&#9203; ပြင်ဆင်နေပါသည်...</div>
 </div>
 </div>
 <div class="error-box" id="step2Err"></div>
 <div class="retry-row" id="step2Retry">
-<button class="btn btn-primary" onclick="retryContent()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="studioGoStep(1)">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retryContent">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="studioGoStep" data-shop-arg1="1">&#8592; နောက်သို့</button>
 </div>
 </div>
 
@@ -130,17 +130,17 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 <div class="shop-out-hub">
 <div class="shop-out-hub-title">&#10067; ဘာဆက်ဖန်တီးမလဲ? (What would you like to create next?)</div>
 <div class="shop-out-cards">
-<div class="branch-action-card" onclick="goVideoBranch()">
+<div class="branch-action-card" data-shop-event="click" data-shop-action="goVideoBranch">
 <div class="ba-icon">&#127916;</div>
 <div class="ba-title">Video ဆက်ဖန်တီးရန်</div>
 <div class="ba-sub">Product / Character / Scene — Video Plan</div>
 </div>
-<div class="branch-action-card" onclick="goAudioBranch()">
+<div class="branch-action-card" data-shop-event="click" data-shop-action="goAudioBranch">
 <div class="ba-icon">&#128266;</div>
 <div class="ba-title">အသံ ဆက်ဖန်တီးရန်</div>
 <div class="ba-sub">Voice / SRT / ဘာသာပြန်</div>
 </div>
-<div class="branch-action-card" onclick="goImageBranch()">
+<div class="branch-action-card" data-shop-event="click" data-shop-action="goImageBranch">
 <div class="ba-icon">&#128444;</div>
 <div class="ba-title">Image ဆက်ဖန်တီးရန်</div>
 <div class="ba-sub">Product Image / Showcase / Ad Visual</div>
@@ -150,13 +150,13 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 </div>
 
 <!-- ===== VIEW: VIDEO BRANCH ===== -->
-<div id="viewVideo" style="display:none;">
+<div id="viewVideo" class="shop-hidden">
 <div class="card" id="videoSetupCard">
 <div class="card-title">&#127916; Video ပြင်ဆင်ရန် (Video Setup)</div>
 <div class="auto-note">&#9989; Product Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>Product Content * (Video ဖန်တီးရန် Content)</label>
-<textarea id="videoText" class="shop-result" style="min-height:120px;" oninput="onVideoTextEdit()"></textarea>
+<textarea id="videoText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onVideoTextEdit"></textarea>
 </div>
 <div class="studio-form-grid">
 <div class="form-group">
@@ -168,7 +168,7 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 <div class="type-chips" id="videoTypes"></div>
 </div>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advVideoToggle" aria-expanded="false" onclick="studioToggleAdvanced('advVideoToggle','advVideoPanel')"><span>&#9660; Advanced Video Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advVideoToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advVideoToggle" data-shop-arg2="advVideoPanel"><span>&#9660; Advanced Video Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advVideoPanel">
 <div class="form-group"><label>Duration (ကြာချိန်)</label><select id="videoDuration"><option value="15">15 sec</option><option value="30" selected>30 sec</option><option value="45">45 sec</option><option value="60">60 sec</option><option value="90">90 sec</option><option value="120">120 sec</option></select></div>
 <div class="form-group"><label>Aspect Ratio (ပုံအချိုး)</label><select id="videoRatio"><option value="9:16" selected>9:16 (Vertical)</option><option value="16:9">16:9 (Horizontal)</option><option value="1:1">1:1 (Square)</option><option value="4:5">4:5</option><option value="21:9">21:9 (Cinematic)</option></select></div>
@@ -185,34 +185,34 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 </div>
 <div class="error-box" id="videoErr"></div>
 <div class="btn-row">
-<button class="btn btn-primary" id="genVideoBtn" onclick="generateVideo()">&#127916; Video Plan ဖန်တီးရန်</button>
+<button class="btn btn-primary" id="genVideoBtn" data-shop-event="click" data-shop-action="generateVideo">&#127916; Video Plan ဖန်တီးရန်</button>
 </div>
 </div>
 
-<div class="card" id="videoResultCard" style="display:none;">
+<div class="card shop-hidden" id="videoResultCard" >
 <div class="card-title">&#127916; Video Plan ရလဒ် — Story Map</div>
 ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်...')}
 <div id="videoResultMap"></div>
 <div class="error-box" id="videoLoadingErr"></div>
 <div class="retry-row" id="videoLoadingRetry">
-<button class="btn btn-primary" onclick="retryVideo()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="backFromVideoLoading()">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retryVideo">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromVideoLoading">&#8592; နောက်သို့</button>
 </div>
-<div class="btn-row" style="margin-top:16px;">
-<button class="btn btn-green" onclick="copyAllVideo()">&#128203; Copy</button>
-<button class="btn btn-purple" onclick="saveAllVideo()">&#128190; ဖန်တီးမှုအားလုံးသိမ်း</button>
+<div class="btn-row shop-style-mt-16" >
+<button class="btn btn-green" data-shop-event="click" data-shop-action="copyAllVideo">&#128203; Copy</button>
+<button class="btn btn-purple" data-shop-event="click" data-shop-action="saveAllVideo">&#128190; ဖန်တီးမှုအားလုံးသိမ်း</button>
 </div>
 </div>
 </div>
 
 <!-- ===== VIEW: AUDIO BRANCH ===== -->
-<div id="viewAudio" style="display:none;">
+<div id="viewAudio" class="shop-hidden">
 <div class="card" id="audioSetupCard">
 <div class="card-title">&#128266; Audio ပြင်ဆင်ရန် (Audio Setup)</div>
 <div class="auto-note">&#9989; Product Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>အသံဖတ်ရန် စာသား * (Product Content)</label>
-<textarea id="audioText" class="shop-result" style="min-height:120px;" oninput="onAudioTextEdit()"></textarea>
+<textarea id="audioText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onAudioTextEdit"></textarea>
 </div>
 <div class="studio-form-grid">
 <div class="form-group">
@@ -222,16 +222,16 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 <div class="form-group">
 <label>Voice Gender (အသံ — ကျား / မ)</label>
 <div class="gender-toggle" id="audioGender">
-<label class="gender-opt"><input type="radio" name="audioGender" value="male" checked onchange="setVoiceGender('male')"><span>&#9794; Male</span></label>
-<label class="gender-opt"><input type="radio" name="audioGender" value="female" onchange="setVoiceGender('female')"><span>&#9792; Female</span></label>
+<label class="gender-opt"><input type="radio" name="audioGender" value="male" checked data-shop-event="change" data-shop-action="setVoiceGender" data-shop-arg1="male"><span>&#9794; Male</span></label>
+<label class="gender-opt"><input type="radio" name="audioGender" value="female" data-shop-event="change" data-shop-action="setVoiceGender" data-shop-arg1="female"><span>&#9792; Female</span></label>
 </div>
 </div>
 </div>
 <div class="form-group">
 <label>&#127908; Voice ရွေးချယ်ရန် (Voice Selection)</label>
-<select id="voiceSelect" onchange="onVoiceChange()"></select>
+<select id="voiceSelect" data-shop-event="change" data-shop-action="onVoiceChange"></select>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advAudioToggle" aria-expanded="false" onclick="studioToggleAdvanced('advAudioToggle','advAudioPanel')"><span>&#9660; Advanced Audio Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advAudioToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advAudioToggle" data-shop-arg2="advAudioPanel"><span>&#9660; Advanced Audio Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advAudioPanel">
 <div class="form-group"><label>Voice Style (အသံပုံစံ)</label><input type="text" id="audioVoiceStyleSel" placeholder="ဥပမာ - Friendly / Professional / Energetic"></div>
 <div class="form-group"><label>Language (ဘာသာစကား)</label><select id="audioLangSel"><option value="မြန်မာ" selected>မြန်မာ</option><option value="English">English</option><option value="တရုတ်">တရုတ်</option><option value="ထိုင်း">ထိုင်း</option><option value="ဂျပန်">ဂျပန်</option></select></div>
@@ -243,74 +243,74 @@ ${aicsResultLoadingHtml('videoLoading','AI ပြင်ဆင်နေသည်.
 </div>
 <div class="error-box" id="audioErr"></div>
 <div class="btn-row">
-<button class="btn btn-primary" id="genAudioBtn" onclick="generateAudio()">&#128266; အသံ ဖန်တီးရန်</button>
-<button class="btn btn-green btn-sm" onclick="copyAudioText()">&#128203; Copy</button>
+<button class="btn btn-primary" id="genAudioBtn" data-shop-event="click" data-shop-action="generateAudio">&#128266; အသံ ဖန်တီးရန်</button>
+<button class="btn btn-green btn-sm" data-shop-event="click" data-shop-action="copyAudioText">&#128203; Copy</button>
 </div>
 </div>
 
-<div class="card" id="audioResultCard" style="display:none;">
+<div class="card shop-hidden" id="audioResultCard" >
 <div class="card-title">&#128266; Audio ရလဒ် (Audio Result)</div>
 ${aicsResultLoadingHtml('audioLoading','AI ပြင်ဆင်နေသည်...')}
 <div class="audio-player-row">
-<button class="btn btn-primary" id="audioPlayBtn" onclick="toggleAudioPlay()">&#9654; Play</button>
-<audio id="audioPlayer" controls style="flex:1;min-width:220px;"></audio>
+<button class="btn btn-primary" id="audioPlayBtn" data-shop-event="click" data-shop-action="toggleAudioPlay">&#9654; Play</button>
+<audio id="audioPlayer" controls class="shop-style-audio-player"></audio>
 </div>
 <div class="audio-info" id="audioInfo">Audio မရှိသေးပါ</div>
 <div class="btn-row">
-<button class="btn btn-secondary btn-sm" onclick="downloadAudio()">&#128190; Save Audio</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="downloadAudio">&#128190; Save Audio</button>
 </div>
 <hr class="divider">
 <div class="srt-label">&#128221; မူရင်း SRT စာတန်းထိုး ဖန်တီးရန် <span class="pro-tag">PRO</span></div>
 <p class="hint">Audio ကနေ SRT Subtitle ကို ထုတ်နိုင်ပါတယ်။</p>
-<button class="btn btn-secondary btn-sm" id="genSrtBtn" onclick="generateSrt()">&#128260; မူရင်း SRT စာတန်းထိုး ဖန်တီးရန်</button>
+<button class="btn btn-secondary btn-sm" id="genSrtBtn" data-shop-event="click" data-shop-action="generateSrt">&#128260; မူရင်း SRT စာတန်းထိုး ဖန်တီးရန်</button>
 <div class="pro-lock-note" id="srtLockNote"></div>
 <div class="error-box" id="audioLoadingErr"></div>
 <div class="retry-row" id="audioLoadingRetry">
-<button class="btn btn-primary" onclick="retryAudio()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="backFromAudioLoading()">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retryAudio">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromAudioLoading">&#8592; နောက်သို့</button>
 </div>
 </div>
 
-<div class="card" id="srtResultCard" style="display:none;">
+<div class="card shop-hidden" id="srtResultCard" >
 <div class="shop-view-subhead">
-<button class="btn btn-secondary btn-sm" onclick="backToAudioResult()">&#8592; Audio Result</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="backToAudioResult">&#8592; Audio Result</button>
 <span class="shop-view-title">&#128221; မူရင်း SRT</span>
 </div>
 ${aicsResultLoadingHtml('srtLoading','AI ပြင်ဆင်နေသည်...')}
 <div class="srt-label">&#127916; မူရင်း SRT <span class="edit-hint">&#9999;&#65039; ပြင်ဆင်လို့ရသည်</span></div>
-<textarea class="srt-editable" id="srtOriginal" placeholder="(Generate SRT နှိပ်ပြီးမှ ဒီနေရာမှာ ပေါ်ပါမယ်)" oninput="onSrtEdit()"></textarea>
+<textarea class="srt-editable" id="srtOriginal" placeholder="(Generate SRT နှိပ်ပြီးမှ ဒီနေရာမှာ ပေါ်ပါမယ်)" data-shop-event="input" data-shop-action="onSrtEdit"></textarea>
 <div class="btn-row">
-<button class="btn btn-green btn-sm" onclick="copySrt()">&#128203; Copy</button>
-<button class="btn btn-secondary btn-sm" onclick="downloadSrt()">&#128190; Save .srt</button>
+<button class="btn btn-green btn-sm" data-shop-event="click" data-shop-action="copySrt">&#128203; Copy</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="downloadSrt">&#128190; Save .srt</button>
 </div>
 <hr class="divider">
-<div class="card-title" style="margin-top:2px;">&#127760; ဘာသာပြန် <span class="pro-tag">PRO</span></div>
+<div class="card-title shop-style-mt-2" >&#127760; ဘာသာပြန် <span class="pro-tag">PRO</span></div>
 <div class="form-group">
 <label>ဘာသာစကား (Language)</label>
-<select id="transLangSel" onchange="onTransLangChange()">
+<select id="transLangSel" data-shop-event="change" data-shop-action="onTransLangChange">
 <option value="my">မြန်မာ</option>
 <option value="cn">တရုတ်</option>
 </select>
 </div>
 <div class="dir-row">
-<label style="margin:0 8px 0 0;display:inline;">Direction:</label>
-<label class="dir-radio"><input type="radio" name="transDir" value="MY_TO_CN" checked onchange="onTransDirChange(this)"><span>မြန်မာ &#8594; တရုတ်</span></label>
-<label class="dir-radio"><input type="radio" name="transDir" value="CN_TO_MY" onchange="onTransDirChange(this)"><span>တရုတ် &#8594; မြန်မာ</span></label>
+<label class="shop-style-inline-margin">Direction:</label>
+<label class="dir-radio"><input type="radio" name="transDir" value="MY_TO_CN" checked data-shop-event="change" data-shop-action="onTransDirChange" data-shop-pass="element"><span>မြန်မာ &#8594; တရုတ်</span></label>
+<label class="dir-radio"><input type="radio" name="transDir" value="CN_TO_MY" data-shop-event="change" data-shop-action="onTransDirChange" data-shop-pass="element"><span>တရုတ် &#8594; မြန်မာ</span></label>
 </div>
 <div class="btn-row">
-<button class="btn btn-primary" id="translateBtn" onclick="translateSrt()">ဘာသာပြန်ရန်</button>
+<button class="btn btn-primary" id="translateBtn" data-shop-event="click" data-shop-action="translateSrt">ဘာသာပြန်ရန်</button>
 </div>
 <div class="pro-lock-note" id="transLockNote"></div>
 <div class="error-box" id="srtLoadingErr"></div>
 <div class="retry-row" id="srtLoadingRetry">
-<button class="btn btn-primary" onclick="retrySrt()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="backFromSrtLoading()">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retrySrt">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromSrtLoading">&#8592; နောက်သို့</button>
 </div>
 </div>
 
-<div class="card" id="transResultCard" style="display:none;">
+<div class="card shop-hidden" id="transResultCard" >
 <div class="shop-view-subhead">
-<button class="btn btn-secondary btn-sm" onclick="backToSrtResult()">&#8592; Original SRT</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="backToSrtResult">&#8592; Original SRT</button>
 <span class="shop-view-title">&#127760; Translated SRT</span>
 </div>
 ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်...')}
@@ -318,30 +318,30 @@ ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်.
 <div class="trans-view" id="transResultView"></div>
 <div class="error-box" id="transLoadingErr"></div>
 <div class="retry-row" id="transLoadingRetry">
-<button class="btn btn-primary" onclick="retryTrans()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="backFromTransLoading()">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retryTrans">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromTransLoading">&#8592; နောက်သို့</button>
 </div>
 <div class="btn-row">
-<button class="btn btn-green btn-sm" onclick="copyTranslated()">&#128203; Copy</button>
-<button class="btn btn-secondary btn-sm" onclick="downloadTranslated()">&#128190; Save .srt</button>
+<button class="btn btn-green btn-sm" data-shop-event="click" data-shop-action="copyTranslated">&#128203; Copy</button>
+<button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="downloadTranslated">&#128190; Save .srt</button>
 </div>
 </div>
 </div>
 
 <!-- ===== VIEW: IMAGE BRANCH (အသစ်) ===== -->
-<div id="viewImage" style="display:none;">
+<div id="viewImage" class="shop-hidden">
 <div class="card" id="imageSetupCard">
 <div class="card-title">&#128444; Image ပြင်ဆင်ရန် (Image Setup)</div>
 <div class="auto-note">&#9989; Product Content Result နှင့် Product Reference ပုံများကို အလိုအလျောက် ထည့်ထားသည်</div>
 <div class="form-group">
 <label>Product Content * (Image ဖန်တီးရန် Content)</label>
-<textarea id="imageText" class="shop-result" style="min-height:120px;" oninput="onImageTextEdit()"></textarea>
+<textarea id="imageText" class="shop-result shop-style-minh-120"  data-shop-event="input" data-shop-action="onImageTextEdit"></textarea>
 </div>
 <div class="form-group">
 <label>Image Purpose (Image Purpose)</label>
 <select id="imagePurposeSel"><option value="Product Image" selected>Product Image</option><option value="Product Showcase">Product Showcase</option><option value="Social Media Visual">Social Media Visual</option><option value="Advertisement Visual">Advertisement Visual</option><option value="Promotional Image">Promotional Image</option></select>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advImageToggle" aria-expanded="false" onclick="studioToggleAdvanced('advImageToggle','advImagePanel')"><span>&#9660; Advanced Image Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
+<button type="button" class="aics-advanced-toggle" id="advImageToggle" aria-expanded="false" data-shop-event="click" data-shop-action="studioToggleAdvanced" data-shop-arg1="advImageToggle" data-shop-arg2="advImagePanel"><span>&#9660; Advanced Image Settings (အဆင့်မြင့် ဆက်တင်များ)</span><span class="aics-adv-arrow">&#9660;</span></button>
 <div class="aics-adv-panel adv-grid" id="advImagePanel">
 <div class="form-group"><label>Image Style (ပုံစံ)</label><input type="text" id="imageStyleSel" placeholder="ဥပမာ - Photorealistic / Minimal / Cinematic"></div>
 <div class="form-group"><label>Background (နောက်ခံ)</label><input type="text" id="imageBg" placeholder="ဥပမာ - White studio / Nature / Urban"></div>
@@ -357,18 +357,18 @@ ${aicsResultLoadingHtml('transLoading','AI ပြင်ဆင်နေသည်.
 </div>
 <div class="error-box" id="imageErr"></div>
 <div class="btn-row">
-<button class="btn btn-primary" id="genImageBtn" onclick="generateImage()">&#128444; Image ဖန်တီးရန်</button>
+<button class="btn btn-primary" id="genImageBtn" data-shop-event="click" data-shop-action="generateImage">&#128444; Image ဖန်တီးရန်</button>
 </div>
 </div>
 
-<div class="card" id="imageResultCard" style="display:none;">
+<div class="card shop-hidden" id="imageResultCard" >
 <div class="card-title">&#128444; Image ရလဒ် (Image Result)</div>
 ${aicsResultLoadingHtml('imageLoading','AI ဖန်တီးနေသည်...')}
 <div id="imageResultView"></div>
 <div class="error-box" id="imageLoadingErr"></div>
 <div class="retry-row" id="imageLoadingRetry">
-<button class="btn btn-primary" onclick="retryImage()">&#8635; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="backFromImageLoading()">&#8592; နောက်သို့</button>
+<button class="btn btn-primary" data-shop-event="click" data-shop-action="retryImage">&#8635; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-shop-event="click" data-shop-action="backFromImageLoading">&#8592; နောက်သို့</button>
 </div>
 </div>
 </div>

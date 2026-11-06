@@ -350,12 +350,29 @@ window.studioLoadSession=studioLoadSession;
 var pendingIdeaHandoffId=null;
 var pendingIdeaResult=null;
 
-function studioMapIdeaResultToStoryInput(idea){
+function studioNormalizeIdeaHandoffPayload(payload){
+  if(payload&&payload.kind==='idea-workspace'&&payload.schemaVersion===1&&payload.idea&&typeof payload.idea==='object'&&!Array.isArray(payload.idea)){
+    return {kind:'idea-workspace',schemaVersion:1,category:typeof payload.category==='string'?payload.category:'story',fields:payload.fields&&typeof payload.fields==='object'&&!Array.isArray(payload.fields)?payload.fields:{},idea:payload.idea};
+  }
+  return {kind:'idea-workspace',schemaVersion:1,category:'story',fields:{},idea:payload};
+}
+function studioMapIdeaResultToStoryInput(idea,fields,category){
   var parts=[];
   if(idea.title)parts.push('ခေါင်းစဉ်: '+String(idea.title));
   if(idea.concept)parts.push('အယူအဆ: '+String(idea.concept));
   if(idea.hook)parts.push('စိတ်ဝင်စားဖွယ် အဖွင့်: '+String(idea.hook));
   if(idea.outline)parts.push('ဇာတ်လမ်း အကြမ်းဖျဉ်း: '+String(idea.outline));
+  if(category)parts.push('Idea အမျိုးအစား: '+String(category));
+  var keys=Object.keys(fields||{});
+  var fieldLines=[];
+  for(var i=0;i<keys.length;i++){
+    var value=fields[keys[i]];
+    if(typeof value==='string'||typeof value==='number'){
+      var text=String(value).trim();
+      if(text)fieldLines.push(keys[i]+': '+text);
+    }
+  }
+  if(fieldLines.length)parts.push('Idea Brief အချက်အလက်:\\n'+fieldLines.join('\\n'));
   return parts.join('\\n\\n');
 }
 
@@ -374,18 +391,21 @@ function studioReceiveIdeaHandoff(){
   window.AICS_HANDOFFS.get(handoffId).then(function(record){
     if(!record||record.contractVersion!==1||record.source!=='ideas'||record.target!=='story'||!record.payload||typeof record.payload!=='object'||Array.isArray(record.payload))throw new Error('invalid_handoff');
     pendingIdeaHandoffId=handoffId;
-    pendingIdeaResult=record.payload;
+    pendingIdeaResult=studioNormalizeIdeaHandoffPayload(record.payload);
     var panel=document.getElementById('ideaHandoffPanel');
     var summary=document.getElementById('ideaHandoffSummary');
     var accept=document.getElementById('acceptIdeaHandoffBtn');
     var dismiss=document.getElementById('dismissIdeaHandoffBtn');
     if(!panel||!summary||!accept||!dismiss)throw new Error('idea_handoff_ui_unavailable');
+    var idea=pendingIdeaResult.idea;
     var lines=[];
-    if(pendingIdeaResult.title)lines.push('ခေါင်းစဉ်: '+String(pendingIdeaResult.title));
-    if(pendingIdeaResult.concept)lines.push('အယူအဆ: '+String(pendingIdeaResult.concept));
-    if(pendingIdeaResult.hook)lines.push('အဖွင့်: '+String(pendingIdeaResult.hook));
-    if(pendingIdeaResult.outline)lines.push('အကြမ်းဖျဉ်း: '+String(pendingIdeaResult.outline));
+    if(idea.title)lines.push('ခေါင်းစဉ်: '+String(idea.title));
+    if(idea.concept)lines.push('အယူအဆ: '+String(idea.concept));
+    if(idea.hook)lines.push('အဖွင့်: '+String(idea.hook));
+    if(idea.outline)lines.push('အကြမ်းဖျဉ်း: '+String(idea.outline));
+    if(pendingIdeaResult.category)lines.push('အမျိုးအစား: '+String(pendingIdeaResult.category));
     summary.textContent=lines.join('\\n\\n')||'Idea Result ကို ရရှိပါပြီ။';
+    panel.classList.remove('is-hidden');
     panel.style.display='block';
     accept.disabled=false;
     accept.onclick=studioAcceptIdeaHandoff;
@@ -402,7 +422,7 @@ function studioAcceptIdeaHandoff(){
   if(storyHasMeaningfulDraft(originalDraft)&&!confirm('Story Studio မှာ လက်ရှိ Draft အချက်အလက် ရှိနေပါတယ်။ မူလ Draft ကို မဖျက်ဘဲ ဒီ Idea အတွက် Draft အသစ်ဖန်တီးမလား?'))return;
   var accept=document.getElementById('acceptIdeaHandoffBtn');
   if(accept){accept.disabled=true;accept.textContent='Draft ဖန်တီးနေသည်...';}
-  var ideaText=studioMapIdeaResultToStoryInput(pendingIdeaResult);
+  var ideaText=studioMapIdeaResultToStoryInput(pendingIdeaResult.idea,pendingIdeaResult.fields,pendingIdeaResult.category);
   if(!ideaText.trim()){if(accept){accept.disabled=false;accept.textContent='ဒီ Idea နဲ့ Story စတင်ရန်';}showToastMsg('ဒီ Idea Result မှာ Story အတွက် အသုံးပြုနိုင်တဲ့ အချက်အလက် မရှိပါ။');return;}
   var nextDraft={stepNow:1,mode:'main',storyType:'1',workflow:'CINEMATIC_FEATURE',storyFacts:{},fields:{0:ideaText},story:'',storyIdea:ideaText,videoStarted:false,characters:[],scenes:[]};
   var pendingSave=storySaveQueue.catch(function(){return null;});

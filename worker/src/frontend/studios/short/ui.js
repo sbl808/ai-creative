@@ -11,30 +11,30 @@ const STEP1_HTML = `
 <div class="card">
 <div class="card-title">&#128221;&#65039; Short အချက်အလက် ဖြည့်ရန်</div>
 <div class="workflow-intro"><div><div class="workflow-intro-title">အဆင့်လိုက် ဖန်တီးပါ</div><div class="workflow-steps"><span><strong>01</strong> အကြောင်းအရာ ဖြည့်ပါ</span><span><strong>02</strong> Script ကို ပြန်စစ်ပါ</span><span><strong>03</strong> Video Plan ဆက်လုပ်ပါ</span></div></div><p class="workflow-status" id="shortWorkflowStatus" role="status" aria-live="polite">လက်ရှိအဆင့် — Short အချက်အလက်</p></div>
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">အရင်ဆုံး Topic / Idea ကို ဖြည့်ပါ။ ကျန်တဲ့အချက်အလက်တွေကို လိုအပ်သလို ထည့်ပြီး Script ကို ဖန်တီးနိုင်ပါတယ်။</p>
+<p class="short-ui-style-01">အရင်ဆုံး Topic / Idea ကို ဖြည့်ပါ။ ကျန်တဲ့အချက်အလက်တွေကို လိုအပ်သလို ထည့်ပြီး Script ကို ဖန်တီးနိုင်ပါတယ်။</p>
 <div class="studio-form-grid">
-<div class="form-group aics-cms-type-field" style="margin-bottom:0;">
+<div class="form-group aics-cms-type-field short-ui-style-02">
 <label for="shortTypeSel">Short Type</label>
 <select id="shortTypeSel"></select>
 </div>
-<div class="form-group" style="margin-bottom:0;">
+<div class="form-group short-ui-style-03">
 <label for="durSel">Duration</label>
 <select id="durSel"></select>
 </div>
 </div>
 <div class="studio-form-grid">
-<div class="form-group" style="margin-bottom:0;">
+<div class="form-group short-ui-style-04">
 <label for="toneSel">Tone</label>
 <select id="toneSel"></select>
 </div>
-<div class="form-group" style="margin-bottom:0;">
+<div class="form-group short-ui-style-05">
 <label for="langSel">Language</label>
 <select id="langSel"></select>
 </div>
 </div>
 <div class="form-group">
 <label for="field_0">Topic / Idea *</label>
-<textarea id="field_0" aria-describedby="topicIdeaHint" placeholder="ဥပမာ — မြန်မာပြည်ရဲ့ လက်ဖက်ရည်ဆိုင်ယဉ်ကျေးမှု အကြောင်း 30 စက္ကန့် Short..." style="min-height:110px;resize:vertical;"></textarea>
+<textarea id="field_0" aria-describedby="topicIdeaHint" placeholder="ဥပမာ — မြန်မာပြည်ရဲ့ လက်ဖက်ရည်ဆိုင်ယဉ်ကျေးမှု အကြောင်း 30 စက္ကန့် Short..." class="short-ui-style-06"></textarea>
 <p class="field-hint" id="topicIdeaHint">ဘာအကြောင်း ပြောမလဲ၊ ဘယ်အချက်ကို ပရိသတ် မှတ်မိစေချင်လဲ ဆိုတာ ရေးပါ။</p>
 </div>
 <div class="form-group">
@@ -43,17 +43,17 @@ const STEP1_HTML = `
 </div>
 <div class="form-group">
 <label for="mainMsg">Main Message</label>
-<textarea id="mainMsg" placeholder="ဥပမာ — ရိုးရာလက်ဖက်ရည်ဆိုင်က မြန်မာလူမှုဘဝရဲ့ နွေးထွေးမှုကို ဖော်ပြသည်" style="min-height:70px;"></textarea>
+<textarea id="mainMsg" placeholder="ဥပမာ — ရိုးရာလက်ဖက်ရည်ဆိုင်က မြန်မာလူမှုဘဝရဲ့ နွေးထွေးမှုကို ဖော်ပြသည်" class="short-ui-style-07"></textarea>
 </div>
 <div class="form-group">
 <label for="extraInstr">Additional Instructions</label>
-<textarea id="extraInstr" placeholder="ဥပမာ — စိတ်ခံစားချက်ကို ပိုဖော်ပြပါ / အဆုံးမှာ Follow လုပ်ဖို့ တိုက်တွန်းပါ" style="min-height:70px;"></textarea>
+<textarea id="extraInstr" placeholder="ဥပမာ — စိတ်ခံစားချက်ကို ပိုဖော်ပြပါ / အဆုံးမှာ Follow လုပ်ဖို့ တိုက်တွန်းပါ" class="short-ui-style-08"></textarea>
 </div>
-<button type="button" class="aics-advanced-toggle" id="advToggle" onclick="studioToggleAdvanced('advToggle','advFields')" aria-expanded="false"><span>အပိုဆောင်းသတ်မှတ်ချက် (Advanced Options)</span><span class="aics-adv-arrow">▼</span></button>
+<button type="button" class="aics-advanced-toggle" id="advToggle" data-aics-action="toggle-advanced" aria-expanded="false"><span>အပိုဆောင်းသတ်မှတ်ချက် (Advanced Options)</span><span class="aics-adv-arrow">▼</span></button>
 <div id="advFields" class="adv-grid aics-adv-panel">
-<div class="form-group"><label for="advHook">Hook</label><textarea id="advHook" placeholder="ဥပမာ — "ဒီနေ့ မင်းတို့ကို မြန်မာတစ်ပြည်လုံး ချစ်တဲ့ လက်ဖက်ရည်ဆိုင် ပြပေးမယ်"" style="min-height:60px;"></textarea></div>
-<div class="form-group"><label for="advCta">Call To Action</label><textarea id="advCta" placeholder="ဥပမာ — Follow + Like နှိပ်ဖို့ မမေ့နဲ့နော်" style="min-height:60px;"></textarea></div>
-<div class="form-group"><label for="advCharInfo">Character Information</label><textarea id="advCharInfo" placeholder="ဥပမာ — အသက် ၄၅ နှစ် ဆိုင်ရှင် ဦးဘ" style="min-height:60px;"></textarea></div>
+<div class="form-group"><label for="advHook">Hook</label><textarea id="advHook" placeholder="ဥပမာ — "ဒီနေ့ မင်းတို့ကို မြန်မာတစ်ပြည်လုံး ချစ်တဲ့ လက်ဖက်ရည်ဆိုင် ပြပေးမယ်"" class="short-ui-style-09"></textarea></div>
+<div class="form-group"><label for="advCta">Call To Action</label><textarea id="advCta" placeholder="ဥပမာ — Follow + Like နှိပ်ဖို့ မမေ့နဲ့နော်" class="short-ui-style-10"></textarea></div>
+<div class="form-group"><label for="advCharInfo">Character Information</label><textarea id="advCharInfo" placeholder="ဥပမာ — အသက် ၄၅ နှစ် ဆိုင်ရှင် ဦးဘ" class="short-ui-style-11"></textarea></div>
 <div class="form-group"><label for="advLocation">Location</label><input type="text" id="advLocation" placeholder="ဥပမာ — ရန်ကုန် / ကျေးရွာ"></div>
 <div class="form-group"><label for="advVisualStyle">Visual Style</label><input type="text" id="advVisualStyle" placeholder="ဥပမာ — Warm Tone / Cinematic"></div>
 <div class="form-group"><label for="advEnding">Ending Style</label><input type="text" id="advEnding" placeholder="ဥပမာ — ပြုံးရွှင်သော အဆုံးသတ်"></div>
@@ -72,27 +72,27 @@ const STEP3_HTML = `
 <div class="workflow-callout">ဖန်တီးပြီးသော Script ကို ဒီနေရာမှာ တိုက်ရိုက်ပြင်နိုင်ပါတယ်။ Video အဆင့်သို့ ဆက်သွားမီ နောက်ဆုံးစာသားကို ပြန်စစ်ပါ။</div>
 ${aicsResultLoadingHtml('shortLoading','AI က သင့်အတွက် Short Script ကို ရေးသားနေသည်...')}
 <div id="shortResultBody">
-<textarea class="result-textarea" id="shortResult" placeholder="Short Script ဒီနေရာမှာ ပေါ်လာပါမယ်..." oninput="onShortEdit()"></textarea>
-<p style="color:var(--text3);font-size:12px;margin-top:6px;font-style:italic;">&#9997;&#65039; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ Script ကို "Final Short Script" အဖြစ် Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
+<textarea class="result-textarea" id="shortResult" placeholder="Short Script ဒီနေရာမှာ ပေါ်လာပါမယ်..." data-aics-input="short-edit"></textarea>
+<p class="short-ui-style-12">&#9997;&#65039; ဒီနေရာမှာ တိုက်ရိုက် နှိပ်ပြီး ကိုယ်တိုင် ပြင်ဆင်နိုင်ပါတယ် — ပြင်ထားတဲ့ Script ကို "Final Short Script" အဖြစ် Video အဆင့်ကို အလိုအလျောက် ပို့ပေးပါမယ်</p>
 <div class="btn-row">
-<button class="btn btn-success" onclick="copyShort()">&#128203; Copy Short</button>
-<button class="btn btn-purple" onclick="saveShort()">&#128190; ဖန်တီးမှုသိမ်းပါ</button>
-<button class="btn btn-secondary" onclick="focusRevise()">&#9999;&#65039; ပြန်ပြင်ရန်</button>
-<button class="btn btn-primary" onclick="goToVideoForm()">&#127916; Video ဆက်ဖန်တီးရန်</button>
+<button class="btn btn-success" data-aics-action="copy-short">&#128203; Copy Short</button>
+<button class="btn btn-purple" data-aics-action="save-short">&#128190; ဖန်တီးမှုသိမ်းပါ</button>
+<button class="btn btn-secondary" data-aics-action="focus-revise">&#9999;&#65039; ပြန်ပြင်ရန်</button>
+<button class="btn btn-primary" data-aics-action="go-to-video">&#127916; Video ဆက်ဖန်တီးရန်</button>
 </div>
 </div>
 <div class="error-box" id="genError2"></div>
 <div class="retry-row" id="genRetry2">
-<button class="btn btn-primary" onclick="generateShort()">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="stGoForce(1)">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-primary" data-aics-action="generate-short">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-aics-action="force-step" data-aics-step="1">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>
 <div class="card revise-section" id="revise-section">
 <div class="card-title">&#129302; AI ကို ဆက်ညွှန်ကြားရန် (Revise)</div>
 <div class="revise-history" id="reviseHistory"></div>
 <div class="revise-input-row">
-<textarea id="feedbackInput" placeholder="ဥပမာ — Hook ကို ပိုပြင်းထန်အောင် ပြင်ပေးပါ" onkeypress="if(event.key==='Enter'){reviseShort();}"></textarea>
-<button class="btn btn-secondary" id="reviseBtn" onclick="reviseShort()">&#128260; ပြင်ပါ</button>
+<textarea id="feedbackInput" placeholder="ဥပမာ — Hook ကို ပိုပြင်းထန်အောင် ပြင်ပေးပါ" data-aics-key-action="revise-on-enter"></textarea>
+<button class="btn btn-secondary" id="reviseBtn" data-aics-action="revise-short">&#128260; ပြင်ပါ</button>
 </div>
 <div class="loading" id="revLoading"><div class="spinner"></div> ပြင်ဆင်နေပါသည်...</div>
 <div class="error-box" id="revError"></div>
@@ -104,10 +104,10 @@ const STEP4_HTML = `
 <div class="card">
 <div class="card-title">&#127916; Short Video ဖန်တီးရန်</div>
 <div class="workflow-callout">Script ကို အရင်စစ်ပါ။ ထို့နောက် Video Style၊ အချိုးအစား၊ အချိန်နှင့် Scene ဆက်တင်များကို ရွေးချယ်ပါ။ Reference ပုံများသည် optional ဖြစ်သည်။</div>
-<p style="color:var(--text2);font-size:13px;margin-bottom:14px;">နောက်ဆုံးပြင်ဆင်ထားသော Script ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။ လိုအပ်ပါက ဒီနေရာမှာ ထပ်မံပြင်ဆင်နိုင်ပါတယ်။</p>
+<p class="short-ui-style-13">နောက်ဆုံးပြင်ဆင်ထားသော Script ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။ လိုအပ်ပါက ဒီနေရာမှာ ထပ်မံပြင်ဆင်နိုင်ပါတယ်။</p>
 <div class="form-group">
 <label for="videoScriptInput">&#128241; အသုံးပြုမည့် Short Script</label>
-<textarea id="videoScriptInput" style="min-height:150px;" oninput="autoExpand(this)"></textarea>
+<textarea id="videoScriptInput" data-aics-input="auto-expand" class="short-ui-style-14"></textarea>
 </div>
 <div class="vf-grid">
 <div class="form-group"><label for="vidStyleSel">Video Style</label><select id="vidStyleSel"></select></div>
@@ -118,22 +118,22 @@ const STEP4_HTML = `
 <div class="form-group"><label for="vidCamSel">Camera Style</label><select id="vidCamSel"></select></div>
 <div class="form-group"><label for="vidLangSel">Language</label><select id="vidLangSel"></select></div>
 </div>
-<label style="display:flex;align-items:center;gap:8px;margin:2px 0 16px;cursor:pointer;color:var(--text2);">
-<input type="checkbox" id="vidContinuity" checked style="width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan);"> &#10004; Maintain Same Character (Character Continuity)
+<label class="short-ui-style-15">
+<input type="checkbox" id="vidContinuity" checked class="short-ui-style-16"> &#10004; Maintain Same Character (Character Continuity)
 </label>
 <div class="form-group">
 <label for="vidExtra">Additional Instructions</label>
-<textarea id="vidExtra" placeholder="ဥပမာ — နောက်ဆုံး Scene မှာ Logo ပြပါ / Background Music အရှိန်မြှင့်ပါ..." style="min-height:80px;"></textarea>
+<textarea id="vidExtra" placeholder="ဥပမာ — နောက်ဆုံး Scene မှာ Logo ပြပါ / Background Music အရှိန်မြှင့်ပါ..." class="short-ui-style-17"></textarea>
 </div>
 <div class="ref-upload-area">
 <label for="refImageInput">&#128444;&#65039; Reference ပုံများ ပူးတွဲရန် (ချန်ထားလို့ရသည်)</label>
-<input type="file" id="refImageInput" accept="image/*" multiple onchange="onRefImageSelected()">
+<input type="file" id="refImageInput" accept="image/*" multiple data-aics-change="reference-images">
 <p class="ref-hint">အများဆုံး ၅ ပုံအထိ Upload တင်နိုင်ပါတယ် (ပုံတစ်ပုံချင်းစီ Max 5MB) — Character/Scene ပုံများ တင်ထားရင် AI က ထိုပုံများကို ကိုးကားပြီး ဒီပုံနှင့် ကိုက်ညီသော Reference Prompt ရေးပေးပါမယ်။</p>
 <div class="ref-preview" id="refPreview"></div>
 </div>
 <div class="error-box" id="planError"></div>
-<div class="btn-row" style="margin-top:14px;">
-<button class="btn btn-primary" id="shortVideoBtn" onclick="generateShortVideoPlan()" style="flex:1;">&#127916; Short Video ဖန်တီးရန်</button>
+<div class="btn-row short-ui-style-18">
+<button class="btn btn-primary short-ui-style-19" id="shortVideoBtn" data-aics-action="generate-video-plan">&#127916; Short Video ဖန်တီးရန်</button>
 </div>
 </div>
 </div>`;
@@ -144,8 +144,8 @@ ${aicsResultLoadingHtml('planLoading','AI က သင့်အတွက် Short 
 <div id="finalResult"></div>
 <div class="error-box" id="planError5"></div>
 <div class="retry-row" id="planRetry5">
-<button class="btn btn-primary" onclick="generateShortVideoPlan()">&#128260; ပြန်ကြိုးစားရန်</button>
-<button class="btn btn-secondary" onclick="stGoForce(3)">&#8592; ပြန်ပြင်ရန်</button>
+<button class="btn btn-primary" data-aics-action="generate-video-plan">&#128260; ပြန်ကြိုးစားရန်</button>
+<button class="btn btn-secondary" data-aics-action="force-step" data-aics-step="3">&#8592; ပြန်ပြင်ရန်</button>
 </div>
 </div>`;
 

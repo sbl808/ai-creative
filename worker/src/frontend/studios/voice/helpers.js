@@ -64,23 +64,77 @@ function resultLoadingCard(msg,hint){
   h+='</div></div>';
   return '<div class="vcard"><div class="vtitle">✨ '+esc(msg)+'</div>'+h+'</div>';
 }
+var voiceDraftTouchedBeforeRestore=false;
+var voiceDraftSaveTimer=null;
+var voiceDraftSaveErrorShown=false;
+function voiceApplyDraftData(d){
+  if(!d||typeof d!=='object')return false;
+  var s=d.state||{};
+  if(!s.voiceMode)return false;
+  VOICE_STATE=Object.assign(newVoiceState(s.voiceMode,s.source),s);
+  if(d.inputs&&typeof d.inputs==='object')VOICE_INPUTS=Object.assign(VOICE_INPUTS,d.inputs);
+  if(d.mediaAudio&&typeof d.mediaAudio==='object'){
+    MEDIA_AUDIO={base64:String(d.mediaAudio.base64||''),mime:String(d.mediaAudio.mime||''),fileName:String(d.mediaAudio.fileName||'')};
+  }else{
+    MEDIA_AUDIO={base64:'',mime:'',fileName:String(d.mediaFileName||'')};
+  }
+  translatedSrt=String(d.translation||VOICE_STATE.translationResult||'');
+  LAST_AUDIO={base64:'',mime:'audio/wav',url:''};
+  if(d.lastAudio&&typeof d.lastAudio==='object'){
+    LAST_AUDIO={base64:String(d.lastAudio.base64||''),mime:String(d.lastAudio.mime||'audio/wav'),url:''};
+  }else if(s.audioResult&&s.audioResult.data){
+    LAST_AUDIO={base64:s.audioResult.data,mime:s.audioResult.mimeType||'audio/wav',url:''};
+  }
+  return true;
+}
 function saveDraft(){
-  try{localStorage.setItem(voiceDraftKey,JSON.stringify({
-    state:VOICE_STATE,inputs:VOICE_INPUTS,mediaFileName:MEDIA_AUDIO.fileName,translation:translatedSrt
-  }));}catch(e){}
+  try{
+    if(typeof vCapture==='function')vCapture();
+    if(!window.AICS_STUDIO_DRAFTS)return Promise.resolve(false);
+    return window.AICS_STUDIO_DRAFTS.save('voice',{
+      step:VOICE_STATE.voiceStep||1,
+      savedAt:new Date().toISOString(),
+      data:{
+        state:VOICE_STATE,
+        inputs:VOICE_INPUTS,
+        mediaAudio:MEDIA_AUDIO,
+        translation:translatedSrt
+      }
+    }).then(function(){return true;}).catch(function(){return false;});
+  }catch(e){return Promise.resolve(false);}
+}
+function scheduleVoiceDraftSave(){
+  if(voiceDraftSaveTimer)clearTimeout(voiceDraftSaveTimer);
+  voiceDraftSaveTimer=setTimeout(function(){voiceDraftSaveTimer=null;saveDraft().then(function(ok){if(ok){voiceDraftSaveErrorShown=false;return;}if(!voiceDraftSaveErrorShown){voiceDraftSaveErrorShown=true;if(typeof toast==='function')toast('IndexedDB ထဲ Voice Draft သိမ်းမအောင်မြင်ပါ','error');}});},300);
 }
 function val(id){var x=document.getElementById(id);return x?(x.value||''):'';}
 function restoreDraft(){
-  try{
-    var raw=localStorage.getItem(voiceDraftKey);if(!raw)return false;
-    var d=JSON.parse(raw)||{},s=d.state||{};
-    if(!s.voiceMode)return false;
-    VOICE_STATE=Object.assign(newVoiceState(s.voiceMode,s.source),s);
-    if(d.inputs)VOICE_INPUTS=Object.assign(VOICE_INPUTS,d.inputs);
-    if(d.translation)translatedSrt=d.translation;
-    if(s.audioResult&&s.audioResult.data){LAST_AUDIO.base64=s.audioResult.data;LAST_AUDIO.mime=s.audioResult.mimeType||'audio/wav';}
-    return true;
-  }catch(e){return false;}
+  if(!window.AICS_STUDIO_DRAFTS)return Promise.resolve(false);
+  return window.AICS_STUDIO_DRAFTS.load('voice').then(function(record){
+    if(record&&record.data&&record.data.data){
+      if(voiceDraftTouchedBeforeRestore)return false;
+      return voiceApplyDraftData(record.data.data);
+    }
+    // v3 is the only legacy format whose structure is confirmed by the current source.
+    var raw=null;
+    try{raw=localStorage.getItem(voiceDraftKey);}catch(e){}
+    if(!raw)return false;
+    var legacy;
+    try{legacy=JSON.parse(raw)||{};}catch(e){return false;}
+    if(voiceDraftTouchedBeforeRestore)return false;
+    if(!voiceApplyDraftData(legacy))return false;
+    return window.AICS_STUDIO_DRAFTS.importLegacy('voice',{
+      step:VOICE_STATE.voiceStep||1,
+      savedAt:new Date().toISOString(),
+      data:legacy
+    }).then(function(){return true;}).catch(function(){return true;});
+  }).catch(function(){
+    // Read-only fallback: preserve the legacy source if IndexedDB is unavailable.
+    var raw=null;
+    try{raw=localStorage.getItem(voiceDraftKey);}catch(e){}
+    if(!raw||voiceDraftTouchedBeforeRestore)return false;
+    try{return voiceApplyDraftData(JSON.parse(raw)||{});}catch(e){return false;}
+  });
 }
 function renderStepper(items,current){
   var c=document.getElementById('voiceStepper'),h='';

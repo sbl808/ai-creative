@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
+import { Script } from 'node:vm';
 
 const baseURL = process.env.AICS_BASE_URL || 'http://127.0.0.1:8787';
 const signingKey = String(process.env.AICS_TEST_SESSION_SIGNING_KEY || '').trim();
@@ -25,10 +26,120 @@ function createProTestToken(userId, email) {
   return unsigned + '.' + signature;
 }
 
+function safeUrlPath(value) {
+  try {
+    const url = new URL(value);
+    return url.origin + url.pathname;
+  } catch {
+    return '[invalid-url]';
+  }
+}
+
+async function collectInlineScriptDiagnostics(page) {
+  const scripts = await page.evaluate(() => Array.from(document.scripts).map((script, index) => ({
+    index,
+    type: (script.getAttribute('type') || '').trim().toLowerCase(),
+    src: script.src || '',
+    noncePresent: !!script.nonce,
+    source: script.src ? '' : (script.textContent || ''),
+  })));
+
+  const inventory = [];
+  const syntaxErrors = [];
+  for (const script of scripts) {
+    inventory.push({
+      index: script.index,
+      type: script.type || 'classic',
+      src: script.src ? safeUrlPath(script.src) : null,
+      noncePresent: script.noncePresent,
+      inline: !script.src,
+      sourceLength: script.source.length,
+    });
+    if (script.src || (script.type && ![
+      'text/javascript',
+      'application/javascript',
+      'text/ecmascript',
+      'application/ecmascript',
+    ].includes(script.type))) continue;
+
+    try {
+      new Script(script.source, { filename: 'inline-script-' + script.index });
+    } catch (error) {
+      const message = String(error && error.message || error);
+      const match = message.match(/:(\d+)(?::(\d+))?/);
+      syntaxErrors.push({
+        index: script.index,
+        error: message.slice(0, 300),
+        line: match ? Number(match[1]) : null,
+        column: match && match[2] ? Number(match[2]) : null,
+      });
+    }
+  }
+  return { scriptCount: scripts.length, inventory, syntaxErrors };
+}
+
 const browser = await chromium.launch({ headless: true });
 let context;
 try {
-  const page = await browser.newPage();
+  context = await browser.newContext();
+  const page = await context.newPage();
+  const browserErrors = [];
+  const networkDiagnostics = [];
+  page.on('pageerror', (error) => {
+    const name = String(error && error.name || 'JavaScript error');
+    const rawMessage = String(error && error.message || '');
+    const safeMessage = name === 'SyntaxError' && /Unexpected token/.test(rawMessage)
+      ? 'SyntaxError: Unexpected token'
+      : name;
+    const stack = String(error && error.stack || '');
+    const frame = stack.split('\n').slice(1).find((line) => /https?:\/\//.test(line)) || '';
+    const match = frame.match(/(https?:\/\/[^\s)]+):(\d+):(\d+)/);
+    browserErrors.push({
+      type: 'pageerror',
+      name,
+      message: safeMessage,
+      url: match ? safeUrlPath(match[1]) : null,
+      line: match ? Number(match[2]) : null,
+      column: match ? Number(match[3]) : null,
+    });
+  });
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    const location = message.location() || {};
+    const rawMessage = String(message.text() || '');
+    const safeMessage = /Unexpected token\s+['"]?</.test(rawMessage)
+      ? 'SyntaxError: Unexpected token <'
+      : (/SyntaxError/.test(rawMessage) ? 'SyntaxError' : 'Console error (details withheld)');
+    browserErrors.push({
+      type: 'console',
+      message: safeMessage,
+      url: location.url ? safeUrlPath(location.url) : null,
+      line: Number.isInteger(location.lineNumber) ? location.lineNumber : null,
+      column: Number.isInteger(location.columnNumber) ? location.columnNumber : null,
+    });
+  });
+  page.on('requestfailed', (request) => {
+    const resourceType = request.resourceType();
+    if (!['document', 'script'].includes(resourceType)) return;
+    networkDiagnostics.push({
+      type: 'requestfailed',
+      resourceType,
+      url: safeUrlPath(request.url()),
+      failure: String(request.failure()?.errorText || 'unknown').slice(0, 250),
+    });
+  });
+  page.on('response', (response) => {
+    const request = response.request();
+    const resourceType = request.resourceType();
+    if (!['document', 'script'].includes(resourceType)) return;
+    networkDiagnostics.push({
+      type: 'response',
+      resourceType,
+      url: safeUrlPath(response.url()),
+      status: response.status(),
+      contentType: String(response.headers()['content-type'] || '').slice(0, 120),
+    });
+  });
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
     data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
@@ -38,6 +149,14 @@ try {
   assert.ok(account.user_id, 'Signup should return a local test user ID');
 
   const token = createProTestToken(account.user_id, email);
+  await context.addCookies([{
+    name: 'aics_token',
+    value: token,
+    url: baseURL,
+    httpOnly: true,
+    secure: new URL(baseURL).protocol === 'https:',
+    sameSite: 'Lax',
+  }]);
   await page.addInitScript((value) => {
     localStorage.setItem('aics_token', value);
     localStorage.setItem('aics_plan', 'PRO');
@@ -45,6 +164,27 @@ try {
 
   await page.goto(baseURL + '/app/ideas');
   await page.locator('h1').filter({ hasText: 'Idea Workspace' }).waitFor();
+  const storageReady = await page.waitForFunction(() =>
+    !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.create === 'function'),
+  null, { timeout: 10000 }).then(() => true).catch(() => false);
+  if (!storageReady) {
+    const state = await page.evaluate(() => ({
+      url: location.pathname,
+      readyState: document.readyState,
+      handoffsApi: typeof window.AICS_HANDOFFS,
+      ideasApi: typeof window.AICS_IDEAS,
+      scriptCount: document.scripts.length,
+      inlineScriptsWithNonce: Array.from(document.scripts).filter((script) => !script.src && !!script.nonce).length,
+    }));
+    const scripts = await collectInlineScriptDiagnostics(page);
+    throw new Error('Idea Workspace browser bootstrap incomplete: ' +
+      JSON.stringify({
+        state,
+        scripts,
+        browserErrors: browserErrors.slice(0, 12),
+        networkDiagnostics: networkDiagnostics.slice(0, 30),
+      }));
+  }
 
   const idea = {
     title: 'မိုးရွာသောညက မီးအိမ်',
@@ -62,9 +202,74 @@ try {
     });
   }, idea);
 
+  // Keep the Story failure report scoped to the page under investigation.
+  browserErrors.length = 0;
+  networkDiagnostics.length = 0;
   await page.goto(baseURL + '/app/story?handoff=' + encodeURIComponent(handoff.id));
-  await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible' });
-  await page.locator('#ideaHandoffSummary').getByText(idea.title).waitFor();
+
+  // The shared sidebar script installs IndexedDB APIs. Wait for that bootstrap
+  // before polling the handoff record; do not treat a hidden panel as the first
+  // signal that the record has failed to load.
+  const storageApiReady = await page.waitForFunction(() =>
+    !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+      window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+  null, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRecordReady = storageApiReady && await page.waitForFunction(async (id) => {
+    try {
+      const record = await window.AICS_HANDOFFS.get(id);
+      return !!record && record.contractVersion === 1 &&
+        record.source === 'ideas' && record.target === 'story';
+    } catch (error) {
+      return false;
+    }
+  }, handoff.id, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRendered = handoffRecordReady && await page.locator('#ideaHandoffPanel')
+    .waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
+  const summaryRendered = handoffRendered && await page.locator('#ideaHandoffSummary').getByText(idea.title)
+    .waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+
+  if (!summaryRendered) {
+    const state = await page.evaluate(async (id) => {
+      const panel = document.getElementById('ideaHandoffPanel');
+      const summary = document.getElementById('ideaHandoffSummary');
+      let record = null;
+      let readError = '';
+      try {
+        const value = window.AICS_HANDOFFS && await window.AICS_HANDOFFS.get(id);
+        record = value ? {
+          contractVersion: value.contractVersion,
+          source: value.source,
+          target: value.target,
+          payloadKeys: Object.keys(value.payload || {}),
+        } : null;
+      } catch (error) { readError = String(error && error.message || error); }
+      return {
+        url: location.pathname,
+        handoffsApi: typeof window.AICS_HANDOFFS,
+        sessionsApi: typeof window.AICS_SESSIONS,
+        storageApiReady: !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+          window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+        handoffRecordReady: !!record && record.contractVersion === 1 &&
+          record.source === 'ideas' && record.target === 'story',
+        record,
+        readError,
+        panelExists: !!panel,
+        panelClass: panel ? panel.className : '',
+        summaryTextLength: summary ? (summary.textContent || '').length : 0,
+        toastTextLength: (document.getElementById('toast')?.textContent || '').length,
+      };
+    }, handoff.id);
+    const scripts = await collectInlineScriptDiagnostics(page);
+    throw new Error('Story Idea Handoff bootstrap/fetch/render incomplete: ' +
+      JSON.stringify({
+        state,
+        scripts,
+        browserErrors: browserErrors.slice(0, 20),
+        networkDiagnostics: networkDiagnostics.slice(0, 40),
+      }));
+  }
 
   const sessionsBeforeAccept = await page.evaluate(async () => window.AICS_SESSIONS.list({ limit: 50 }));
   assert.equal(sessionsBeforeAccept.items.length, 0, 'Receiving an Idea must not auto-create a Story Draft');

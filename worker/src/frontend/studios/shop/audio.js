@@ -7,9 +7,9 @@ function showAudioPhase(){
   renderShopStepper();
   renderShopBranchStepper();
   document.getElementById('audioSetupCard').style.display=shopState.audio.step===1?'':'none';
-  document.getElementById('audioResultCard').style.display=shopState.audio.step===2?'':'none';
-  document.getElementById('srtResultCard').style.display=shopState.audio.step===3?'':'none';
-  document.getElementById('transResultCard').style.display=shopState.audio.step===4?'':'none';
+  document.getElementById('audioResultCard').classList.toggle('shop-hidden',shopState.audio.step!==2);
+  document.getElementById('srtResultCard').classList.toggle('shop-hidden',shopState.audio.step!==3);
+  document.getElementById('transResultCard').classList.toggle('shop-hidden',shopState.audio.step!==4);
   if(shopState.audio.step===2)updateAudioInfo();
 }
 function onAudioTextEdit(){

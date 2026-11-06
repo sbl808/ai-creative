@@ -12,6 +12,53 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
+// Node-only HTMLRewriter shim for this source-level test suite.
+// Production requests use Cloudflare Worker's native HTMLRewriter implementation.
+if (typeof globalThis.HTMLRewriter === 'undefined') {
+  globalThis.HTMLRewriter = class TestHTMLRewriter {
+    constructor() { this.rules = []; }
+    on(selector, handler) {
+      this.rules.push({ selector, handler });
+      return this;
+    }
+    transform(response) {
+      const rules = this.rules;
+      const body = new ReadableStream({
+        async start(controller) {
+          try {
+            let html = await response.text();
+            for (const rule of rules) {
+              const tag = rule.selector;
+              const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
+              html = html.replace(pattern, (match, attributes) => {
+                const element = {
+                  attributes,
+                  setAttribute(name, value) {
+                    if (!this.attributes.includes(name + '=')) {
+                      this.attributes += ' ' + name + '="' + value + '"';
+                    }
+                  },
+                };
+                rule.handler.element(element);
+                return '<' + tag + element.attributes + '>';
+              });
+            }
+            controller.enqueue(new TextEncoder().encode(html));
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+      });
+      return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }
+  };
+}
+
 let passed = 0, failed = 0;
 function check(name, ok, extra) {
   if (ok) { passed++; console.log('  ✔ ' + name); }
@@ -108,6 +155,23 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('CSP disallows inline script attributes in target policy', policy.includes("script-src-attr 'none'"));
   check('CSP disables object embeds and framing', policy.includes("object-src 'none'") && policy.includes("frame-ancestors 'none'"));
   check('CSP does not allow unsafe-inline scripts', !policy.includes("'unsafe-inline'"));
+  const nonceMatch = policy.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+  check('HTML CSP includes a valid per-response nonce', !!nonceMatch);
+  check('CSP nonce is shared by script elements and styles',
+    !!nonceMatch &&
+    policy.includes(`script-src-elem 'self' 'nonce-${nonceMatch[1]}'`) &&
+    policy.includes(`style-src 'self' 'nonce-${nonceMatch[1]}'`));
+  const page2 = await worker.fetch(new Request('https://w.dev/'), envFor(DEV_ORIGIN), {});
+  const policy2 = page2.headers.get('content-security-policy-report-only') || '';
+  const nonceMatch2 = policy2.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+  check('separate HTML responses receive different CSP nonces',
+    !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
+  const html = await page.clone().text();
+  const inlineElements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
+  check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
+  check('every script/style element receives the CSP response nonce',
+    !!nonceMatch && inlineElements.length >= 2 &&
+    inlineElements.every((match) => match[2].includes('nonce="' + nonceMatch[1] + '"')));
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
@@ -494,11 +558,13 @@ console.log('\n--- F) API request body size protection ---');
 console.log('--- F) Content draft secret exclusion ---');
 {
  const shell = readFileSync(new URL('../worker/src/frontend/studios/content/shell.js', import.meta.url), 'utf8');
- const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+ const adapter = readFileSync(new URL('../worker/src/frontend/storage/studio-drafts.js', import.meta.url), 'utf8');
  const collect = shell.split('function studioCollectDraft(){')[1].split('window.studioCollectDraft=')[0];
  check('Content draft excludes key inputs', !collect.includes("byok:val(") && !collect.includes("videoByok:val("));
- check('Legacy draft fields sanitized', shared.includes('delete d.data.byok; delete d.data.videoByok;'));
- check('New draft fields sanitized', shared.includes('delete data.byok; delete data.videoByok;'));
+ check('Legacy draft fields sanitized', adapter.includes('safeDraftData(studio, legacy)') &&
+   adapter.includes('delete data.byok;') && adapter.includes('delete data.videoByok;'));
+ check('New draft fields sanitized', adapter.includes('safeDraftData(studio, draft)') &&
+   adapter.includes('delete data.byok;') && adapter.includes('delete data.videoByok;'));
 }
 
 console.log('\n--- G) Multimodal request input limits ---');

@@ -9,6 +9,7 @@ export const BACKUP_STORE_NAMES = Object.freeze([
   'studio_sessions',
   'studio_handoffs',
   'session_results',
+  'ideas',
   'drafts'
 ]);
 

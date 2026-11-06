@@ -7,7 +7,7 @@ function showImagePhase(){
   renderShopStepper();
   renderShopBranchStepper();
   document.getElementById('imageSetupCard').style.display=shopState.image.step===1?'':'none';
-  document.getElementById('imageResultCard').style.display=shopState.image.step===2?'':'none';
+  document.getElementById('imageResultCard').classList.toggle('shop-hidden',shopState.image.step!==2);
   if(shopState.image.step===2)renderImageResult();
 }
 function onImageTextEdit(){
@@ -91,8 +91,8 @@ function renderImageResult(){
   var r=shopState.image.result||{};
   var html='';
   var imgSrc=safeUrl(r.url)||(r.data?('data:'+(r.mimeType||'image/png')+';base64,'+r.data):'');
-  if(imgSrc)html+='<div class="image-result-box"><img src="'+imgSrc+'" alt="AI Generated Product Image"><div class="btn-row"><button class="btn btn-green btn-sm" onclick="copyImagePrompt()">📋 Copy Prompt</button><button class="btn btn-secondary btn-sm" onclick="saveImage()">💾 Save Image</button></div></div>';
-  if(r.prompt)html+='<div class="image-prompt-box"><div class="srt-label">✏️ Image Prompt</div><div class="sm-txt">'+escapeHtml(r.prompt)+'</div><button class="btn btn-green btn-sm" style="margin-top:8px;" onclick="copyImagePrompt()">📋 Copy Prompt</button></div>';
+  if(imgSrc)html+='<div class="image-result-box"><img src="'+imgSrc+'" alt="AI Generated Product Image"><div class="btn-row"><button class="btn btn-green btn-sm" data-shop-event="click" data-shop-action="copyImagePrompt">📋 Copy Prompt</button><button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="saveImage">💾 Save Image</button></div></div>';
+  if(r.prompt)html+='<div class="image-prompt-box"><div class="srt-label">✏️ Image Prompt</div><div class="sm-txt">'+escapeHtml(r.prompt)+'</div><button class="btn btn-green btn-sm shop-style-mt-8"  data-shop-event="click" data-shop-action="copyImagePrompt">📋 Copy Prompt</button></div>';
   box.innerHTML=html||'<p class="hint">Image မရှိသေးပါ</p>';
 }
 function copyImagePrompt(){

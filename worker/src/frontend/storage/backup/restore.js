@@ -1,11 +1,12 @@
 const SCRIPT = String.raw`(function () {
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'drafts'];
+  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts'];
   var ownerIndexes = {
     creations: 'user_id',
     projects: 'user_id',
     studio_sessions: 'ownerId',
     studio_handoffs: 'ownerId',
     session_results: 'ownerId',
+    ideas: 'ownerId',
     drafts: 'ownerId'
   };
 

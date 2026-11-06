@@ -11,7 +11,7 @@ const brief = {
   contentType: 'Educational short video',
   count: 3,
 };
-assert.deepEqual(validateIdeasBrief(brief), { ok: true });
+assert.deepEqual(validateIdeasBrief(brief), { ok: true, category: 'story' });
 assert.equal(validateIdeasBrief({ ...brief, count: 2 }).error, 'count_must_be_3');
 assert.equal(validateIdeasBrief({ ...brief, idea: '' }).error, 'missing_idea');
 assert.equal(validateIdeasBrief(null).error, 'invalid_request');
@@ -37,10 +37,13 @@ const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/
 for (const studio of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
   assert.ok(ideaUi.includes("id:'" + studio + "'"), 'missing handoff target: ' + studio);
 }
-assert.match(ideaUi, /targetHasDraft\(studio\)&&!confirm\(/, 'handoff must confirm before replacing an existing draft');
+assert.match(ideaUi, /if\(\(existing&&existing\.data\)\|\|hasLegacy\)\{/, 'handoff must detect an existing IndexedDB or legacy draft');
+assert.match(ideaUi, /if\(!confirm\(/, 'handoff must ask before replacing an existing draft');
+assert.match(ideaUi, /Cancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ/, 'handoff cancellation must preserve the existing draft');
+assert.match(ideaUi, /return false;/, 'handoff cancellation must stop the replacement');
 assert.match(
   ideaUi,
-  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:idea\}\)/,
+  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:fullPayload\}\)/,
   'Story handoff must send the complete Idea Result through the IndexedDB handoff contract'
 );
 assert.match(ideaUi, /aics_draft_content/, 'Content handoff draft key missing');

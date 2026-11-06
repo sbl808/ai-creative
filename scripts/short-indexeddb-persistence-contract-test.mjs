@@ -6,9 +6,9 @@
 import assert from 'node:assert/strict';
 import { SHORT_HTML } from '../worker/src/frontend/studios/short/page.js';
 
-assert.match(SHORT_HTML, /window\.AICS_DRAFTS\.get\(SHELL_ID\)/,
+assert.match(SHORT_HTML, /window\.AICS_STUDIO_DRAFTS\.load\(SHELL_ID\)/,
   'Short Studio must restore its draft from the owner-scoped IndexedDB repository');
-assert.match(SHORT_HTML, /window\.AICS_DRAFTS\.save\(\{[\s\S]*?studio: SHELL_ID/,
+assert.match(SHORT_HTML, /window\.AICS_STUDIO_DRAFTS\.save\(SHELL_ID,\s*\{/,
   'Short Studio must save its draft to IndexedDB');
 assert.match(SHORT_HTML, /imgCache:imgCache/,
   'Short draft must persist the image cache together with the draft');
@@ -22,7 +22,7 @@ assert.doesNotMatch(SHORT_HTML, /localStorage\.setItem\(['"]aics_draft_short(?:_
   'Short Studio must not write new user draft data to localStorage');
 assert.match(SHORT_HTML, /localStorage\.getItem\(draftKey\)/,
   'legacy draft must remain available for migration');
-assert.match(SHORT_HTML, /AICS_DRAFTS\.remove\(SHELL_ID\)/,
+assert.match(SHORT_HTML, /AICS_STUDIO_DRAFTS\.remove\(SHELL_ID\)/,
   'confirmed Short reset must remove the IndexedDB draft');
 
 console.log('Short Studio IndexedDB persistence contract tests passed.');

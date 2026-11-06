@@ -41,6 +41,18 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
         drafts.createIndex('owner_studio', ['ownerId', 'studio'], { unique: true });
       }
     }
+  },
+  {
+    version: 6,
+    up: function (db) {
+      if (!db.objectStoreNames.contains('ideas')) {
+        var ideas = db.createObjectStore('ideas', { keyPath: 'id' });
+        ideas.createIndex('ownerId', 'ownerId', { unique: false });
+        ideas.createIndex('owner_updatedAt', ['ownerId', 'updatedAt'], { unique: false });
+        ideas.createIndex('category', 'category', { unique: false });
+        ideas.createIndex('owner_category', ['ownerId', 'category'], { unique: false });
+      }
+    }
   }
 ];
 

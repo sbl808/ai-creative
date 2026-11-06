@@ -15,7 +15,7 @@ import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
-import { buildHtmlSecurityHeaders } from './middleware/securityHeaders.js';
+import { buildHtmlSecurityHeaders, createCspNonce } from './middleware/securityHeaders.js';
 import { isApiRequestBodyTooLarge, buildCors, ndjsonResponse } from './platform/http/index.js';
 
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
@@ -76,13 +76,27 @@ function friendlyError(e) {
 }
 
 function htmlPage(html) {
-  return new Response(html, {
+  const nonce = createCspNonce();
+  const response = new Response(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      ...buildHtmlSecurityHeaders(),
+      ...buildHtmlSecurityHeaders(nonce),
     },
   });
+
+  return new HTMLRewriter()
+    .on('script', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .on('style', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .transform(response);
 }
 
 function bearer(req) {
