@@ -148,7 +148,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
   const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
   const scriptMarker = 'export const AICS_ERROR_SCRIPT = \`';
   const scriptStart = sharedUi.indexOf(scriptMarker);
-  const scriptEnd = scriptStart >= 0 ? sharedUi.indexOf('\\n\\`; ', scriptStart) : -1;
+  const scriptEnd = scriptStart >= 0 ? sharedUi.indexOf('\n`;', scriptStart) : -1;
   const errorScript = scriptStart >= 0 && scriptEnd > scriptStart
     ? sharedUi.slice(scriptStart + scriptMarker.length, scriptEnd)
     : '';
