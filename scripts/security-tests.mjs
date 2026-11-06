@@ -10,6 +10,7 @@
  * Run: node --experimental-default-type=module scripts/security-tests.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
+import vm from 'node:vm';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
 // Node-only HTMLRewriter shim for this source-level test suite.
@@ -140,6 +141,67 @@ console.log('--- A) CORS enforcement ---');
   check('prod env accepts prod origin', r8.headers.get('access-control-allow-origin') === PROD_ORIGIN);
   const r9 = await worker.fetch(req2, envFor(DEV_ORIGIN), {});
   check('prod origin rejected under dev env', r9.headers.get('access-control-allow-origin') === null);
+}
+
+console.log('\\n--- B) Shared error message XSS regression ---');
+{
+  const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
+  const scriptMarker = 'export const AICS_ERROR_SCRIPT = \`';
+  const scriptStart = sharedUi.indexOf(scriptMarker);
+  const scriptEnd = scriptStart >= 0 ? sharedUi.indexOf('\n`;', scriptStart) : -1;
+  const errorScript = scriptStart >= 0 && scriptEnd > scriptStart
+    ? sharedUi.slice(scriptStart + scriptMarker.length, scriptEnd)
+    : '';
+  check('shared error dialog script is present', !!errorScript);
+
+  if (errorScript) {
+    const errorElement = {
+      style: {},
+      children: [],
+      textContent: '',
+      appendChild(node) { this.children.push(node); },
+    };
+    const document = {
+      getElementById(id) { return id === 'errorMsg' ? errorElement : null; },
+      createElement(tagName) { return { tagName, style: {}, textContent: '' }; },
+      createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
+    };
+    const hostilePrefix = '<svg onload=alert(1)>';
+    const hostileMessage = '<img src=x onerror=alert(1)>';
+    vm.runInNewContext(errorScript + '\naicsShowError(prefix, error);', {
+      document, String, prefix: hostilePrefix, error: { message: hostileMessage },
+    });
+
+    check('error prefix and message remain literal text nodes',
+      errorElement.children.length === 3 &&
+      errorElement.children[0].tagName === 'span' &&
+      errorElement.children[0].textContent === hostilePrefix &&
+      errorElement.children[1].nodeType === 3 &&
+      errorElement.children[1].textContent === ' ' &&
+      errorElement.children[2].nodeType === 3 &&
+      errorElement.children[2].textContent === hostileMessage);
+    check('error rendering does not assign attacker-controlled innerHTML',
+      !errorScript.includes('el.innerHTML'));
+  }
+}
+
+console.log('\\n--- B) Worker log data minimization contract ---');
+{
+  const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const friendlyStart = index.indexOf('function friendlyError()');
+  const friendlyEnd = friendlyStart >= 0 ? index.indexOf('\n}', friendlyStart) : -1;
+  const friendlyBlock = friendlyStart >= 0 && friendlyEnd > friendlyStart
+    ? index.slice(friendlyStart, friendlyEnd + 2)
+    : '';
+  const studioLogStart = index.indexOf("console.error('[AICS] studio page load failed");
+  const studioLogEnd = studioLogStart >= 0 ? index.indexOf('} catch (_) {}', studioLogStart) : -1;
+  const studioLogBlock = studioLogStart >= 0 && studioLogEnd > studioLogStart
+    ? index.slice(studioLogStart, studioLogEnd)
+    : '';
+  check('generic error logging excludes exception details',
+    !!friendlyBlock && !friendlyBlock.includes('.stack') && !friendlyBlock.includes('.message') && !friendlyBlock.includes('JSON.stringify') && !friendlyBlock.includes('String(e)'));
+  check('studio load error logging excludes slug and exception details',
+    !!studioLogBlock && !studioLogBlock.includes('slug:') && !studioLogBlock.includes('message:') && !studioLogBlock.includes('.stack') && !studioLogBlock.includes('.message') && !studioLogBlock.includes('JSON.stringify') && !studioLogBlock.includes('String(e)'));
 }
 
 console.log('\n--- B) HTML Content Security Policy rollout ---');

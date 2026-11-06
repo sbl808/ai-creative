@@ -66,8 +66,19 @@ function aicsShowError(prefix, e) {
   var el = document.getElementById('errorMsg');
   if (!el) return;
   el.style.display = 'block';
-  el.innerHTML = '<span style="opacity:.85">' + (prefix || '') + '</span> ' +
-    (e && e.message ? String(e.message) : 'Something went wrong. Please try again.');
+
+  var label = document.createElement('span');
+  label.style.opacity = '.85';
+  label.textContent = prefix || '';
+
+  el.textContent = '';
+  if (label.textContent) {
+    el.appendChild(label);
+    el.appendChild(document.createTextNode(' '));
+  }
+  el.appendChild(document.createTextNode(
+    e && e.message ? String(e.message) : 'Something went wrong. Please try again.'
+  ));
 }
 function aicsHideError() {
   var el = document.getElementById('errorMsg');

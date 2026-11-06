@@ -69,9 +69,9 @@ function json(data, status, c) {
 }
 
 // Rule 22 — Error Handling: User ကို Technical Error အပြည့်မပြပါ။
-// အသေးစိတ် Error ကို Server Log ထဲတွင် သိမ်းပြီး User ကို ဖော်ရွေသော Message သာ ပြသည်
-function friendlyError(e) {
-  try { console.error('[AICS]', (e && e.stack) || e); } catch (_) {}
+// H6: user data ပါဝင်နိုင်သည့် exception detail များကို Server Log ထဲ မရေးပါ။
+function friendlyError() {
+  try { console.error('[AICS] request failed'); } catch (_) {}
   return 'Something went wrong. Please try again.';
 }
 
@@ -342,7 +342,7 @@ export default {
       // Phase 1 — Loader error contract (Production hardening):
       //   unknown studio        → 404  STUDIO_NOT_FOUND
       //   known, module failed  → 500  STUDIO_PAGE_LOAD_FAILED (module error ကို 404 အဖြစ် မပြ)
-      //   user ကို stack trace မပြ; server log တွင် slug + message + error id ထည့်သည်
+      //   user ကို stack trace မပြ; server log တွင် non-sensitive error id သာ ထည့်သည်
       {
         // V2 — Lazy Loading: Studio page ကို ထို Studio slug ရှိမှသာ ခေါ်သည် (rule 10)
         const studioSlug = path.startsWith('/app/') ? path.replace(/\/+$/, '').split('/').pop() : '';
@@ -352,11 +352,7 @@ export default {
         } catch (e) {
           const errId = Math.random().toString(36).slice(2, 10);
           try {
-            console.error('[AICS] studio page load failed ' + JSON.stringify({
-              slug: studioSlug,
-              errId: errId,
-              message: (e && e.message) ? String(e.message) : String(e),
-            }));
+            console.error('[AICS] studio page load failed ' + errId);
           } catch (_) {}
           return new Response('STUDIO_PAGE_LOAD_FAILED', {
             status: 500,
