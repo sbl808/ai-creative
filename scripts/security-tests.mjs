@@ -10,6 +10,7 @@
  * Run: node --experimental-default-type=module scripts/security-tests.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
+import vm from 'node:vm';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 
 // Node-only HTMLRewriter shim for this source-level test suite.
@@ -140,6 +141,45 @@ console.log('--- A) CORS enforcement ---');
   check('prod env accepts prod origin', r8.headers.get('access-control-allow-origin') === PROD_ORIGIN);
   const r9 = await worker.fetch(req2, envFor(DEV_ORIGIN), {});
   check('prod origin rejected under dev env', r9.headers.get('access-control-allow-origin') === null);
+}
+
+console.log('\\n--- B) Shared error message XSS regression ---');
+{
+  const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
+  const match = sharedUi.match(/export const AICS_ERROR_SCRIPT = \`([\\s\\S]*?)\\`;/);
+  check('shared error dialog script is present', !!match);
+
+  if (match) {
+    const errorElement = {
+      style: {},
+      children: [],
+      textContent: '',
+      appendChild(node) { this.children.push(node); },
+    };
+    const document = {
+      getElementById(id) { return id === 'errorMsg' ? errorElement : null; },
+      createElement(tagName) { return { tagName, style: {}, textContent: '' }; },
+      createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
+    };
+    vm.runInNewContext(match[1], { document, String });
+
+    const hostilePrefix = '<svg onload=alert(1)>';
+    const hostileMessage = '<img src=x onerror=alert(1)>';
+    vm.runInNewContext('aicsShowError(prefix, error)', {
+      document, String, prefix: hostilePrefix, error: { message: hostileMessage },
+    });
+
+    check('error prefix and message remain literal text nodes',
+      errorElement.children.length === 3 &&
+      errorElement.children[0].tagName === 'span' &&
+      errorElement.children[0].textContent === hostilePrefix &&
+      errorElement.children[1].nodeType === 3 &&
+      errorElement.children[1].textContent === ' ' &&
+      errorElement.children[2].nodeType === 3 &&
+      errorElement.children[2].textContent === hostileMessage);
+    check('error rendering does not assign attacker-controlled innerHTML',
+      !/el\\.innerHTML\\s*=/.test(match[1]));
+  }
 }
 
 console.log('\n--- B) HTML Content Security Policy rollout ---');
