@@ -20,8 +20,8 @@ const STEP1_HTML = `
 <div id="ideaHandoffSummary" class="story-intro story-handoff-summary"></div>
 <p class="form-help">မူရင်း Idea Result ကို မပြောင်းလဲဘဲ ထားရှိပါမည်။ ဒီ Idea ကို Story အဖြစ် စတင်အသုံးပြုလိုမှ အောက်ပါခလုတ်ကို နှိပ်ပါ။</p>
 <div class="story-actions-primary story-handoff-actions">
-<button type="button" class="btn btn-primary" id="acceptIdeaHandoffBtn">ဒီ Idea နဲ့ Story စတင်ရန်</button>
-<button type="button" class="btn btn-secondary" id="dismissIdeaHandoffBtn">မလုပ်တော့ပါ</button>
+<button type="button" class="btn btn-primary" id="acceptIdeaHandoffBtn" data-aics-action="accept-story-idea-handoff">ဒီ Idea နဲ့ Story စတင်ရန်</button>
+<button type="button" class="btn btn-secondary" id="dismissIdeaHandoffBtn" data-aics-action="dismiss-story-idea-handoff">မလုပ်တော့ပါ</button>
 </div>
 </div>
 
