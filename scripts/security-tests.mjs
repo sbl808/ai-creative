@@ -178,7 +178,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
       errorElement.children[2].nodeType === 3 &&
       errorElement.children[2].textContent === hostileMessage);
     check('error rendering does not assign attacker-controlled innerHTML',
-      !/el\\.innerHTML\\s*=/.test(match[1]));
+      !match[1].includes('el.innerHTML'));
   }
 }
 
