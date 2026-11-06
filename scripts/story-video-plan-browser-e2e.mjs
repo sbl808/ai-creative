@@ -206,10 +206,30 @@ try {
   browserErrors.length = 0;
   networkDiagnostics.length = 0;
   await page.goto(baseURL + '/app/story?handoff=' + encodeURIComponent(handoff.id));
-  const handoffRendered = await page.locator('#ideaHandoffPanel').waitFor({ state: 'visible', timeout: 10000 })
-    .then(() => true).catch(() => false);
+
+  // The shared sidebar script installs IndexedDB APIs. Wait for that bootstrap
+  // before polling the handoff record; do not treat a hidden panel as the first
+  // signal that the record has failed to load.
+  const storageApiReady = await page.waitForFunction(() =>
+    !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+      window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+  null, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRecordReady = storageApiReady && await page.waitForFunction(async (id) => {
+    try {
+      const record = await window.AICS_HANDOFFS.get(id);
+      return !!record && record.contractVersion === 1 &&
+        record.source === 'ideas' && record.target === 'story';
+    } catch (error) {
+      return false;
+    }
+  }, handoff.id, { timeout: 10000 }).then(() => true).catch(() => false);
+
+  const handoffRendered = handoffRecordReady && await page.locator('#ideaHandoffPanel')
+    .waitFor({ state: 'visible', timeout: 10000 }).then(() => true).catch(() => false);
   const summaryRendered = handoffRendered && await page.locator('#ideaHandoffSummary').getByText(idea.title)
     .waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+
   if (!summaryRendered) {
     const state = await page.evaluate(async (id) => {
       const panel = document.getElementById('ideaHandoffPanel');
@@ -229,6 +249,10 @@ try {
         url: location.pathname,
         handoffsApi: typeof window.AICS_HANDOFFS,
         sessionsApi: typeof window.AICS_SESSIONS,
+        storageApiReady: !!(window.AICS_HANDOFFS && typeof window.AICS_HANDOFFS.get === 'function' &&
+          window.AICS_SESSIONS && typeof window.AICS_SESSIONS.list === 'function'),
+        handoffRecordReady: !!record && record.contractVersion === 1 &&
+          record.source === 'ideas' && record.target === 'story',
         record,
         readError,
         panelExists: !!panel,
@@ -238,7 +262,7 @@ try {
       };
     }, handoff.id);
     const scripts = await collectInlineScriptDiagnostics(page);
-    throw new Error('Story Idea Handoff was not rendered: ' +
+    throw new Error('Story Idea Handoff bootstrap/fetch/render incomplete: ' +
       JSON.stringify({
         state,
         scripts,
