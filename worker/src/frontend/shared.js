@@ -197,7 +197,8 @@ function responsiveStyles() {
     '  .aics-app .aics-title{font-size:15px;}\n' +
     '  .aics-app .aics-brand-icon{font-size:17px;}\n' +
     '  .aics-app .aics-pro{padding:5px 12px;font-size:11px;}\n' +
-    '  .aics-app .layout{display:block;min-height:calc(100vh - 57px);}\n' +    '  .aics-app .layout > .sidebar{position:fixed;left:-280px;top:57px;bottom:0;width:256px;max-width:82vw;height:auto;min-height:0;margin:0;padding:16px 14px;z-index:299;border-radius:0 16px 16px 0;transition:left .25s ease;overflow:hidden;}\n' +
+    '  .aics-app .layout{display:block;min-height:calc(100vh - 57px);}\n' +
+    '  .aics-app .layout > .sidebar{position:fixed;left:-280px;top:57px;bottom:0;width:256px;max-width:82vw;height:auto;min-height:0;margin:0;padding:16px 14px;z-index:299;border-radius:0 16px 16px 0;transition:left .25s ease;overflow:hidden;}\n' +
     '  .aics-app .layout > .sidebar.open{left:0;}\n' +
     '  .aics-app .aics-main,.aics-app .main-content{width:100%;max-width:none;margin:0;padding:14px;}\n' +
     '  .aics-app .quick-grid,.aics-app .recent-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}\n' +
@@ -396,7 +397,8 @@ export function sidebarScript() {
     'function __sbToast(msg, isError) {\n' +
     '  try { if (typeof showToast === \'function\') { showToast(msg, isError ? \'error\' : \'success\'); return; } } catch (e) {}\n' +
     '  try {\n' +
-    '    var t = document.getElementById(\'toast\');\n' +    '    if (t) { t.textContent = msg; t.className = \'toast show\' + (isError ? \' error\' : \'\'); setTimeout(function(){ t.className = \'toast\'; }, 2500); return; }\n' +
+    '    var t = document.getElementById(\'toast\');\n' +
+    '    if (t) { t.textContent = msg; t.className = \'toast show\' + (isError ? \' error\' : \'\'); setTimeout(function(){ t.className = \'toast\'; }, 2500); return; }\n' +
     '  } catch (e2) {}\n' +
     '  alert(msg);\n' +
     '}\n' +
@@ -595,7 +597,8 @@ function aicsDesignPatchCss() {
     '.aics-work textarea{min-height:108px;}\n' +
     '.aics-work input:not([type=checkbox]):not([type=radio]):hover,.aics-work textarea:hover,.aics-work select:hover{border-color:rgba(0,229,255,.30);background:rgba(8,16,32,.92);}\n' +
     '.aics-work input:not([type=checkbox]):not([type=radio]):focus,.aics-work textarea:focus,.aics-work select:focus{outline:none;border-color:rgba(0,229,255,.75);box-shadow:0 0 0 3px rgba(0,229,255,.10);background:#0a1020;}\n' +
-    '.aics-work select{cursor:pointer;appearance:auto;}\n' +    '.aics-work .studio-form-grid,.aics-work .adv-grid,.aics-work .vf-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;}\n' +
+    '.aics-work select{cursor:pointer;appearance:auto;}\n' +
+    '.aics-work .studio-form-grid,.aics-work .adv-grid,.aics-work .vf-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;}\n' +
     '.aics-work .studio-form-grid .form-group,.aics-work .adv-grid .form-group,.aics-work .vf-grid .form-group{min-width:0;}\n' +
     '.aics-work .aics-cms-type-field{grid-column:1 / -1 !important;position:relative;padding:10px 12px 12px;border:1px solid rgba(0,229,255,.20);border-radius:14px;background:linear-gradient(135deg,rgba(0,229,255,.055),rgba(123,92,255,.075));box-shadow:0 8px 28px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.035);}\n' +
     '.aics-work .aics-cms-type-field label{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-weight:700;color:#dffcff;}\n' +
@@ -794,7 +797,8 @@ function aicsShellCss() {
 // Stepper ထဲတွင် မပြတော့ဘဲ Result နေရာတွင်သာ loading ပြသည်။
 // id: loading block ၏ element id | msg: Studio အလိုက် personalized loading message
 // hint ကို page script မှ window.aicsResultLoading.show(id,msg,hint) ဖြင့် ထည့်နိုင်သည်
-// ============================================================export function aicsResultLoadingHtml(id, msg) {
+// ============================================================
+export function aicsResultLoadingHtml(id, msg) {
   return (
     '<div class="aics-result-loading" id="' + id + '">' +
     '<div class="aics-result-loading-inner">' +
@@ -993,7 +997,8 @@ export function renderStudioShell(opts) {
     '      var a = acts[i];\n' +
     '      html += \'<button class="aics-act \' + (a.cls || "secondary") + \'" data-aics-shell-action="studio-action" data-action-index="\' + i + \'">\' + a.label + \'</button>\';\n' +
     '    }\n' +
-    '    c.innerHTML = \'\';\n' +    '    if (model) c.appendChild(model);\n' +
+    '    c.innerHTML = \'\';\n' +
+    '    if (model) c.appendChild(model);\n' +
     '    c.insertAdjacentHTML("beforeend", html);\n' +
     '    window.__studioActions = acts;\n' +
     '  };\n' +
