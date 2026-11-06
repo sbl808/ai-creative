@@ -43,10 +43,10 @@ function safeDiagnosticText(value) {
     if (sensitiveValue) text = text.split(sensitiveValue).join('[REDACTED]');
   }
   return text
-    .replace(/Bearer\\s+[^\\s"'<>]+/gi, 'Bearer [REDACTED]')
-    .replace(/eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
-    .replace(/https?:\\/\\/[^\\s"'<>]+/g, (url) => safeUrlPath(url))
+    .replace(/Bearer\s+[^\s"'<>]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/https?:\/\/[^\s"'<>]+/g, (url) => safeUrlPath(url))
     .slice(0, 500);
 }
 
