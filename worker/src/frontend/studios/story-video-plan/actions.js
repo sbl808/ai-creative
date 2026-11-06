@@ -84,7 +84,7 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
         if(ch.age||ch.role||ch.description)html+='<div class="final-char-meta">'+escapeHtml([ch.age,ch.role,ch.description].filter(Boolean).join(' · '))+'</div>';
         html+='<div class="final-prompt-text">'+escapeHtml(ch.characterPrompt||ch.prompt||'(မရှိပါ)')+'</div>';
         html+='<div class="final-char-img" id="charImg_'+index+'">'+(image?'<img class="aics-pv-img" src="'+image+'" alt="Character reference">':'<div class="empty-note">ရုပ်ပုံ မရှိသေးပါ</div>')+'</div>';
-        html+='<div class="btn-row"><button type="button" class="btn-ghost" onclick="copyCharPrompt('+index+')">Copy Prompt</button><button type="button" class="btn-ghost" onclick="generateCharImage('+index+')">Character Image ဖန်တီးရန်</button></div></div>';
+        html+='<div class="btn-row"><button type="button" class="btn-ghost" data-aics-action="copy-char-prompt" data-index="'+index+'">Copy Prompt</button><button type="button" class="btn-ghost" data-aics-action="generate-char-image" data-index="'+index+'">Character Image ဖန်တီးရန်</button></div></div>';
       });
       html+='</div>';
     }
@@ -94,8 +94,8 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
         var image=safeImage(images['env_'+index]);
         html+='<div class="smap-card"><div class="smap-head"><span class="smap-num">SCENE '+escapeHtml(scene.number||index+1)+'</span><span class="smap-title">'+escapeHtml(scene.title||'')+'</span></div>';
         html+='<div class="smap-row"><div class="smap-label">Environment</div><div class="smap-text">'+escapeHtml(scene.environmentPrompt||'(မရှိပါ)')+'</div>';
-        html+='<div class="env-action-grid"><div class="scene-image-area" id="envImg_'+index+'">'+(image?'<img src="'+image+'" alt="Environment reference">':'<button type="button" class="btn btn-orange env-img-btn" onclick="generateEnvImage('+index+')">Environment Image ဖန်တီးပါ</button>')+'</div><button type="button" class="btn btn-ghost env-copy-btn" onclick="copyEnvPrompt('+index+')">Copy Environment Prompt</button></div></div>';
-        html+='<div class="smap-row"><div class="smap-label">Video Prompt</div><div class="smap-text">'+escapeHtml(scene.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button type="button" class="btn-ghost" onclick="copyVideoPrompt('+index+')">Copy Video Prompt</button></div></div>';
+        html+='<div class="env-action-grid"><div class="scene-image-area" id="envImg_'+index+'">'+(image?'<img src="'+image+'" alt="Environment reference">':'<button type="button" class="btn btn-orange env-img-btn" data-aics-action="generate-env-image" data-index="'+index+'">Environment Image ဖန်တီးပါ</button>')+'</div><button type="button" class="btn btn-ghost env-copy-btn" data-aics-action="copy-env-prompt" data-index="'+index+'">Copy Environment Prompt</button></div></div>';
+        html+='<div class="smap-row"><div class="smap-label">Video Prompt</div><div class="smap-text">'+escapeHtml(scene.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button type="button" class="btn-ghost" data-aics-action="copy-video-prompt" data-index="'+index+'">Copy Video Prompt</button></div></div>';
         html+='<div class="smap-meta"><span>Characters: '+escapeHtml(resolveSceneCharacters(index))+'</span><span>'+escapeHtml(durationText(scene.duration))+'</span></div></div>';
       });
       html+='</div>';

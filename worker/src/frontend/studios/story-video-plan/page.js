@@ -10,6 +10,9 @@ const PAGE_STYLES = `
 .aics-video-story{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;background:var(--aics-surface-subtle,#0c1424);border:1px solid var(--aics-border-strong,#344158);border-radius:10px;padding:16px;min-height:120px;color:var(--aics-text,#edf2fa)}
 .aics-video-status{font-size:13px;line-height:1.7;color:var(--aics-text-muted,#a1aec2);margin-bottom:12px}
 .aics-video-error{color:var(--aics-danger,#fca5a5)}
+.aics-video-plan-mt-2{margin-top:2px}
+.aics-video-plan-min-h-64{min-height:64px}
+.aics-video-plan-min-h-70{min-height:70px}
 .aics-video-card{background:var(--aics-surface,#111827);border:1px solid var(--aics-border,#263247);border-radius:14px;padding:20px;margin-bottom:16px}
 #vidAdvFields{display:none}
 #vidAdvFields.open{display:grid}
@@ -57,6 +60,11 @@ ${STORY_VIDEO_PLAN_ACTIONS_SCRIPT}
       case 'copy-video-plan':window.copyAllStoryVideoPlanResult();break;
       case 'export-video-plan':window.exportStoryVideoPlan();break;
       case 'video-plan-back-to-edit':window.studioGoStep(1);break;
+      case 'copy-char-prompt':window.copyCharPrompt(Number(button.dataset.index));break;
+      case 'generate-char-image':window.generateCharImage(Number(button.dataset.index));break;
+      case 'generate-env-image':window.generateEnvImage(Number(button.dataset.index));break;
+      case 'copy-env-prompt':window.copyEnvPrompt(Number(button.dataset.index));break;
+      case 'copy-video-prompt':window.copyVideoPrompt(Number(button.dataset.index));break;
     }
   });
   var advancedToggle=document.getElementById('vidAdvToggle');

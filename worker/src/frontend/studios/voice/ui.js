@@ -9,7 +9,7 @@ const HOME_HTML = `
   <p id="voiceStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
   <div id="voiceWorkflowBody" role="region" tabindex="-1" aria-label="Voice Studio workspace" aria-live="off"></div>
 </div>
-<div id="voiceModel2Store" style="display:none">
+<div id="voiceModel2Store" class="voice-model-store">
   <div class="form-group" id="voiceModel2Group"><label for="aiModelSel2">AI Model (အသံ → စာ / SRT / ဘာသာပြန်)</label><select id="aiModelSel2" data-category="transcribe"></select></div>
 </div>`;
 

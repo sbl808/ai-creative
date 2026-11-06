@@ -149,10 +149,42 @@ html[data-aics-theme] .aics-app .toast{background:var(--aics-surface)!important;
 html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[tabindex]):focus-visible{outline-color:var(--aics-focus)!important}
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
+
+/* CSP-safe Short UI presentation classes */
+.aics-work .short-ui-style-01{color:var(--text2);font-size:13px;margin-bottom:14px;}
+.aics-work .short-ui-style-02{margin-bottom:0;}
+.aics-work .short-ui-style-03{margin-bottom:0;}
+.aics-work .short-ui-style-04{margin-bottom:0;}
+.aics-work .short-ui-style-05{margin-bottom:0;}
+.aics-work .short-ui-style-06{min-height:110px;resize:vertical;}
+.aics-work .short-ui-style-07{min-height:70px;}
+.aics-work .short-ui-style-08{min-height:70px;}
+.aics-work .short-ui-style-09{min-height:60px;}
+.aics-work .short-ui-style-10{min-height:60px;}
+.aics-work .short-ui-style-11{min-height:60px;}
+.aics-work .short-ui-style-12{color:var(--text3);font-size:12px;margin-top:6px;font-style:italic;}
+.aics-work .short-ui-style-13{color:var(--text2);font-size:13px;margin-bottom:14px;}
+.aics-work .short-ui-style-14{min-height:150px;}
+.aics-work .short-ui-style-15{display:flex;align-items:center;gap:8px;margin:2px 0 16px;cursor:pointer;color:var(--text2);}
+.aics-work .short-ui-style-16{width:18px;height:18px;flex-shrink:0;accent-color:var(--cyan);}
+.aics-work .short-ui-style-17{min-height:80px;}
+.aics-work .short-ui-style-18{margin-top:14px;}
+.aics-work .short-ui-style-19{flex:1;}
+
+/* CSP-safe dynamic image result states */
+.aics-work .scene-image-generate-btn{font-size:12px;padding:8px 14px;min-height:36px}
+.aics-work .scene-image-loading{display:flex;align-items:center;gap:8px;justify-content:center;padding:14px}
+.aics-work .scene-image-loading-env{padding:12px}
+.aics-work .scene-image-loading-text{font-size:13px;color:var(--cyan)}
+.aics-work .scene-image-save{margin-top:8px}
+.aics-work .scene-image-error{color:var(--error);font-size:12px;padding:10px}
+.aics-work .scene-image-retry{text-align:center;margin-top:4px}
+.aics-work .aics-login-overlay.is-hidden{display:none}
+
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Short Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/short" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay is-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Short Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/short" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'short',
   activeId: 'short',

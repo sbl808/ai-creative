@@ -65,14 +65,25 @@ export const AICS_ERROR_SCRIPT = `
 function aicsShowError(prefix, e) {
   var el = document.getElementById('errorMsg');
   if (!el) return;
-  el.style.display = 'block';
-  el.innerHTML = '<span style="opacity:.85">' + (prefix || '') + '</span> ' +
-    (e && e.message ? String(e.message) : 'Something went wrong. Please try again.');
+  var label = document.createElement('span');
+  label.className = 'aics-ui-error-prefix';
+  label.textContent = prefix || '';
+  el.textContent = '';
+  if (label.textContent) {
+    el.appendChild(label);
+    el.appendChild(document.createTextNode(' '));
+  }
+  el.appendChild(document.createTextNode(
+    e && e.message ? String(e.message) : 'Something went wrong. Please try again.'
+  ));
+  el.classList.add('aics-ui-error-visible');
+  el.classList.remove('aics-ui-hidden');
 }
 function aicsHideError() {
   var el = document.getElementById('errorMsg');
   if (!el) return;
-  el.style.display = 'none';
+  el.classList.remove('aics-ui-error-visible');
+  el.classList.add('aics-ui-hidden');
 }
 `;
 
@@ -90,8 +101,18 @@ function aicsConfirm(message, onYes) {
 // Modal — generic overlay helpers (login overlay pattern)
 // ---------------------------------------------------------------------------
 export const AICS_MODAL_SCRIPT = `
-function aicsShowModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
-function aicsHideModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
+function aicsShowModal(id) {
+  var m = document.getElementById(id);
+  if (!m) return;
+  m.classList.remove('aics-modal-hidden');
+  m.classList.add('aics-modal-visible');
+}
+function aicsHideModal(id) {
+  var m = document.getElementById(id);
+  if (!m) return;
+  m.classList.remove('aics-modal-visible');
+  m.classList.add('aics-modal-hidden');
+}
 `;
 
 // ---------------------------------------------------------------------------
@@ -125,8 +146,12 @@ function aicsFillSelect(el, arr, valKey, labelKey) {
 }
 function aicsAutoExpand(el) {
   if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = (el.scrollHeight + 2) + 'px';
+  var value = String(el.value || '');
+  var width = Math.max(20, Math.floor((el.clientWidth || 320) / 8));
+  var lines = value.split('\\n').reduce(function (total, line) {
+    return total + Math.max(1, Math.ceil(line.length / width));
+  }, 0);
+  el.rows = Math.max(2, Math.min(80, lines + 1));
 }
 `;
 
@@ -257,6 +282,19 @@ export const AICS_RESULT_BOX_CSS = `
 .aics-rbox-toggle:hover{background:rgba(124,92,255,.08);}
 .aics-rbox-toggle.show{display:block;}
 .aics-rbox-target-text{transition:max-height .18s ease;}
+.aics-rbox-target-text.aics-rbox-preview{max-height:260px;overflow:hidden;}
+.aics-rbox-target-text.aics-rbox-preview-240{max-height:240px;}
+.aics-rbox-target-text.aics-rbox-preview-280{max-height:280px;}
+.aics-rbox-target-text.aics-rbox-preview-300{max-height:300px;}
+.aics-rbox-target-text.aics-rbox-preview-320{max-height:320px;}
+.aics-rbox-target-text.aics-rbox-preview-360{max-height:360px;}
+.aics-rbox-target-text.aics-rbox-expanded{max-height:none;overflow:visible;}
+.aics-rbox-target-text.aics-rbox-textarea{overflow:hidden;}
+.aics-rbox-target-text.aics-rbox-expanded.aics-rbox-textarea{overflow:hidden;}
+.aics-ui-hidden,.aics-modal-hidden{display:none!important;}
+.aics-ui-error-visible{display:block!important;}
+.aics-ui-error-prefix{opacity:.85;}
+.aics-modal-visible{display:flex!important;}
 `;
 
 // Browser-side Global Result Box (injected into every studio page via shared.js)
@@ -268,8 +306,12 @@ export const AICS_RESULT_BOX_SCRIPT = `
   }
   function aicsRboxAutoGrow(ta) {
     if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = (ta.scrollHeight + 2) + 'px';
+    var value = String(ta.value || '');
+    var width = Math.max(20, Math.floor((ta.clientWidth || 320) / 8));
+    var lines = value.split('\\n').reduce(function (total, line) {
+      return total + Math.max(1, Math.ceil(line.length / width));
+    }, 0);
+    ta.rows = Math.max(2, Math.min(80, lines + 1));
   }
   function aicsRboxMake(o) {
     var target = document.getElementById(o.id);
@@ -298,6 +340,11 @@ export const AICS_RESULT_BOX_SCRIPT = `
     var type = o.type || 'text';
     var collapsible = o.collapsible !== false;
     var previewMax = o.previewMax || 260;
+    var previewClass = [240, 260, 280, 300, 320, 360].indexOf(previewMax) >= 0
+      ? 'aics-rbox-preview-' + previewMax : 'aics-rbox-preview';
+    var initialRows = isTextarea ? target.rows : 0;
+    target.classList.add('aics-rbox-target-text');
+    if (isTextarea) target.classList.add('aics-rbox-textarea');
     var generatingText = o.generatingText || 'AI ရေးသားနေသည်...';
     var fullText = '';
     var state = 'IDLE';
@@ -330,31 +377,25 @@ export const AICS_RESULT_BOX_SCRIPT = `
       fullText = '';
     }
     function applyCollapsed() {
-      if (!isTextarea) { target.style.maxHeight = previewMax + 'px'; target.style.overflow = 'hidden'; return; }
-      target.style.height = '';
-      target.style.maxHeight = previewMax + 'px';
-      target.style.overflow = 'hidden';
+      target.classList.remove('aics-rbox-expanded');
+      target.classList.add('aics-rbox-preview', previewClass);
+      if (isTextarea) {
+        target.classList.add('aics-rbox-textarea');
+        target.rows = Math.max(2, Math.floor(previewMax / 20));
+      }
     }
     function applyExpanded() {
+      target.classList.remove('aics-rbox-preview', previewClass);
+      target.classList.add('aics-rbox-expanded');
       if (isTextarea) {
-        target.style.maxHeight = 'none';
-        target.style.overflow = 'hidden';
+        target.classList.add('aics-rbox-textarea');
         aicsRboxAutoGrow(target);
-      } else {
-        target.style.maxHeight = 'none';
-        target.style.overflow = 'visible';
       }
     }
     function fitPreview() {
-      // Short content — compact preview is the full content (no toggle needed)
-      if (!isTextarea) return true;
-      target.style.height = '';
-      target.style.maxHeight = previewMax + 'px';
-      target.style.overflow = 'hidden';
-      var over = target.scrollHeight > previewMax;
-      target.style.maxHeight = '';
-      target.style.overflow = '';
-      return !over;
+      // CSS class applies the preview limit before measuring overflow.
+      applyCollapsed();
+      return target.scrollHeight <= previewMax;
     }
 
     var inst = {
@@ -446,12 +487,10 @@ export const AICS_RESULT_BOX_SCRIPT = `
         toggle.textContent = 'Show More';
         if (isTextarea) {
           target.readOnly = readOnlySaved;
-          target.style.height = '';
-          target.style.maxHeight = '';
-          target.style.overflow = '';
+          target.classList.remove('aics-rbox-preview', previewClass, 'aics-rbox-expanded', 'aics-rbox-textarea', 'aics-rbox-target-text');
+          target.rows = initialRows || 2;
         } else {
-          target.style.maxHeight = '';
-          target.style.overflow = '';
+          target.classList.remove('aics-rbox-preview', previewClass, 'aics-rbox-expanded', 'aics-rbox-target-text');
         }
         setState('IDLE');
         return inst;

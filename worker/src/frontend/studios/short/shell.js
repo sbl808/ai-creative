@@ -76,6 +76,7 @@ function studioOnStep(n){
     ]);
     renderFinalResult();
   }
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 window.studioOnStep=studioOnStep;
 
@@ -115,6 +116,9 @@ function studioCollectDraft(){
     characters:currentCharacters,
     scenes:currentScenes,
     imgCache:imgCache,
+    referenceImages:refImages.map(function(img){
+      return {dataUrl:img.dataUrl,mimeType:img.mimeType};
+    }),
     refCount:refImages.length
   };
 }
@@ -123,6 +127,17 @@ window.studioCollectDraft=studioCollectDraft;
 function studioRestoreDraft(d){
   if(!d)return;
   imgCache=d.imgCache&&typeof d.imgCache==='object'&&!Array.isArray(d.imgCache)?d.imgCache:{};
+  refImages=Array.isArray(d.referenceImages)?d.referenceImages.slice(0,MAX_REF_IMAGES).filter(function(img){
+    return img&&typeof img.dataUrl==='string'&&/^data:image\\/[a-z0-9.+-]+;base64,/i.test(img.dataUrl);
+  }).map(function(img){
+    var match=img.dataUrl.match(/^data:(image\\/[a-z0-9.+-]+);base64,/i);
+    return {
+      dataUrl:img.dataUrl,
+      base64:img.dataUrl.split(',')[1]||'',
+      mimeType:typeof img.mimeType==='string'&&img.mimeType?img.mimeType:(match?match[1]:'image/png')
+    };
+  }):[];
+  renderRefPreviews();
   selectedShortType=d.shortType||'1';
   var sts=document.getElementById('shortTypeSel');if(sts)sts.value=selectedShortType;
   if(d.fields){var f0=document.getElementById('field_0');if(f0)f0.value=d.fields[0]||'';}
@@ -178,5 +193,23 @@ function autoSaveImgCache(){
   if(window.studioPersistDraft)window.studioPersistDraft(false);
 }
 
-// Reset — Shared Reset ၏ Draft ဖျက်ခြင်းနှင့်အတူ Short Image Cache ကိုပါ ရှင်းသည်
+// Form fields နှင့် Image Cache တို့ကို IndexedDB ထဲ အလိုအလျောက် သိမ်းသည်။
+var shortDraftSaveTimer=null;
+function queueShortDraftSave(){
+  if(shortDraftSaveTimer!==null)clearTimeout(shortDraftSaveTimer);
+  shortDraftSaveTimer=setTimeout(function(){
+    shortDraftSaveTimer=null;
+    autoSave();
+  },500);
+}
+document.addEventListener('input',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShortDraftSave();
+});
+document.addEventListener('change',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShortDraftSave();
+});
+
+// Reset — အတည်ပြုပြီးနောက် IndexedDB နှင့် legacy Short draft များကို ရှင်းသည်။
 `;

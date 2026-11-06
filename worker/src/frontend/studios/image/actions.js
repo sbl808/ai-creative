@@ -44,7 +44,7 @@ function downloadImage(){
 }
 
 // ===================== Auto Expand (Global Result Box handles streaming display) =====================
-function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
+function autoExpand(ta){if(!ta)return;ta.rows=1;var lineHeight=parseFloat(window.getComputedStyle(ta).lineHeight)||22;ta.rows=Math.max(1,Math.ceil(ta.scrollHeight/lineHeight));}
 function onPromptEdit(ta){
   if(ta){latestPrompt=ta.value;autoExpand(ta);}
 }
@@ -177,6 +177,9 @@ function studioCollectDraft(){
     idea:originalIdea,
     ideaText:document.getElementById('ideaInput')?document.getElementById('ideaInput').value:'',
     refCount:refImages.length,
+    referenceImages:refImages.map(function(img){
+      return {dataUrl:img.dataUrl,mimeType:img.mimeType};
+    }),
     latestPrompt:latestPrompt,
     prepPrompt:document.getElementById('prepPromptInput')?document.getElementById('prepPromptInput').value:'',
     resultText:document.getElementById('promptResult')?document.getElementById('promptResult').value:'',
@@ -204,6 +207,17 @@ function studioRestoreDraft(d){
   if(d.idea)originalIdea=d.idea;
   var ie=document.getElementById('ideaInput');
   if(ie&&d.ideaText!=null)ie.value=d.ideaText;
+  refImages=Array.isArray(d.referenceImages)?d.referenceImages.slice(0,MAX_REF).filter(function(img){
+    return img&&typeof img.dataUrl==='string'&&img.dataUrl.indexOf('data:image/')===0;
+  }).map(function(img){
+    var comma=img.dataUrl.indexOf(',');
+    return {
+      dataUrl:img.dataUrl,
+      base64:comma>=0?img.dataUrl.slice(comma+1):'',
+      mimeType:typeof img.mimeType==='string'&&img.mimeType?img.mimeType:'image/png'
+    };
+  }):[];
+  renderRefPreviews();
   latestPrompt=d.latestPrompt||'';
   var rt=document.getElementById('promptResult');
   if(rt&&d.resultText!=null){rt.value=d.resultText;autoExpand(rt);}
@@ -245,18 +259,8 @@ window.studioRestoreDraft=studioRestoreDraft;
 
 // ===================== Auto Save (Refresh ပြီးနောက် Data မပျောက်စေရ) =====================
 function autoSave(){
-  try{
-    var data=studioCollectDraft();
-    var envelope={step:window.studioCur?window.studioCur():1,data:data,savedAt:new Date().toISOString()};
-    try{
-      localStorage.setItem('aics_draft_image',JSON.stringify(envelope));
-    }catch(e){
-      // ပုံကြီးလွန်းလျှင် — Final Image မပါဘဲ သိမ်းသည် (flag သာ ထားသည်)
-      data.hasFinalImage=!!imageMap.finalImage;
-      data.finalImage=null;
-      try{localStorage.setItem('aics_draft_image',JSON.stringify({step:envelope.step,data:data,savedAt:envelope.savedAt}));}catch(e2){}
-    }
-  }catch(e){}
+  if(!window.studioPersistDraft)return Promise.resolve(false);
+  return window.studioPersistDraft(false);
 }
 
 // ============================================================

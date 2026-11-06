@@ -70,6 +70,9 @@ function normalizeState(s){
 
 function studioCollectDraft(){
   syncContent();
+  shopState.content.input.images=refImagesContent;
+  shopState.video.input.images=refImagesVideo;
+  shopState.image.input.images=refImagesImage;
   var fields={};
   PRODUCT_FIELDS.concat(ADVANCED_FIELDS).forEach(function(f){fields[f.id]=fieldVal(f.id);});
   var cp=document.getElementById('contentPurposeSel');
@@ -148,8 +151,8 @@ window.studioRestoreDraft=studioRestoreDraft;
 // ===================== Init =====================
 (function init(){
   if(!TOKEN){
-    document.getElementById('loginView').style.display='flex';
-    document.getElementById('aicsApp').style.display='none';
+    document.getElementById('loginView').classList.remove('aics-shop-login-hidden');
+    document.getElementById('aicsApp').classList.add('aics-shop-app-hidden');
     return;
   }
   var _ve=document.getElementById('userEmail');if(_ve)_ve.textContent=localStorage.getItem('aics_email')||'—';
@@ -177,7 +180,7 @@ window.studioRestoreDraft=studioRestoreDraft;
     var _ve2=document.getElementById('userEmail');if(_ve2)_ve2.textContent=d.email||'';
     var _vp2=document.getElementById('planBadge');if(_vp2)_vp2.textContent=d.plan||'FREE';
     var al=document.getElementById('adminLink');
-    if(al)al.style.display=d.is_admin?'flex':'none';
+    if(al)al.classList.toggle('aics-hidden',!d.is_admin);
     USER_PLAN=d.plan||'FREE';
     applyPlanGate();
   }).catch(function(){});
@@ -208,4 +211,22 @@ function applyPlanGate(){
   }
 }
 window.applyPlanGate=applyPlanGate;
+
+// Form edits are debounced into the shared IndexedDB draft adapter.
+var shopDraftSaveTimer=null;
+function queueShopDraftSave(){
+  if(shopDraftSaveTimer!==null)clearTimeout(shopDraftSaveTimer);
+  shopDraftSaveTimer=setTimeout(function(){
+    shopDraftSaveTimer=null;
+    if(window.studioPersistDraft)window.studioPersistDraft(false);
+  },450);
+}
+document.addEventListener('input',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShopDraftSave();
+});
+document.addEventListener('change',function(event){
+  var target=event.target;
+  if(target&&target.closest&&target.closest('.aics-work'))queueShopDraftSave();
+});
 `;

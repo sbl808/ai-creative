@@ -59,6 +59,7 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .ref-thumb img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block}
 .aics-work .ref-thumb .remove-x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:var(--error);color:#fff;border:none;font-size:12px;line-height:22px;text-align:center;cursor:pointer;padding:0}
 .aics-work .chat-section{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;display:none}
+.aics-work .chat-section.shop-chat-open{display:block}
 .aics-work .chat-log{max-height:240px;overflow-y:auto;background:var(--bg-input);border-radius:10px;padding:12px;margin-bottom:10px}
 .aics-work .chat-bubble{padding:8px 12px;border-radius:10px;margin-bottom:8px;max-width:85%;line-height:1.4;font-size:13px}
 .aics-work .chat-user{background:rgba(0,229,255,.1);margin-left:auto;text-align:right}
@@ -241,10 +242,22 @@ html[data-aics-theme="light"] .aics-work .srt-editable{background:var(--bg-input
 @media(prefers-reduced-motion:reduce){
   .aics-work *, .aics-work *::before, .aics-work *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
+
+/* Shop CSP-safe presentation classes */
+.aics-work .shop-hidden{display:none}
+.aics-work .shop-style-mt-6{margin-top:6px}
+.aics-work .shop-style-minh-120{min-height:120px}
+.aics-work .shop-style-mt-16{margin-top:16px}
+.aics-work .shop-style-audio-player{flex:1;min-width:220px}
+.aics-work .shop-style-mt-2{margin-top:2px}
+.aics-work .shop-style-inline-margin{margin:0 8px 0 0;display:inline}
+.aics-work .shop-style-mt-8{margin-top:8px}
+.aics-shop-login-hidden{display:none}
+#aicsApp.aics-shop-app-hidden{display:none!important}
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Shop Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/shop" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay aics-shop-login-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Shop Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/shop" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'shop',
   activeId: 'shop',

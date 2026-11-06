@@ -6,8 +6,8 @@ function showVideoPhase(){
   var meta=videoBranchMeta();
   renderShopStepper();
   renderShopBranchStepper();
-  document.getElementById('videoSetupCard').style.display=shopState.video.step===1?'':'none';
-  document.getElementById('videoResultCard').style.display=shopState.video.step===2?'':'none';
+  document.getElementById('videoSetupCard').classList.toggle('shop-hidden',shopState.video.step!==1);
+  document.getElementById('videoResultCard').classList.toggle('shop-hidden',shopState.video.step!==2);
   if(shopState.video.step===2)renderVideoResultMap();
 }
 function onVideoTextEdit(){
@@ -124,9 +124,9 @@ function renderVideoResultMap(){
     html+='<div class="sm-card">';
     html+='<div class="sm-card-head"><span class="sm-card-name">🛍️ '+escapeHtml(r.product.name||'Product')+'</span></div>';
     html+='<div class="sm-lbl">Product Prompt</div><div class="sm-txt">'+escapeHtml(r.product.prompt)+'</div>';
-    html+='<div class="btn-row"><button class="btn-ghost btn-sm" onclick="smCopyProduct()">&#128203; Copy Product Prompt</button></div>';
+    html+='<div class="btn-row"><button class="btn-ghost btn-sm" data-shop-event="click" data-shop-action="smCopyProduct">&#128203; Copy Product Prompt</button></div>';
     html+='<div class="sm-img-area" id="img_product">'+(r.product.image?'<img class="shop-gen-img" src="'+safeUrl(r.product.image)+'" alt="Product">':'')+'</div>';
-    html+='<div class="btn-row"><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(r.product.prompt)+'" data-key="product" onclick="genImage(this)">🖼️ Generate Image</button></div>';
+    html+='<div class="btn-row"><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(r.product.prompt)+'" data-key="product" data-shop-event="click" data-shop-action="genImage" data-shop-pass="element">🖼️ Generate Image</button></div>';
     html+='</div>';
   }else{
     html+='<div class="empty-note">Product Reference မရှိပါ</div>';
@@ -148,7 +148,7 @@ function renderVideoResultMap(){
         if(ch.description)html+='<div class="sm-lbl">Description</div><div class="sm-txt">'+escapeHtml(ch.description)+'</div>';
         html+='<div class="sm-img-area" id="img_char'+idx+'">'+(ch.referenceImage?'<img class="shop-gen-img" src="'+safeUrl(ch.referenceImage)+'" alt="Character">':'')+'</div>';
         html+='<div class="sm-lbl">Reference Prompt</div><div class="sm-txt">'+escapeHtml(prompt)+'</div>';
-        html+='<div class="btn-row"><button class="btn-ghost btn-sm" onclick="smCopyChar('+idx+')">&#128203; Copy Character Prompt</button><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(prompt)+'" data-key="char'+idx+'" onclick="genImage(this)">🖼️ Generate Reference Image</button></div>';
+        html+='<div class="btn-row"><button class="btn-ghost btn-sm" data-shop-event="click" data-shop-action="smCopyChar" data-shop-pass="index" data-shop-index="' +idx+'">&#128203; Copy Character Prompt</button><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(prompt)+'" data-key="char'+idx+'" data-shop-event="click" data-shop-action="genImage" data-shop-pass="element">🖼️ Generate Reference Image</button></div>';
         html+='</div>';
       })(i);
     }
@@ -172,11 +172,11 @@ function renderVideoResultMap(){
         html+='<span class="sm-meta-item">🎥 Camera: <b>'+escapeHtml(sc.camera||'-')+'</b></span>';
         html+='<span class="sm-meta-item">💡 Lighting: <b>'+escapeHtml(sc.lighting||'-')+'</b></span>';
         html+='</div>';
-        html+='<div class="sm-box"><div class="sm-lbl">🎬 Video Prompt</div><div class="sm-txt">'+escapeHtml(sc.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button class="btn-ghost btn-sm" onclick="smCopyVideoPrompt('+idx+')">&#128203; Copy Video Prompt</button></div></div>';
+        html+='<div class="sm-box"><div class="sm-lbl">🎬 Video Prompt</div><div class="sm-txt">'+escapeHtml(sc.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button class="btn-ghost btn-sm" data-shop-event="click" data-shop-action="smCopyVideoPrompt" data-shop-pass="index" data-shop-index="' +idx+'">&#128203; Copy Video Prompt</button></div></div>';
         html+='<div class="sm-box"><div class="sm-lbl">🌍 Environment Reference</div><div class="sm-txt">'+escapeHtml(sc.environmentPrompt||'(မရှိပါ)')+'</div>';
-        html+='<div class="btn-row"><button class="btn-ghost btn-sm" onclick="smCopyEnvPrompt('+idx+')">&#128203; Copy Environment Prompt</button></div>';
+        html+='<div class="btn-row"><button class="btn-ghost btn-sm" data-shop-event="click" data-shop-action="smCopyEnvPrompt" data-shop-pass="index" data-shop-index="' +idx+'">&#128203; Copy Environment Prompt</button></div>';
         html+='<div class="sm-img-area" id="img_env'+idx+'">'+(sc.envImage?'<img class="shop-gen-img" src="'+safeUrl(sc.envImage)+'" alt="Environment">':'')+'</div>';
-        if(sc.environmentPrompt)html+='<div class="btn-row"><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(sc.environmentPrompt)+'" data-key="env'+idx+'" onclick="genImage(this)">🖼️ Generate Environment Image</button></div>';
+        if(sc.environmentPrompt)html+='<div class="btn-row"><button class="btn btn-orange btn-sm" data-prompt="'+escapeAttr(sc.environmentPrompt)+'" data-key="env'+idx+'" data-shop-event="click" data-shop-action="genImage" data-shop-pass="element">🖼️ Generate Environment Image</button></div>';
         html+='</div>';
         html+='</div>';
       })(j);

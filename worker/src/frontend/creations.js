@@ -51,6 +51,12 @@ a{color:var(--cyan);text-decoration:none;}
 @media(max-width:767px){.toolbar{align-items:stretch;flex-direction:column;gap:10px;}.search-input,.select{width:100%;min-width:0;min-height:44px;}.btn{min-height:44px;padding:10px 12px;}.creation-card{padding:14px;}.creation-header{flex-wrap:wrap;}}
 @media(prefers-reduced-motion:reduce){.btn{transition:none;}}
 .creation-media audio{width:100%;max-width:420px;}
+.is-hidden{display:none!important;}
+.is-flex{display:flex!important;}
+.creation-full.is-expanded{display:block;}
+.login-required{padding:40px;text-align:center;}
+.login-required__message{margin:16px 0;}
+.login-required__link{text-decoration:underline;}
 .creation-full{margin-top:10px;color:#ccc;font-size:14px;line-height:1.5;white-space:pre-wrap;display:none;background:var(--card2);padding:12px;border-radius:8px;max-height:400px;overflow-y:auto;}
 .btn-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
 .btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;min-height:36px;transition:opacity 0.2s;}
@@ -111,11 +117,11 @@ ${renderSidebar('creations',{variant:'studio'})}
   <h1 class="page-title">📁 My Creations</h1>
   <p class="page-subtitle">သင် Save လုပ်ထားသော AI Result များ — ဒီ Data ကို သင့်ဘရောက်ဆာထဲမှာသာ သိမ်းထားပါသည်။ Server ပေါ် မတင်ပါ။ (Phase 13 — Option 2)</p>
   <div id="loadingState" class="loading-state" role="status" aria-live="polite">Loading...</div>
-  <div id="emptyState" class="empty-state" role="status" aria-live="polite" style="display:none;">
+  <div id="emptyState" class="empty-state is-hidden" role="status" aria-live="polite">
     📭 Save ထားသော Creation များ မရှိသေးပါ။<br>
     Studio တစ်ခုခုမှာ Generate လုပ်ပြီး "ဖန်တီးမှုသိမ်းပါ" နှိပ်ကြည့်ပါ။
   </div>
-  <div id="toolbar" class="toolbar" style="display:none;">
+  <div id="toolbar" class="toolbar is-hidden">
     <input id="searchInput" class="search-input" type="search" aria-label="ဖန်တီးမှုများကို ခေါင်းစဉ် သို့မဟုတ် အကြောင်းအရာဖြင့် ရှာရန်" placeholder="ရှာဖွေရန် (ခေါင်းစဉ် / အကြောင်းအရာ)..." data-creations-filter="search">
     <select id="filterSelect" class="select" aria-label="ဖန်တီးမှုအမျိုးအစား စစ်ထုတ်ရန်" data-creations-filter="select">
       <option value="ALL">အားလုံး</option>
@@ -133,7 +139,7 @@ ${renderSidebar('creations',{variant:'studio'})}
     </select>
   </div>
   <div id="countInfo" class="count-info" aria-live="polite"></div>
-  <div id="noMatch" class="empty-state" style="display:none;">🔍 ရှာလို့ မတွေ့ပါ။</div>
+  <div id="noMatch" class="empty-state is-hidden">🔍 ရှာလို့ မတွေ့ပါ။</div>
   <div id="creationsList"></div>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -166,16 +172,16 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
 var allItems=[];
 if(!TOKEN){
-  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="text-decoration:underline;">Login / Sign Up သို့ သွားရန်</a></p></div>';
+  document.querySelector('.main-content').innerHTML='<div class="login-required"><h2>🔒 Login လိုအပ်ပါသည်</h2><p class="login-required__message"><a href="/login" class="login-required__link">Login / Sign Up သို့ သွားရန်</a></p></div>';
 }else{
   loadCreations();
 }
 function loadCreations(){
   // Phase 13 — Option 2: Browser IndexedDB မှ ဖတ်သည် (Server API မဟုတ်ပါ)
   AICS_CREATIONS.list().then(function(items){
-    document.getElementById('loadingState').style.display='none';
+    document.getElementById('loadingState').classList.add('is-hidden');
     if(!items||items.length===0){
-      document.getElementById('emptyState').style.display='block';
+      document.getElementById('emptyState').classList.remove('is-hidden');
       return;
     }
     allItems=items;
@@ -184,7 +190,7 @@ function loadCreations(){
     if(favParam==='1'){
       document.getElementById('filterSelect').value='FAV';
     }
-    document.getElementById('toolbar').style.display='flex';
+    document.getElementById('toolbar').classList.remove('is-hidden');
     renderList();
   }).catch(function(){
     document.getElementById('loadingState').innerHTML='Browser Storage ဖွင့်မရပါ (IndexedDB)';
@@ -215,7 +221,7 @@ function renderList(){
   var noMatch=document.getElementById('noMatch');
   container.innerHTML='';
   document.getElementById('countInfo').textContent='✏️ စုစုပေါင်း '+items.length+' ခု';
-  noMatch.style.display=(items.length===0)?'block':'none';
+  noMatch.classList.toggle('is-hidden',items.length!==0);
   items.forEach(function(c){
     var icon=STUDIO_ICONS[c.studio]||'📄';
     var dateStr=c.created_at?fmtDate(c.created_at):'';
@@ -263,8 +269,8 @@ function toggleFav(id,btn){
 function toggleFull(id){
   var preview=document.getElementById('preview-'+id);
   var full=document.getElementById('full-'+id);
-  if(full.style.display==='block'){full.style.display='none';preview.style.display='block';}
-  else{full.style.display='block';preview.style.display='none';}
+  var expanded=full.classList.toggle('is-expanded');
+  preview.classList.toggle('is-hidden',expanded);
 }
 function copyCreation(id,btn){
   var full=document.getElementById('full-'+id);
@@ -281,7 +287,7 @@ function removeCreation(id,btn){
     allItems=allItems.filter(function(c){return c.id!==id;});
     renderList();
     showToast('✓ Creation ဖျက်ပြီးပါပြီ','success');
-    if(allItems.length===0)document.getElementById('emptyState').style.display='block';
+    if(allItems.length===0)document.getElementById('emptyState').classList.remove('is-hidden');
   }).catch(function(){showToast('ဖျက်မရပါ','error');btn.textContent=orig;btn.disabled=false;});
 }
 </script>

@@ -33,7 +33,7 @@ const PANEL_HTML = `
 
 const SCRIPT = String.raw`(function () {
   var pendingBackup = null;
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results'];
+  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas'];
   function byId(id) { return document.getElementById(id); }
   function message(text, isError) {
     var node = byId('backup-recovery-message');
@@ -118,7 +118,7 @@ const SCRIPT = String.raw`(function () {
       }
       if (byId('backup-preview-counts')) {
         byId('backup-preview-counts').textContent = storeNames.map(function (name) {
-          return name + ': ' + result.backup.stores[name].length;
+          return name + ': ' + ((result.backup.stores[name] || []).length);
         }).join(' · ');
       }
       if (preview) preview.hidden = false;
@@ -133,7 +133,7 @@ const SCRIPT = String.raw`(function () {
   if (restoreButton) restoreButton.addEventListener('click', function () {
     if (!pendingBackup || !window.AICS_BACKUP_IMPORT) return;
     var count = storeNames.reduce(function (total, name) {
-      return total + pendingBackup.stores[name].length;
+      return total + ((pendingBackup.stores[name] || []).length);
     }, 0);
     if (!window.confirm('လက်ရှိ User ၏ ဒေတာများကို Backup ထဲရှိ ဒေတာ ' + count + ' ခုဖြင့် အစားထိုးမည်။ ဆက်လုပ်မလား?')) return;
     restoreButton.disabled = true;

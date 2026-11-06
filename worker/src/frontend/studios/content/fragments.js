@@ -10,7 +10,7 @@ const STEP22_HTML = `
 <div class="card">
 <div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg> Audio ပြင်ဆင်ရန် (Audio Setup)</div>
 <div class="aics-transfer-note">&#10003; Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
-<div class="aics-transfer-box" id="audioContentPreview" style="display:none;"></div>
+<div id="audioContentPreview" class="aics-transfer-box cs-hidden"></div>
 <div class="form-group">
 <label for="ttsText">အသံပြောင်းရန် Text (Text for Voice)</label>
 <textarea id="ttsText" class="auto-expand" placeholder="Voice ပြောင်းလိုသော Text ကို အလိုအလျောက် ထည့်ပေးပါမည် — ကိုယ်တိုင်လည်း ပြင်နိုင်ပါသည်" data-aics-input="auto-grow"></textarea>
@@ -59,7 +59,7 @@ const STEP22_HTML = `
 <input id="audioPitch" type="number" min="-10" max="10" step="1" value="0" placeholder="0" />
 </div>
 </div>
-<div class="form-group" style="margin-top:2px;">
+<div class="form-group cs-mt-2">
 <label>လက်ရှိရွေးထားသော အသံ (Selected Voice)</label>
 <div class="selected-voice-chip" id="effectiveVoiceLabel">Kore</div>
 </div>
@@ -81,7 +81,7 @@ const STEP22_HTML = `
 <option value="Warm">Warm</option>
 </select>
 </div>
-<div class="form-group" style="grid-column:1/-1;">
+<div class="form-group cs-grid-span-all">
 <label for="audioPronunciation">Pronunciation (အသံထွက်)</label>
 <textarea id="audioPronunciation" placeholder="အထူးထွက်ရမည့် စကားလုံးများ / အသံထွက်မှတ်စုများ..."></textarea>
 </div>
@@ -99,7 +99,7 @@ const STEP24_HTML = `
 ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အသံကို ပြင်ဆင်နေသည်...')}
 <div class="audio-container" id="audioContainer"></div>
 <div class="error-box" id="voiceError2" role="alert" aria-live="assertive"></div>
-<div class="btn-row" id="voiceRetryRow" style="display:none;justify-content:center;">
+<div id="voiceRetryRow" class="btn-row cs-hidden cs-justify-center">
 <button class="btn btn-secondary" data-aics-action="content-nav-audio">&#8592; ပြန်ပြင်ရန်</button>
 <button class="btn btn-primary" data-aics-action="generate-voice">&#128260; ပြန်လည်ကြိုးစားရန်</button>
 </div>
@@ -110,7 +110,7 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 <div class="card">
 <div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg> SRT &amp; ဘာသာပြန်</div>
 <p class="voice-hint">Generate Voice နှိပ်ပြီးပြီးရင် SRT ကို အလိုအလျောက် ထုတ်နိုင်ပါတယ်။ Box ထဲမှာ တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
-<div class="btn-row" style="margin-top:12px;">
+<div class="btn-row cs-mt-12">
 <button class="btn btn-secondary" id="srtBtn" data-aics-action="generate-srt">&#128221; Generate SRT (မူရင်း)</button>
 </div>
 <div class="loading" id="srtLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> SRT ထုတ်နေပါသည်...</div>
@@ -129,7 +129,7 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 </div>
 <div class="loading" id="translateLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ဘာသာပြန်နေပါသည်...</div>
 <div class="error-box" id="translateError" role="alert" aria-live="assertive"></div>
-<div class="result-label" id="translatedLabel" style="display:none;">&#9989; ဘာသာပြန်ထားသော SRT</div>
+<div id="translatedLabel" class="result-label cs-hidden">&#9989; ဘာသာပြန်ထားသော SRT</div>
 <textarea class="srt-box" id="resultSrtTranslated" placeholder="('ဘာသာပြန်ရန်' ခလုတ်ကို နှိပ်ပါက ဒီနေရာတွင် ပေါ်ပါမည်)"></textarea>
 <div class="btn-row">
 <button class="btn-ghost" data-aics-action="copy-translated-srt">&#128203; Copy SRT</button>

@@ -75,8 +75,12 @@ function hideStepError(id,rid){
 // ===================== Auto-expand (Global Result Box handles streaming display) =====================
 function autoExpand(ta){
   if(!ta)return;
-  ta.style.height='auto';
-  ta.style.height=(ta.scrollHeight+2)+'px';
+  ta.rows=1;
+  var style=window.getComputedStyle(ta);
+  var lineHeight=parseFloat(style.lineHeight)||24;
+  var verticalPadding=(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0);
+  var lines=Math.ceil(Math.max(0,ta.scrollHeight-verticalPadding)/lineHeight);
+  ta.rows=Math.max(3,Math.min(24,lines));
 }
 // ===== GLOBAL RESULT UI — Shop Result Box (state machine lives in shared-ui.js) =====
 function shopResultBox(){
@@ -90,13 +94,8 @@ function streamCall(url,body,handlers){
 
 // ===================== Draft Save (autoSave — Refresh ပြီးနောက် မပျောက်ရ) =====================
 function sanitizeForDraft(state){
-  var s=JSON.parse(JSON.stringify(state));
-  if(s.video&&s.video.result){
-    (s.video.result.characters||[]).forEach(function(c){if(c.referenceImage&&c.referenceImage.indexOf('data:')===0)c.referenceImage='';});
-    (s.video.result.scenes||[]).forEach(function(sc){if(sc.envImage&&sc.envImage.indexOf('data:')===0)sc.envImage='';});
-    if(s.video.result.product&&s.video.result.product.image&&s.video.result.product.image.indexOf('data:')===0)s.video.result.product.image='';
-  }
-  return s;
+  // User-generated media stays in the user's IndexedDB draft; do not silently drop data URLs.
+  return JSON.parse(JSON.stringify(state));
 }
 function autoSave(){
   if(window.studioPersistDraft)window.studioPersistDraft(false);

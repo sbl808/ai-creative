@@ -15,7 +15,7 @@ import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
-import { buildHtmlSecurityHeaders } from './middleware/securityHeaders.js';
+import { buildHtmlSecurityHeaders, createCspNonce } from './middleware/securityHeaders.js';
 import { isApiRequestBodyTooLarge, buildCors, ndjsonResponse } from './platform/http/index.js';
 
 // AI Creative Studio — Cloudflare Worker (Phase 3e+ — hardened errors + Phase 2 core modular)
@@ -75,14 +75,42 @@ function friendlyError(e) {
   return 'Something went wrong. Please try again.';
 }
 
+
+// CSP-safe styles for the small diagnostic pages rendered by this Worker.
+const INDEX_PAGE_CSS = ".aics-index-style-1{font-family:sans-serif;background:#080c18;color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}\n.aics-index-style-2{max-width:420px;text-align:center;background:#151b2b;border:1px solid #26324a;border-radius:14px;padding:32px}\n.aics-index-style-3{font-size:40px}\n.aics-index-style-4{margin:12px 0;color:#00e5ff}\n.aics-index-style-5{color:#94a3b8;font-size:14px;line-height:1.7}\n.aics-index-style-6{display:inline-block;margin-top:16px;padding:11px 22px;background:#00e5ff;color:#001014;border-radius:10px;text-decoration:none;font-weight:bold}\n.aics-index-style-7{font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C}\n.aics-index-style-8{color:#52C41A}\n.aics-index-style-9{width:100%;font-family:monospace;font-size:12px;box-sizing:border-box}\n.aics-index-style-10{margin-top:8px;padding:10px 22px;font-size:14px}\n.aics-index-style-11{margin-top:8px;font-size:13px}\n.aics-index-style-12{color:#1b6d96}\n.aics-index-style-13{font-size:13px;font-weight:600}\n.aics-index-style-14{width:100%;padding:8px;box-sizing:border-box}\n.aics-index-style-15{width:100%;font-size:13px;box-sizing:border-box}\n.aics-index-style-16{width:100%;font-size:13px;box-sizing:border-box;padding:8px}\n.aics-index-style-17{margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px}\n.aics-index-style-18{margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:80px}\n.aics-index-style-19{font-size:14px;line-height:1.6}\n.aics-index-style-20{font-size:14px}\n.aics-test-output-image{max-width:100%;border-radius:8px;}";
+
 function htmlPage(html) {
-  return new Response(html, {
+  const actionScript = '<script>document.addEventListener("click", function(event) { var target = event.target; if (!target || typeof target.closest !== "function") return; var action = target.closest("[data-action]"); if (!action) return; if (action.dataset.action === "copy-token" && typeof cp === "function") cp(); if (action.dataset.action === "run" && typeof run === "function") run(); });</script>';
+  const htmlContent = String(html);
+  const needsIndexStyles = htmlContent.includes('aics-index-style-');
+  const needsActionHandler = htmlContent.includes('data-action=');
+  const withStyles = needsIndexStyles
+    ? htmlContent.replace('</head>', '<style>' + INDEX_PAGE_CSS + '</style></head>')
+    : htmlContent;
+  const styledHtml = needsActionHandler
+    ? withStyles.replace('</body>', actionScript + '</body>')
+    : withStyles;
+  const nonce = createCspNonce();
+  const response = new Response(styledHtml, {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      ...buildHtmlSecurityHeaders(),
+      ...buildHtmlSecurityHeaders(nonce),
     },
   });
+
+  return new HTMLRewriter()
+    .on('script', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .on('style', {
+      element(element) {
+        element.setAttribute('nonce', nonce);
+      },
+    })
+    .transform(response);
 }
 
 function bearer(req) {
@@ -168,23 +196,23 @@ function studioDisabledPage(studioId) {
   const s = getStudio(studioId);
   const name = s ? s.nameMy : studioId;
   return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title></head>' +
-    '<body style="font-family:sans-serif;background:#080c18;color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px">' +
-    '<div style="max-width:420px;text-align:center;background:#151b2b;border:1px solid #26324a;border-radius:14px;padding:32px">' +
-    '<div style="font-size:40px">🔒</div>' +
-    '<h2 style="margin:12px 0;color:#00e5ff">' + name + ' ကို ယခု ပိတ်ထားပါသည်</h2>' +
-    '<p style="color:#94a3b8;font-size:14px;line-height:1.7">ဤ Studio ကို Admin မှ ခေတ္တ ပိတ်ထားပါသည်။ နောက်မှ ပြန်ဖွင့်ပါမည်။</p>' +
-    '<a href="/app" style="display:inline-block;margin-top:16px;padding:11px 22px;background:#00e5ff;color:#001014;border-radius:10px;text-decoration:none;font-weight:bold">🏠 ပင်မသို့ ပြန်သွားရန်</a>' +
+    '<body class="aics-index-style-1">' +
+    '<div class="aics-index-style-2">' +
+    '<div class="aics-index-style-3">🔒</div>' +
+    '<h2 class="aics-index-style-4">' + name + ' ကို ယခု ပိတ်ထားပါသည်</h2>' +
+    '<p class="aics-index-style-5">ဤ Studio ကို Admin မှ ခေတ္တ ပိတ်ထားပါသည်။ နောက်မှ ပြန်ဖွင့်ပါမည်။</p>' +
+    '<a href="/app" class="aics-index-style-6">🏠 ပင်မသို့ ပြန်သွားရန်</a>' +
     '</div></body></html>';
 }
 
 function loginResultPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#52C41A">✅ Login OK</h2>' +
+    '<body class="aics-index-style-7">' +
+    '<h2 class="aics-index-style-8">✅ Login OK</h2>' +
     '<p>Copy your token below.</p>' +
-    '<textarea id="tok" rows="4" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<br><button onclick="cp()" style="margin-top:8px;padding:10px 22px;font-size:14px">📋 Copy Token</button>' +
-    '<div id="status" style="margin-top:8px;font-size:13px"></div>' +
+    '<textarea id="tok" rows="4" class="aics-index-style-9"></textarea>' +
+    '<br><button data-action="copy-token" class="aics-index-style-10">📋 Copy Token</button>' +
+    '<div id="status" class="aics-index-style-11"></div>' +
     '<script>' +
     'var h=location.hash.replace("#token=","");' +
     'document.getElementById("tok").value=decodeURIComponent(h);' +
@@ -194,15 +222,15 @@ function loginResultPage() {
 
 function aiTestPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">🤖 AI Router Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br><input id="tok" type="password" style="width:100%;padding:8px;box-sizing:border-box"><br>' +
-    '<label style="font-size:13px;font-weight:600">Prompt</label><br>' +
-    '<textarea id="p" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Hello</textarea>' +
-    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
-    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+    '<body class="aics-index-style-7">' +
+    '<h2 class="aics-index-style-12">🤖 AI Router Test</h2>' +
+    '<label class="aics-index-style-13">Session Token</label><br><input id="tok" type="password" class="aics-index-style-14"><br>' +
+    '<label class="aics-index-style-13">Prompt</label><br>' +
+    '<textarea id="p" rows="3" class="aics-index-style-15">Hello</textarea>' +
+    '<label class="aics-index-style-13">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" class="aics-index-style-16">' +
+    '<br><button data-action="run" class="aics-index-style-10">▶ Run</button>' +
+    '<div id="out" class="aics-index-style-17">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim()},' +
@@ -214,16 +242,16 @@ function aiTestPage() {
 
 function cmsTestPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">📋 CMS Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
-    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<label style="font-size:13px;font-weight:600">Studio</label><br>' +
-    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
-    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">📥 Get Prompt</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+    '<body class="aics-index-style-7">' +
+    '<h2 class="aics-index-style-12">📋 CMS Test</h2>' +
+    '<label class="aics-index-style-13">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" class="aics-index-style-9"></textarea>' +
+    '<label class="aics-index-style-13">Studio</label><br>' +
+    '<input id="st" value="STORY" class="aics-index-style-16">' +
+    '<label class="aics-index-style-13">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" class="aics-index-style-16">' +
+    '<br><button data-action="run" class="aics-index-style-10">📥 Get Prompt</button>' +
+    '<div id="out" class="aics-index-style-17">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/cms/prompt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
@@ -237,26 +265,26 @@ function cmsTestPage() {
 
 function studioTestPage() {
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">🎨 Studio Engine Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
-    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<label style="font-size:13px;font-weight:600">Studio (STORY / IMAGE / CONTENT ...)</label><br>' +
-    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
-    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">User Idea</label><br>' +
-    '<textarea id="id" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Write a short story about a boy and his dog.</textarea>' +
-    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
-    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run Studio</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:80px">Result will show here.</div>' +
+    '<body class="aics-index-style-7">' +
+    '<h2 class="aics-index-style-12">🎨 Studio Engine Test</h2>' +
+    '<label class="aics-index-style-13">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" class="aics-index-style-9"></textarea>' +
+    '<label class="aics-index-style-13">Studio (STORY / IMAGE / CONTENT ...)</label><br>' +
+    '<input id="st" value="STORY" class="aics-index-style-16">' +
+    '<label class="aics-index-style-13">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" class="aics-index-style-16">' +
+    '<label class="aics-index-style-13">User Idea</label><br>' +
+    '<textarea id="id" rows="3" class="aics-index-style-15">Write a short story about a boy and his dog.</textarea>' +
+    '<label class="aics-index-style-13">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" class="aics-index-style-16">' +
+    '<br><button data-action="run" class="aics-index-style-10">▶ Run Studio</button>' +
+    '<div id="out" class="aics-index-style-18">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/studio/generate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
     'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value,idea:document.getElementById("id").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){' +
-    'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.style.maxWidth="100%";im.style.borderRadius="8px";o.appendChild(im);return;}' +
+    'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.className="aics-test-output-image";o.appendChild(im);return;}' +
     'o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\\n\\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
     '.catch(function(e){o.textContent="Network error: "+e;});}' +
     '<\/script></body></html>';
@@ -265,11 +293,11 @@ function studioTestPage() {
 function creationsTestPage() {
   // Phase 13 — Option 2: Creations ကို Server/D1 တွင် မသိမ်းတော့ပါ (Browser IndexedDB သာ)
   return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">💾 My Creations</h2>' +
-    '<p style="font-size:14px;line-height:1.6">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
+    '<body class="aics-index-style-7">' +
+    '<h2 class="aics-index-style-12">💾 My Creations</h2>' +
+    '<p class="aics-index-style-19">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
     'Server/D1 တွင် User Content မသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
-    '<p style="font-size:14px">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
+    '<p class="aics-index-style-20">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
     '</body></html>';
 }
 

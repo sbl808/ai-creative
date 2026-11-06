@@ -4,7 +4,7 @@
 export const HELPERS_SCRIPT = `(function init(){
   setVoiceGender('male'); // Default: Male → Puck (chip + voiceSel consistent)
   updateConditionalFields();
-  if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
+  if(!token){var login=document.getElementById('loginView');var app=document.getElementById('aicsApp');if(login)login.classList.remove('aics-hidden');if(app)app.classList.add('aics-hidden');return;}
   var _ue=document.getElementById('userEmail');if(_ue)_ue.textContent=userEmail||'—';
   var _pb=document.getElementById('planBadge');if(_pb)_pb.textContent=userPlan||'FREE';
   buildQuickActions();
@@ -69,7 +69,7 @@ function csEnsureBranchStepper(){
 }
 function csStepHtml(s,index){
   var label=((index+1<10)?'0':'')+(index+1)+' '+String(s.label).replace(/^\\d+\\s*/,'');
-  return '<button class="aics-step-btn" data-step="'+s.n+'" onclick="csNav('+s.n+')">'+
+  return '<button class="aics-step-btn" data-step="'+s.n+'" data-aics-action="content-nav" data-aics-step="'+s.n+'">'+
     '<span class="aics-step-txt"><span class="aics-step-label">'+label+'</span></span>'+
     '<span class="aics-step-loading"><span class="aics-step-spinner"></span>'+(s.loading||'ဖန်တီးနေသည်...')+'</span></button>';
 }
@@ -88,11 +88,11 @@ function csRenderBranchStepper(){
   var bs=csEnsureBranchStepper();
   if(!bs)return;
   if(CS_MODE==='main'||!CS_STEPS[CS_MODE]){
-    bs.style.display='none';
+    bs.classList.add('cs-branch-stepper-hidden');
     bs.innerHTML='';
     return;
   }
-  bs.style.display='';
+  bs.classList.remove('cs-branch-stepper-hidden');
   var steps=CS_STEPS[CS_MODE];
   var cap=(CS_MODE==='video')?'&#127916; Video Branch':'&#128266; Audio Branch';
   var html='<span class="aics-branch-cap">'+cap+'</span><div class="aics-stepper-inner">';
@@ -132,7 +132,7 @@ function openBranch(kind){
   if(kind==='video'){
     videoState.content=content;
     var vt=document.getElementById('videoContentText'); if(vt){vt.value=content;autoGrow(vt);}
-    var vp=document.getElementById('videoContentPreview'); if(vp){vp.textContent=content;vp.style.display='';}
+    var vp=document.getElementById('videoContentPreview'); if(vp){vp.textContent=content;vp.classList.add('cs-preview-visible');}
     csSetMode('video');
     csGoForce(12);
   }else if(kind==='audio'){
@@ -140,7 +140,7 @@ function openBranch(kind){
     // Voice Studio ကို ပြောင်းမသွားတော့ဘဲ ဤ Studio ထဲမှာပဲ ဆက်လုပ်သည်။
     // Copy/paste မလိုအပ် — နောက်ဆုံး edit လုပ်ထားသော Content ကို Auto-fill လုပ်သည်။
     audioState.content=content;
-    var ap=document.getElementById('audioContentPreview'); if(ap){ap.textContent=content;ap.style.display='';}
+    var ap=document.getElementById('audioContentPreview'); if(ap){ap.textContent=content;ap.classList.add('cs-preview-visible');}
     var tt=document.getElementById('ttsText'); if(tt){tt.value=content;autoGrow(tt);}
     csSetMode('audio');
     csGoForce(22);
@@ -180,7 +180,7 @@ function copyText(id){
 }
 function showToastMsg(msg){ var t=document.getElementById('toast'); if(!t)return; t.textContent=msg||'&#9989; ကူးယူပြီးပါပြီ'; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2000); }
 function escapeHtml(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function autoGrow(el){ if(!el)return; el.style.height='auto'; el.style.height=(el.scrollHeight+4)+'px'; }
+function autoGrow(el){ if(!el)return; var lineHeight=22; try{var computed=window.getComputedStyle(el);var measured=parseFloat(computed&&computed.lineHeight);if(Number.isFinite(measured)&&measured>0)lineHeight=measured;}catch(e){} el.rows=Math.max(2,Math.ceil((el.scrollHeight||lineHeight*2)/lineHeight)); }
 function onContentEdit(){ if(!lastResult)return; lastResult.content=document.getElementById('contentOut').value; contentState.editedResult=lastResult.content; }
 
 // ===== GLOBAL RESULT UI — Content Result Box (state machine lives in shared-ui.js) =====
@@ -201,7 +201,7 @@ function buildQuickActions(){
       var chip=document.createElement('div');
       chip.className='type-chip';
       chip.innerHTML=a.label;
-      chip.onclick=function(){quickAction(a.kind);};
+      chip.dataset.aicsAction='quick-action';\n      chip.dataset.aicsKind=a.kind;
       c.appendChild(chip);
     })(QUICK_ACTIONS[i]);
   }

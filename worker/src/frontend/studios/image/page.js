@@ -94,6 +94,13 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .map-img-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .aics-work .map-img-actions .btn{flex:1;min-width:120px;padding:10px 12px;font-size:13px}
 .aics-work .map-loading{text-align:center;padding:30px 16px}
+.aics-work .image-intro-note{color:var(--text2);font-size:13px;margin-bottom:14px}
+.aics-work .image-form-group-compact{margin-bottom:0}
+.aics-work .image-idea-input{min-height:120px}
+.aics-work .image-prep-prompt{min-height:160px}
+.aics-work .map-loading-title{font-size:15px}
+.aics-login-overlay.is-hidden{display:none}
+.aics-app.is-hidden{display:none!important}
 .aics-work .map-loading .spinner{width:34px;height:34px;border-width:4px;margin:0 auto 14px}
 .aics-work .map-card .error-box{margin-top:12px}
 @media(max-width:767px){.aics-work .studio-form-grid{grid-template-columns:minmax(0,1fr);gap:12px}.aics-work .card{padding:16px}.aics-work .btn-row{display:grid;grid-template-columns:minmax(0,1fr)}.aics-work .btn-row .btn{width:100%}.aics-work .ref-thumb,.aics-work .ref-thumb img{width:64px;height:64px}.aics-work .map-img-actions{flex-direction:column}.aics-work .map-img-actions .btn{width:100%}.aics-work .card{padding:14px}.aics-work .map-card-head{padding:12px 14px}.aics-work .map-card-body{padding:12px 14px}}
@@ -120,7 +127,7 @@ html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Image Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/image" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay is-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Image Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/image" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'image',
   activeId: 'image',
@@ -135,6 +142,22 @@ ${sidebarScript()}
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">&#9989; အောင်မြင်ပါသည်</div>
 <script>${STATE_SCRIPT}${API_SCRIPT}${ACTIONS_SCRIPT}${STEPPER_SCRIPT}
 (function(){
+  var imageDraftSaveTimer=null;
+  function queueImageDraftSave(){
+    if(imageDraftSaveTimer!==null)clearTimeout(imageDraftSaveTimer);
+    imageDraftSaveTimer=setTimeout(function(){
+      imageDraftSaveTimer=null;
+      if(window.autoSave)window.autoSave();
+    },450);
+  }
+  document.addEventListener('input',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueImageDraftSave();
+  });
+  document.addEventListener('change',function(event){
+    var target=event.target;
+    if(target&&target.closest&&target.closest('.aics-work'))queueImageDraftSave();
+  });
   document.addEventListener('change',function(event){
     var target=event.target;
     if(!target||!target.dataset)return;

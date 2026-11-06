@@ -79,7 +79,7 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn aics-hidden" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
@@ -98,12 +98,12 @@ function studioPageSidebar(activeId) {
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
       '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more aics-hidden" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
       '</section>'
     : '';
   return (
     '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
-    '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
+    '<div class="sidebar aics-sidebar--column" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
@@ -119,7 +119,7 @@ function studioPageSidebar(activeId) {
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn aics-hidden" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -147,6 +147,9 @@ function responsiveStyles() {
     '.aics-app .layout{display:flex;align-items:stretch;min-height:calc(100vh - 63px);width:100%;}\n' +
     '.aics-app .layout > .sidebar{display:flex;flex-direction:column;width:232px;flex:0 0 232px;background:var(--aics-surface);border:1px solid var(--aics-border);border-radius:var(--aics-radius-lg);margin:16px 12px;padding:14px 12px;box-sizing:border-box;height:calc(100vh - 95px);position:sticky;top:79px;z-index:90;overflow:hidden;box-shadow:var(--aics-shadow-sm);}\n' +
     '.aics-app .layout > .sidebar .sidebar-nav{width:100%;box-sizing:border-box;}\n' +
+    '  .aics-hidden{display:none!important;}\\n' +
+    '  .aics-app .aics-sidebar--column{display:flex;flex-direction:column;}\\n' +
+    '  .aics-app .aics-work--constrained{max-width:820px;margin:0 auto;width:100%;}\\n' +
     '.aics-app .nav-label{font-size:10px;font-weight:650;color:var(--aics-text-soft);letter-spacing:1.1px;margin:18px 0 7px 10px;text-transform:uppercase;}\n' +
     '.aics-app .nav-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;box-sizing:border-box;border-radius:var(--aics-radius-sm);color:var(--aics-text-muted);text-decoration:none;cursor:pointer;font-size:13px;margin-bottom:2px;border:1px solid transparent;transition:background .16s,color .16s,border-color .16s;line-height:1.45;}\n' +
     '.aics-app .nav-item:hover{background:var(--aics-surface-subtle);color:var(--aics-text);}\n' +
@@ -231,16 +234,17 @@ export function themeControllerScript(options = {}) {
     className: options.className || 'aics-theme-toggle',
     createToggle: Boolean(options.mountSelector)
   });
-  return '(function(){\n' +
-    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);\n' +
-    '  var key=config.key;\n' +
-    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}\n' +
-    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\n' +
-    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\n' +
-    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();\n' +
-    '})();';
+  return [
+    '(function(){',
+    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);',
+    '  var key=config.key;',
+    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}',
+    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);',
+    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}',
+    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();',
+    '})();'
+  ].join('\n');
 }
-
 function sidebarSessionHistoryScript() {
   return String.raw`
 // ===== Story Studio Recent Session History =====
@@ -314,11 +318,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
+      if (moreButton) moreButton.classList.toggle('aics-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.style.display = 'none';
+      if (moreButton) moreButton.classList.add('aics-hidden');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
@@ -471,13 +475,13 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.style.display = d.is_admin ? \'\' : \'none\';\n' +
+    '      if (al) al.classList.toggle(\'aics-hidden\', !d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
     '        for (var i = 0; i < links.length; i++) {\n' +
     '          var sid = links[i].getAttribute(\'data-studio\');\n' +
-    '          if (ss[sid] === false) links[i].style.display = \'none\';\n' +
+    '          if (ss[sid] === false) links[i].classList.add(\'aics-hidden\');\n' +
     '        }\n' +
     '      }\n' +
     '      localStorage.setItem(\'aics_email\', d.email || \'\'); localStorage.setItem(\'aics_plan\', d.plan || \'\');\n' +
@@ -550,8 +554,8 @@ export function sidebarScript() {
     '    var h = box.querySelector(\'.aics-result-loading-hint\');\n' +
     '    if (h) {\n' +
     '      var t = hint == null ? \'\' : String(hint).replace(/\\s+/g, \' \').trim();\n' +
-    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.style.display = \'\'; }\n' +
-    '      else { h.textContent = \'\'; h.style.display = \'none\'; }\n' +
+    '      if (t) { if (t.length > 90) t = t.slice(0, 87) + \'…\'; h.textContent = \'“\' + t + \'”\'; h.classList.remove(\'aics-hidden\'); }\n' +
+    '      else { h.textContent = \'\'; h.classList.add(\'aics-hidden\'); }\n' +
     '    }\n' +
     '    box.classList.add(\'show\');\n' +
     '  },\n' +
@@ -835,7 +839,7 @@ export function renderStudioShell(opts) {
     '<main class="main aics-main">\n' +
     '<div class="aics-stepper" id="aicsStepper"></div>\n' +
     '<div class="aics-grid">\n' +
-    '<section class="aics-work" id="aicsWork" style="max-width:820px;margin:0 auto;width:100%;">\n' +
+    '<section class="aics-work aics-work--constrained" id="aicsWork">\n' +
     content +
     '</section>\n' +
     '</div>\n' +
@@ -1006,17 +1010,17 @@ export function renderStudioShell(opts) {
     '    else if (a.fn && window[a.fn]) { try { window[a.fn](); } catch (e) { toast("Action error: " + (e && e.message || ""), true); } }\n' +
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
-    String.raw`  window.studioPersistDraft = function (showMessage) {
-    if ((SHELL_ID !== "short" && SHELL_ID !== "shop") || !window.AICS_DRAFTS) return Promise.resolve(false);
+    String.raw`  var studioDraftReady = false;
+  window.studioPersistDraft = function (showMessage) {
+    if (!studioDraftReady || ["content", "short", "image", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
       if (!data || typeof data !== "object") return Promise.resolve(false);
-      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
-      return window.AICS_DRAFTS.save({
-        studio: SHELL_ID,
-        draftVersion: 1,
-        data: { step: cur, data: data, savedAt: new Date().toISOString() }
+      return window.AICS_STUDIO_DRAFTS.save(SHELL_ID, {
+        step: cur,
+        data: data,
+        savedAt: new Date().toISOString()
       }).then(function () {
         if (showMessage) toast("&#10004; Draft သိမ်းပြီးပါပြီ");
         return true;
@@ -1030,32 +1034,38 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (SHELL_ID === "short" || SHELL_ID === "shop") { window.studioPersistDraft(true); return; }
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1) {
+      window.studioPersistDraft(true);
+      return;
+    }
     var data = null;
     if (window.studioCollectDraft) { try { data = window.studioCollectDraft(); } catch (e) { data = null; } }
     try {
-      if (SHELL_ID === "content" && data) { delete data.byok; delete data.videoByok; }
       localStorage.setItem(draftKey, JSON.stringify({ step: cur, data: data, savedAt: new Date().toISOString() }));
       toast("&#10004; Draft သိမ်းပြီးပါပြီ");
     } catch (e) { toast("Save မအောင်မြင်ပါ", true); }
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
-      window.AICS_DRAFTS.remove(SHELL_ID).then(function () {
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+      window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
+        // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးနောက် legacy draft ကိုသာ ရှင်းသည်။
+        try { localStorage.removeItem(draftKey); } catch (e) {}
         if (SHELL_ID === "short") {
           try { localStorage.removeItem("aics_draft_short_imgcache"); } catch (e) {}
         }
-        try { localStorage.removeItem(draftKey); } catch (e) {}
         location.reload();
-      }).catch(function () { toast("Draft ဖျက်မအောင်မြင်ပါ", true); });
+      }).catch(function () { toast("IndexedDB ထဲ Draft ဖျက်မအောင်မြင်ပါ", true); });
       return;
     }
     try { localStorage.removeItem(draftKey); } catch (e) {}
     location.reload();
   };
+  var draftTouchedBeforeRestore = false;
+  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; }, true);
+  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; }, true);
   function restoreDraft(d) {
-    if (!d || !d.data || !window.studioRestoreDraft) return;
+    if (!d || !d.data || !window.studioRestoreDraft || draftTouchedBeforeRestore) return;
     window.studioRestoreDraft(d.data);
     if (d.step && allowed(d.step)) cur = d.step;
   }
@@ -1063,7 +1073,8 @@ export function renderStudioShell(opts) {
     renderStepper();
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
-    if ((SHELL_ID === "short" || SHELL_ID === "shop") && window.AICS_DRAFTS) {
+
+    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
@@ -1073,37 +1084,37 @@ export function renderStudioShell(opts) {
           if (cacheRaw) legacyCache = JSON.parse(cacheRaw);
         } catch (e) {}
       }
-      window.AICS_DRAFTS.get(SHELL_ID).then(function (record) {
+
+      window.AICS_STUDIO_DRAFTS.load(SHELL_ID).then(function (record) {
         if (record && record.data) {
           restoreDraft(record.data);
           return;
         }
         if (legacy && legacy.data && typeof legacy.data === "object") {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
-          return window.AICS_DRAFTS.save({
-            studio: SHELL_ID,
-            draftVersion: 1,
-            data: legacy
-          }).then(function (saved) { restoreDraft(saved.data); });
+          return window.AICS_STUDIO_DRAFTS.importLegacy(SHELL_ID, legacy).then(function (result) {
+            var importedRecord = result && result.record;
+            if (importedRecord && importedRecord.data) restoreDraft(importedRecord.data);
+          });
         }
       }).catch(function () {
+        // Read-only fallback: keep the original legacy value untouched.
         if (legacy && legacy.data) {
           if (legacyCache && typeof legacyCache === "object") legacy.data.imgCache = legacyCache;
           restoreDraft(legacy);
         }
-      }).then(function () { showStep(cur); });
+      }).then(function () {
+        studioDraftReady = true;
+        if (draftTouchedBeforeRestore && window.studioCollectDraft) window.studioPersistDraft(false);
+        showStep(cur);
+      });
       return;
     }
+
     if (raw) {
-      try {
-        var d = JSON.parse(raw);
-        if (SHELL_ID === "content" && d && d.data && (Object.prototype.hasOwnProperty.call(d.data,"byok") || Object.prototype.hasOwnProperty.call(d.data,"videoByok"))) {
-          delete d.data.byok; delete d.data.videoByok;
-          localStorage.setItem(draftKey, JSON.stringify(d));
-        }
-        restoreDraft(d);
-      } catch (e) {}
+      try { restoreDraft(JSON.parse(raw)); } catch (e) {}
     }
+    studioDraftReady = true;
     showStep(cur);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

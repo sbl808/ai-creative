@@ -2,7 +2,7 @@
 // Browser-side helpers — extracted VERBATIM from frontend/story.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
 export const HELPERS_SCRIPT = `(function init(){
-  if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
+  if(!token){var login=document.getElementById('loginView');var app=document.getElementById('aicsApp');if(login)login.classList.remove('is-hidden');if(app)app.classList.add('aics-hidden');return;}
   var _ue=document.getElementById('userEmail');if(_ue)_ue.textContent=userEmail||'—';
   var _pb=document.getElementById('planBadge');if(_pb)_pb.textContent=userPlan||'FREE';
   buildIdeaFields();
@@ -14,7 +14,7 @@ export const HELPERS_SCRIPT = `(function init(){
   fillSelect('vidCamSel',CAMERA_STYLES,'Feature Film');
   fillSelect('vidLangSel',LANGUAGES,'မြန်မာ');
   var _ta=document.getElementById('field_0');
-  if(_ta){_ta.addEventListener('input',function(){this.style.height='auto';this.style.height=(this.scrollHeight)+'px';});}
+  if(_ta){_ta.addEventListener('input',function(){autoExpand(this);});}
   updateGenBtn();
   var _db=debounce(autoSave,400);
   document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#aicsApp'))_db();},true);
@@ -47,7 +47,7 @@ function buildWorkflowSel(){
     })(VIDEO_WORKFLOWS[i]);
   }
   selEl.value=selectedWorkflow;
-  selEl.onchange=function(){selectedWorkflow=selEl.value;};
+  selEl.addEventListener('change',function(){selectedWorkflow=selEl.value;});
 }
 
 function apiCall(url,body){var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;return fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});}
@@ -70,7 +70,6 @@ function buildIdeaFields(){
       var input;
       if(f.multiline){
         input=document.createElement('textarea');
-        input.style.minHeight='70px';
         input.addEventListener('input',function(){autoExpand(this);});
       }else{
         input=document.createElement('input');input.type='text';
@@ -121,7 +120,7 @@ function hideField0Error(){
 }
 
 // ===================== Auto Expand (Global Result Box handles streaming display) =====================
-function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
+function autoExpand(ta){if(!ta)return;var lineHeight=22;try{var computed=window.getComputedStyle(ta);var measured=parseFloat(computed&&computed.lineHeight);if(Number.isFinite(measured)&&measured>0)lineHeight=measured;}catch(e){}ta.rows=Math.max(2,Math.ceil((ta.scrollHeight||lineHeight*2)/lineHeight));}
 function onStoryEdit(){
   var ta=document.getElementById('storyResult');
   if(ta){currentStory=ta.value;autoExpand(ta);}

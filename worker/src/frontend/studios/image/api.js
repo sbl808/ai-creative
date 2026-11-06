@@ -2,7 +2,7 @@
 // Browser-side api — extracted VERBATIM from frontend/image.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
 export const API_SCRIPT = `(function init(){
-  if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
+  if(!token){var loginView=document.getElementById('loginView');var app=document.getElementById('aicsApp');if(loginView)loginView.classList.remove('is-hidden');if(app)app.classList.add('is-hidden');return;}
 })();
 
 // ===================== API =====================
@@ -28,6 +28,7 @@ function addRefFile(file){
   reader.onload=function(e){
     refImages.push({dataUrl:e.target.result,base64:e.target.result.split(',')[1],mimeType:file.type});
     renderRefPreviews();
+    autoSave();
   };
   reader.readAsDataURL(file);
 }
@@ -43,7 +44,10 @@ function renderRefPreviews(){
     var removeBtn=document.createElement('button');
     removeBtn.className='remove-x';
     removeBtn.textContent='✕';
-    removeBtn.onclick=function(){removeRef(idx);};
+    removeBtn.type='button';
+    removeBtn.dataset.imageAction='removeReference';
+    removeBtn.dataset.imageIndex=String(idx);
+    removeBtn.setAttribute('aria-label','Reference ပုံ ဖယ်ရှားရန်');
     thumb.appendChild(imgEl);
     thumb.appendChild(removeBtn);
     container.appendChild(thumb);
@@ -52,6 +56,7 @@ function renderRefPreviews(){
 function removeRef(idx){
   refImages.splice(idx,1);
   renderRefPreviews();
+  autoSave();
 }
 
 // ===================== Step 01 → 02 → 03 (AI Prepare Prompt) =====================
@@ -232,7 +237,7 @@ function setRegenLoading(on){
   var wrap=document.getElementById('mapImgWrap');
   if(!wrap)return;
   if(on){
-    wrap.innerHTML='<div class="map-loading"><div class="spinner"></div><div class="loading-title" style="font-size:15px;">&#10024; AI ဖန်တီးနေသည်...</div><p class="loading-sub">ပုံအသစ် ဖန်တီးနေပါသည်</p></div>';
+    wrap.innerHTML='<div class="map-loading"><div class="spinner"></div><div class="loading-title map-loading-title">&#10024; AI ဖန်တီးနေသည်...</div><p class="loading-sub">ပုံအသစ် ဖန်တီးနေပါသည်</p></div>';
   }
 }
 
@@ -258,9 +263,9 @@ function renderMap(){
     '<div class="map-card-head"><span class="map-icon">🖼️</span><span class="map-title">FINAL IMAGE</span></div>' +
     '<div class="map-card-body"><div id="mapImgWrap"></div>' +
     '<div class="map-img-actions">' +
-    '<button class="btn btn-secondary" onclick="scrollMapTop()">✏️ MAP ပြင်ရန်</button>' +
-    '<button class="btn btn-purple" onclick="regenerateImage()">🔄 ပြန်ဖန်တီးရန်</button>' +
-    '<button class="btn btn-success" onclick="downloadImage()">⬇️ Download</button>' +
+    '<button class="btn btn-secondary" data-image-action="scrollMapTop">✏️ MAP ပြင်ရန်</button>' +
+    '<button class="btn btn-purple" data-image-action="regenerateImage">🔄 ပြန်ဖန်တီးရန်</button>' +
+    '<button class="btn btn-success" data-image-action="downloadImage">⬇️ Download</button>' +
     '</div>' +
     '<div class="error-box" id="regenError"></div>' +
     '</div></div>';
@@ -275,11 +280,11 @@ function mapCardHTML(icon,title,key,desc,isPrompt){
     :('<div class="map-desc map-empty">(မဖြည့်ရသေးပါ)</div>');
   var extra='';
   if(isPrompt&&imageMap.finalPrompt){
-    extra='<button class="btn btn-purple map-regen-btn" onclick="regenerateImage()">🔄 ပြန်ဖန်တီးရန်</button>';
+    extra='<button class="btn btn-purple map-regen-btn" data-image-action="regenerateImage">🔄 ပြန်ဖန်တီးရန်</button>';
   }
   return '<div class="map-card">' +
     '<div class="map-card-head"><span class="map-icon">'+icon+'</span><span class="map-title">'+title+'</span>' +
-    '<button class="map-edit-btn" onclick="editMapSection(\\''+key+'\\')">✏️ Edit</button></div>' +
+    '<button class="map-edit-btn" data-image-action="editMap" data-image-key="'+key+'">✏️ Edit</button></div>' +
     '<div class="map-card-body" id="mapBody_'+key+'">'+descHtml+extra+'</div>' +
     '</div>';
 }
@@ -294,8 +299,8 @@ function editMapSection(key){
   var ph=(key==='finalPrompt')?'Final Prompt ရေးပါ':'ဖော်ပြချက် ရေးပါ';
   body.innerHTML='<textarea class="map-edit-ta" id="mapEdit_'+key+'" placeholder="'+ph+'">'+escapeHtml(cur)+'</textarea>' +
     '<div class="map-edit-actions">' +
-    '<button class="btn btn-success" onclick="saveMapSection(\\''+key+'\\')">💾 သိမ်းရန်</button>' +
-    '<button class="btn btn-ghost" onclick="renderMap()">မလုပ်တော့ပါ</button>' +
+    '<button class="btn btn-success" data-image-action="saveMap" data-image-key="'+key+'">💾 သိမ်းရန်</button>' +
+    '<button class="btn btn-ghost" data-image-action="cancelMapEdit">မလုပ်တော့ပါ</button>' +
     '</div>';
   var ta=document.getElementById('mapEdit_'+key);
   if(ta){ta.focus();autoExpand(ta);}

@@ -27,7 +27,7 @@ const STEP4_HTML = `
 </div>
 
 <button type="button" class="aics-advanced-toggle" id="vidAdvToggle" aria-expanded="false"><span>&#8964; အပိုဆောင်း Video Settings (Advanced Video Settings)</span><span class="aics-adv-arrow">&#9660;</span></button>
-<div id="vidAdvFields" class="adv-grid aics-adv-panel" style="margin-top:2px;">
+<div id="vidAdvFields" class="adv-grid aics-adv-panel aics-video-plan-mt-2">
 <div class="form-group adv-check">
 <span class="group-label">ဇာတ်ကောင် ဆက်လက်ထားရှိမှု (Character Continuity)</span>
 <label class="aics-check-row" for="vidContinuity"><input type="checkbox" id="vidContinuity" checked> Scene တိုင်းတွင် ဇာတ်ကောင် ID တူညီစွာ ထားပါ</label>
@@ -62,11 +62,11 @@ const STEP4_HTML = `
 </div>
 <div class="form-group adv-full">
 <label for="vidAudio">&#128266; အသံ / အသံလမ်းညွှန် (Audio / Sound Direction)</label>
-<textarea id="vidAudio" placeholder="ဥပမာ — နောက်ခံ ဇာတ်လမ်းသံ၊ မိုးသံ၊ ညင်သာတဲ့ တေးသံ..." style="min-height:64px;"></textarea>
+<textarea id="vidAudio" class="aics-video-plan-min-h-64" placeholder="ဥပမာ — နောက်ခံ ဇာတ်လမ်းသံ၊ မိုးသံ၊ ညင်သာတဲ့ တေးသံ..."></textarea>
 </div>
 <div class="form-group adv-full">
 <label for="vidExtra">အပိုဆောင်း ညွှန်ကြားချက် (Additional Instructions)</label>
-<textarea id="vidExtra" placeholder="ဥပမာ — နောက်ဆုံး Scene မှာ မိုးရွာပြီး စိတ်ခံစားချက်ကို ပိုဖော်ပြပါ..." style="min-height:70px;"></textarea>
+<textarea id="vidExtra" class="aics-video-plan-min-h-70" placeholder="ဥပမာ — နောက်ဆုံး Scene မှာ မိုးရွာပြီး စိတ်ခံစားချက်ကို ပိုဖော်ပြပါ..."></textarea>
 </div>
 </div>
 

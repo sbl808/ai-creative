@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 import { storageErrorsScript } from '../worker/src/frontend/storage/storage-errors.js';
 import { storageOwnerScript } from '../worker/src/frontend/storage/storage-owner.js';
@@ -356,7 +357,7 @@ async function expectCode(promise, code) {
 }
 
 const sessionA = await window.AICS_SESSIONS.create({ studio: 'story', title: 'User A session' });
-assert.equal(fakeIndexedDB.version, 5, 'repository should use IndexedDB schema v5');
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION, 'repository should use the current IndexedDB schema version');
 
 const firstResult = await window.AICS_SESSION_RESULTS.create({
   sessionId: sessionA.id,

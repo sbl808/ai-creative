@@ -7,6 +7,7 @@ const OWNER_INDEX_BY_STORE = Object.freeze({
   studio_sessions: 'ownerId',
   studio_handoffs: 'ownerId',
   session_results: 'ownerId',
+  ideas: 'ownerId',
   drafts: 'ownerId'
 });
 
