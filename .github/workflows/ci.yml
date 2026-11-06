@@ -187,6 +187,11 @@ jobs:
           npx --yes wrangler@4 dev --local --env dev --config worker/wrangler.toml --ip 127.0.0.1 --port 8787 --log-level error > /tmp/aics-wrangler.log 2>&1 &
           worker_pid=$!
           cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "Wrangler local runtime log (failure diagnostics):"
+              cat /tmp/aics-wrangler.log || true
+            fi
             kill "$worker_pid" 2>/dev/null || true
           }
           trap cleanup EXIT
