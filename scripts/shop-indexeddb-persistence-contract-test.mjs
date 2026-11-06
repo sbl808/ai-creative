@@ -6,15 +6,15 @@
 import assert from 'node:assert/strict';
 import { SHOP_HTML } from '../worker/src/frontend/studios/shop/page.js';
 
-assert.match(SHOP_HTML, /window\.AICS_DRAFTS\.get\(SHELL_ID\)/,
+assert.match(SHOP_HTML, /window\.AICS_STUDIO_DRAFTS\.load\(SHELL_ID\)/,
   'Shop Studio must restore its owner-scoped IndexedDB draft');
-assert.match(SHOP_HTML, /studio: SHELL_ID/,
-  'Shared shell must save the current supported studio draft in IndexedDB');
-assert.match(SHOP_HTML, /SHELL_ID !== "short" && SHELL_ID !== "shop"/,
+assert.match(SHOP_HTML, /window\.AICS_STUDIO_DRAFTS\.save\(SHELL_ID,\s*\{/,
+  'Shared shell must save the current studio draft through the IndexedDB adapter');
+assert.match(SHOP_HTML, /\["content", "short", "image", "shop"\]\.indexOf\(SHELL_ID\) === -1/,
   'Shared IndexedDB persistence must explicitly support Shop Studio');
 assert.match(SHOP_HTML, /window\.studioPersistDraft\(false\)/,
   'Shop automatic draft saves must use IndexedDB');
-assert.match(SHOP_HTML, /AICS_DRAFTS\.remove\(SHELL_ID\)/,
+assert.match(SHOP_HTML, /window\.AICS_STUDIO_DRAFTS\.remove\(SHELL_ID\)/,
   'Confirmed Shop reset must remove its IndexedDB draft');
 assert.match(SHOP_HTML, /localStorage\.getItem\(draftKey\)/,
   'Legacy Shop draft must remain readable for one-time migration');
