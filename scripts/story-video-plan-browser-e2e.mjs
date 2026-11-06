@@ -35,6 +35,32 @@ function safeUrlPath(value) {
   }
 }
 
+const sensitiveDiagnosticValues = new Set(['local-e2e-password-2026']);
+
+function safeDiagnosticText(value) {
+  let text = String(value ?? '');
+  for (const sensitiveValue of sensitiveDiagnosticValues) {
+    if (sensitiveValue) text = text.split(sensitiveValue).join('[REDACTED]');
+  }
+  return text
+    .replace(/Bearer\\s+[^\\s"'<>]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/https?:\\/\\/[^\\s"'<>]+/g, (url) => safeUrlPath(url))
+    .slice(0, 500);
+}
+
+function safePath(value) {
+  try { return new URL(value, baseURL).pathname; }
+  catch { return '[unavailable]'; }
+}
+
+assert.equal(safeDiagnosticText('password local-e2e-password-2026'), 'password [REDACTED]');
+assert.equal(safeDiagnosticText('Bearer abc.def'), 'Bearer [REDACTED]');
+assert.equal(safeDiagnosticText('eyJhbGci.eyJzdWIi.signature'), '[REDACTED_TOKEN]');
+assert.equal(safeDiagnosticText('user@example.com'), '[REDACTED_EMAIL]');
+assert.equal(safeDiagnosticText('https://example.test/path?token=secret'), 'https://example.test/path');
+
 async function collectInlineScriptDiagnostics(page) {
   const scripts = await page.evaluate(() => Array.from(document.scripts).map((script, index) => ({
     index,
@@ -65,11 +91,11 @@ async function collectInlineScriptDiagnostics(page) {
     try {
       new Script(script.source, { filename: 'inline-script-' + script.index });
     } catch (error) {
-      const message = String(error && error.message || error);
+      const message = safeDiagnosticText(error && error.message || error);
       const match = message.match(/:(\d+)(?::(\d+))?/);
       syntaxErrors.push({
         index: script.index,
-        error: message.slice(0, 300),
+        error: safeDiagnosticText(message),
         line: match ? Number(match[1]) : null,
         column: match && match[2] ? Number(match[2]) : null,
       });
@@ -125,7 +151,7 @@ try {
       type: 'requestfailed',
       resourceType,
       url: safeUrlPath(request.url()),
-      failure: String(request.failure()?.errorText || 'unknown').slice(0, 250),
+      failure: 'request failed (details withheld)',
     });
   });
   page.on('response', (response) => {
@@ -141,6 +167,7 @@ try {
     });
   });
   const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
+  sensitiveDiagnosticValues.add(email);
   const signup = await page.request.post(baseURL + '/api/auth/signup', {
     data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
   });
@@ -149,6 +176,7 @@ try {
   assert.ok(account.user_id, 'Signup should return a local test user ID');
 
   const token = createProTestToken(account.user_id, email);
+  sensitiveDiagnosticValues.add(token);
   await context.addCookies([{
     name: 'aics_token',
     value: token,
@@ -244,7 +272,7 @@ try {
           target: value.target,
           payloadKeys: Object.keys(value.payload || {}),
         } : null;
-      } catch (error) { readError = String(error && error.message || error); }
+      } catch (error) { readError = String(error && error.name || 'storage_read_failed'); }
       return {
         url: location.pathname,
         handoffsApi: typeof window.AICS_HANDOFFS,
@@ -307,9 +335,7 @@ try {
   await page.locator('button[data-aics-action="go-to-video-plan"]').click();
   await page.waitForTimeout(1200);
   if (!/\/app\/story-video-plan\?session=/.test(page.url())) {
-    const visibleText = await page.locator('body').innerText();
-    throw new Error('Story-to-Video-Plan navigation did not complete. Current URL: ' + page.url() +
-      '. Page message: ' + visibleText.slice(-800));
+    throw new Error('Story-to-Video-Plan navigation did not complete at ' + safePath(page.url()));
   }
   await page.waitForURL(/\/app\/story-video-plan\?session=/, { timeout: 10000 });
   await page.locator('#videoStoryInput').waitFor();
