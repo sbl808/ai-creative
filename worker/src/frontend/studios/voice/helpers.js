@@ -136,14 +136,4 @@ function restoreDraft(){
     try{return voiceApplyDraftData(JSON.parse(raw)||{});}catch(e){return false;}
   });
 }
-function renderStepper(items,current){
-  var c=document.getElementById('voiceStepper'),h='';
-  items.forEach(function(x,i){
-    var cls=x.n===current?'active':(x.n<current?'done':'');
-    h+='<div class="vstep '+cls+'" data-step="'+x.n+'">'+(x.n<current?'✓ ':'')+esc(x.label)+'</div>';
-    if(i<items.length-1)h+='<span class="vlink"></span>';
-  });c.innerHTML=h;
-  var active=c.querySelector('.vstep.active');
-  if(active&&window.studioScrollElementIntoView)window.studioScrollElementIntoView(active,'#voiceStepper',true);
-}
 `;
