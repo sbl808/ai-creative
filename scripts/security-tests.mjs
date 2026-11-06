@@ -146,10 +146,15 @@ console.log('--- A) CORS enforcement ---');
 console.log('\\n--- B) Shared error message XSS regression ---');
 {
   const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
-  const match = sharedUi.match(/export const AICS_ERROR_SCRIPT = \`([\\s\\S]*?)\\`;/);
-  check('shared error dialog script is present', !!match);
+  const scriptMarker = 'export const AICS_ERROR_SCRIPT = \`';
+  const scriptStart = sharedUi.indexOf(scriptMarker);
+  const scriptEnd = scriptStart >= 0 ? sharedUi.indexOf('\\n\\`; ', scriptStart) : -1;
+  const errorScript = scriptStart >= 0 && scriptEnd > scriptStart
+    ? sharedUi.slice(scriptStart + scriptMarker.length, scriptEnd)
+    : '';
+  check('shared error dialog script is present', !!errorScript);
 
-  if (match) {
+  if (errorScript) {
     const errorElement = {
       style: {},
       children: [],
@@ -161,7 +166,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
       createElement(tagName) { return { tagName, style: {}, textContent: '' }; },
       createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
     };
-    vm.runInNewContext(match[1], { document, String });
+    vm.runInNewContext(errorScript, { document, String });
 
     const hostilePrefix = '<svg onload=alert(1)>';
     const hostileMessage = '<img src=x onerror=alert(1)>';
@@ -178,7 +183,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
       errorElement.children[2].nodeType === 3 &&
       errorElement.children[2].textContent === hostileMessage);
     check('error rendering does not assign attacker-controlled innerHTML',
-      !match[1].includes('el.innerHTML'));
+      !errorScript.includes('el.innerHTML'));
   }
 }
 
