@@ -29,10 +29,10 @@ function createProTestToken(userId, email) {
 // Diagnostic output must never include credentials, query-string values, or user content.
 function safeDiagnosticText(value) {
   return String(value || '')
-    .replace(/Bearer\\s+[^\\s"'<>]+/gi, 'Bearer [REDACTED]')
-    .replace(/eyJ[A-Za-z0-9_-]+\\.eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
-    .replace(/https?:\\/\\/[^\\s"'<>]+/g, (url) => {
+    .replace(/Bearer\s+[^\s"'<>]+/gi, 'Bearer [REDACTED]')
+    .replace(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED_TOKEN]')
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/https?:\/\/[^\s"'<>]+/g, (url) => {
       try { return new URL(url).origin + new URL(url).pathname; }
       catch { return '[URL]'; }
     })
@@ -57,7 +57,7 @@ function parseInlineScripts(scripts) {
       return null;
     } catch (error) {
       const message = String(error && error.message || error);
-      const match = message.match(/:(\\d+)(?::(\\d+))?/);
+      const match = message.match(/:(\d+)(?::(\d+))?/);
       return {
         index,
         type: type || 'classic',
@@ -94,7 +94,7 @@ async function collectPageDiagnostics(page, events) {
     scriptResponses: events.scriptResponses.slice(-40),
     failedScriptRequests: events.failedScriptRequests.slice(-40),
     htmlReturnedForScript: events.scriptResponses
-      .filter((item) => /text\\/html/i.test(item.contentType || ''))
+      .filter((item) => /text\/html/i.test(item.contentType || ''))
       .map(({ path, status, contentType }) => ({ path, status, contentType })),
     browserErrors: events.browserErrors.slice(-20),
   };
@@ -264,12 +264,12 @@ try {
   assert.equal(storyHandoffState.currentStory, storyText, 'Story Studio should restore the completed Story');
   await page.locator('button[data-aics-action="go-to-video-plan"]').click();
   await page.waitForTimeout(1200);
-  if (!/\\/app\\/story-video-plan\\?session=/.test(page.url())) {
+  if (!/\/app\/story-video-plan\?session=/.test(page.url())) {
     const visibleText = await page.locator('body').innerText();
     throw new Error('Story-to-Video-Plan navigation did not complete. Current URL: ' + safePath(page.url()) +
       '. Page message length: ' + visibleText.length);
   }
-  await page.waitForURL(/\\/app\\/story-video-plan\\?session=/, { timeout: 10000 });
+  await page.waitForURL(/\/app\/story-video-plan\?session=/, { timeout: 10000 });
   await page.locator('#videoStoryInput').waitFor();
   await page.waitForFunction(() => window.AICS_STORY_VIDEO_PLAN_STATE && window.AICS_STORY_VIDEO_PLAN_STATE.state.ready);
   assert.equal(await page.locator('#videoStoryInput').inputValue(), storyText,
