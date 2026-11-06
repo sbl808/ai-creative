@@ -49,7 +49,7 @@ function parseInlineScripts(scripts) {
     const type = String(script.type || '').trim().toLowerCase();
     const isJavaScript = !type || [
       'text/javascript', 'application/javascript', 'text/ecmascript',
-      'application/ecmascript',
+      'application/ecmascript', 'classic',
     ].includes(type);
     if (script.src || !isJavaScript) return null;
     try {
