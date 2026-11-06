@@ -33,7 +33,7 @@ try {
   const browserErrors = [];
   page.on('pageerror', (error) => {
     const message = String(error && error.message || error);
-    const stack = String(error && error.stack || '').split('\\n').slice(0, 5).join(' | ');
+    const stack = String(error && error.stack || '').split('\n').slice(0, 5).join(' | ');
     browserErrors.push('pageerror: ' + message + (stack ? ' [stack: ' + stack + ']' : ''));
   });
   page.on('console', (message) => {
@@ -71,14 +71,14 @@ try {
     const scriptParseErrors = state.inlineScripts.map((source, index) => {
       try { new Script(source, { filename: 'inline-script-' + index }); return null; }
       catch (error) {
-        const match = String(error.message || error).match(/:(\\d+)(?::(\\d+))?/);
+        const match = String(error.message || error).match(/:(\d+)(?::(\d+))?/);
         const line = match ? Number(match[1]) : null;
-        const lines = source.split('\\n');
+        const lines = source.split('\n');
         return {
           index,
           error: String(error.message || error),
           line,
-          excerpt: line ? lines.slice(Math.max(0, line - 3), line + 2).join('\\n') : source.slice(0, 500),
+          excerpt: line ? lines.slice(Math.max(0, line - 3), line + 2).join('\n') : source.slice(0, 500),
         };
       }
     }).filter(Boolean);
