@@ -154,7 +154,7 @@ try {
     value: token,
     url: baseURL,
     httpOnly: true,
-    secure: true,
+    secure: new URL(baseURL).protocol === 'https:',
     sameSite: 'Lax',
   }]);
   await page.addInitScript((value) => {
