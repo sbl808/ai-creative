@@ -288,7 +288,7 @@ for (const slug of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
     const r = await get('/app/' + slug, await withToken());
     const html = await r.text();
     return {
-      ok: r.status === 200 && html.includes('<html') && /<script\\b/i.test(html),
+      ok: r.status === 200 && html.includes('<html') && /<script\b/i.test(html),
       msg: `status=${r.status} len=${html.length}`,
     };
   });
