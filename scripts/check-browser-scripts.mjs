@@ -86,7 +86,7 @@ for (const studio of STUDIOS) {
 
 console.log(
   failed === 0
-    ? `\\nAll ${checked} inline browser scripts syntactically valid ✔`
-    : `\\nFAILED: ${failed} error(s) across ${checked} inline browser script(s)`
+    ? `\nAll ${checked} inline browser scripts syntactically valid ✔`
+    : `\nFAILED: ${failed} error(s) across ${checked} inline browser script(s)`
 );
 if (failed > 0) process.exitCode = 1;
