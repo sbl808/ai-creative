@@ -234,16 +234,17 @@ export function themeControllerScript(options = {}) {
     className: options.className || 'aics-theme-toggle',
     createToggle: Boolean(options.mountSelector)
   });
-  return '(function(){\n' +
-    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);\n' +
-    '  var key=config.key;\n' +
-    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}\n' +
-    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);\n' +
-    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}\n' +
-    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();\n' +
-    '})();';
+  return [
+    '(function(){',
+    '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);',
+    '  var key=config.key;',
+    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}',
+    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);',
+    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.onclick=function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");};applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}',
+    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();',
+    '})();'
+  ].join('\n');
 }
-
 function sidebarSessionHistoryScript() {
   return String.raw`
 // ===== Story Studio Recent Session History =====
