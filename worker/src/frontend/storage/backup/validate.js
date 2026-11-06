@@ -6,6 +6,8 @@ export const BACKUP_MAX_JSON_NODES = 500000;
 export const BACKUP_MAX_JSON_DEPTH = 64;
 
 function installBackupValidator(target, config) {
+  // Keep this serialized browser function independent of bundler-injected helpers.
+  var __name = function (targetFunction) { return targetFunction; };
   var formatId = config.formatId;
   var exportVersion = config.exportVersion;
   var schemaVersion = config.schemaVersion;
