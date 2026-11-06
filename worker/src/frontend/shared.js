@@ -318,11 +318,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.classList.toggle(\'aics-hidden\', !hasMore);
+      if (moreButton) moreButton.classList.toggle('aics-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.classList.add(\'aics-hidden\');
+      if (moreButton) moreButton.classList.add('aics-hidden');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
