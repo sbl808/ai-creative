@@ -39,7 +39,7 @@ const JS_TYPES = new Set([
 function getAttribute(attributes, name) {
   const escapedName = name.replace(/[.*+?^\u0024{}()|[\]\\]/g, '\\$&');
   const match = attributes.match(
-    new RegExp('(?:^|\\s)' + escapedName + '\\s*=\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\s>]+))', 'i'),
+    new RegExp("(?:^|\\s)" + escapedName + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))", 'i'),
   );
   return match ? (match[1] ?? match[2] ?? match[3] ?? '') : null;
 }
