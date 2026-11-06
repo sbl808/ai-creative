@@ -43,7 +43,7 @@ assert.match(ideaUi, /Cancel လုပ်လျှင် မူလ Draft ကိ�
 assert.match(ideaUi, /return false;/, 'handoff cancellation must stop the replacement');
 assert.match(
   ideaUi,
-  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:idea\}\)/,
+  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:fullPayload\}\)/,
   'Story handoff must send the complete Idea Result through the IndexedDB handoff contract'
 );
 assert.match(ideaUi, /aics_draft_content/, 'Content handoff draft key missing');
