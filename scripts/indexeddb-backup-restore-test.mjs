@@ -222,7 +222,13 @@ const backup = {
 function seedRecordSet(userId, suffix) {
   return {
     creations: [{ id: 'creation-' + suffix, user_id: userId, title: 'Old creation' }],
-    ideas: [],
+    ideas: [{
+      id: 'idea-' + suffix, ownerId: userId, recordVersion: 1, category: 'story',
+      fields: {}, result: {
+        title: 'Old idea', concept: 'Concept', hook: 'Hook', outline: 'Outline',
+        suggestedStudio: 'story'
+      }, isFavorite: false
+    }],
     projects: [{ id: 'project-' + suffix, user_id: userId, title: 'Old project' }],
     studio_sessions: [{ id: 'session-' + suffix, ownerId: userId, studio: 'STORY' }],
     studio_handoffs: [{
@@ -262,7 +268,7 @@ await assert.rejects(
 const result = await window.AICS_BACKUP_IMPORT.restore(backup, { confirmReplace: true });
 assert.equal(result.restored, true);
 assert.equal(result.mode, 'replace');
-assert.equal(result.removedCount, 6);
+assert.equal(result.removedCount, 7);
 assert.equal(result.importedCount, 6);
 assert.equal(result.recordCount, 6);
 
