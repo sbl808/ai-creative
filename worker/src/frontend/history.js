@@ -158,8 +158,8 @@ listNode.addEventListener('click',function(event){
  var item=allItems.find(function(entry){return entry.kind===kind&&entry.sourceId===id});
  if(!item)return;
  var action=button.getAttribute('data-history-action');
- button.disabled=true;
  if(action==='delete'){removeItem(item,button);return}
+ button.disabled=true;
  var operation=kind==='creation'?window.AICS_CREATIONS.toggleFav(id):window.AICS_IDEAS.toggleFavorite(id);
  Promise.resolve(operation).then(reload).catch(function(){button.disabled=false;window.alert('Favorite ပြောင်းမရပါ။')});
 });
