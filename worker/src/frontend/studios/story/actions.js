@@ -270,7 +270,9 @@ function storySessionTitle(data){
   var title=String(fields[0]||data&&data.storyIdea||data&&data.story||'').trim();
   return (title||'Untitled Story').replace(/\\s+/g,' ').slice(0,80);
 }
+var storyResetInProgress=false;
 function autoSave(){
+  if(storyResetInProgress)return Promise.resolve(null);
   var data;
   try{data=studioCollectDraft();}catch(error){return Promise.reject(error);}
   if(!storyHasMeaningfulDraft(data))return Promise.resolve(null);
@@ -292,6 +294,7 @@ function autoSave(){
   return storySaveQueue;
 }
 function autoSaveImgCache(){
+  if(storyResetInProgress)return Promise.resolve([]);
   var keys=Object.keys(imgCache||{});
   if(!keys.length)return Promise.resolve([]);
   return autoSave().then(function(session){
@@ -501,6 +504,60 @@ function studioMigrateLegacyStorage(){
     })
     .catch(function(error){console.error('Legacy Story draft migration failed:',error);});
 }
+
+// Story Reset removes only the active session; other saved Story sessions remain untouched.
+window.studioReset = function studioResetStorySession() {
+  if(!confirm("လက်ရှိ Story Draft နှင့် ၎င်း၏ ပုံများကို ဖျက်ပြီး အစကပြန်စမလား?"))return;
+  if(storyResetInProgress)return;
+  storyResetInProgress=true;
+
+  storySaveQueue=storySaveQueue.catch(function(){});
+  storySaveQueue.then(function(){
+    var legacyBackup;
+    try{
+      legacyBackup={
+        draft:localStorage.getItem('aics_draft_story'),
+        images:localStorage.getItem('aics_draft_story_imgcache')
+      };
+      localStorage.removeItem('aics_draft_story');
+      localStorage.removeItem('aics_draft_story_imgcache');
+    }catch(error){
+      if(legacyBackup){
+        try{
+          if(legacyBackup.draft!==null)localStorage.setItem('aics_draft_story',legacyBackup.draft);
+          if(legacyBackup.images!==null)localStorage.setItem('aics_draft_story_imgcache',legacyBackup.images);
+        }catch(restoreError){console.error('Story legacy draft rollback failed:',restoreError);}
+      }
+      throw error;
+    }
+
+    var removeSession=Promise.resolve(false);
+    if(storySessionId){
+      if(!window.AICS_SESSIONS||typeof window.AICS_SESSIONS.remove!=='function'){
+        throw new Error('sessions_storage_unavailable');
+      }
+      removeSession=window.AICS_SESSIONS.remove(storySessionId);
+    }
+    return removeSession.then(function(){
+      return true;
+    }).catch(function(error){
+      try{
+        if(legacyBackup.draft!==null)localStorage.setItem('aics_draft_story',legacyBackup.draft);
+        if(legacyBackup.images!==null)localStorage.setItem('aics_draft_story_imgcache',legacyBackup.images);
+      }catch(restoreError){console.error('Story legacy draft rollback failed:',restoreError);}
+      throw error;
+    });
+  }).then(function(){
+    storySessionId=null;
+    imgCache={};
+    storyImageResultIds={};
+    location.reload();
+  }).catch(function(error){
+    storyResetInProgress=false;
+    console.error('Story Reset failed:',error);
+    showToastMsg('Story Draft ဖျက်မအောင်မြင်ပါ။ ထပ်မံကြိုးစားပါ။');
+  });
+};
 
 // ============================================================
 `;
