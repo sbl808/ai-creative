@@ -43,7 +43,7 @@ h1{font-size:25px;margin:0 0 6px}
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
 <div class="layout">
-\${renderSidebar('history',{variant:'studio'})}
+${renderSidebar('history',{variant:'studio'})}
 <main class="main-content aics-main">
 <h1>History</h1>
 <p class="subtitle">သင်ဖန်တီးထားသော Creation၊ Idea၊ Studio Result နှင့် Draft များကို ရက်စွဲအလိုက် ကြည့်ရှုနိုင်ပါသည်။ Data များကို သင့် Browser IndexedDB ထဲမှာသာ ဖတ်ရှုပါသည်။</p>
@@ -71,7 +71,7 @@ h1{font-size:25px;margin:0 0 6px}
 </main>
 </div>
 </div>
-\${sidebarScript()}
+${sidebarScript()}
 <script>
 (function(){
 'use strict';
