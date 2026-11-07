@@ -7,7 +7,7 @@ export const HISTORY_HTML = `<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>History — AI Creative Studio</title>
 <style>
-:root{color-scheme:light dark;--bg:#f6f8fb;--surface:#fff;--text:#172033;--muted:#667085;--line:#e5eaf1;--primary:#5b5bd6;--soft:#f0efff;--danger:#b42318}
+:root{color-scheme:light dark;--bg:#f6f8fb;--surface:#fff;--text:#172033;--muted:#667085;--line:#e5eaf1;--primary:#5b5bd6;--soft:#f0efff;--danger:#b42318}\nhtml[data-aics-theme="dark"]{--bg:var(--aics-bg);--surface:var(--aics-surface);--text:var(--aics-text);--muted:var(--aics-text-muted);--line:var(--aics-border);--primary:var(--aics-primary);--soft:var(--aics-primary-soft);--danger:var(--aics-danger)}\nhtml[data-aics-theme="light"]{--bg:var(--aics-bg);--surface:var(--aics-surface);--text:var(--aics-text);--muted:var(--aics-text-muted);--line:var(--aics-border);--primary:var(--aics-primary);--soft:var(--aics-primary-soft);--danger:var(--aics-danger)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 Inter,"Noto Sans Myanmar",system-ui,sans-serif}
 main{width:100%;max-width:1120px;margin:0 auto;padding:24px}
@@ -23,15 +23,15 @@ h1{font-size:25px;margin:0 0 6px}
 .card-meta{font-size:12px;color:var(--muted);margin-top:4px}
 .card-preview{margin:10px 0 0;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.actions button,.actions a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
+.actions button,.actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
 .actions .primary{background:var(--soft);border-color:#d9d6fe;color:var(--primary);font-weight:650}
 .actions .danger{color:var(--danger)}
 .actions button:disabled{opacity:.55;cursor:wait}
-.empty{padding:48px 18px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px}
+.empty{padding:48px 18px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px}\n.status{overflow-wrap:anywhere}
 .status{padding:12px;color:var(--muted)}
 :where(button,a,input,select):focus-visible{outline:3px solid rgba(91,91,214,.35);outline-offset:2px}
 @media(min-width:768px) and (max-width:1199px){main{padding:20px}.toolbar{grid-template-columns:minmax(0,1fr) 170px 140px}}
-@media(max-width:767px){main{padding:16px 12px 32px}h1{font-size:22px}.toolbar{grid-template-columns:1fr;gap:8px}.history-card{padding:14px}.card-top{display:block}.actions>*{flex:1 1 auto}}
+@media(max-width:767px){main{padding:16px 12px 32px}h1{font-size:22px}.toolbar{grid-template-columns:minmax(0,1fr);gap:8px}.history-card{padding:14px}.card-top{display:block}.actions>*{flex:1 1 140px;min-width:0}.empty{padding:36px 14px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
