@@ -129,18 +129,6 @@ window.AICS_HISTORY = {
             updatedAt: __aicsHistoryString(record.updatedAt),
             isFavorite: false
           });
-          sessionItems.push({
-            id: 'session:' + id,
-            sourceId: id,
-            sessionId: id,
-            kind: 'session',
-            studio: __aicsHistoryString(record.studio),
-            title: __aicsHistoryString(record.title) || 'Untitled Session',
-            preview: '',
-            createdAt: __aicsHistoryString(record.createdAt),
-            updatedAt: __aicsHistoryString(record.updatedAt),
-            isFavorite: false
-          });
         });
 
         scanStore('session_results', 'ownerId', String(ownerId), function (record) {
