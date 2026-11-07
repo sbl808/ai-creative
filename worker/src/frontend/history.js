@@ -1,6 +1,6 @@
 import { renderSidebar, sidebarScript } from './shared.js';
 
-export const HISTORY_HTML = \`<!doctype html>
+export const HISTORY_HTML = `<!doctype html>
 <html lang="my">
 <head>
 <meta charset="utf-8">
@@ -173,5 +173,5 @@ else reload();
 })();
 </script>
 </body>
-</html>\`;
+</html>`;
 
