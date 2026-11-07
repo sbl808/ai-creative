@@ -1068,6 +1068,11 @@ export function renderStudioShell(opts) {
   }
   function init() {
     renderStepper();
+    // Story owns its IndexedDB session restore and legacy migration.
+    if (SHELL_ID === "story") {
+      showStep(cur);
+      return;
+    }
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
 
