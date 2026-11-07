@@ -20,6 +20,7 @@ function createFakeIndexedDB(seed) {
     records.set(name, new Map(values.map(record => [record.id, clone(record)])));
     const indexPaths = {
       creations: { user_id: 'user_id' },
+      ideas: { ownerId: 'ownerId' },
       projects: { user_id: 'user_id' },
       studio_sessions: { ownerId: 'ownerId' },
       studio_handoffs: { ownerId: 'ownerId' },
@@ -199,10 +200,11 @@ const sessionId = 'session-new';
 const backup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 5,
+  schemaVersion: 6,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{ id: 'creation-new', user_id: owner, title: 'New creation' }],
+    ideas: [],
     projects: [{ id: 'project-new', user_id: owner, title: 'New project' }],
     studio_sessions: [{ id: sessionId, ownerId: owner, studio: 'STORY', title: 'New story' }],
     studio_handoffs: [{
@@ -220,6 +222,7 @@ const backup = {
 function seedRecordSet(userId, suffix) {
   return {
     creations: [{ id: 'creation-' + suffix, user_id: userId, title: 'Old creation' }],
+    ideas: [],
     projects: [{ id: 'project-' + suffix, user_id: userId, title: 'Old project' }],
     studio_sessions: [{ id: 'session-' + suffix, ownerId: userId, studio: 'STORY' }],
     studio_handoffs: [{
