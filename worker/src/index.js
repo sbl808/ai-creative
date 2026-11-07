@@ -33,7 +33,6 @@ import { verifyToken } from './platform/auth/index.js';
 
 
 
-import { handleProjectRoutes } from './routes/projects.routes.js';
 import { trackUsage } from './core/usage.js';
 
 import { isStudioEnabled } from './configuration/studio-config/index.js';
@@ -478,15 +477,6 @@ export default {
 
       const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
       if (shopStudioResponse) return shopStudioResponse;
-
-      const projectResponse = await handleProjectRoutes(request, env, cors, {
-        bearer,
-        verifyTokenSafe,
-        readBody,
-        json,
-        friendlyError,
-      });
-      if (projectResponse) return projectResponse;
 
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
