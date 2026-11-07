@@ -3,6 +3,8 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { clientStorageScript } from '../worker/src/frontend/storage/client-storage.js';
 import { ACTIONS_SCRIPT } from '../worker/src/frontend/studios/story/actions.js';
+import { HELPERS_SCRIPT } from '../worker/src/frontend/studios/story/helpers.js';
+import { renderStudioShell } from '../worker/src/frontend/shared.js';
 
 const source = clientStorageScript();
 assert.match(source, /indexedDB\.open\('aics_creations_v1', 6\)/);
@@ -12,6 +14,19 @@ assert.match(source, /contractVersion!==1/);
 assert.match(source, /owner_target_createdAt/);
 new vm.Script(source, { filename: 'client-storage.js' });
 new vm.Script(ACTIONS_SCRIPT, { filename: 'story-actions.js' });
+
+const storyShell = renderStudioShell({ id: 'story', activeId: 'story', steps: [] });
+const storyRestoreGuard = storyShell.indexOf('if (SHELL_ID === "story")');
+const storyLegacyRead = storyShell.indexOf('localStorage.getItem(draftKey)', storyRestoreGuard);
+assert.ok(storyRestoreGuard >= 0, 'Shared Shell skips generic restore for Story');
+assert.ok(storyLegacyRead > storyRestoreGuard, 'Story legacy localStorage restore is bypassed before the generic read');
+assert.match(HELPERS_SCRIPT, /studioMigrateLegacyStorage\(\);/, 'Story helpers own legacy migration');
+assert.match(ACTIONS_SCRIPT, /var storyResetInProgress=false;/);
+assert.match(ACTIONS_SCRIPT, /function autoSave\(\)\{\s*if\(storyResetInProgress\)return Promise\.resolve\(null\);/);
+assert.match(ACTIONS_SCRIPT, /function autoSaveImgCache\(\)\{\s*if\(storyResetInProgress\)return Promise\.resolve\(\[\]\);/);
+assert.match(ACTIONS_SCRIPT, /window\.studioReset = function studioResetStorySession\(\)/);
+assert.match(ACTIONS_SCRIPT, /window\.AICS_SESSIONS\.remove\(storySessionId\)/);
+assert.match(ACTIONS_SCRIPT, /localStorage\.removeItem\('aics_draft_story_imgcache'\)/);
 
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
