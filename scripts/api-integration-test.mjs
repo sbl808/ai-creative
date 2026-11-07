@@ -6,7 +6,7 @@
  * mocked D1 — i.e. real request/response, real JWT, real routing, real
  * SQL contract. Per the project rule, NO fake success:
  *
- *   PASS    — authentication, session, me, ai-models, project save/load/delete
+ *   PASS    — authentication, session, me, ai-models
  *   PASS    — AI endpoints' HONEST error path (no_api_key → 500 friendly, no stack)
  *   BLOCKED — real AI generation / TTS / transcription / translation / video:
  *             required staging credential missing (GEMINI_API_KEY, staging D1)
@@ -43,8 +43,8 @@ try {
   record('GET /api/users/me → 200 (plan FREE)', s2.status === 200, 'status=' + s2.status);
   const s3 = await fetch(url + '/api/auth/logout', { headers: cookieAuth, redirect: 'manual' });
   record('GET /api/auth/logout → 302 (clears cookie)', s3.status === 302, 'status=' + s3.status);
-  const noAuth = await fetch(url + '/api/projects');
-  record('GET /api/projects (no token) → 401', noAuth.status === 401, 'status=' + noAuth.status);
+  const noAuthProjects = await fetch(url + '/api/projects');
+  record('GET /api/projects (no token) → 404 (route retired)', noAuthProjects.status === 404, 'status=' + noAuthProjects.status);
 
   // ===== AI models registry =====
   const m = await get('/api/ai-models');
@@ -69,21 +69,13 @@ try {
       'status=' + r.status + ' body=' + JSON.stringify(j).slice(0, 120));
   }
 
-  // ===== Project save / load / delete (real SQL contract on mock D1) =====
-  const p1 = await post('/api/projects', { title: 'E2E Integration Project', description: 'created by api-integration-test' });
-  const p1j = await p1.json().catch(() => null);
-  const pid = p1j && p1j.project && p1j.project.id;
-  record('POST /api/projects → 200 + id', p1.status === 200 && !!pid, 'status=' + p1.status);
-  const p2 = await get('/api/projects');
-  const p2j = await p2.json().catch(() => null);
-  record('GET /api/projects → contains saved project', p2.status === 200 && Array.isArray(p2j.items) && p2j.items.some((x) => x.id === pid));
-  const p3 = await fetch(url + '/api/projects/' + pid, { method: 'DELETE', headers: auth });
-  record('DELETE /api/projects/:id → 200', p3.status === 200);
-  const p4 = await get('/api/projects');
-  const p4j = await p4.json().catch(() => null);
-  record('GET /api/projects → project removed', Array.isArray(p4j.items) && !p4j.items.some((x) => x.id === pid));
-  const p5 = await post('/api/projects', { title: '' });
-  record('POST /api/projects (empty title) → 400', p5.status === 400, 'status=' + p5.status);
+  // ===== Legacy D1 Projects API is retired; browser IndexedDB remains the data store =====
+  const projectGet = await get('/api/projects');
+  record('GET /api/projects (authenticated) → 404', projectGet.status === 404, 'status=' + projectGet.status);
+  const projectPost = await post('/api/projects', { title: 'must not persist' });
+  record('POST /api/projects → 404', projectPost.status === 404, 'status=' + projectPost.status);
+  const projectDelete = await fetch(url + '/api/projects/legacy-id', { method: 'DELETE', headers: auth });
+  record('DELETE /api/projects/:id → 404', projectDelete.status === 404, 'status=' + projectDelete.status);
 
   // ===== BLOCKED (staging credential missing) =====
   blockedNote('real AI generation (text/image/video)',
