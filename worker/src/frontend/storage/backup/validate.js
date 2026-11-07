@@ -169,18 +169,12 @@ function installBackupValidator(target, config) {
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
-    var requiredStoreNames = storeNames.filter(function (name) {
-      return name !== 'drafts' && name !== 'ideas';
-    });
+    var requiredStoreNames = storeNames;
     for (var s = 0; s < requiredStoreNames.length; s++) {
       if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
           !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
         throw fail('backup_invalid_stores');
       }
-    }
-    if (envelope.schemaVersion >= 6 &&
-        (!hasOwn(envelope.stores, 'ideas') || !Array.isArray(envelope.stores.ideas))) {
-      throw fail('backup_invalid_stores');
     }
     if (hasOwn(envelope.stores, 'ideas') && !Array.isArray(envelope.stores.ideas)) {
       throw fail('backup_invalid_stores');
