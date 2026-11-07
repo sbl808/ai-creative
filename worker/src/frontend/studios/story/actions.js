@@ -513,24 +513,7 @@ window.studioReset = function studioResetStorySession() {
 
   storySaveQueue=storySaveQueue.catch(function(){});
   storySaveQueue.then(function(){
-    var legacyBackup;
-    try{
-      legacyBackup={
-        draft:localStorage.getItem('aics_draft_story'),
-        images:localStorage.getItem('aics_draft_story_imgcache')
-      };
-      localStorage.removeItem('aics_draft_story');
-      localStorage.removeItem('aics_draft_story_imgcache');
-    }catch(error){
-      if(legacyBackup){
-        try{
-          if(legacyBackup.draft!==null)localStorage.setItem('aics_draft_story',legacyBackup.draft);
-          if(legacyBackup.images!==null)localStorage.setItem('aics_draft_story_imgcache',legacyBackup.images);
-        }catch(restoreError){console.error('Story legacy draft rollback failed:',restoreError);}
-      }
-      throw error;
-    }
-
+    // Remove the active IndexedDB session first. Keep legacy keys untouched if this fails.
     var removeSession=Promise.resolve(false);
     if(storySessionId){
       if(!window.AICS_SESSIONS||typeof window.AICS_SESSIONS.remove!=='function'){
@@ -539,13 +522,10 @@ window.studioReset = function studioResetStorySession() {
       removeSession=window.AICS_SESSIONS.remove(storySessionId);
     }
     return removeSession.then(function(){
+      // Legacy data is discarded only after the active IndexedDB session was removed.
+      localStorage.removeItem('aics_draft_story');
+      localStorage.removeItem('aics_draft_story_imgcache');
       return true;
-    }).catch(function(error){
-      try{
-        if(legacyBackup.draft!==null)localStorage.setItem('aics_draft_story',legacyBackup.draft);
-        if(legacyBackup.images!==null)localStorage.setItem('aics_draft_story_imgcache',legacyBackup.images);
-      }catch(restoreError){console.error('Story legacy draft rollback failed:',restoreError);}
-      throw error;
     });
   }).then(function(){
     storySessionId=null;
