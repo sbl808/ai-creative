@@ -74,6 +74,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-projects-test.mjs
       - name: Run IndexedDB Sessions Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-sessions-test.mjs
+      - name: Run IndexedDB History Repository tests
+        run: node --experimental-default-type=module scripts/indexeddb-history-repository-test.mjs
       - name: Run IndexedDB Session Results Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-session-results-test.mjs
       - name: Run IndexedDB Story Session persistence tests

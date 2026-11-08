@@ -14,6 +14,7 @@ import { clientStorageScript } from './storage/client-storage.js';
 // Dependency-free Lucide-compatible outline SVGs for shared navigation.
 const SHELL_ICONS = {
   home: '<path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/>',
+  history: '<path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>',
   book: '<path d="M12 7v14"/><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-4a3 3 0 0 0-3 2 3 3 0 0 0-3-2H5a2 2 0 0 1-2-2Z"/>',
   pen: '<path d="m18 2 4 4"/><path d="M7 13 3 21l8-4L21 7l-4-4L7 13Z"/><path d="m14 6 4 4"/>',
   clapperboard: '<path d="M4 4h16v16H4z"/><path d="m4 9 16-5"/><path d="m9 4 3 5"/><path d="m15 4 3 5"/>',
@@ -49,17 +50,10 @@ function studioLinks(activeId) {
     .join('\n  ');
 }
 
-// ---- MY WORK / SETTINGS လင့်ခ်များ (Phase 3 — Favorites + Settings) ----
-// activeId: 'creations' | 'favorites' | 'settings' — ရောက်နေသော နေရာကို Active ပြသည် (Phase 9 fix)
+// ---- MY WORK navigation: History is the single entry point ----
 function myWorkLinks(activeId) {
-  const creActive = activeId === 'creations' ? ' active' : '';
-  const favActive = activeId === 'favorites' ? ' active' : '';
-  const setActive = activeId === 'settings' ? ' active' : '';
-  return (
-    '<a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
-    '  <a class="nav-item' + (activeId === 'ideas' ? ' active' : '') + '" href="/app/ideas"><span class="nav-icon-circle">' + shellIcon('lightbulb') + '</span><span class="nav-text">Idea Workspace</span></a>\n' +
-    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>'
-  );
+  const historyActive = activeId === 'history' ? ' active' : '';
+  return '<a class="nav-item' + historyActive + '" href="/app/history"><span class="nav-icon-circle">' + shellIcon('history') + '</span><span class="nav-text">History</span></a>';
 }
 
 // ---- App Shell Sidebar (Home / Creations ပုံစံ — Hamburger + Backdrop + Brand) ----
@@ -92,8 +86,7 @@ function appShellSidebar(activeId) {
 // (Phase 4 တွင် Studio ၆ ခု၏ UI Shell ကို ဤပုံစံဖြင့် တစ်ညီတည်း ဖြစ်အောင် ပြုလုပ်ပါမည်)
 function studioPageSidebar(activeId) {
   const homeActive = activeId === 'home' ? ' active' : '';
-  const creActive = activeId === 'creations' ? ' active' : '';
-  const favActive = activeId === 'favorites' ? ' active' : '';
+  const historyActive = activeId === 'history' ? ' active' : '';
   const sessionHistoryHtml = activeId === 'story'
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
@@ -109,9 +102,7 @@ function studioPageSidebar(activeId) {
     '  <div class="nav-label">STUDIOS</div>\n' +
     '  ' + studioLinks(activeId) + '\n' +
     '  <div class="nav-label">MY WORK</div>\n' +
-    '  <a class="nav-item' + creActive + '" href="/app/creations"><span class="nav-icon-circle">' + shellIcon('folder') + '</span><span class="nav-text">ဖန်တီးမှုများ</span></a>\n' +
-    '  <a class="nav-item' + (activeId === 'ideas' ? ' active' : '') + '" href="/app/ideas"><span class="nav-icon-circle">' + shellIcon('lightbulb') + '</span><span class="nav-text">Idea Workspace</span></a>\n' +
-    '  <a class="nav-item' + favActive + '" href="/app/creations?fav=1"><span class="nav-icon-circle">' + shellIcon('star') + '</span><span class="nav-text">အနှစ်သက်ဆုံး</span></a>\n' +
+    '  <a class="nav-item' + historyActive + '" href="/app/history"><span class="nav-icon-circle">' + shellIcon('history') + '</span><span class="nav-text">History</span></a>\n' +
     sessionHistoryHtml +
     '  </div>\n' +
     '  <div class="sidebar-bottom">\n' +
@@ -127,7 +118,7 @@ function studioPageSidebar(activeId) {
 }
 
 // ---- Sidebar HTML Renderer ----
-// activeId: 'home' | 'creations' | 'favorites' | 'settings' | studioId (ဥပမာ 'story')
+// activeId: 'home' | 'history' | 'settings' | studioId (ဥပမာ 'story')
 // opts.variant: 'app' (Home/Creations) | 'studio' (Studio မျက်နှာများ)
 export function renderSidebar(activeId, opts) {
   opts = opts || {};

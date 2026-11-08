@@ -33,7 +33,6 @@ import { verifyToken } from './platform/auth/index.js';
 
 
 
-import { handleProjectRoutes } from './routes/projects.routes.js';
 import { trackUsage } from './core/usage.js';
 
 import { isStudioEnabled } from './configuration/studio-config/index.js';
@@ -45,6 +44,7 @@ import { APP_HTML } from './frontend/index.js';
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
 import { getStudioPage } from './frontend/studioPages.js';
 import { CREATIONS_HTML } from './frontend/creations.js';
+import { HISTORY_HTML } from './frontend/history.js';
 import { IDEAS_HTML } from './frontend/ideas.js';
 import { SETTINGS_HTML } from './frontend/settings.js';
 import { PROJECTS_HTML } from './frontend/projects.js';
@@ -373,6 +373,11 @@ export default {
         if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
         return htmlPage(IDEAS_HTML);
       }
+      if (path === '/app/history' || path === '/app/history/') {
+        const g = await appSessionGuard(request, env, url.origin);
+        if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
+        return htmlPage(HISTORY_HTML);
+      }
       if (path === '/app/creations' || path === '/app/creations/') {
         const g = await appSessionGuard(request, env, url.origin);
         if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
@@ -472,15 +477,6 @@ export default {
 
       const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
       if (shopStudioResponse) return shopStudioResponse;
-
-      const projectResponse = await handleProjectRoutes(request, env, cors, {
-        bearer,
-        verifyTokenSafe,
-        readBody,
-        json,
-        friendlyError,
-      });
-      if (projectResponse) return projectResponse;
 
       // ===== Creations (Phase 13 — Option 2) =====
       // User ဖန်တီးမှုအားလုံးကို Browser IndexedDB တွင်သာ သိမ်းသည်။
