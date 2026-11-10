@@ -68,6 +68,37 @@ currentBackup.stores.media_assets = [{
 }];
 assert.equal(validateBackupEnvelope(currentBackup, ownerId).recordCount, 8);
 assert.equal(validateBackupText(JSON.stringify(currentBackup), ownerId).recordCount, 8);
+
+// Media Asset V1 accepts exactly the six contract fields.
+const validMediaAsset = currentBackup.stores.media_assets[0];
+for (const forbiddenField of [
+  'data', 'base64', 'content', 'prompt', 'apiKey', 'token', 'secret', 'debugNote'
+]) {
+  const invalidAsset = { ...validMediaAsset, [forbiddenField]: 'unexpected' };
+  expectCode({
+    ...currentBackup,
+    stores: { ...currentBackup.stores, media_assets: [invalidAsset] }
+  }, 'backup_invalid_record');
+}
+
+for (const requiredField of [
+  'contractVersion', 'id', 'ownerId', 'studioId', 'mediaType', 'createdAt'
+]) {
+  const invalidAsset = { ...validMediaAsset };
+  delete invalidAsset[requiredField];
+  expectCode({
+    ...currentBackup,
+    stores: { ...currentBackup.stores, media_assets: [invalidAsset] }
+  }, 'backup_invalid_record');
+}
+
+expectCode({
+  ...currentBackup,
+  stores: {
+    ...currentBackup.stores,
+    media_assets: [{ ...validMediaAsset, id: '   ' }]
+  }
+}, 'backup_invalid_record');
 expectCode({ ...currentBackup, stores: { ...currentBackup.stores, media_assets: undefined } }, 'backup_invalid_stores');
 expectCode({
   ...currentBackup,
