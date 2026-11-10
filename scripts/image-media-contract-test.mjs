@@ -49,6 +49,33 @@ assert.deepEqual(validateImageRequestV1({
   input: { prompt: 'A product photo' },
 }), { ok: true, errors: [] });
 
+// Shop's existing video-image route accepts reference images.
+assert.deepEqual(validateImageRequestV1({
+  contractVersion: 1,
+  studioId: 'shop',
+  operation: 'generate',
+  input: {
+    prompt: 'A product photo',
+    images: [{ base64: 'aW1hZ2U=', mimeType: 'image/png' }],
+  },
+}), { ok: true, errors: [] });
+
+// Other generate routes must reject reference images until their routes
+// explicitly support passing them to the image generator.
+for (const studioId of ['content', 'short', 'image']) {
+  const result = validateImageRequestV1({
+    contractVersion: 1,
+    studioId,
+    operation: 'generate',
+    input: {
+      prompt: 'A product photo',
+      images: [{ base64: 'aW1hZ2U=', mimeType: 'image/png' }],
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes('images_not_supported_for_generate_operation'));
+}
+
 // Studios without an inspected Image route must not be admitted.
 for (const studioId of ['story', 'voice', 'unknown']) {
   const result = validateImageRequestV1({
