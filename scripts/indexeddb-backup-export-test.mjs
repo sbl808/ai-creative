@@ -140,7 +140,7 @@ assert.equal(backup.format, 'aics-browser-backup');
 assert.equal(backup.exportVersion, 1);
 assert.equal(backup.schemaVersion, 7);
 assert.deepEqual(Object.keys(backup.stores).sort(), [
-  'creations', 'drafts', 'ideas', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions', 'media_assets'
+  'creations', 'drafts', 'ideas', 'media_assets', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
 ]);
 assert.deepEqual(backup.stores.creations.map(record => record.id), ['c-a']);
 assert.deepEqual(backup.stores.projects.map(record => record.id), ['p-a']);
