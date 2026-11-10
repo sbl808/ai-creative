@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { IMAGE_CONTRACT_VERSION } from '../worker/src/media-production/contracts/image.contract.js';
 import { createImageStudioAdapter } from '../worker/src/media-adapters/image/index.js';
-import { generateImageFromPrompt } from '../worker/src/media-adapters/image/image.adapter.js';
-import { generateContentVideoImage } from '../worker/src/media-adapters/content/image.adapter.js';
-import { generateShortVideoImage } from '../worker/src/media-adapters/short/image.adapter.js';
-import { generateShopVideoImage } from '../worker/src/media-adapters/shop/image.adapter.js';
+import { createImageStudioImageAdapter } from '../worker/src/media-adapters/image/image.adapter.js';
+import { createContentImageAdapter } from '../worker/src/media-adapters/content/image.adapter.js';
+import { createShortImageAdapter } from '../worker/src/media-adapters/short/image.adapter.js';
+import { createShopImageAdapter } from '../worker/src/media-adapters/shop/image.adapter.js';
 
 const captured = [];
 const fakeEngine = async (env, request, executionContext) => {
@@ -18,15 +18,15 @@ const fakeEngine = async (env, request, executionContext) => {
 };
 
 const cases = [
-  ['image', generateImageFromPrompt],
-  ['content', generateContentVideoImage],
-  ['short', generateShortVideoImage],
-  ['shop', generateShopVideoImage],
+  ['image', createImageStudioImageAdapter],
+  ['content', createContentImageAdapter],
+  ['short', createShortImageAdapter],
+  ['shop', createShopImageAdapter],
 ];
 
-for (const [studioId, adapter] of cases) {
+for (const [studioId, createAdapter] of cases) {
   captured.length = 0;
-  const result = await createImageStudioAdapter(studioId, fakeEngine)({}, {
+  const result = await createAdapter(fakeEngine)({}, {
     prompt: 'A studio image prompt',
     apiKey: 'TEST_KEY',
     model: 'selected-model',
@@ -44,12 +44,11 @@ for (const [studioId, adapter] of cases) {
     plan: 'PRO',
   });
   assert.equal(JSON.stringify(captured[0].request).includes('TEST_KEY'), false);
-  assert.equal(typeof adapter, 'function');
 }
 
 // Shop alone may forward the existing optional reference-image payload.
 captured.length = 0;
-await createImageStudioAdapter('shop', fakeEngine)({}, {
+await createShopImageAdapter(fakeEngine)({}, {
   prompt: 'Product image',
   images: [
     { base64: 'aW1hZ2U=', mimeType: 'image/png', ignored: 'not forwarded' },
@@ -62,7 +61,7 @@ assert.deepEqual(captured[0].request.input, {
 
 // Other Studios must not forward reference images through this capability.
 captured.length = 0;
-await createImageStudioAdapter('content', fakeEngine)({}, {
+await createContentImageAdapter(fakeEngine)({}, {
   prompt: 'Content scene',
   images: [{ base64: 'aW1hZ2U=', mimeType: 'image/png' }],
 });
