@@ -5,24 +5,36 @@
  */
 
 export const IMAGE_CONTRACT_VERSION = 1;
+
+// Only Studios with inspected, existing Image-related routes are permitted.
+// Story and Voice are intentionally excluded until matching routes are verified.
 export const IMAGE_STUDIO_IDS = Object.freeze([
-  'story',
   'content',
   'short',
   'image',
-  'voice',
   'shop',
 ]);
+
 export const IMAGE_OPERATIONS = Object.freeze([
   'prompt',
   'ad-prompt',
   'generate',
 ]);
 
+// Image Studio owns prompt/ad-prompt generation and image generation.
+// Content, Short, and Shop use only the shared image-generation capability
+// through their existing video-image endpoints.
+export const IMAGE_STUDIO_OPERATIONS = Object.freeze({
+  image: Object.freeze(['prompt', 'ad-prompt', 'generate']),
+  content: Object.freeze(['generate']),
+  short: Object.freeze(['generate']),
+  shop: Object.freeze(['generate']),
+});
+
 const STUDIO_IDS = new Set(IMAGE_STUDIO_IDS);
 const OPERATIONS = new Set(IMAGE_OPERATIONS);
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const IMAGE_MIME_TYPE_PATTERN = /^image\/[a-z0-9][a-z0-9.+-]*$/i;
+const IMAGE_MIME_TYPE_PATTERN = /^image\\/[a-z0-9][a-z0-9.+-]*$/i;
 
 function isPlainObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -53,6 +65,12 @@ function validateEnvelope(value, errors) {
   }
   if (typeof value.operation !== 'string' || !OPERATIONS.has(value.operation)) {
     errors.push('invalid_image_operation');
+  } else if (
+    typeof value.studioId === 'string'
+    && STUDIO_IDS.has(value.studioId)
+    && !IMAGE_STUDIO_OPERATIONS[value.studioId].includes(value.operation)
+  ) {
+    errors.push('operation_not_allowed_for_studio');
   }
   return true;
 }
@@ -77,7 +95,7 @@ function validateImages(images, errors) {
  * Request shape:
  * {
  *   contractVersion: 1,
- *   studioId: 'story' | 'content' | 'short' | 'image' | 'voice' | 'shop',
+ *   studioId: 'content' | 'short' | 'image' | 'shop',
  *   operation: 'prompt' | 'ad-prompt' | 'generate',
  *   input: { idea | prompt, model?, type?, images? }
  * }
