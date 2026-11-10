@@ -13,7 +13,8 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+export { generateShortVideoImage } from '../media-adapters/short/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_STUDIO = 'SHORT';
@@ -143,17 +144,7 @@ export async function generateShortVideoPlan(env, {
   return parseShortVideoResponse(raw, scDur);
 }
 
-// ============================================================
-// Step 06 — Short Video Scene/Character Image Generate
-// ============================================================
-export async function generateShortVideoImage(env, { prompt, apiKey, model, plan }) {
-  if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'short.image'), task: 'short.image',
-    prompt: String(prompt).trim(),
-    apiKey,
-  });
-}
+// Step 06 — Short Video Scene/Character Image ကို Shared Image Adapter က ဆောင်ရွက်သည်။
 
 // ============================================================
 // Short-specific Structured JSON Parser

@@ -5,9 +5,12 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+import { generateText } from '../core/ai/aiService.js';
+import { generateVoiceSrtShared } from '../media-adapters/voice/srt.adapter.js';
+import { translateVoiceSrtShared } from '../media-adapters/voice/translation.adapter.js';
+import { generateVoiceAudio as generateSharedVoiceAudio, transcribeVoiceAudio } from '../media-adapters/voice/audio.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
-import { pcmToWavBase64 } from '../core/utilities.js';
+
 
 const CMS_STUDIO = 'VOICE';
 
@@ -17,16 +20,8 @@ const CMS_STUDIO = 'VOICE';
 // ============================================================
 export async function generateVoiceAudio(env, { text, voiceName, apiKey, model, plan }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await generateSpeech(env, {
-    text: String(text).trim(),
-    voiceName: voiceName || 'Kore',
-    apiKey,
-    model: await resolveModel(env, 'voice', plan, model, 'voice.voice'), task: 'voice.voice',
-  });
-  const wavBase64 = pcmToWavBase64(tts.data, 24000, 1, 16);
-  return { data: wavBase64, mimeType: 'audio/wav' };
+  return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });
 }
-
 // ============================================================
 // Tab 2 — Audio → Text (Transcribe)
 // CMS VOICE prompt ကို system instruction အဖြစ် သုံးသည်
@@ -38,16 +33,10 @@ export async function transcribeAudio(env, { audioBase64, mimeType, type, plan, 
   const prompt = system
     ? (system + '\n\nအထက်ပါ instruction အတိုင်း အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။')
     : 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။';
-  const text = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), task: 'voice.transcribe',
-    prompt,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
-    apiKey,
+  return transcribeVoiceAudio(env, {
+    audioBase64, mimeType, plan, apiKey, model, prompt,
   });
-  if (!text || !String(text).trim()) throw new Error('empty_transcription');
-  return { text };
 }
-
 // ============================================================
 // Tab 1 & 2 — SRT Subtitle from Audio (PRO only)
 // CMS VOICE/PRO/3 က Line-Splitting Rule အဖြစ် သုံးသည်
@@ -108,14 +97,14 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
 
   const instruction = buildVoiceSrtInstruction(lineRule, knownText);
 
-  const srt = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), task: 'voice.transcribe',
-    prompt: instruction,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
+  return generateVoiceSrtShared(env, {
+    audioBase64,
+    mimeType: mimeType || 'audio/mpeg',
     apiKey,
+    model,
+    plan,
+    prompt: instruction,
   });
-  if (!srt || !String(srt).trim()) throw new Error('empty_transcription');
-  return { srt };
 }
 
 // ============================================================
@@ -123,31 +112,5 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
 // ============================================================
 export async function translateVoiceSrt(env, { srtText, direction, type, plan, apiKey, model }) {
   if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
-  const dir = direction || 'MY_TO_CN';
-
-  let langInstruction;
-  if (dir === 'MY_TO_CN') {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ တရုတ်ဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။';
-  } else {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် တရုတ်ဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ မြန်မာဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။ TEXT LINE WRAPPING RULE: ' +
-      'ဒီ မြန်မာဘာသာပြန် Line ကို စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ။ ၁၅ လုံးကျော်ရင် Number/Timestamp ' +
-      'အသစ် ထပ်မဖန်တီးဘဲ Subtitle block တူညီတဲ့ အတွင်းမှာပဲ ဘာသာပြန် line ကို line အသစ် ထပ်ခွဲပြီး ရေးပါ။';
-  }
-
-  const instruction =
-    'အောက်ပါ SRT (SubRip Subtitle) Text ကို ဖတ်ပါ။ ' + langInstruction + ' ' +
-    'SRT Number (1, 2, 3...) နှင့် Timestamp (00:00:00,000 --> 00:00:03,000 ပုံစံ) များကို ' +
-    'လုံးဝ မပြောင်းလဲပါနှင့် — မူရင်းအတိုင်းသာ ထားပါ။ မူရင်း Text Line ကိုလည်း မပြောင်းလဲပါနှင့်၊ ' +
-    'ဖျက်လည်း မဖျက်ပါနှင့်။ Format ဥပမာ:\n' +
-    '1\n00:00:00,000 --> 00:00:03,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    '2\n00:00:03,000 --> 00:00:06,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် (explanation) မထည့်ပါနှင့်။\n\n' +
-    'SRT:\n' + String(srtText).trim();
-
-  const srt = await generateText(env, { model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), task: 'voice.transcribe', prompt: instruction, apiKey });
-  return { srt };
+  return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });
 }

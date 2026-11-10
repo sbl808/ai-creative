@@ -162,14 +162,16 @@ function installBackupValidator(target, config) {
     }
     if (envelope.format !== formatId) throw fail('backup_format_unsupported');
     if (envelope.exportVersion !== exportVersion) throw fail('backup_export_version_unsupported');
-    if (envelope.schemaVersion !== schemaVersion && envelope.schemaVersion !== 5) {
+    if (envelope.schemaVersion !== schemaVersion && envelope.schemaVersion !== 6 && envelope.schemaVersion !== 5) {
       throw fail('backup_schema_version_unsupported');
     }
     if (!validDate(envelope.exportedAt)) throw fail('backup_invalid_exported_at');
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
-    var requiredStoreNames = storeNames;
+    var requiredStoreNames = envelope.schemaVersion < 7
+      ? storeNames.filter(function (name) { return name !== 'media_assets'; })
+      : storeNames;
     for (var s = 0; s < requiredStoreNames.length; s++) {
       if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
           !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
@@ -200,6 +202,22 @@ function installBackupValidator(target, config) {
         resultSessionIds.push(record.sessionId);
       },
       ideas: function (record) { validateIdea(record, expectedOwnerId); },
+      media_assets: function (record) {
+        var allowedFields = [
+          'contractVersion', 'id', 'ownerId', 'studioId', 'mediaType', 'createdAt'
+        ];
+        if (!isObject(record) || Object.keys(record).some(function (key) {
+          return allowedFields.indexOf(key) === -1;
+        }) || Object.keys(record).length !== allowedFields.length ||
+            record.contractVersion !== 1 ||
+            typeof record.id !== 'string' || !record.id.trim() || record.id.length > 128 ||
+            record.ownerId !== expectedOwnerId ||
+            ['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(record.studioId) === -1 ||
+            ['image', 'audio', 'subtitle'].indexOf(record.mediaType) === -1 ||
+            !validDate(record.createdAt) || new Date(record.createdAt).toISOString() !== record.createdAt) {
+          throw fail('backup_invalid_record');
+        }
+      },
       drafts: function (record) {
         validateOwnerRecord(record, expectedOwnerId, 'ownerId');
         if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {

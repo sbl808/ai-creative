@@ -16,9 +16,13 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateImage, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+import { generateText } from '../core/ai/aiService.js';
+import { generateContentVoice as generateSharedContentVoice } from '../media-adapters/content/audio.adapter.js';
+import { generateContentSrtShared } from '../media-adapters/content/srt.adapter.js';
+import { translateContentSrtShared } from '../media-adapters/content/translation.adapter.js';
+export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
-import { pcmToWavBase64 } from '../core/utilities.js';
+
 
 const CMS_STUDIO = 'CONTENT';
 const CMS_VIDEO = 'CONTENTVIDEO';
@@ -168,16 +172,8 @@ export async function reviseContent(env, { originalContent, originalSpeaking, or
 // ============================================================
 export async function generateContentVoice(env, { text, voiceName, plan, apiKey, model }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await generateSpeech(env, {
-    text: String(text).trim(),
-    voiceName: voiceName || 'Kore',
-    apiKey,
-    model: await resolveModel(env, 'voice', plan, model, 'content.voice'), task: 'content.voice',
-  });
-  const wavBase64 = pcmToWavBase64(tts.data, 24000, 1, 16);
-  return { data: wavBase64, mimeType: 'audio/wav' };
+  return generateSharedContentVoice(env, { text, voiceName, plan, apiKey, model });
 }
-
 // ============================================================
 // Tab 2 — Content Video Plan (Characters + Scenes — Structured JSON)
 // Content-specific schema: characters {name, description}, scenes {number, duration, visualPrompt, description, dialogue}
@@ -209,17 +205,7 @@ export async function generateContentVideo(env, { idea, contentType, generationL
   return parseContentVideoResponse(raw);
 }
 
-// ============================================================
-// Tab 2 — Content Scene Image
-// ============================================================
-export async function generateContentVideoImage(env, { prompt, plan, apiKey, model }) {
-  if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'content.image'), task: 'content.image',
-    prompt: String(prompt).trim(),
-    apiKey,
-  });
-}
+// Content Scene Image ကို Shared Image Adapter က ဆောင်ရွက်သည်။
 
 // ============================================================
 // Tab 3 — SRT Subtitle from Audio
@@ -234,13 +220,13 @@ export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, m
     'Character အရေအတွက် ရေတွက်၍ လုံးဝ မခွဲပါနှင့်။ ' +
     'အရမ်းတိုတို (စကားလုံး ၁-၂ လုံးတည်း) မဖြစ်စေရပါ။ ' +
     'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  const srt = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
-    prompt: instruction,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
+  return generateContentSrtShared(env, {
+    audioBase64,
+    mimeType: mimeType || 'audio/mpeg',
     apiKey,
+    model,
+    prompt: instruction,
   });
-  return { srt };
 }
 
 // ============================================================
@@ -248,37 +234,7 @@ export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, m
 // ============================================================
 export async function translateContentSrt(env, { srtText, direction, apiKey, model }) {
   if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
-  const dir = String(direction || 'my-to-cn').replace(/-/g, '_').toUpperCase();
-
-  let langInstruction;
-  if (dir === 'MY_TO_CN') {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ တရုတ်ဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။';
-  } else {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် တရုတ်ဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ မြန်မာဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။ ' +
-      'TEXT LINE WRAPPING RULE: မြန်မာဘာသာပြန် Line ကို စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ။ ' +
-      '၁၅ လုံးကျော်ရင် Number/Timestamp အသစ် မဖန်တီးဘဲ Subtitle block တူညီတဲ့အတွင်းမှာပဲ ဘာသာပြန် line ကို line အသစ် ထပ်ခွဲပြီး ရေးပါ။';
-  }
-
-  const instruction =
-    'အောက်ပါ SRT (SubRip Subtitle) Text ကို ဖတ်ပါ။ ' + langInstruction + ' ' +
-    'SRT Number (1, 2, 3...) နှင့် Timestamp (00:00:00,000 --> 00:00:03,000 ပုံစံ) များကို ' +
-    'လုံးဝ မပြောင်းလဲပါနှင့် — မူရင်းအတိုင်းသာ ထားပါ။ မူရင်း Text Line ကိုလည်း မပြောင်းလဲပါနှင့်၊ ' +
-    'ဖျက်လည်း မဖျက်ပါနှင့်။ Format ဥပမာ:\n' +
-    '1\n00:00:00,000 --> 00:00:03,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    '2\n00:00:03,000 --> 00:00:06,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် (explanation) မထည့်ပါနှင့်။\n\n' +
-    'SRT:\n' + String(srtText).trim();
-
-  const srt = await generateText(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
-    prompt: instruction,
-    apiKey,
-  });
-  return { srt };
+  return translateContentSrtShared(env, { srtText, direction, apiKey, model });
 }
 
 // ============================================================

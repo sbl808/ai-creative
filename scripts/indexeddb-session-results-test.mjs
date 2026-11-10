@@ -356,7 +356,7 @@ async function expectCode(promise, code) {
 }
 
 const sessionA = await window.AICS_SESSIONS.create({ studio: 'story', title: 'User A session' });
-assert.equal(fakeIndexedDB.version, 6, 'repository should use IndexedDB schema v6');
+assert.equal(fakeIndexedDB.version, 7, 'repository should use IndexedDB schema v7');
 
 const firstResult = await window.AICS_SESSION_RESULTS.create({
   sessionId: sessionA.id,

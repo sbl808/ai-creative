@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 6\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
 assert.match(source, /createObjectStore\('projects'/);
 assert.match(source, /createObjectStore\('studio_sessions'/);
 assert.match(source, /createObjectStore\('session_results'/);
@@ -159,7 +159,7 @@ vm.runInNewContext(source, context, { timeout: 1000 });
 
 assert.equal(fakeIndexedDB.version, 3, 'database should be v3 before handoff schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 6, 'database must upgrade from v3 to v6');
+assert.equal(fakeIndexedDB.version, 7, 'database must upgrade from v3 to v7');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
 assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');
@@ -172,6 +172,11 @@ assert.ok(fakeIndexedDB.indexes.get('session_results').has('session_createdAt'),
 assert.ok(fakeIndexedDB.records.has('studio_handoffs'), 'schema v4 must create studio_handoffs');
 assert.ok(fakeIndexedDB.records.has('drafts'), 'schema v5 must create drafts');
 assert.ok(fakeIndexedDB.records.has('ideas'), 'schema v6 must create ideas');
+assert.ok(fakeIndexedDB.records.has('media_assets'), 'schema v7 must create media_assets');
+assert.ok(fakeIndexedDB.indexes.get('media_assets').has('ownerId'), 'media_assets must have owner index');
+assert.ok(fakeIndexedDB.indexes.get('media_assets').has('owner_studio'), 'media_assets must have owner/studio index');
+assert.ok(fakeIndexedDB.indexes.get('media_assets').has('owner_mediaType'), 'media_assets must have owner/mediaType index');
+assert.ok(fakeIndexedDB.indexes.get('media_assets').has('owner_createdAt'), 'media_assets must have owner/createdAt index');
 assert.ok(fakeIndexedDB.indexes.get('ideas').has('ownerId'), 'ideas must have owner index');
 assert.ok(fakeIndexedDB.indexes.get('ideas').has('owner_updatedAt'), 'ideas must have owner/updatedAt index');
 assert.ok(fakeIndexedDB.indexes.get('ideas').has('category'), 'ideas must have category index');

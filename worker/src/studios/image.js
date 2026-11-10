@@ -7,7 +7,8 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+export { generateImageFromPrompt } from '../media-adapters/image/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
 const CMS_IMAGE = 'IMAGE';
@@ -120,8 +121,5 @@ export async function generateAdImagePrompt(env, { idea, type, plan, apiKey, ima
   return { prompt: raw ? raw.trim() : '' };
 }
 
-// Tab 1 & 2 — Image Prompt (Text) ကို အခြေခံပြီး AI ပုံအစစ် ထုတ်ခြင်း — မပြောင်း
-export async function generateImageFromPrompt(env, { prompt, apiKey, model, plan }) {
-  if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return generateImage(env, { model: await resolveModel(env, 'image', plan, model, 'image.image'), task: 'image.image', prompt: String(prompt).trim(), apiKey });
-}
+// Final image generation ကို Shared Image Adapter က ဆောင်ရွက်သည်။
+// Prompt / Ad-prompt generation သည် Image Studio Brain ထဲတွင်ပင် ရှိသည်.

@@ -25,7 +25,8 @@ function createFakeIndexedDB(seed) {
       studio_sessions: { ownerId: 'ownerId' },
       studio_handoffs: { ownerId: 'ownerId' },
       session_results: { ownerId: 'ownerId' },
-      drafts: { ownerId: 'ownerId' }
+      drafts: { ownerId: 'ownerId' },
+      media_assets: { ownerId: 'ownerId' }
     };
     definitions.set(name, { keyPath: 'id', indexes: new Map(Object.entries(indexPaths[name] || {})) });
   }
@@ -200,7 +201,7 @@ const sessionId = 'session-new';
 const backup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 6,
+  schemaVersion: 7,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{ id: 'creation-new', user_id: owner, title: 'New creation' }],
@@ -215,7 +216,8 @@ const backup = {
       id: 'result-new', ownerId: owner, sessionId, type: 'story',
       content: { text: 'New story result' }
     }],
-    drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }]
+    drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }],
+    media_assets: [{ contractVersion: 1, id: 'asset-new', ownerId: owner, studioId: 'image', mediaType: 'image', createdAt: '2026-11-04T07:00:00.000Z' }]
   }
 };
 
@@ -239,7 +241,8 @@ function seedRecordSet(userId, suffix) {
       id: 'result-' + suffix, ownerId: userId, sessionId: 'session-' + suffix,
       type: 'story', content: { text: 'Old result' }
     }],
-    drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }]
+    drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }],
+    media_assets: [{ contractVersion: 1, id: 'asset-' + suffix, ownerId: userId, studioId: 'image', mediaType: 'image', createdAt: '2026-11-03T07:00:00.000Z' }]
   };
 }
 
@@ -268,9 +271,9 @@ await assert.rejects(
 const result = await window.AICS_BACKUP_IMPORT.restore(backup, { confirmReplace: true });
 assert.equal(result.restored, true);
 assert.equal(result.mode, 'replace');
-assert.equal(result.removedCount, 7);
-assert.equal(result.importedCount, 6);
-assert.equal(result.recordCount, 6);
+assert.equal(result.removedCount, 8);
+assert.equal(result.importedCount, 7);
+assert.equal(result.recordCount, 7);
 
 for (const [name, values] of Object.entries(backup.stores)) {
   const all = Array.from(fakeDb.records.get(name).values());
@@ -315,6 +318,88 @@ assert.equal(
   collisionDb.records.get('projects').get('project-new').user_id,
   'user-b',
   'a conflicting record owned by another user must never be overwritten'
+);
+
+
+const legacyBackup = clone(backup);
+legacyBackup.schemaVersion = 6;
+delete legacyBackup.stores.media_assets;
+
+const legacyDb = createFakeIndexedDB(seed);
+const legacyWindow = {
+  indexedDB: { open: (name, version) => legacyDb.open(name, version) },
+  IDBKeyRange: FakeKeyRange
+};
+const legacyContext = {
+  window: legacyWindow,
+  localStorage: { getItem: key => key === 'aics_token' ? makeToken(owner) : null },
+  atob: value => Buffer.from(value, 'base64').toString('binary'),
+  Promise, JSON, String, Error, Array, Object, Number, Math, Date, isFinite
+};
+vm.runInNewContext(clientStorageScript(), legacyContext, { timeout: 1000 });
+
+const mediaAssetsBeforeLegacyRestore = Array.from(legacyDb.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const legacyResult = await legacyWindow.AICS_BACKUP_IMPORT.restore(
+  legacyBackup,
+  { confirmReplace: true }
+);
+assert.equal(legacyResult.restored, true);
+assert.equal(legacyResult.mode, 'replace');
+assert.equal(
+  legacyResult.recordCount,
+  Object.values(legacyBackup.stores).reduce((total, records) => total + records.length, 0)
+);
+const mediaAssetsAfterLegacyRestore = Array.from(legacyDb.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+assert.deepEqual(
+  mediaAssetsAfterLegacyRestore,
+  mediaAssetsBeforeLegacyRestore,
+  'restoring a v6 backup without media_assets must preserve all existing Media Assets'
+);
+
+
+const v5Backup = clone(backup);
+v5Backup.schemaVersion = 5;
+delete v5Backup.stores.media_assets;
+
+const v5Db = createFakeIndexedDB(seed);
+const v5Window = {
+  indexedDB: { open: (name, version) => v5Db.open(name, version) },
+  IDBKeyRange: FakeKeyRange
+};
+const v5Context = {
+  window: v5Window,
+  localStorage: { getItem: key => key === 'aics_token' ? makeToken(owner) : null },
+  atob: value => Buffer.from(value, 'base64').toString('binary'),
+  Promise, JSON, String, Error, Array, Object, Number, Math, Date, isFinite
+};
+vm.runInNewContext(clientStorageScript(), v5Context, { timeout: 1000 });
+
+const mediaAssetsBeforeV5Restore = Array.from(v5Db.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const v5Result = await v5Window.AICS_BACKUP_IMPORT.restore(
+  v5Backup,
+  { confirmReplace: true }
+);
+assert.equal(v5Result.restored, true);
+assert.equal(v5Result.mode, 'replace');
+assert.equal(
+  v5Result.recordCount,
+  Object.values(v5Backup.stores).reduce((total, records) => total + records.length, 0)
+);
+const mediaAssetsAfterV5Restore = Array.from(v5Db.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+assert.deepEqual(
+  mediaAssetsAfterV5Restore,
+  mediaAssetsBeforeV5Restore,
+  'restoring a v5 backup without media_assets must preserve every existing Media Asset, including other owners'
 );
 
 console.log('IndexedDB backup safe restore tests passed.');

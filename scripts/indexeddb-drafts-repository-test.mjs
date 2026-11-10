@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 6\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
 assert.match(source, /window\.AICS_DRAFTS\s*=\s*\{/);
 assert.match(source, /createObjectStore\('drafts'/);
 assert.match(source, /createIndex\('owner_studio', \['ownerId', 'studio'\], \{ unique: true \}\)/);
@@ -184,7 +184,7 @@ const savedA = await window.AICS_DRAFTS.save({
   draftVersion: 2,
   data: { prompt: 'User A content draft' }
 });
-assert.equal(fakeIndexedDB.version, 6);
+assert.equal(fakeIndexedDB.version, 7);
 assert.equal(savedA.ownerId, 'user-a');
 assert.equal(savedA.studio, 'content');
 assert.equal(savedA.draftVersion, 2);

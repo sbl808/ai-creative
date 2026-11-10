@@ -889,18 +889,136 @@ await check('Gemini retry policy avoids retrying uncertain POST outcomes', async
 });
 
 console.log('— AI Studio task forwarding contracts —');
-const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
+// Studio-owned tasks remain in their Studio implementation files.
+// Shared Image/Audio Engine task IDs are verified in their respective engine checks below.
+const studioTaskContracts={
+ story:['story.text','story.image'],
+ content:['content.text'],
+ short:['short.text'],
+ image:['image.text'],
+ shop:['shop.text'],
+};
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
- await check(studio+' forwards task IDs to the AI Service',async()=>{
+ await check(studio+' forwards Studio-owned task IDs to the AI Service',async()=>{
   let source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
-  // Story Video Plan image generation now belongs to its dedicated module.
+  // Story Video Plan image generation remains in its dedicated module.
   if(studio==='story'){
    source+='\\n'+await readFile(new URL('../worker/src/studios/story-video-plan.js',import.meta.url),'utf8');
   }
   const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
-  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
+  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all Studio-owned task IDs forwarded'};
  });
 }
+
+await check('Shared Image Engine maps Studio image task IDs and Studio adapters are connected',async()=>{
+ const engine=await readFile(new URL('../worker/src/media-production/image/engine.js',import.meta.url),'utf8');
+ const expected={
+  image:'image.image',
+  content:'content.image',
+  short:'short.image',
+  shop:'shop.image',
+ };
+ const missing=[];
+ for(const [studio,task] of Object.entries(expected)){
+  const mapping=studio+": '"+task+"'";
+  if(!engine.includes(mapping)) missing.push(studio+'='+task);
+  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  if(!source.includes("from '../media-adapters/"+studio+"/image.adapter.js'")){
+   missing.push(studio+' adapter export');
+  }
+ }
+ return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all shared image task mappings and Studio adapter exports found'};
+});
+
+
+await check('Shared Audio Engine maps Content and Voice audio task IDs', async () => {
+  const engine = await readFile(new URL('../worker/src/media-production/audio/engine.js', import.meta.url), 'utf8');
+  const expected = [
+    "content: Object.freeze({ tts: 'content.voice' })",
+    "tts: 'voice.voice'",
+    "transcribe: 'voice.transcribe'",
+  ];
+  const missing = expected.filter(mapping => !engine.includes(mapping));
+  return {
+    ok: missing.length === 0,
+    msg: missing.length ? 'missing=' + missing.join(', ') : 'all shared audio task mappings found',
+  };
+});
+
+await check('Content Studio routes Audio → SRT through the shared Content SRT adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/srt.adapter.js'") &&
+      source.includes('generateContentSrtShared(env, {') &&
+      !source.includes('generateMultimodal(env,'),
+    msg: 'Content SRT uses the shared adapter; direct multimodal execution is removed from the Studio',
+  };
+});
+
+await check('Voice Studio routes Audio → SRT through the shared Voice SRT adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+      source.includes('return generateVoiceSrtShared(env, {') &&
+      source.includes('const instruction = buildVoiceSrtInstruction(lineRule, knownText);') &&
+      source.includes('prompt: instruction,') &&
+      !source.includes('generateMultimodal'),
+    msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',
+  };
+});
+
+console.log('— Shared Audio Studio integration contracts —');
+await check('Content Studio routes TTS through the shared Content audio adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/audio.adapter.js'") &&
+      source.includes('return generateSharedContentVoice(env, { text, voiceName, plan, apiKey, model });') &&
+      !source.includes('generateSpeech(env,'),
+    msg: 'Content TTS uses the shared adapter while preserving its public function signature',
+  };
+});
+await check('Voice Studio routes TTS and transcription through shared Voice adapters', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/audio.adapter.js'") &&
+      source.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
+      source.includes('return transcribeVoiceAudio(env, {') &&
+      source.includes('audioBase64, mimeType, plan, apiKey, model, prompt,') &&
+      !source.includes('generateSpeech(env,'),
+    msg: 'Voice TTS/transcription use shared adapters and retain the CMS prompt',
+  };
+});
+await check('Voice and Content SRT workflows remain Studio-owned', async () => {
+  const content = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: content.includes('export async function generateContentSrt(') &&
+      content.includes('export async function translateContentSrt(') &&
+      voice.includes('export async function generateVoiceSrt(') &&
+      voice.includes('export async function translateVoiceSrt('),
+    msg: 'Existing SRT generation and translation exports remain present',
+  };
+});
+
+console.log('— Shared Translation Studio integration contracts —');
+await check('Content Studio routes SRT translation through the shared Content translation adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/translation.adapter.js'") &&
+      source.includes('return translateContentSrtShared(env, { srtText, direction, apiKey, model });') &&
+      !source.includes("task: 'content.transcribe'"),
+    msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
+  };
+});
+await check('Voice Studio routes SRT translation through the shared Voice translation adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/translation.adapter.js'") &&
+      source.includes('return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
+      !source.includes("task: 'voice.transcribe', prompt: instruction"),
+    msg: 'Voice SRT translation uses the shared adapter and preserves plan/type arguments',
+  };
+});
 
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 if (failed > 0) {
