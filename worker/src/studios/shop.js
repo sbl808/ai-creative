@@ -12,7 +12,8 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateImage, generateMultimodal } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+export { generateShopVideoImage } from '../media-adapters/shop/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 import { parseContentResponse, parseVideoPlan, referenceImageInstruction } from '../core/utilities.js';
 
@@ -105,36 +106,7 @@ export async function generateShopVideo(env, { idea, type, plan, apiKey, images,
   return parseShopVideoResponse(raw);
 }
 
-// ============================================================
-// Tab 2 — Video Maker: Generate Scene/Character/Product Image
-// ============================================================
-// Shop Image Branch — Product Reference ပုံများ ပါလာပါက multimodal ဖြင့် prompt ကို ပိုမိုတိကျအောင် ဖြည့်စွက်ပြီး
-// ထို့နောက် Image Generation ပြုလုပ်သည် (reference မရှိလျှင် မူလ flow အတိုင်း တိုက်ရိုက် generate — backward compatible)
-export async function generateShopVideoImage(env, { prompt, apiKey, model, plan, images }) {
-  if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  let finalPrompt = String(prompt).trim();
-  const imgList = Array.isArray(images) ? images.filter(Boolean) : [];
-  if (imgList.length > 0) {
-    try {
-      const desc = await generateMultimodal(env, {
-        model: await resolveModel(env, 'text', plan, model, 'shop.text'), task: 'shop.text',
-        prompt: finalPrompt + '\n\n' + referenceImageInstruction(imgList, 'product') +
-          '\n\nအထက်ပါ product reference ပုံများနှင့် ကိုက်ညီသော image generation prompt တစ်ခုတည်းကိုသာ ပြန်ပေးပါ။ (Return only the final image prompt, no extra text.)',
-        images: imgList,
-        apiKey,
-      });
-      if (desc && String(desc).trim()) finalPrompt = String(desc).trim();
-    } catch (e) {
-      // Reference prompt ဖြည့်စွက်မရပါက မူလ prompt ဖြင့်သာ ဆက်လုပ်သည် (fallback)
-    }
-  }
-  const out = await generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'shop.image'), task: 'shop.image',
-    prompt: finalPrompt,
-    apiKey,
-  });
-  return { data: out.data, mimeType: out.mimeType };
-}
+// Tab 2 — Video Maker: Scene/Character/Product Image ကို Shared Image Adapter က ဆောင်ရွက်သည်။
 
 // ============================================================
 // Structured JSON Parser (Shop Video Plan)
