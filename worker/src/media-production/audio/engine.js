@@ -88,7 +88,9 @@ export function createSharedAudioEngine(services = {}) {
       const text = await generateMultimodalFn(env, {
         model,
         task,
-        prompt: 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။',
+        // Studio Brain/CMS may supply its own transcription instruction without
+        // moving Studio-specific prompt logic into the shared engine.
+        prompt: String(executionContext.prompt || 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။'),
         images: [{
           mimeType: request.input.mimeType || 'audio/mpeg',
           base64: request.input.audioBase64,
