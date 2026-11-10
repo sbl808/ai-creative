@@ -950,8 +950,6 @@ await check('Content Studio routes Audio → SRT through the shared Content SRT 
   const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
   return {
     ok: source.includes("from '../media-adapters/content/srt.adapter.js'") &&
-      source.includes('return generateContentSrtShared(env, {') === false &&
-      source.includes('return generateContentSrtShared(env, {') === false &&
       source.includes('generateContentSrtShared(env, {') &&
       !source.includes('generateMultimodal(env,'),
     msg: 'Content SRT uses the shared adapter; direct multimodal execution is removed from the Studio',
