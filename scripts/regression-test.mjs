@@ -1001,6 +1001,26 @@ await check('Voice and Content SRT workflows remain Studio-owned', async () => {
   };
 });
 
+console.log('— Shared Translation Studio integration contracts —');
+await check('Content Studio routes SRT translation through the shared Content translation adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/translation.adapter.js'") &&
+      source.includes('return translateContentSrtShared(env, { srtText, direction, apiKey, model });') &&
+      !source.includes("task: 'content.transcribe'"),
+    msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
+  };
+});
+await check('Voice Studio routes SRT translation through the shared Voice translation adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/translation.adapter.js'") &&
+      source.includes('return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
+      !source.includes("task: 'voice.transcribe', prompt: instruction"),
+    msg: 'Voice SRT translation uses the shared adapter and preserves plan/type arguments',
+  };
+});
+
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 if (failed > 0) {
   console.log('\nFailures:');
