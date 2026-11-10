@@ -893,7 +893,7 @@ console.log('— AI Studio task forwarding contracts —');
 // Shared Image/Audio Engine task IDs are verified in their respective engine checks below.
 const studioTaskContracts={
  story:['story.text','story.image'],
- content:['content.text','content.transcribe'],
+ content:['content.text'],
  short:['short.text'],
  image:['image.text'],
  voice:['voice.transcribe'],
@@ -943,6 +943,18 @@ await check('Shared Audio Engine maps Content and Voice audio task IDs', async (
   return {
     ok: missing.length === 0,
     msg: missing.length ? 'missing=' + missing.join(', ') : 'all shared audio task mappings found',
+  };
+});
+
+await check('Content Studio routes Audio → SRT through the shared Content SRT adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/srt.adapter.js'") &&
+      source.includes('return generateContentSrtShared(env, {') === false &&
+      source.includes('return generateContentSrtShared(env, {') === false &&
+      source.includes('generateContentSrtShared(env, {') &&
+      !source.includes('generateMultimodal(env,'),
+    msg: 'Content SRT uses the shared adapter; direct multimodal execution is removed from the Studio',
   };
 });
 
