@@ -53,6 +53,18 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
         ideas.createIndex('owner_category', ['ownerId', 'category'], { unique: false });
       }
     }
+  },
+  {
+    version: 7,
+    up: function (db) {
+      if (!db.objectStoreNames.contains('media_assets')) {
+        var mediaAssets = db.createObjectStore('media_assets', { keyPath: 'id' });
+        mediaAssets.createIndex('ownerId', 'ownerId', { unique: false });
+        mediaAssets.createIndex('owner_studio', ['ownerId', 'studioId'], { unique: false });
+        mediaAssets.createIndex('owner_mediaType', ['ownerId', 'mediaType'], { unique: false });
+        mediaAssets.createIndex('owner_createdAt', ['ownerId', 'createdAt'], { unique: false });
+      }
+    }
   }
 ];
 

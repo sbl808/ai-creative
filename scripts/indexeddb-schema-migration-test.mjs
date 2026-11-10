@@ -4,7 +4,7 @@ import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/ve
 import { schemaMigrationsScript } from '../worker/src/frontend/storage/schema/migrations.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 
-assert.equal(STORAGE_SCHEMA_VERSION, 6);
+assert.equal(STORAGE_SCHEMA_VERSION, 7);
 const context = {};
 vm.runInNewContext(schemaMigrationsScript(), context);
 
@@ -27,7 +27,10 @@ function fakeDb(existing) {
     store: name => stores.get(name)
   };
 }
-const expected = ['creations', 'drafts', 'ideas', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'];
+const expected = [
+  'creations', 'drafts', 'ideas', 'media_assets', 'projects',
+  'session_results', 'studio_handoffs', 'studio_sessions'
+];
 const fresh = fakeDb();
 context.__aicsRunSchemaMigrations(fresh, 0, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(fresh.names(), expected);
@@ -43,6 +46,13 @@ const ownerCategoryIndex = fresh.store('ideas').indexes.get('owner_category');
 assert.deepEqual({ keyPath: Array.from(ownerCategoryIndex.keyPath), unique: ownerCategoryIndex.unique }, {
   keyPath: ['ownerId', 'category'], unique: false
 });
+assert.deepEqual(Array.from(fresh.store('media_assets').indexes.keys()).sort(), [
+  'ownerId', 'owner_createdAt', 'owner_mediaType', 'owner_studio'
+]);
+const assetOwnerStudioIndex = fresh.store('media_assets').indexes.get('owner_studio');
+assert.deepEqual({ keyPath: Array.from(assetOwnerStudioIndex.keyPath), unique: assetOwnerStudioIndex.unique }, {
+  keyPath: ['ownerId', 'studioId'], unique: false
+});
 
 const legacy = fakeDb(['creations', 'projects', 'studio_sessions', 'session_results']);
 context.__aicsRunSchemaMigrations(legacy, 3, STORAGE_SCHEMA_VERSION);
@@ -50,11 +60,17 @@ assert.deepEqual(legacy.names(), expected, 'existing stores must remain while mi
 
 const versionFour = fakeDb(['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results']);
 context.__aicsRunSchemaMigrations(versionFour, 4, STORAGE_SCHEMA_VERSION);
-assert.deepEqual(versionFour.names(), expected, 'v4 data stores must remain while drafts and ideas are added');
+assert.deepEqual(versionFour.names(), expected, 'v4 data stores must remain while later stores are added');
 
 const versionFive = fakeDb(['creations', 'drafts', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions']);
 context.__aicsRunSchemaMigrations(versionFive, 5, STORAGE_SCHEMA_VERSION);
-assert.deepEqual(versionFive.names(), expected, 'v5 data stores must remain while the ideas store is added');
+assert.deepEqual(versionFive.names(), expected, 'v5 data stores must remain while ideas and media assets are added');
+
+const versionSix = fakeDb([
+  'creations', 'drafts', 'ideas', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
+]);
+context.__aicsRunSchemaMigrations(versionSix, 6, STORAGE_SCHEMA_VERSION);
+assert.deepEqual(versionSix.names(), expected, 'v6 user data stores must remain while media_assets is added');
 
 const current = fakeDb(expected);
 context.__aicsRunSchemaMigrations(current, STORAGE_SCHEMA_VERSION, STORAGE_SCHEMA_VERSION);
