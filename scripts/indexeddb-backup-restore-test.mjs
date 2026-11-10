@@ -25,7 +25,8 @@ function createFakeIndexedDB(seed) {
       studio_sessions: { ownerId: 'ownerId' },
       studio_handoffs: { ownerId: 'ownerId' },
       session_results: { ownerId: 'ownerId' },
-      drafts: { ownerId: 'ownerId' }
+      drafts: { ownerId: 'ownerId' },
+      media_assets: { ownerId: 'ownerId' }
     };
     definitions.set(name, { keyPath: 'id', indexes: new Map(Object.entries(indexPaths[name] || {})) });
   }
@@ -200,7 +201,7 @@ const sessionId = 'session-new';
 const backup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 6,
+  schemaVersion: 7,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{ id: 'creation-new', user_id: owner, title: 'New creation' }],
@@ -215,7 +216,8 @@ const backup = {
       id: 'result-new', ownerId: owner, sessionId, type: 'story',
       content: { text: 'New story result' }
     }],
-    drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }]
+    drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }],
+    media_assets: [{ contractVersion: 1, id: 'asset-new', ownerId: owner, studioId: 'image', mediaType: 'image', createdAt: '2026-11-04T07:00:00.000Z' }]
   }
 };
 
@@ -239,7 +241,8 @@ function seedRecordSet(userId, suffix) {
       id: 'result-' + suffix, ownerId: userId, sessionId: 'session-' + suffix,
       type: 'story', content: { text: 'Old result' }
     }],
-    drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }]
+    drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }],
+    media_assets: [{ contractVersion: 1, id: 'asset-' + suffix, ownerId: userId, studioId: 'image', mediaType: 'image', createdAt: '2026-11-03T07:00:00.000Z' }]
   };
 }
 
@@ -268,9 +271,9 @@ await assert.rejects(
 const result = await window.AICS_BACKUP_IMPORT.restore(backup, { confirmReplace: true });
 assert.equal(result.restored, true);
 assert.equal(result.mode, 'replace');
-assert.equal(result.removedCount, 7);
-assert.equal(result.importedCount, 6);
-assert.equal(result.recordCount, 6);
+assert.equal(result.removedCount, 8);
+assert.equal(result.importedCount, 7);
+assert.equal(result.recordCount, 7);
 
 for (const [name, values] of Object.entries(backup.stores)) {
   const all = Array.from(fakeDb.records.get(name).values());
