@@ -320,4 +320,45 @@ assert.equal(
   'a conflicting record owned by another user must never be overwritten'
 );
 
+
+const legacyBackup = clone(backup);
+legacyBackup.schemaVersion = 6;
+delete legacyBackup.stores.media_assets;
+
+const legacyDb = createFakeIndexedDB(seed);
+const legacyWindow = {
+  indexedDB: { open: (name, version) => legacyDb.open(name, version) },
+  IDBKeyRange: FakeKeyRange
+};
+const legacyContext = {
+  window: legacyWindow,
+  localStorage: { getItem: key => key === 'aics_token' ? makeToken(owner) : null },
+  atob: value => Buffer.from(value, 'base64').toString('binary'),
+  Promise, JSON, String, Error, Array, Object, Number, Math, Date, isFinite
+};
+vm.runInNewContext(clientStorageScript(), legacyContext, { timeout: 1000 });
+
+const mediaAssetsBeforeLegacyRestore = Array.from(legacyDb.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const legacyResult = await legacyWindow.AICS_BACKUP_IMPORT.restore(
+  legacyBackup,
+  { confirmReplace: true }
+);
+assert.equal(legacyResult.restored, true);
+assert.equal(legacyResult.mode, 'replace');
+assert.equal(
+  legacyResult.recordCount,
+  Object.values(legacyBackup.stores).reduce((total, records) => total + records.length, 0)
+);
+const mediaAssetsAfterLegacyRestore = Array.from(legacyDb.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+assert.deepEqual(
+  mediaAssetsAfterLegacyRestore,
+  mediaAssetsBeforeLegacyRestore,
+  'restoring a v6 backup without media_assets must preserve all existing Media Assets'
+);
+
 console.log('IndexedDB backup safe restore tests passed.');
