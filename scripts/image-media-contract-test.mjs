@@ -41,6 +41,7 @@ const invalidRequest = validateImageRequestV1({
   operation: 'prompt',
   input: {
     idea: ' ',
+    model: privacySentinels.prompt,
     images: [{ base64: privacySentinels.image, mimeType: '' }],
   },
 });
