@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import {
   IMAGE_CONTRACT_VERSION,
+  IMAGE_STUDIO_IDS,
+  IMAGE_STUDIO_OPERATIONS,
   validateImageRequestV1,
   validateImageResponseV1,
 } from '../worker/src/media-production/contracts/image.contract.js';
 
 const validPromptRequest = {
   contractVersion: IMAGE_CONTRACT_VERSION,
-  studioId: 'story',
+  studioId: 'image',
   operation: 'prompt',
   input: {
     idea: 'A quiet village at sunrise',
@@ -17,12 +19,28 @@ const validPromptRequest = {
   },
 };
 
+assert.deepEqual(IMAGE_STUDIO_IDS, ['content', 'short', 'image', 'shop']);
+assert.deepEqual(IMAGE_STUDIO_OPERATIONS, {
+  image: ['prompt', 'ad-prompt', 'generate'],
+  content: ['generate'],
+  short: ['generate'],
+  shop: ['generate'],
+});
+
 assert.deepEqual(validateImageRequestV1(validPromptRequest), { ok: true, errors: [] });
 assert.deepEqual(validateImageRequestV1({
   ...validPromptRequest,
   operation: 'ad-prompt',
-  studioId: 'shop',
 }), { ok: true, errors: [] });
+
+for (const studioId of ['content', 'short', 'shop']) {
+  assert.deepEqual(validateImageRequestV1({
+    contractVersion: 1,
+    studioId,
+    operation: 'generate',
+    input: { prompt: 'A product photo' },
+  }), { ok: true, errors: [] });
+}
 
 assert.deepEqual(validateImageRequestV1({
   contractVersion: 1,
@@ -30,6 +48,30 @@ assert.deepEqual(validateImageRequestV1({
   operation: 'generate',
   input: { prompt: 'A product photo' },
 }), { ok: true, errors: [] });
+
+// Studios without an inspected Image route must not be admitted.
+for (const studioId of ['story', 'voice', 'unknown']) {
+  const result = validateImageRequestV1({
+    contractVersion: 1,
+    studioId,
+    operation: 'generate',
+    input: { prompt: 'A product photo' },
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes('invalid_studio_id'));
+}
+
+// Prompt operations are reserved for Image Studio.
+for (const studioId of ['content', 'short', 'shop']) {
+  const result = validateImageRequestV1({
+    contractVersion: 1,
+    studioId,
+    operation: 'prompt',
+    input: { idea: 'A cinematic scene' },
+  });
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes('operation_not_allowed_for_studio'));
+}
 
 const privacySentinels = {
   prompt: 'PRIVATE_PROMPT_SENTINEL_83f1',
@@ -59,17 +101,28 @@ assert.ok(invalidTypeRequest.errors.includes('type_must_be_non_empty_string'));
 
 assert.deepEqual(validateImageResponseV1({
   contractVersion: 1,
-  studioId: 'content',
+  studioId: 'image',
   operation: 'prompt',
   result: { prompt: 'A cinematic scene', map: null },
 }), { ok: true, errors: [] });
 
-assert.deepEqual(validateImageResponseV1({
+for (const studioId of ['content', 'short', 'shop']) {
+  assert.deepEqual(validateImageResponseV1({
+    contractVersion: 1,
+    studioId,
+    operation: 'generate',
+    result: { data: 'aW1hZ2U=', mimeType: 'image/png' },
+  }), { ok: true, errors: [] });
+}
+
+const forbiddenResponse = validateImageResponseV1({
   contractVersion: 1,
-  studioId: 'shop',
-  operation: 'generate',
-  result: { data: 'aW1hZ2U=', mimeType: 'image/png' },
-}), { ok: true, errors: [] });
+  studioId: 'content',
+  operation: 'prompt',
+  result: { prompt: 'Should not be allowed for Content' },
+});
+assert.equal(forbiddenResponse.ok, false);
+assert.ok(forbiddenResponse.errors.includes('operation_not_allowed_for_studio'));
 
 const invalidResponse = validateImageResponseV1({
   contractVersion: 1,
@@ -83,7 +136,7 @@ assert.ok(invalidResponse.errors.includes('result_mime_type_invalid'));
 
 const emptyPromptResponse = validateImageResponseV1({
   contractVersion: 1,
-  studioId: 'story',
+  studioId: 'image',
   operation: 'prompt',
   result: { prompt: '   ' },
 });
