@@ -123,7 +123,13 @@ export function validateImageRequestV1(value) {
   if (value.input.type !== undefined && !hasNonEmptyString(value.input.type)) {
     errors.push('type_must_be_non_empty_string');
   }
-  if (value.operation === 'generate' && value.input.images !== undefined) {
+  // Shop's existing video-image route accepts reference images.
+  // Other generate routes do not pass reference images to their generators.
+  if (
+    value.operation === 'generate'
+    && value.input.images !== undefined
+    && value.studioId !== 'shop'
+  ) {
     errors.push('images_not_supported_for_generate_operation');
   } else {
     validateImages(value.input.images, errors);
