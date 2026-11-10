@@ -32,6 +32,8 @@ jobs:
         run: node --experimental-default-type=module scripts/shared-image-engine-test.mjs
       - name: Run Shared Audio Engine tests
         run: node --experimental-default-type=module scripts/shared-audio-engine-test.mjs
+      - name: Run Shared Audio Studio Adapter tests
+        run: node --experimental-default-type=module scripts/media-audio-adapters-test.mjs
       - name: Run Shared Image Studio Adapter tests
         run: node --experimental-default-type=module scripts/media-image-adapters-test.mjs
       - name: Run prompt merge engine contract tests
