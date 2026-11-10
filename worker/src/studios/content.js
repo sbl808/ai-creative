@@ -16,8 +16,9 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+import { generateText } from '../core/ai/aiService.js';
 import { generateContentVoice as generateSharedContentVoice } from '../media-adapters/content/audio.adapter.js';
+import { generateContentSrtShared } from '../media-adapters/content/srt.adapter.js';
 export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
@@ -218,13 +219,13 @@ export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, m
     'Character အရေအတွက် ရေတွက်၍ လုံးဝ မခွဲပါနှင့်။ ' +
     'အရမ်းတိုတို (စကားလုံး ၁-၂ လုံးတည်း) မဖြစ်စေရပါ။ ' +
     'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  const srt = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
-    prompt: instruction,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
+  return generateContentSrtShared(env, {
+    audioBase64,
+    mimeType: mimeType || 'audio/mpeg',
     apiKey,
+    model,
+    prompt: instruction,
   });
-  return { srt };
 }
 
 // ============================================================
