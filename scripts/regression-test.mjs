@@ -931,6 +931,40 @@ await check('Shared Image Engine maps Studio image task IDs and Studio adapters 
  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all shared image task mappings and Studio adapter exports found'};
 });
 
+
+console.log('— Shared Audio Studio integration contracts —');
+await check('Content Studio routes TTS through the shared Content audio adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/content/audio.adapter.js'") &&
+      source.includes('return generateSharedContentVoice(env, { text, voiceName, plan, apiKey, model });') &&
+      !source.includes('generateSpeech(env,'),
+    msg: 'Content TTS uses the shared adapter while preserving its public function signature',
+  };
+});
+await check('Voice Studio routes TTS and transcription through shared Voice adapters', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/audio.adapter.js'") &&
+      source.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
+      source.includes('return transcribeVoiceAudio(env, {') &&
+      source.includes('audioBase64, mimeType, plan, apiKey, model, prompt,') &&
+      !source.includes('generateSpeech(env,'),
+    msg: 'Voice TTS/transcription use shared adapters and retain the CMS prompt',
+  };
+});
+await check('Voice and Content SRT workflows remain Studio-owned', async () => {
+  const content = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: content.includes('export async function generateContentSrt(') &&
+      content.includes('export async function translateContentSrt(') &&
+      voice.includes('export async function generateVoiceSrt(') &&
+      voice.includes('export async function translateVoiceSrt('),
+    msg: 'Existing SRT generation and translation exports remain present',
+  };
+});
+
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 if (failed > 0) {
   console.log('\nFailures:');
