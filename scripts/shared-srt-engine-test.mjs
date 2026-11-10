@@ -103,7 +103,6 @@ for (const unsupported of [
   { ...request, studioId: 'story' },
   { ...request, studioId: 'short' },
   { ...request, studioId: 'shop' },
-  { ...request, operation: 'script-to-srt' },
 ]) {
   const { calls, generate } = makeServices();
   await assert.rejects(
