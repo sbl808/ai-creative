@@ -361,4 +361,45 @@ assert.deepEqual(
   'restoring a v6 backup without media_assets must preserve all existing Media Assets'
 );
 
+
+const v5Backup = clone(backup);
+v5Backup.schemaVersion = 5;
+delete v5Backup.stores.media_assets;
+
+const v5Db = createFakeIndexedDB(seed);
+const v5Window = {
+  indexedDB: { open: (name, version) => v5Db.open(name, version) },
+  IDBKeyRange: FakeKeyRange
+};
+const v5Context = {
+  window: v5Window,
+  localStorage: { getItem: key => key === 'aics_token' ? makeToken(owner) : null },
+  atob: value => Buffer.from(value, 'base64').toString('binary'),
+  Promise, JSON, String, Error, Array, Object, Number, Math, Date, isFinite
+};
+vm.runInNewContext(clientStorageScript(), v5Context, { timeout: 1000 });
+
+const mediaAssetsBeforeV5Restore = Array.from(v5Db.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const v5Result = await v5Window.AICS_BACKUP_IMPORT.restore(
+  v5Backup,
+  { confirmReplace: true }
+);
+assert.equal(v5Result.restored, true);
+assert.equal(v5Result.mode, 'replace');
+assert.equal(
+  v5Result.recordCount,
+  Object.values(v5Backup.stores).reduce((total, records) => total + records.length, 0)
+);
+const mediaAssetsAfterV5Restore = Array.from(v5Db.records.get('media_assets').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
+assert.deepEqual(
+  mediaAssetsAfterV5Restore,
+  mediaAssetsBeforeV5Restore,
+  'restoring a v5 backup without media_assets must preserve every existing Media Asset, including other owners'
+);
+
 console.log('IndexedDB backup safe restore tests passed.');
