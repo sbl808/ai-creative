@@ -203,13 +203,18 @@ function installBackupValidator(target, config) {
       },
       ideas: function (record) { validateIdea(record, expectedOwnerId); },
       media_assets: function (record) {
-        if (!isObject(record) || record.contractVersion !== 1 ||
-            typeof record.id !== 'string' || !record.id || record.id.length > 128 ||
+        var allowedFields = [
+          'contractVersion', 'id', 'ownerId', 'studioId', 'mediaType', 'createdAt'
+        ];
+        if (!isObject(record) || Object.keys(record).some(function (key) {
+          return allowedFields.indexOf(key) === -1;
+        }) || Object.keys(record).length !== allowedFields.length ||
+            record.contractVersion !== 1 ||
+            typeof record.id !== 'string' || !record.id.trim() || record.id.length > 128 ||
             record.ownerId !== expectedOwnerId ||
             ['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(record.studioId) === -1 ||
             ['image', 'audio', 'subtitle'].indexOf(record.mediaType) === -1 ||
-            !validDate(record.createdAt) || new Date(record.createdAt).toISOString() !== record.createdAt ||
-            ['base64', 'data', 'content', 'prompt', 'apiKey', 'token', 'secret'].some(function (key) { return hasOwn(record, key); })) {
+            !validDate(record.createdAt) || new Date(record.createdAt).toISOString() !== record.createdAt) {
           throw fail('backup_invalid_record');
         }
       },
