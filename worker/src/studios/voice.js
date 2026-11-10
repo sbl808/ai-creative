@@ -5,7 +5,8 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+import { generateText } from '../core/ai/aiService.js';
+import { generateVoiceSrtShared } from '../media-adapters/voice/srt.adapter.js';
 import { generateVoiceAudio as generateSharedVoiceAudio, transcribeVoiceAudio } from '../media-adapters/voice/audio.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
@@ -95,14 +96,14 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
 
   const instruction = buildVoiceSrtInstruction(lineRule, knownText);
 
-  const srt = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), task: 'voice.transcribe',
-    prompt: instruction,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
+  return generateVoiceSrtShared(env, {
+    audioBase64,
+    mimeType: mimeType || 'audio/mpeg',
     apiKey,
+    model,
+    plan,
+    prompt: instruction,
   });
-  if (!srt || !String(srt).trim()) throw new Error('empty_transcription');
-  return { srt };
 }
 
 // ============================================================

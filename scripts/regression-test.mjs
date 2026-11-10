@@ -956,6 +956,18 @@ await check('Content Studio routes Audio → SRT through the shared Content SRT 
   };
 });
 
+await check('Voice Studio routes Audio → SRT through the shared Voice SRT adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+      source.includes('return generateVoiceSrtShared(env, {') &&
+      source.includes('const instruction = buildVoiceSrtInstruction(lineRule, knownText);') &&
+      source.includes('prompt: instruction,') &&
+      !source.includes('generateMultimodal'),
+    msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',
+  };
+});
+
 console.log('— Shared Audio Studio integration contracts —');
 await check('Content Studio routes TTS through the shared Content audio adapter', async () => {
   const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
