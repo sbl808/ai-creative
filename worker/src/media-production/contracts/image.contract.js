@@ -34,7 +34,7 @@ export const IMAGE_STUDIO_OPERATIONS = Object.freeze({
 const STUDIO_IDS = new Set(IMAGE_STUDIO_IDS);
 const OPERATIONS = new Set(IMAGE_OPERATIONS);
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const IMAGE_MIME_TYPE_PATTERN = /^image\\/[a-z0-9][a-z0-9.+-]*$/i;
+const IMAGE_MIME_TYPE_PATTERN = /^image\/[a-z0-9][a-z0-9.+-]*$/i;
 
 function isPlainObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
