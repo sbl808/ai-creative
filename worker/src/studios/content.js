@@ -236,7 +236,6 @@ export async function translateContentSrt(env, { srtText, direction, apiKey, mod
   if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
   return translateContentSrtShared(env, { srtText, direction, apiKey, model });
 }
-}
 
 // ============================================================
 // Content-specific Parsers (Story/Short နှင့် သီးခြား)
