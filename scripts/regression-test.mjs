@@ -896,7 +896,6 @@ const studioTaskContracts={
  content:['content.text'],
  short:['short.text'],
  image:['image.text'],
- voice:['voice.transcribe'],
  shop:['shop.text'],
 };
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
