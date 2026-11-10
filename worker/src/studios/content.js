@@ -16,7 +16,8 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateImage, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 import { pcmToWavBase64 } from '../core/utilities.js';
 
@@ -209,17 +210,7 @@ export async function generateContentVideo(env, { idea, contentType, generationL
   return parseContentVideoResponse(raw);
 }
 
-// ============================================================
-// Tab 2 — Content Scene Image
-// ============================================================
-export async function generateContentVideoImage(env, { prompt, plan, apiKey, model }) {
-  if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'content.image'), task: 'content.image',
-    prompt: String(prompt).trim(),
-    apiKey,
-  });
-}
+// Content Scene Image ကို Shared Image Adapter က ဆောင်ရွက်သည်။
 
 // ============================================================
 // Tab 3 — SRT Subtitle from Audio
