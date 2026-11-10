@@ -16,10 +16,11 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+import { generateContentVoice as generateSharedContentVoice } from '../media-adapters/content/audio.adapter.js';
 export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
-import { pcmToWavBase64 } from '../core/utilities.js';
+
 
 const CMS_STUDIO = 'CONTENT';
 const CMS_VIDEO = 'CONTENTVIDEO';
@@ -169,16 +170,8 @@ export async function reviseContent(env, { originalContent, originalSpeaking, or
 // ============================================================
 export async function generateContentVoice(env, { text, voiceName, plan, apiKey, model }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await generateSpeech(env, {
-    text: String(text).trim(),
-    voiceName: voiceName || 'Kore',
-    apiKey,
-    model: await resolveModel(env, 'voice', plan, model, 'content.voice'), task: 'content.voice',
-  });
-  const wavBase64 = pcmToWavBase64(tts.data, 24000, 1, 16);
-  return { data: wavBase64, mimeType: 'audio/wav' };
+  return generateSharedContentVoice(env, { text, voiceName, plan, apiKey, model });
 }
-
 // ============================================================
 // Tab 2 — Content Video Plan (Characters + Scenes — Structured JSON)
 // Content-specific schema: characters {name, description}, scenes {number, duration, visualPrompt, description, dialogue}
