@@ -921,8 +921,8 @@ await check('Shared Image Engine maps Studio image task IDs and Studio adapters 
  };
  const missing=[];
  for(const [studio,task] of Object.entries(expected)){
-  const mapping=new RegExp(studio+'\\s*:\\s*[\\'"]'+task.replace('.','\\.')+'[\\'"]');
-  if(!mapping.test(engine)) missing.push(studio+'='+task);
+  const mapping=studio+": '"+task+"'";
+  if(!engine.includes(mapping)) missing.push(studio+'='+task);
   const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
   if(!source.includes("from '../media-adapters/"+studio+"/image.adapter.js'")){
    missing.push(studio+' adapter export');
