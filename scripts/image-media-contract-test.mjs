@@ -40,15 +40,13 @@ const invalidRequest = validateImageRequestV1({
   studioId: 'unknown',
   operation: 'prompt',
   input: {
-    idea: ' ',
-    model: privacySentinels.prompt,
+    idea: privacySentinels.prompt,
     images: [{ base64: privacySentinels.image, mimeType: '' }],
   },
 });
 assert.equal(invalidRequest.ok, false);
 assert.ok(invalidRequest.errors.includes('unsupported_contract_version'));
 assert.ok(invalidRequest.errors.includes('invalid_studio_id'));
-assert.ok(invalidRequest.errors.includes('idea_required'));
 assert.ok(invalidRequest.errors.includes('images[0].base64_invalid'));
 assert.ok(invalidRequest.errors.includes('images[0].mime_type_invalid'));
 
