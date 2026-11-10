@@ -24,6 +24,20 @@ assert.match(script, /AICS_STORAGE_PERSISTENCE\.requestPersistence/);
 assert.match(script, /AICS_BACKUP\.download/);
 assert.match(script, /AICS_BACKUP_IMPORT\.validateFile/);
 assert.match(script, /AICS_BACKUP_IMPORT\.restore/);
+
+const expectedBackupStores = [
+  'creations', 'projects', 'studio_sessions', 'studio_handoffs',
+  'session_results', 'ideas', 'drafts', 'media_assets'
+];
+for (const storeName of expectedBackupStores) {
+  assert.ok(
+    script.includes("'" + storeName + "'"),
+    'Backup recovery preview and confirmation must include ' + storeName
+  );
+}
+assert.match(script, /storeNames\.map\(function \(name\)/);
+assert.match(script, /storeNames\.reduce\(function \(total, name\)/);
+
 assert.match(script, /confirmReplace: true/);
 assert.match(script, /textContent/);
 assert.doesNotMatch(script, /innerHTML\s*=/, 'backup metadata must not be inserted as HTML');
