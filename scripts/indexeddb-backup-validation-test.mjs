@@ -60,6 +60,24 @@ assert.equal(valid.backup.stores.drafts[0].studio, 'short');
 assert.equal(valid.backup.stores.ideas[0].result.title, 'A story idea');
 assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 7);
 
+const currentBackup = JSON.parse(JSON.stringify(validBackup));
+currentBackup.schemaVersion = 7;
+currentBackup.stores.media_assets = [{
+  contractVersion: 1, id: 'asset-1', ownerId, studioId: 'image',
+  mediaType: 'image', createdAt: '2026-11-04T07:00:00.000Z'
+}];
+assert.equal(validateBackupEnvelope(currentBackup, ownerId).recordCount, 8);
+assert.equal(validateBackupText(JSON.stringify(currentBackup), ownerId).recordCount, 8);
+expectCode({ ...currentBackup, stores: { ...currentBackup.stores, media_assets: undefined } }, 'backup_invalid_stores');
+expectCode({
+  ...currentBackup,
+  stores: { ...currentBackup.stores, media_assets: [{ ...currentBackup.stores.media_assets[0], ownerId: 'user-b' }] }
+}, 'backup_invalid_record');
+expectCode({
+  ...currentBackup,
+  stores: { ...currentBackup.stores, media_assets: [{ ...currentBackup.stores.media_assets[0], data: 'forbidden' }] }
+}, 'backup_invalid_record');
+
 function expectCode(input, code, owner = ownerId) {
   assert.throws(
     () => validateBackupEnvelope(input, owner),
