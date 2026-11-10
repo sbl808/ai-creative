@@ -1,4 +1,4 @@
-const SCRIPT = String.raw\`function __aicsMediaAssetObject(value) {
+const SCRIPT = String.raw`function __aicsMediaAssetObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -190,7 +190,7 @@ window.AICS_MEDIA_ASSETS = {
     });
   }
 };
-\`;
+`;
 
 export function mediaAssetsRepositoryScript() {
   return SCRIPT;
