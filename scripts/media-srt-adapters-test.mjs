@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { SRT_CONTRACT_VERSION } from '../worker/src/media-production/contracts/srt.contract.js';
 import { createContentSrtAdapter } from '../worker/src/media-adapters/content/srt.adapter.js';
 import { createVoiceSrtAdapter } from '../worker/src/media-adapters/voice/srt.adapter.js';
+import { createSrtStudioAdapter } from '../worker/src/media-adapters/srt/index.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-srt-test-key';
@@ -80,15 +81,10 @@ function createEngine() {
   });
 }
 
-// Unverified Studios cannot obtain the Content/Voice SRT adapter.
+// Unverified Studios cannot obtain the shared SRT adapter.
 for (const studioId of ['story', 'short', 'shop', 'image']) {
   assert.throws(
-    () => {
-      // Exercise the public factory through its Studio-specific boundary.
-      if (studioId === 'content') return createContentSrtAdapter();
-      if (studioId === 'voice') return createVoiceSrtAdapter();
-      throw new Error('unsupported_srt_adapter_studio');
-    },
+    () => createSrtStudioAdapter(studioId),
     (error) => error.message === 'unsupported_srt_adapter_studio',
   );
 }
