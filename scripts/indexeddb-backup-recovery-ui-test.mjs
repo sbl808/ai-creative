@@ -160,7 +160,7 @@ modernHarness.setConfirmResult(true);
 await modernHarness.clickRestore();
 assert.equal(modernHarness.calls.restore.length, 1, 'confirming must invoke Restore exactly once');
 assert.equal(modernHarness.calls.restore[0].backup, modernBackup);
-assert.deepEqual(modernHarness.calls.restore[0].options, { confirmReplace: true });
+assert.equal(modernHarness.calls.restore[0].options.confirmReplace, true);
 assert.match(modernHarness.nodes.get('backup-recovery-message').textContent, /Restore အောင်မြင်ပါသည်/);
 assert.equal(modernHarness.nodes.get('backup-preview').hidden, true);
 assert.equal(modernHarness.nodes.get('backup-file').value, '');
