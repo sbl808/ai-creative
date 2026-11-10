@@ -101,7 +101,9 @@ const SCRIPT = String.raw`(function () {
   var fileInput = byId('backup-file');
   var preview = byId('backup-preview');
   var restoreButton = byId('backup-restore');
+  var backupValidationRequestId = 0;
   if (fileInput) fileInput.addEventListener('change', function () {
+    var requestId = ++backupValidationRequestId;
     pendingBackup = null;
     if (restoreButton) restoreButton.disabled = true;
     if (preview) preview.hidden = true;
@@ -110,6 +112,7 @@ const SCRIPT = String.raw`(function () {
     if (!window.AICS_BACKUP_IMPORT) { message('Backup Import လုပ်ဆောင်ချက် မရရှိပါ။', true); return; }
     message('Backup ဖိုင်ကို စစ်ဆေးနေသည်…');
     window.AICS_BACKUP_IMPORT.validateFile(file).then(function (result) {
+      if (requestId !== backupValidationRequestId) return;
       pendingBackup = result.backup;
       if (byId('backup-preview-summary')) {
         byId('backup-preview-summary').textContent =
@@ -125,6 +128,7 @@ const SCRIPT = String.raw`(function () {
       if (restoreButton) restoreButton.disabled = false;
       message('Backup ဖိုင် မှန်ကန်ကြောင်း စစ်ဆေးပြီးပါပြီ။ Restore မလုပ်မီ အစားထိုးမည့်ဒေတာကို သေချာစစ်ပါ။');
     }).catch(function () {
+      if (requestId !== backupValidationRequestId) return;
       pendingBackup = null;
       if (preview) preview.hidden = true;
       message('Backup ဖိုင်ကို စစ်ဆေး၍ မရပါ။ မှန်ကန်သော ဤ App Backup ဖိုင်ကို ရွေးပါ။', true);
