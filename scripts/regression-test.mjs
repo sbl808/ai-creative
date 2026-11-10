@@ -889,18 +889,47 @@ await check('Gemini retry policy avoids retrying uncertain POST outcomes', async
 });
 
 console.log('— AI Studio task forwarding contracts —');
-const studioTaskContracts={story:['story.text','story.image'],content:['content.text','content.voice','content.image','content.transcribe'],short:['short.text','short.image'],image:['image.text','image.image'],voice:['voice.voice','voice.transcribe'],shop:['shop.text','shop.image']};
+// Studio-owned text/audio tasks remain in their Studio implementation files.
+// Image-generation task IDs are owned by the Shared Image Engine below.
+const studioTaskContracts={
+ story:['story.text','story.image'],
+ content:['content.text','content.voice','content.transcribe'],
+ short:['short.text'],
+ image:['image.text'],
+ voice:['voice.voice','voice.transcribe'],
+ shop:['shop.text'],
+};
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
- await check(studio+' forwards task IDs to the AI Service',async()=>{
+ await check(studio+' forwards Studio-owned task IDs to the AI Service',async()=>{
   let source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
-  // Story Video Plan image generation now belongs to its dedicated module.
+  // Story Video Plan image generation remains in its dedicated module.
   if(studio==='story'){
    source+='\\n'+await readFile(new URL('../worker/src/studios/story-video-plan.js',import.meta.url),'utf8');
   }
   const missing=tasks.filter(task=>!source.includes("task: '"+task+"'"));
-  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all task IDs forwarded'};
+  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all Studio-owned task IDs forwarded'};
  });
 }
+
+await check('Shared Image Engine maps Studio image task IDs and Studio adapters are connected',async()=>{
+ const engine=await readFile(new URL('../worker/src/media-production/image/engine.js',import.meta.url),'utf8');
+ const expected={
+  image:'image.image',
+  content:'content.image',
+  short:'short.image',
+  shop:'shop.image',
+ };
+ const missing=[];
+ for(const [studio,task] of Object.entries(expected)){
+  const mapping=new RegExp(studio+'\\s*:\\s*[\\'"]'+task.replace('.','\\.')+'[\\'"]');
+  if(!mapping.test(engine)) missing.push(studio+'='+task);
+  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
+  if(!source.includes("from '../media-adapters/"+studio+"/image.adapter.js'")){
+   missing.push(studio+' adapter export');
+  }
+ }
+ return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all shared image task mappings and Studio adapter exports found'};
+});
 
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 if (failed > 0) {
