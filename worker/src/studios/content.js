@@ -19,6 +19,7 @@ import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText } from '../core/ai/aiService.js';
 import { generateContentVoice as generateSharedContentVoice } from '../media-adapters/content/audio.adapter.js';
 import { generateContentSrtShared } from '../media-adapters/content/srt.adapter.js';
+import { translateContentSrtShared } from '../media-adapters/content/translation.adapter.js';
 export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
@@ -233,37 +234,8 @@ export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, m
 // ============================================================
 export async function translateContentSrt(env, { srtText, direction, apiKey, model }) {
   if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
-  const dir = String(direction || 'my-to-cn').replace(/-/g, '_').toUpperCase();
-
-  let langInstruction;
-  if (dir === 'MY_TO_CN') {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ တရုတ်ဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။';
-  } else {
-    langInstruction =
-      'အောက်ပါ SRT ထဲက Text များသည် တရုတ်ဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
-      'ယင်းစာကြောင်း၏ မြန်မာဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။ ' +
-      'TEXT LINE WRAPPING RULE: မြန်မာဘာသာပြန် Line ကို စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ။ ' +
-      '၁၅ လုံးကျော်ရင် Number/Timestamp အသစ် မဖန်တီးဘဲ Subtitle block တူညီတဲ့အတွင်းမှာပဲ ဘာသာပြန် line ကို line အသစ် ထပ်ခွဲပြီး ရေးပါ။';
-  }
-
-  const instruction =
-    'အောက်ပါ SRT (SubRip Subtitle) Text ကို ဖတ်ပါ။ ' + langInstruction + ' ' +
-    'SRT Number (1, 2, 3...) နှင့် Timestamp (00:00:00,000 --> 00:00:03,000 ပုံစံ) များကို ' +
-    'လုံးဝ မပြောင်းလဲပါနှင့် — မူရင်းအတိုင်းသာ ထားပါ။ မူရင်း Text Line ကိုလည်း မပြောင်းလဲပါနှင့်၊ ' +
-    'ဖျက်လည်း မဖျက်ပါနှင့်။ Format ဥပမာ:\n' +
-    '1\n00:00:00,000 --> 00:00:03,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    '2\n00:00:03,000 --> 00:00:06,000\n[မူရင်းစာကြောင်း]\n[ဘာသာပြန်စာကြောင်း]\n\n' +
-    'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် (explanation) မထည့်ပါနှင့်။\n\n' +
-    'SRT:\n' + String(srtText).trim();
-
-  const srt = await generateText(env, {
-    model: await resolveModel(env, 'transcribe', undefined, model, 'content.transcribe'), task: 'content.transcribe',
-    prompt: instruction,
-    apiKey,
-  });
-  return { srt };
+  return translateContentSrtShared(env, { srtText, direction, apiKey, model });
+}
 }
 
 // ============================================================
