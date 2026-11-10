@@ -9,6 +9,7 @@ import { sessionResultsRepositoryScript } from './repositories/session-results.j
 import { handoffsRepositoryScript } from './repositories/handoffs.js';
 import { ideasRepositoryScript } from './repositories/ideas.js';
 import { historyRepositoryScript } from './repositories/history.js';
+import { mediaAssetsRepositoryScript } from './repositories/media-assets.js';
 import { backupExportScript } from './backup/export.js';
 import { backupValidationScript } from './backup/validate.js';
 import { backupImportScript } from './backup/import.js';
@@ -107,6 +108,7 @@ export function clientStorageScript() {
     handoffsRepositoryScript(),
     ideasRepositoryScript(),
     historyRepositoryScript(),
+    mediaAssetsRepositoryScript(),
     backupExportScript(),
     backupValidationScript(),
     backupImportScript(),
