@@ -889,14 +889,14 @@ await check('Gemini retry policy avoids retrying uncertain POST outcomes', async
 });
 
 console.log('— AI Studio task forwarding contracts —');
-// Studio-owned text/audio tasks remain in their Studio implementation files.
-// Image-generation task IDs are owned by the Shared Image Engine below.
+// Studio-owned tasks remain in their Studio implementation files.
+// Shared Image/Audio Engine task IDs are verified in their respective engine checks below.
 const studioTaskContracts={
  story:['story.text','story.image'],
- content:['content.text','content.voice','content.transcribe'],
+ content:['content.text','content.transcribe'],
  short:['short.text'],
  image:['image.text'],
- voice:['voice.voice','voice.transcribe'],
+ voice:['voice.transcribe'],
  shop:['shop.text'],
 };
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
@@ -931,6 +931,20 @@ await check('Shared Image Engine maps Studio image task IDs and Studio adapters 
  return {ok:missing.length===0,msg:missing.length?'missing='+missing.join(','):'all shared image task mappings and Studio adapter exports found'};
 });
 
+
+await check('Shared Audio Engine maps Content and Voice audio task IDs', async () => {
+  const engine = await readFile(new URL('../worker/src/media-production/audio/engine.js', import.meta.url), 'utf8');
+  const expected = [
+    "content: Object.freeze({ tts: 'content.voice' })",
+    "tts: 'voice.voice'",
+    "transcribe: 'voice.transcribe'",
+  ];
+  const missing = expected.filter(mapping => !engine.includes(mapping));
+  return {
+    ok: missing.length === 0,
+    msg: missing.length ? 'missing=' + missing.join(', ') : 'all shared audio task mappings found',
+  };
+});
 
 console.log('— Shared Audio Studio integration contracts —');
 await check('Content Studio routes TTS through the shared Content audio adapter', async () => {
