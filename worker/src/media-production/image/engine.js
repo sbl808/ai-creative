@@ -5,6 +5,7 @@ import {
 } from '../contracts/image.contract.js';
 import { resolveModel } from '../../core/aiModels.js';
 import { generateImage, generateMultimodal } from '../../core/ai/aiService.js';
+import { referenceImageInstruction } from '../../core/utilities.js';
 
 const IMAGE_TASK_BY_STUDIO = Object.freeze({
   image: 'image.image',
@@ -67,9 +68,8 @@ export function createSharedImageEngine(services = {}) {
           task: 'shop.text',
           prompt: prompt
             + '\n\n'
-            + 'အောက်ပါ product reference ပုံများကို လေ့လာပြီး '
-            + 'ထိုပုံများနှင့် ကိုက်ညီသော image generation prompt တစ်ခုတည်းကိုသာ ပြန်ပေးပါ။ '
-            + 'Product ၏ ပုံသဏ္ဌာန်၊ အရောင်၊ အမှတ်တံဆိပ်နှင့် အဓိကအသွင်အပြင်များကို ထိန်းသိမ်းပါ။',
+            + referenceImageInstruction(referenceImages, 'product')
+            + '\n\nအထက်ပါ product reference ပုံများနှင့် ကိုက်ညီသော image generation prompt တစ်ခုတည်းကိုသာ ပြန်ပေးပါ။ (Return only the final image prompt, no extra text.)',
           images: referenceImages.map(({ base64, mimeType }) => ({
             base64,
             mimeType,
