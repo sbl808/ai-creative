@@ -135,7 +135,7 @@ for (const providerOutput of ['', 'not an SRT', 'PRIVATE_PROVIDER_OUTPUT_SENTINE
   await assert.rejects(
     () => generate(env, request, executionContext),
     (error) => error.code === 'invalid_srt_provider_response'
-      && !error.message.includes(providerOutput),
+      && (!providerOutput || !error.message.includes(providerOutput)),
   );
 }
 
