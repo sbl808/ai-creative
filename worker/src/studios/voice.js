@@ -5,9 +5,10 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateText, generateMultimodal, generateSpeech } from '../core/ai/aiService.js';
+import { generateText, generateMultimodal } from '../core/ai/aiService.js';
+import { generateVoiceAudio as generateSharedVoiceAudio, transcribeVoiceAudio } from '../media-adapters/voice/audio.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
-import { pcmToWavBase64 } from '../core/utilities.js';
+
 
 const CMS_STUDIO = 'VOICE';
 
@@ -17,16 +18,8 @@ const CMS_STUDIO = 'VOICE';
 // ============================================================
 export async function generateVoiceAudio(env, { text, voiceName, apiKey, model, plan }) {
   if (!text || !String(text).trim()) throw new Error('missing_text');
-  const tts = await generateSpeech(env, {
-    text: String(text).trim(),
-    voiceName: voiceName || 'Kore',
-    apiKey,
-    model: await resolveModel(env, 'voice', plan, model, 'voice.voice'), task: 'voice.voice',
-  });
-  const wavBase64 = pcmToWavBase64(tts.data, 24000, 1, 16);
-  return { data: wavBase64, mimeType: 'audio/wav' };
+  return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });
 }
-
 // ============================================================
 // Tab 2 — Audio → Text (Transcribe)
 // CMS VOICE prompt ကို system instruction အဖြစ် သုံးသည်
@@ -38,16 +31,10 @@ export async function transcribeAudio(env, { audioBase64, mimeType, type, plan, 
   const prompt = system
     ? (system + '\n\nအထက်ပါ instruction အတိုင်း အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။')
     : 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။';
-  const text = await generateMultimodal(env, {
-    model: await resolveModel(env, 'transcribe', plan, model, 'voice.transcribe'), task: 'voice.transcribe',
-    prompt,
-    images: [{ mimeType: mimeType || 'audio/mpeg', base64: audioBase64 }],
-    apiKey,
+  return transcribeVoiceAudio(env, {
+    audioBase64, mimeType, plan, apiKey, model, prompt,
   });
-  if (!text || !String(text).trim()) throw new Error('empty_transcription');
-  return { text };
 }
-
 // ============================================================
 // Tab 1 & 2 — SRT Subtitle from Audio (PRO only)
 // CMS VOICE/PRO/3 က Line-Splitting Rule အဖြစ် သုံးသည်
