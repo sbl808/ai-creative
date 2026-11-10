@@ -33,7 +33,7 @@ const PANEL_HTML = `
 
 const SCRIPT = String.raw`(function () {
   var pendingBackup = null;
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas'];
+  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts', 'media_assets'];
   function byId(id) { return document.getElementById(id); }
   function message(text, isError) {
     var node = byId('backup-recovery-message');
