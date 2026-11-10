@@ -44,7 +44,7 @@ assert.doesNotMatch(script, /innerHTML\s*=/, 'backup metadata must not be insert
 assert.doesNotMatch(script, /fetch\s*\(/, 'backup data must not be sent to a server');
 
 
-function createRecoveryHarness(backup) {
+function createRecoveryHarness(backup, validateFileImpl) {
   const ids = [
     'backup-recovery-message', 'backup-persist-status', 'backup-storage-note',
     'backup-usage', 'backup-quota', 'backup-refresh', 'backup-persist',
@@ -83,6 +83,7 @@ function createRecoveryHarness(backup) {
     AICS_BACKUP_IMPORT: {
       validateFile(selectedFile) {
         calls.validate += 1;
+        if (validateFileImpl) return validateFileImpl(selectedFile);
         assert.equal(selectedFile, file);
         return Promise.resolve({
           backup,
@@ -114,6 +115,16 @@ function createRecoveryHarness(backup) {
     setConfirmResult(value) { confirmResult = value; },
     async selectBackup() {
       nodes.get('backup-file').files = [file];
+      nodes.get('backup-file').listeners.change();
+      await settle();
+    },
+    async selectFile(selectedFile) {
+      nodes.get('backup-file').files = [selectedFile];
+      nodes.get('backup-file').listeners.change();
+      await settle();
+    },
+    async clearFile() {
+      nodes.get('backup-file').files = [];
       nodes.get('backup-file').listeners.change();
       await settle();
     },
@@ -164,6 +175,87 @@ assert.equal(modernHarness.calls.restore[0].options.confirmReplace, true);
 assert.match(modernHarness.nodes.get('backup-recovery-message').textContent, /Restore အောင်မြင်ပါသည်/);
 assert.equal(modernHarness.nodes.get('backup-preview').hidden, true);
 assert.equal(modernHarness.nodes.get('backup-file').value, '');
+
+function createDeferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+const backupA = {
+  ...modernBackup,
+  exportedAt: '2026-11-09T00:00:00.000Z',
+  stores: { ...modernStores, creations: [{ id: 'backup-a' }] }
+};
+const backupB = {
+  ...modernBackup,
+  exportedAt: '2026-11-10T00:00:00.000Z',
+  stores: { ...modernStores, creations: [{ id: 'backup-b' }] }
+};
+const pendingValidations = new Map();
+const raceHarness = createRecoveryHarness(modernBackup, selectedFile => {
+  const deferred = createDeferred();
+  pendingValidations.set(selectedFile.name, deferred);
+  return deferred.promise;
+});
+const fileA = { name: 'backup-a.json' };
+const fileB = { name: 'backup-b.json' };
+await raceHarness.selectFile(fileA);
+await raceHarness.selectFile(fileB);
+assert.equal(raceHarness.calls.validate, 2);
+pendingValidations.get(fileB.name).resolve({
+  backup: backupB,
+  recordCount: Object.values(backupB.stores).reduce((total, records) => total + records.length, 0)
+});
+await raceHarness.settle();
+assert.equal(raceHarness.nodes.get('backup-preview').hidden, false);
+assert.match(raceHarness.nodes.get('backup-preview-summary').textContent, /backup-b\.json/);
+pendingValidations.get(fileA.name).resolve({
+  backup: backupA,
+  recordCount: Object.values(backupA.stores).reduce((total, records) => total + records.length, 0)
+});
+await raceHarness.settle();
+assert.match(
+  raceHarness.nodes.get('backup-preview-summary').textContent,
+  /backup-b\.json/,
+  'an older validation resolving last must not replace the latest selected backup'
+);
+assert.equal(raceHarness.nodes.get('backup-restore').disabled, false);
+raceHarness.setConfirmResult(true);
+await raceHarness.clickRestore();
+assert.equal(raceHarness.calls.restore.length, 1);
+assert.equal(
+  raceHarness.calls.restore[0].backup,
+  backupB,
+  'Restore must use the latest selected backup, not a stale validation result'
+);
+
+const clearedValidation = createDeferred();
+const clearHarness = createRecoveryHarness(modernBackup, () => clearedValidation.promise);
+await clearHarness.selectFile({ name: 'will-be-cleared.json' });
+await clearHarness.clearFile();
+assert.equal(clearHarness.nodes.get('backup-preview').hidden, true);
+assert.equal(clearHarness.nodes.get('backup-restore').disabled, true);
+clearedValidation.resolve({
+  backup: modernBackup,
+  recordCount: Object.values(modernBackup.stores).reduce((total, records) => total + records.length, 0)
+});
+await clearHarness.settle();
+assert.equal(
+  clearHarness.nodes.get('backup-preview').hidden,
+  true,
+  'a validation finishing after file selection is cleared must not reopen the preview'
+);
+assert.equal(
+  clearHarness.nodes.get('backup-restore').disabled,
+  true,
+  'a validation finishing after file selection is cleared must not enable Restore'
+);
+assert.equal(clearHarness.calls.restore.length, 0);
 
 const legacyStores = Object.fromEntries(
   expectedBackupStores.filter(name => name !== 'media_assets')
