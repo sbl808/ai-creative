@@ -11,9 +11,7 @@ export function createAudioStudioAdapter(studioId, engine = generateSharedAudio)
   }
 
   async function execute(operation, input, context = {}) {
-    return engine({
-      ...context.env,
-    }, {
+    return engine(context.env, {
       contractVersion: AUDIO_CONTRACT_VERSION,
       studioId,
       operation,
