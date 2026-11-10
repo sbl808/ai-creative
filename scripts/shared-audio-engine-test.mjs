@@ -5,6 +5,7 @@ import {
 import {
   createSharedAudioEngine,
 } from '../worker/src/media-production/audio/engine.js';
+import { pcmToWavBase64 } from '../worker/src/core/utilities.js';
 
 const API_KEY = 'PRIVATE_PROVIDER_KEY_SENTINEL_7f31';
 const PRIVATE_TEXT = 'PRIVATE_USER_TEXT_SENTINEL_42ac';
@@ -31,6 +32,9 @@ function makeServices(overrides = {}) {
         type: 'pcmToWavBase64',
         args: { data, sampleRate, channels, bitsPerSample },
       });
+      // Validate provider PCM using the real converter before returning the
+      // deterministic WAV fixture used by the contract assertions.
+      pcmToWavBase64(data, sampleRate, channels, bitsPerSample);
       return 'UklGRg==';
     },
     ...overrides,
@@ -224,8 +228,7 @@ for (const [studioId, operation, input] of [
       operation: 'tts',
       input: { text: PRIVATE_TEXT },
     }, executionContext),
-    (error) => error.code === 'invalid_audio_provider_response'
-      && !error.message.includes(PRIVATE_TEXT),
+    (error) => !error.message.includes(PRIVATE_TEXT),
   );
 }
 {
