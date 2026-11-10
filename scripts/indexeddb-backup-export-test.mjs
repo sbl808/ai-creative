@@ -11,7 +11,7 @@ function makeDb(data) {
     transaction(storeNames, mode) {
       assert.equal(mode, 'readonly');
       assert.deepEqual(Array.from(storeNames), [
-        'creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts'
+        'creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts', 'media_assets'
       ]);
       let pending = storeNames.length;
       let completeQueued = false;
@@ -94,6 +94,10 @@ const sourceData = {
   drafts: [
     { id: 'd-a', ownerId: 'user-a', studio: 'short', draftVersion: 1, data: { prompt: 'A draft' } },
     { id: 'd-b', ownerId: 'user-b', studio: 'short', draftVersion: 1, data: { prompt: 'B private draft' } }
+  ],
+  media_assets: [
+    { id: 'ma-a', ownerId: 'user-a', studioId: 'image', mediaType: 'image', createdAt: '2026-11-10T00:00:00.000Z', contractVersion: 1 },
+    { id: 'ma-b', ownerId: 'user-b', studioId: 'image', mediaType: 'image', createdAt: '2026-11-10T00:00:00.000Z', contractVersion: 1 }
   ]
 };
 
@@ -134,9 +138,9 @@ const json = await window.AICS_BACKUP.exportJson();
 const backup = JSON.parse(json);
 assert.equal(backup.format, 'aics-browser-backup');
 assert.equal(backup.exportVersion, 1);
-assert.equal(backup.schemaVersion, 6);
+assert.equal(backup.schemaVersion, 7);
 assert.deepEqual(Object.keys(backup.stores).sort(), [
-  'creations', 'drafts', 'ideas', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions'
+  'creations', 'drafts', 'ideas', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions', 'media_assets'
 ]);
 assert.deepEqual(backup.stores.creations.map(record => record.id), ['c-a']);
 assert.deepEqual(backup.stores.projects.map(record => record.id), ['p-a']);
@@ -145,6 +149,7 @@ assert.deepEqual(backup.stores.studio_handoffs.map(record => record.id), ['h-a']
 assert.deepEqual(backup.stores.session_results.map(record => record.id), ['r-a']);
 assert.deepEqual(backup.stores.ideas.map(record => record.id), ['i-a']);
 assert.deepEqual(backup.stores.drafts.map(record => record.id), ['d-a']);
+assert.deepEqual(backup.stores.media_assets.map(record => record.id), ['ma-a']);
 assert.ok(!json.includes('B private'));
 assert.equal(sourceData.creations.length, 2, 'export must not mutate IndexedDB records');
 
