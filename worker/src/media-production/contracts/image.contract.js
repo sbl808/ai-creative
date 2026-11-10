@@ -21,6 +21,8 @@ export const IMAGE_OPERATIONS = Object.freeze([
 
 const STUDIO_IDS = new Set(IMAGE_STUDIO_IDS);
 const OPERATIONS = new Set(IMAGE_OPERATIONS);
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const IMAGE_MIME_TYPE_PATTERN = /^image\/[a-z0-9][a-z0-9.+-]*$/i;
 
 function isPlainObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -30,6 +32,14 @@ function isPlainObject(value) {
 
 function hasNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isValidBase64(value) {
+  return hasNonEmptyString(value) && value.length % 4 === 0 && BASE64_PATTERN.test(value);
+}
+
+function isValidImageMimeType(value) {
+  return typeof value === 'string' && IMAGE_MIME_TYPE_PATTERN.test(value);
 }
 
 function validateEnvelope(value, errors) {
@@ -58,8 +68,8 @@ function validateImages(images, errors) {
       errors.push(`images[${index}]_must_be_object`);
       return;
     }
-    if (!hasNonEmptyString(image.base64)) errors.push(`images[${index}].base64_required`);
-    if (!hasNonEmptyString(image.mimeType)) errors.push(`images[${index}].mime_type_required`);
+    if (!isValidBase64(image.base64)) errors.push(`images[${index}].base64_invalid`);
+    if (!isValidImageMimeType(image.mimeType)) errors.push(`images[${index}].mime_type_invalid`);
   });
 }
 
@@ -92,7 +102,7 @@ export function validateImageRequestV1(value) {
   if (value.input.model !== undefined && !hasNonEmptyString(value.input.model)) {
     errors.push('model_must_be_non_empty_string');
   }
-  if (value.input.type !== undefined && !hasNonEmptyString(String(value.input.type))) {
+  if (value.input.type !== undefined && !hasNonEmptyString(value.input.type)) {
     errors.push('type_must_be_non_empty_string');
   }
   if (value.operation === 'generate' && value.input.images !== undefined) {
@@ -120,14 +130,14 @@ export function validateImageResponseV1(value) {
   }
 
   if (value.operation === 'prompt' || value.operation === 'ad-prompt') {
-    if (typeof value.result.prompt !== 'string') errors.push('result_prompt_must_be_string');
+    if (!hasNonEmptyString(value.result.prompt)) errors.push('result_prompt_must_be_non_empty_string');
     if (value.result.map !== undefined && value.result.map !== null && !isPlainObject(value.result.map)) {
       errors.push('result_map_must_be_object_or_null');
     }
   }
   if (value.operation === 'generate') {
-    if (!hasNonEmptyString(value.result.data)) errors.push('result_data_required');
-    if (!hasNonEmptyString(value.result.mimeType)) errors.push('result_mime_type_required');
+    if (!isValidBase64(value.result.data)) errors.push('result_data_invalid');
+    if (!isValidImageMimeType(value.result.mimeType)) errors.push('result_mime_type_invalid');
   }
 
   return { ok: errors.length === 0, errors };
