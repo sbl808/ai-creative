@@ -3,7 +3,7 @@ import { generateStudio } from '../studio.js';
 export async function handleGenericStudioRoute(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const url = new URL(request.url);
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe, friendlyError, getStudio, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, getStudio, isStudioEnabled } = deps;
 
       if (path === '/api/studio/generate' && request.method === 'POST') {
         const token = bearer(request);
@@ -30,9 +30,8 @@ export async function handleGenericStudioRoute(request, env, cors, deps) {
         }
         { const denied = await requireFeature(env, 'generate', plan, reqType, cors); if (denied) return denied; }
         try {
-          // BYOK: Request ထဲ Key မပါလျှင် User သိမ်းထားသော Key ကို အလိုအလျောက် ရှာသည်
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          // BYOK: API key is supplied transiently by the browser IndexedDB; no D1 fallback.
+          const apiKey = body.apiKey;
           const out = await generateStudio(env, {
             studio: String(body.studio).toUpperCase(),
             type: String(body.type || '1'),
