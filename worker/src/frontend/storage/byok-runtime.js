@@ -1,4 +1,4 @@
-const SCRIPT = String.raw\`(function () {
+const SCRIPT = String.raw`(function () {
   var accountToken = '';
   var accountPromise = null;
   var passphrase = '';
@@ -108,7 +108,7 @@ const SCRIPT = String.raw\`(function () {
     withGeminiKey: withGeminiKey,
     removeGemini: removeGemini
   };
-})();\`;
+})();`;
 
 export function byokRuntimeScript() {
   return SCRIPT;
