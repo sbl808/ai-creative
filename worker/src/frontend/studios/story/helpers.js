@@ -50,7 +50,7 @@ function buildWorkflowSel(){
   selEl.onchange=function(){selectedWorkflow=selEl.value;};
 }
 
-function apiCall(url,body){var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;return fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});}
+function apiCall(url,body){var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;return window.aicsApiFetch(url,body,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});}
 
 // GLOBAL RESULT STREAMING — NDJSON stream reader wrapper (model select + token handled inside)
 function streamCall(url,body,handlers){
