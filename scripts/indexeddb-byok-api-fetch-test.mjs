@@ -22,7 +22,7 @@ const sandbox = {
 };
 vm.runInNewContext(AICS_STREAM_SCRIPT, sandbox);
 
-await sandbox.window.aicsApiFetch('/api/studio/image/generate', { prompt: 'test' }, {
+await sandbox.window.aicsApiFetch('/api/studio/image/generate', { prompt: 'test', apiKey: 'caller-plaintext-key' }, {
   method: 'POST', headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' }
 });
 assert.equal(injected, 1);
