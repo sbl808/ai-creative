@@ -504,6 +504,29 @@ export const AICS_RESULT_BOX_SCRIPT = `
 // aborts the previous active one (no stuck GENERATING states).
 // ============================================================
 export const AICS_STREAM_SCRIPT = `
+// Non-streaming AI requests use the same encrypted IndexedDB credential source.
+// Only authenticated AI-generation POST routes receive the transient plaintext key.
+function aicsApiFetch(url, body, init) {
+  init = init || {};
+  var method = String(init.method || (body === undefined ? 'GET' : 'POST')).toUpperCase();
+  var path = String(url || '');
+  var isAiRequest = method === 'POST' &&
+    (path.indexOf('/api/studio/') === 0 || path.indexOf('/api/ideas/') === 0);
+  var requestBody = Promise.resolve(body);
+  if (isAiRequest) {
+    if (!window.AICS_BYOK || typeof window.AICS_BYOK.withGeminiKey !== 'function') {
+      return Promise.reject(new Error('credentials_unavailable'));
+    }
+    requestBody = window.AICS_BYOK.withGeminiKey(body || {});
+  }
+  return requestBody.then(function (resolvedBody) {
+    var requestInit = Object.assign({}, init, { cache: 'no-store' });
+    if (body !== undefined) requestInit.body = JSON.stringify(isAiRequest ? resolvedBody : body);
+    return fetch(url, requestInit);
+  });
+}
+window.aicsApiFetch = aicsApiFetch;
+
 function aicsStreamCall(url, body, opts) {
   opts = opts || {};
   var tk = (typeof token !== 'undefined' && token) || (typeof TOKEN !== 'undefined' && TOKEN) || '';
