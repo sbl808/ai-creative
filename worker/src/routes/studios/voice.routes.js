@@ -2,7 +2,7 @@ import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSr
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
 
       // ===== Voice Studio — Tab 1: Text → Voice (TTS) =====
       if (path === '/api/studio/voice/tts' && request.method === 'POST') {
@@ -16,8 +16,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'voice.tts', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateVoiceAudio(env, { model: body.model,
             text: body.text,
             voiceName: body.voiceName || 'Kore',
@@ -42,8 +41,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'voice.transcribe', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await transcribeAudio(env, { model: body.model, 
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
@@ -67,8 +65,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'voice.srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateVoiceSrt(env, { model: body.model, 
             audioBase64: body.audioBase64,
             knownText: typeof body.knownText === 'string' ? body.knownText : '',
@@ -93,8 +90,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'voice.translate_srt', plan, String(body.type || '2'), cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await translateVoiceSrt(env, { model: body.model, 
             srtText: body.srtText,
             direction: body.direction || 'MY_TO_CN',
