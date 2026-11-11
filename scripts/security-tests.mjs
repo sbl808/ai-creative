@@ -554,38 +554,28 @@ console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
   const runtime = readFileSync(new URL('../worker/src/frontend/storage/byok-runtime.js', import.meta.url), 'utf8');
   check('API key save delegates to encrypted IndexedDB repository',
     shared.includes('AICS_BYOK.saveGemini(key)') &&
-    runtime.includes('window.AICS_API_KEYS.save(accountId, \\'gemini\\', key, first)'));
+    runtime.includes("window.AICS_API_KEYS.save(accountId, 'gemini', key, first)"));
   check('API key save reports cancellation/failure as false',
-    shared.includes('if (!key) return Promise.resolve(false)') &&
-    shared.includes('return false;'));
+    shared.includes('if (!key) return Promise.resolve(false)') && shared.includes('return false;'));
   check('API key passphrase is held in memory only',
-    runtime.includes('var passphrase = \\'\\'') &&
-    !/localStorage\\.setItem|sessionStorage|document\\.cookie/.test(runtime));
+    runtime.includes("var passphrase = ''") &&
+    !runtime.includes('localStorage.setItem') && !runtime.includes('sessionStorage') && !runtime.includes('document.cookie'));
   check('settings status is read from browser-local IndexedDB',
-    settings.includes('AICS_BYOK.hasGemini()') &&
-    !settings.includes('/api/user/apikey/status'));
+    settings.includes('AICS_BYOK.hasGemini()') && !settings.includes('/api/user/apikey/status'));
   check('connection test decrypts key locally before transient request',
-    settings.includes('AICS_BYOK.withGeminiKey(') &&
-    settings.includes(\"api('/api/ai/test'\"));
+    settings.includes('AICS_BYOK.withGeminiKey(') && settings.includes("api('/api/ai/test'"));
   check('frontend no longer calls D1-backed API key save/status/delete routes',
-    !shared.includes('/api/user/apikey') &&
-    !settings.includes('/api/user/apikey'));
+    !shared.includes('/api/user/apikey') && !settings.includes('/api/user/apikey'));
   check('settings refreshes status only after save resolves successfully',
-    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
-    settings.includes('if(saved) loadKeyStatus();'));
+    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') && settings.includes('if(saved) loadKeyStatus();'));
   check('API key status refresh does not depend on fixed two-second timer',
-    !settings.includes('setTimeout(loadKeyStatus,2000)') &&
-    !settings.includes('setTimeout(loadKeyStatus, 2000)'));
+    !settings.includes('setTimeout(loadKeyStatus,2000)') && !settings.includes('setTimeout(loadKeyStatus, 2000)'));
   const removeStart = settings.indexOf('function removeApiKey()');
   const removeEnd = settings.indexOf('\n}', removeStart);
-  const removeApiKey = removeStart >= 0
-    ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined)
-    : '';
+  const removeApiKey = removeStart >= 0 ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined) : '';
   check('API key deletion refreshes browser-local status after success',
-    removeApiKey.includes('AICS_BYOK.removeGemini()') &&
-    removeApiKey.includes('loadKeyStatus();'));
+    removeApiKey.includes('AICS_BYOK.removeGemini()') && removeApiKey.includes('loadKeyStatus();'));
 }
-
 console.log('\n--- F) API request body size protection ---');
 {
   const limit = 32 * 1024 * 1024;
