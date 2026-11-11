@@ -1,6 +1,8 @@
 import { databaseScript } from './database.js';
 import { storageOwnerScript } from './storage-owner.js';
 import { storageErrorsScript } from './storage-errors.js';
+import { credentialsDatabaseScript } from './credentials-database.js';
+import { apiKeysRepositoryScript } from './repositories/api-keys.js';
 import { projectsRepositoryScript } from './repositories/projects.js';
 import { sessionsRepositoryScript } from './repositories/sessions.js';
 import { draftsRepositoryScript } from './repositories/drafts.js';
@@ -98,6 +100,8 @@ export function clientStorageScript() {
   return [
     databaseScript(),
     storageErrorsScript(),
+    credentialsDatabaseScript(),
+    apiKeysRepositoryScript(),
     storageOwnerScript(),
     CREATIONS_SCRIPT,
     projectsRepositoryScript(),
