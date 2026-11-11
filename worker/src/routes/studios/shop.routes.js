@@ -3,7 +3,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleShopStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
 
       // ===== Shop Studio — Tab 1: Generate =====
       if (path === '/api/studio/shop/content/generate' && request.method === 'POST') {
@@ -19,8 +19,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await generateShopContent(env, {
               model: body.model, idea: body.idea, type: reqType, plan, apiKey, images: body.images || [],
               onChunk: (t) => send({ type: 'chunk', text: t }),
@@ -30,8 +29,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateShopContent(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
           await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
@@ -55,8 +53,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await reviseShopContent(env, {
               model: body.model,
               idea: body.idea || '', type: reqType, currentContent: body.currentContent,
@@ -67,8 +64,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await reviseShopContent(env, { model: body.model, 
             idea: body.idea || '', type: reqType, currentContent: body.currentContent,
             instruction: body.instruction, plan, apiKey,
@@ -91,8 +87,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'shop.video_generate', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateVideoPlan({
             studioId: 'shop',
             generate: () => generateShopVideo(env, {
@@ -119,8 +114,7 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'shop.video_image', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateShopVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey, images: body.images || [] });
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
