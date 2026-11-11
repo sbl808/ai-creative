@@ -8,7 +8,7 @@ export const API_SCRIPT = `(function init(){
 // ===================== API =====================
 function apiCall(url,body){
   var s=document.getElementById('aiModelSel');if(s&&s.value)body.model=s.value;
-  return fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});
+  return window.aicsApiFetch(url,body,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}}).then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.detail||data.error||'Request failed');return data;});});
 }
 
 // ===================== Reference Images (Tab 1) =====================
