@@ -302,18 +302,20 @@ function savePrefs(ev){
   }).catch(function(){btn.disabled=false;btn.textContent='💾 သိမ်းပါ';showToast('Network error','error');});
 }
 function loadKeyStatus(){
-  api('/api/user/apikey/status').then(function(d){
-    if(d.error){document.getElementById('tab-apikey').innerHTML='<div class="empty-state">API Key အခြေအနေ မစစ်နိုင်ပါ။ နောက်မှ ပြန်ကြိုးစားပါ။ <button class="btn btn-secondary" data-settings-action="retry-key-status">Retry</button></div>';return;}
-    var has=!!d.hasKey;
+  if(!window.AICS_BYOK){
+    document.getElementById('tab-apikey').innerHTML='<div class="empty-state">Browser Storage မရနိုင်ပါ။ နောက်မှ ပြန်ကြိုးစားပါ။</div>';
+    return;
+  }
+  window.AICS_BYOK.hasGemini().then(function(has){
     document.getElementById('tab-apikey').innerHTML=
-      '<div class="key-status">'+(has?'<span class="key-has">✅ API Key ချိတ်ဆက်ထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
+      '<div class="key-status">'+(has?'<span class="key-has">✅ ဤ Browser တွင် API Key သိမ်းထားပါသည်</span>':'<span class="key-none">API Key မရှိသေးပါ</span>')+'</div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
       '<button class="btn btn-primary" data-settings-action="set-api-key">🔑 '+(has?'API Key အသစ် အစားထိုးရန်':'API Key ထည့်ရန်')+'</button>'+
       (has?'<button class="btn btn-secondary" data-settings-action="test-api-key">🧪 Connection စမ်းသပ်ရန်</button><button class="btn btn-secondary" data-settings-action="remove-api-key">🗑️ API Key ဖျက်ရန်</button>':'')+
       '</div>'+
-      '<div class="hint">သိမ်းထားသော Key အစစ်ကို UI မှာ ပြန်မပြပါ။ Server က စာဝှက်ထားသော Key ကို AI ခေါ်ယူချိန်တွင်သာ အသုံးပြုပါသည်။ Key အသစ် အစားထိုးလိုပါက အရင် Key ကို ဖျက်စရာမလိုပါ။</div>';
+      '<div class="hint">API Key ကို သင့် Browser ၏ IndexedDB ထဲတွင် Passphrase ဖြင့် စာဝှက်သိမ်းဆည်းထားပါသည်။ Passphrase ကို Server သို့ မပို့သလို Browser ထဲတွင်လည်း မသိမ်းပါ။ Passphrase မေ့သွားပါက Key ကို ပြန်ဖွင့်၍ မရနိုင်ပါ — API Key ကို ပြန်ထည့်ရပါမည်။</div>';
   }).catch(function(){
-    document.getElementById('tab-apikey').innerHTML='<div class="empty-state">Network problem</div>';
+    document.getElementById('tab-apikey').innerHTML='<div class="empty-state">Browser ထဲရှိ API Key အခြေအနေကို မစစ်နိုင်ပါ။ <button class="btn btn-secondary" data-settings-action="retry-key-status">Retry</button></div>';
   });
 }
 function setApiKeyAndRefresh(){
@@ -330,22 +332,25 @@ function testApiKey(){
   var buttons=panel.querySelectorAll('button');
   buttons.forEach(function(b){b.disabled=true;});
   showToast('API Connection စမ်းသပ်နေသည်…');
-  api('/api/ai/test',{method:'POST',body:{prompt:'Reply with OK',model:(document.getElementById('pref_model')||{}).value||undefined}}).then(function(d){
+  if(!window.AICS_BYOK){buttons.forEach(function(b){b.disabled=false;});showToast('Browser Storage မရနိုင်ပါ','error');return;}
+  window.AICS_BYOK.withGeminiKey({prompt:'Reply with OK',model:(document.getElementById('pref_model')||{}).value||undefined})
+  .then(function(body){return api('/api/ai/test',{method:'POST',body:body});})
+  .then(function(d){
     buttons.forEach(function(b){b.disabled=false;});
     if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၁၀ မိနစ်အတွင်း ၅ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
     showToast('✓ API Connection အောင်မြင်ပါသည်','success');
   }).catch(function(){
     buttons.forEach(function(b){b.disabled=false;});
-    showToast('Network error','error');
+    showToast('Passphrase သို့မဟုတ် API Key ကို စစ်ဆေးပါ','error');
   });
 }
 function removeApiKey(){
-  if(!confirm('သိမ်းထားသော API Key ကို ဖျက်မှာ သေချာပါသလား?')) return;
-  api('/api/user/apikey',{method:'DELETE'}).then(function(d){
-    if(d.error){showToast('API Key ဖျက်၍ မရပါ','error');return;}
-    showToast('API Key ဖျက်ပြီးပါပြီ','success');
+  if(!confirm('ဤ Browser ထဲတွင် စာဝှက်သိမ်းထားသော API Key ကို ဖျက်မှာ သေချာပါသလား?')) return;
+  if(!window.AICS_BYOK){showToast('Browser Storage မရနိုင်ပါ','error');return;}
+  window.AICS_BYOK.removeGemini().then(function(){
+    showToast('ဤ Browser ထဲမှ API Key ဖျက်ပြီးပါပြီ','success');
     loadKeyStatus();
-  }).catch(function(){showToast('Network error','error');});
+  }).catch(function(){showToast('API Key ဖျက်၍ မရပါ','error');});
 }
 ${backupRecoveryUiScript()}
 </script>

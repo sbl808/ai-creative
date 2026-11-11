@@ -96,6 +96,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-sessions-test.mjs
       - name: Run encrypted IndexedDB BYOK credentials tests
         run: node --experimental-default-type=module scripts/indexeddb-api-keys-test.mjs
+      - name: Run IndexedDB BYOK runtime contract tests
+        run: node --experimental-default-type=module scripts/indexeddb-byok-runtime-test.mjs
       - name: Run IndexedDB History Repository tests
         run: node --experimental-default-type=module scripts/indexeddb-history-repository-test.mjs
       - name: Run IndexedDB Session Results Repository tests

@@ -422,21 +422,18 @@ export function sidebarScript() {
     '  else if (shellType === \'audience\' && typeof window.aichPickAud === \'function\') window.aichPickAud(shellAction);\n' +
     '  else if (shellType === \'studio-action\' && typeof window.studioAct === \'function\') window.studioAct(Number(shellAction.getAttribute(\'data-action-index\')));\n' +
     '});\n' +
-    'function setApiKey() {\n' +
-    '  var key = prompt(\'မင်းရဲ့ Gemini API Key ကို ထည့်ပါ (aistudio.google.com ကနေ ရနိုင်ပါတယ်):\');\n' +
-    '  if (!key) return Promise.resolve(false);\n' +
-    '  if (!SB_TOKEN) { __sbToast(\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\', true); return Promise.resolve(false); }\n' +
-    '  return fetch(\'/api/user/apikey\', {\n' +
-    '    method: \'POST\',\n' +
-    '    headers: { \'Content-Type\': \'application/json\', \'Authorization\': \'Bearer \' + SB_TOKEN },\n' +
-    '    body: JSON.stringify({ key: key })\n' +
-    '  }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); }).then(function (result) {\n' +
-    '    var d = result.data;\n' +
-    '    if (!result.ok || d.error) { __sbToast(\'Save မအောင်မြင်\', true); return false; }\n' +
-    '    __sbToast(\'✓ API Key သိမ်းပြီးပါပြီ\', false);\n' +
-    '    return true;\n' +
-    '  }).catch(function () { __sbToast(\'Network error\', true); return false; });\n' +
-    '}\n' +
+    'function setApiKey() {\\n' +
+    '  var key = prompt(\\'မင်းရဲ့ Gemini API Key ကို ထည့်ပါ (aistudio.google.com ကနေ ရနိုင်ပါတယ်):\\');\\n' +
+    '  if (!key) return Promise.resolve(false);\\n' +
+    '  if (!SB_TOKEN) { __sbToast(\\'Login လုပ်ပြီးမှ API Key သိမ်းလို့ရပါတယ်\\', true); return Promise.resolve(false); }\\n' +
+    '  if (!window.AICS_BYOK) { __sbToast(\\'Browser Storage မရနိုင်ပါ\\', true); return Promise.resolve(false); }\\n' +
+    '  return window.AICS_BYOK.saveGemini(key).then(function (saved) {\\n' +
+    '    key = \\'\\';\\n' +
+    '    if (!saved) return false;\\n' +
+    '    __sbToast(\\'✓ API Key ကို ဤ Browser ထဲတွင် စာဝှက်သိမ်းဆည်းပြီးပါပြီ\\', false);\\n' +
+    '    return true;\\n' +
+    '  }, function () { key = \\'\\'; __sbToast(\\'API Key သိမ်းဆည်း၍ မရပါ။ Passphrase ကို စစ်ဆေးပါ။\\', true); return false; });\\n' +
+    '}\\n' +
     '(function () {\n' +
     '  if (!SB_TOKEN) return;\n' +
     '  fetch(\'/api/users/me\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
