@@ -5,8 +5,8 @@ const SCRIPT = String.raw`(function () {
   var CIPHER_NAME = 'AES-GCM';
   var CIPHER_KEY_LENGTH = 256;
   var RECORD_VERSION = 1;
-  var encoder = new TextEncoder();
-  var decoder = new TextDecoder('utf-8', { fatal: true });
+  function encodeText(value) { return new TextEncoder().encode(value); }
+  function decodeText(value) { return new TextDecoder('utf-8', { fatal: true }).decode(value); }
 
   function identity(accountIdValue, providerValue) {
     var accountId = String(accountIdValue || '').trim();
@@ -21,7 +21,7 @@ const SCRIPT = String.raw`(function () {
   function passphraseBytes(value) {
     var passphrase = String(value || '');
     if (!passphrase) throw __aicsStorageError('credentials_passphrase_required');
-    var bytes = encoder.encode(passphrase);
+    var bytes = encodeText(passphrase);
     if (!bytes.length || bytes.length > 1024) {
       throw __aicsStorageError('credentials_passphrase_invalid');
     }
@@ -29,7 +29,7 @@ const SCRIPT = String.raw`(function () {
   }
 
   function associatedData(record) {
-    return encoder.encode(JSON.stringify({
+    return encodeText(JSON.stringify({
       accountId: record.accountId,
       provider: record.provider,
       recordVersion: record.recordVersion,
@@ -157,7 +157,7 @@ const SCRIPT = String.raw`(function () {
           iv: iv,
           additionalData: associatedData(record),
           tagLength: 128
-        }, key, encoder.encode(keyText));
+        }, key, encodeText(keyText));
       }).then(function (ciphertext) {
         record.ciphertext = ciphertext;
         return runTransaction('readwrite', function (store, setOutput, fail) {
@@ -207,7 +207,7 @@ const SCRIPT = String.raw`(function () {
             tagLength: 128
           }, key, record.ciphertext);
         }).then(function (plaintext) {
-          return decoder.decode(plaintext);
+          return decodeText(plaintext);
         }).catch(function (error) {
           if (error && typeof error.code === 'string') throw error;
           throw __aicsStorageError('credentials_decrypt_failed');
