@@ -547,22 +547,29 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
   console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
 }
 
-console.log('\n--- E) API key settings UI save/status contract ---');
+console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
 {
   const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
-  const setApiKeyStart = shared.indexOf('function setApiKey()');
-  const setApiKeyEnd = shared.indexOf('\nfunction ', setApiKeyStart + 1);
-  const setApiKey = setApiKeyStart >= 0
-    ? shared.slice(setApiKeyStart, setApiKeyEnd >= 0 ? setApiKeyEnd : undefined)
-    : '';
-  check('API key save returns a Promise for async completion',
-    setApiKey.includes('return fetch(') && setApiKey.includes('/api/user/apikey'));
+  const runtime = readFileSync(new URL('../worker/src/frontend/storage/byok-runtime.js', import.meta.url), 'utf8');
+  check('API key save delegates to encrypted IndexedDB repository',
+    shared.includes('AICS_BYOK.saveGemini(key)') &&
+    runtime.includes('window.AICS_API_KEYS.save(accountId, \\'gemini\\', key, first)'));
   check('API key save reports cancellation/failure as false',
-    setApiKey.includes('if (!key) return Promise.resolve(false)') &&
-    setApiKey.includes('return false;'));
-  check('API key save treats non-2xx HTTP responses as failures',
-    setApiKey.includes('ok: r.ok') && setApiKey.includes('!result.ok || d.error'));
+    shared.includes('if (!key) return Promise.resolve(false)') &&
+    shared.includes('return false;'));
+  check('API key passphrase is held in memory only',
+    runtime.includes('var passphrase = \\'\\'') &&
+    !/localStorage\\.setItem|sessionStorage|document\\.cookie/.test(runtime));
+  check('settings status is read from browser-local IndexedDB',
+    settings.includes('AICS_BYOK.hasGemini()') &&
+    !settings.includes('/api/user/apikey/status'));
+  check('connection test decrypts key locally before transient request',
+    settings.includes('AICS_BYOK.withGeminiKey(') &&
+    settings.includes(\"api('/api/ai/test'\"));
+  check('frontend no longer calls D1-backed API key save/status/delete routes',
+    !shared.includes('/api/user/apikey') &&
+    !settings.includes('/api/user/apikey'));
   check('settings refreshes status only after save resolves successfully',
     settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
     settings.includes('if(saved) loadKeyStatus();'));
@@ -574,8 +581,8 @@ console.log('\n--- E) API key settings UI save/status contract ---');
   const removeApiKey = removeStart >= 0
     ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined)
     : '';
-  check('API key deletion refreshes status after successful response',
-    removeApiKey.includes("showToast('API Key ဖျက်ပြီးပါပြီ','success');") &&
+  check('API key deletion refreshes browser-local status after success',
+    removeApiKey.includes('AICS_BYOK.removeGemini()') &&
     removeApiKey.includes('loadKeyStatus();'));
 }
 
