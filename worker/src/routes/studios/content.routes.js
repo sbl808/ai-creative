@@ -3,7 +3,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
 
       // ===== Content Studio — Tab 1: Generate =====
       if (path === '/api/studio/content/generate' && request.method === 'POST') {
@@ -19,8 +19,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await generateContent(env, {
               model: body.model,
               idea: body.idea,
@@ -38,8 +37,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateContent(env, {
             model: body.model,
             idea: body.idea,
@@ -72,8 +70,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await reviseContent(env, {
               model: body.model,
               originalContent: body.originalContent || '',
@@ -89,8 +86,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await reviseContent(env, { model: body.model, 
             originalContent: body.originalContent || '',
             originalSpeaking: body.originalSpeaking || '',
@@ -118,8 +114,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         const genLevel = String(body.generationLevel || body.type || '1');
         { const denied = await requireFeature(env, 'content.tts', plan, genLevel, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateContentVoice(env, { model: body.model,
             text: body.text,
             voiceName: body.voiceName || 'Kore',
@@ -144,8 +139,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         const genLevel = String(body.generationLevel || body.type || '1');
         { const denied = await requireFeature(env, 'content.video', plan, genLevel, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateVideoPlan({
             studioId: 'content',
             generate: () => generateContentVideo(env, {
@@ -175,8 +169,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'content.video_image', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateContentVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
@@ -195,8 +188,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'content.srt', plan, '1', cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateContentSrt(env, { model: body.model, 
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
@@ -219,8 +211,7 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'content.translate_srt', plan, '1', cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await translateContentSrt(env, { model: body.model, 
             srtText: body.srtText,
             direction: body.direction || 'my-to-cn',
