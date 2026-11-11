@@ -38,7 +38,6 @@ import { trackUsage } from './core/usage.js';
 import { isStudioEnabled } from './configuration/studio-config/index.js';
 import { checkFeature } from './configuration/feature-config/index.js';
 import { getStudio } from './catalog/studios/index.js';
-import { getUserApiKey } from './core/utilities.js';
 import { APP_HTML } from './frontend/index.js';
 // V2 — Lazy Loading (rule 10): Studio page code ကို ထို Studio ဖွင့်မှသာ Load လုပ်သည်
 // (v1 က Studio 6 ခုလုံး၏ HTML ကို Worker boot တွင် အကုန် အဆင်သင့် လုပ်ထားသည်)
@@ -435,16 +434,16 @@ export default {
       const byokResponse = await handleByokRoutes(request, env, cors, { bearer, verifyTokenSafe, json, friendlyError });
       if (byokResponse) return byokResponse;
 
-      const aiResponse = await handleAiRoutes(request, env, cors, { bearer, verifyTokenSafe, json, friendlyError, getUserApiKey });
+      const aiResponse = await handleAiRoutes(request, env, cors, { bearer, verifyTokenSafe, json, friendlyError });
       if (aiResponse) return aiResponse;
 
       const cmsResponse = await handleCmsRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan });
       if (cmsResponse) return cmsResponse;
 
-      const ideasResponse = await handleIdeasRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe, friendlyError });
+      const ideasResponse = await handleIdeasRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError });
       if (ideasResponse) return ideasResponse;
 
-      const genericStudioResponse = await handleGenericStudioRoute(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe, friendlyError, getStudio, isStudioEnabled });
+      const genericStudioResponse = await handleGenericStudioRoute(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, getStudio, isStudioEnabled });
       if (genericStudioResponse) return genericStudioResponse;
 
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
@@ -457,25 +456,25 @@ export default {
         }
       }
 
-      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (contentStudioResponse) return contentStudioResponse;
 
-      const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (storyStudioResponse) return storyStudioResponse;
 
-      const storyVideoPlanResponse = await handleStoryVideoPlanRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError });
+      const storyVideoPlanResponse = await handleStoryVideoPlanRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError });
       if (storyVideoPlanResponse) return storyVideoPlanResponse;
 
-      const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (shortStudioResponse) return shortStudioResponse;
 
-      const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (imageStudioResponse) return imageStudioResponse;
 
-      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (voiceStudioResponse) return voiceStudioResponse;
 
-      const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse });
+      const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (shopStudioResponse) return shopStudioResponse;
 
       // ===== Creations (Phase 13 — Option 2) =====

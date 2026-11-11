@@ -2,7 +2,7 @@ import { generateStory, reviseStory } from '../../studios/story/index.js';
 
 export async function handleStoryStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
 
       // ===== Story Studio — Tab 1: Generate =====
       if (path === '/api/studio/story/generate' && request.method === 'POST') {
@@ -18,8 +18,7 @@ export async function handleStoryStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await generateStory(env, {
               model: body.model, idea: body.idea, type: reqType, plan, apiKey,
               onChunk: (t) => send({ type: 'chunk', text: t }),
@@ -29,8 +28,7 @@ export async function handleStoryStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateStory(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
           await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
@@ -54,8 +52,7 @@ export async function handleStoryStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await reviseStory(env, {
               model: body.model,
               idea: body.idea || '',
@@ -69,8 +66,7 @@ export async function handleStoryStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await reviseStory(env, { model: body.model, 
             idea: body.idea || '',
             type: reqType,

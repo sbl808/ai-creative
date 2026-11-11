@@ -26,10 +26,9 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     var token=localStorage.getItem('aics_token')||'';
     var model=byId('aiModelSel');
     if(model&&model.value)body.model=model.value;
-    return fetch(url,{
+    return window.aicsApiFetch(url,body,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify(body)
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}
     }).then(function(response){
       return response.json().then(function(data){
         if(!response.ok)throw new Error(data.detail||data.error||'request_failed');

@@ -2,7 +2,7 @@ import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } f
 
 export async function handleImageStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
 
       // ===== Image Studio — Tab 1: Image Prompt Generate =====
       if (path === '/api/studio/image/prompt' && request.method === 'POST') {
@@ -18,8 +18,7 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream (Accept: application/x-ndjson) =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await generateImagePrompt(env, {
               model: body.model,
               idea: body.idea, type: reqType, plan, apiKey,
@@ -30,8 +29,7 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateImagePrompt(env, { model: body.model, 
             idea: body.idea, type: reqType, plan, apiKey,
             images: body.images,
@@ -56,8 +54,7 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
         // ===== GLOBAL RESULT STREAMING — real-time NDJSON stream =====
         if (String(request.headers.get('Accept') || '').indexOf('application/x-ndjson') !== -1) {
           return ndjsonResponse(async (send) => {
-            let apiKey = body.apiKey;
-            if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+            const apiKey = body.apiKey;
             const out = await generateAdImagePrompt(env, {
               model: body.model,
               idea: body.idea, type: reqType, plan, apiKey,
@@ -68,8 +65,7 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
           }, cors);
         }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateAdImagePrompt(env, { model: body.model, 
             idea: body.idea, type: reqType, plan, apiKey,
             images: body.images,
@@ -92,8 +88,7 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
         const reqType = String(body.type || '1');
         { const denied = await requireFeature(env, 'image.generate', plan, reqType, cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateImageFromPrompt(env, { model: body.model, prompt: body.prompt, plan, apiKey });
           await trackUsageSafe(env, payload.sub, 'image');
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);

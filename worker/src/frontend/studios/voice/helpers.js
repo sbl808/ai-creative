@@ -33,7 +33,7 @@ function api(path,body){
   var selId=(path.indexOf('/tts')>-1)?'aiModelSel':'aiModelSel2';
   var sel=document.getElementById(selId);if(sel&&sel.value)body.model=sel.value;
   var h={'Content-Type':'application/json'};if(TOKEN)h.Authorization='Bearer '+TOKEN;
-  return fetch(path,{method:'POST',headers:h,body:JSON.stringify(body)}).then(function(r){
+  return window.aicsApiFetch(path,body,{method:'POST',headers:h}).then(function(r){
     return r.json().catch(function(){return {error:'request_error'};}).then(function(d){if(!r.ok&&!d.error)d.error='request_error';return d;});
   });
 }

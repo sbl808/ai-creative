@@ -4,7 +4,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 // Story Video Plan API routes are isolated from Story Studio routes.
 export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, getUserApiKey, friendlyError } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError } = deps;
 
       // ===== Story Studio — Tab 2: Video Plan (04 Form → 05/06) =====
       // Backward Compat: ယခင် body.idea ကိုလည်း ဆက်လက်လက်ခံသည်။
@@ -20,8 +20,7 @@ export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'story.video', plan, '1', cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateVideoPlan({
             studioId: 'story',
             generate: () => generateStoryVideoPlan(env, {
@@ -72,8 +71,7 @@ export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
         const plan = await resolvePlan(env, payload);
         { const denied = await requireFeature(env, 'story.video_image', plan, '1', cors); if (denied) return denied; }
         try {
-          let apiKey = body.apiKey;
-          if (!apiKey) apiKey = await getUserApiKey(env, payload.sub);
+          const apiKey = body.apiKey;
           const out = await generateStoryVideoImage(env, { model: body.model, prompt: body.prompt, plan, apiKey });
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {

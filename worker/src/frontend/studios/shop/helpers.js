@@ -9,7 +9,11 @@ function api(path,opts){
   var headers=opts.headers||{};
   headers['Content-Type']='application/json';
   if(TOKEN)headers['Authorization']='Bearer '+TOKEN;
-  return fetch(path,{method:opts.method||'GET',headers:headers,body:opts.body?JSON.stringify(opts.body):undefined})
+  var method=opts.method||'GET';
+  var request=(method==='POST'&&opts.body&&path.indexOf('/api/studio/')===0)
+    ?window.aicsApiFetch(path,opts.body,{method:method,headers:headers})
+    :fetch(path,{method:method,headers:headers,body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'});
+  return request
     .then(function(r){return r.json().catch(function(){return {error:'bad_response',detail:'Server မှ တုံ့ပြန်မှု မရရှိပါ'};});});
 }
 function showToast(msg,type){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}

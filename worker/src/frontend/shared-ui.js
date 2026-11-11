@@ -504,6 +504,29 @@ export const AICS_RESULT_BOX_SCRIPT = `
 // aborts the previous active one (no stuck GENERATING states).
 // ============================================================
 export const AICS_STREAM_SCRIPT = `
+// Non-streaming AI requests use the same encrypted IndexedDB credential source.
+// Only authenticated AI-generation POST routes receive the transient plaintext key.
+function aicsApiFetch(url, body, init) {
+  init = init || {};
+  var method = String(init.method || (body === undefined ? 'GET' : 'POST')).toUpperCase();
+  var path = String(url || '');
+  var isAiRequest = method === 'POST' &&
+    (path.indexOf('/api/studio/') === 0 || path.indexOf('/api/ideas/') === 0);
+  var requestBody = Promise.resolve(body);
+  if (isAiRequest) {
+    if (!window.AICS_BYOK || typeof window.AICS_BYOK.withGeminiKey !== 'function') {
+      return Promise.reject(new Error('credentials_unavailable'));
+    }
+    requestBody = window.AICS_BYOK.withGeminiKey(body || {});
+  }
+  return requestBody.then(function (resolvedBody) {
+    var requestInit = Object.assign({}, init, { cache: 'no-store' });
+    if (body !== undefined) requestInit.body = JSON.stringify(isAiRequest ? resolvedBody : body);
+    return fetch(url, requestInit);
+  });
+}
+window.aicsApiFetch = aicsApiFetch;
+
 function aicsStreamCall(url, body, opts) {
   opts = opts || {};
   var tk = (typeof token !== 'undefined' && token) || (typeof TOKEN !== 'undefined' && TOKEN) || '';
@@ -528,11 +551,21 @@ function aicsStreamCall(url, body, opts) {
       if (opts.onError) opts.onError(err);
     }
   }
-  var p = fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk, 'Accept': 'application/x-ndjson' },
-    body: JSON.stringify(body || {}),
-    signal: ctrl.signal
+  // Every AI streaming request obtains its key from encrypted browser storage.
+  // Caller-supplied plaintext keys are overwritten by the IndexedDB value.
+  var p = Promise.resolve().then(function () {
+    if (!window.AICS_BYOK || typeof window.AICS_BYOK.withGeminiKey !== 'function') {
+      throw new Error('credentials_unavailable');
+    }
+    return window.AICS_BYOK.withGeminiKey(body || {});
+  }).then(function (requestBody) {
+    return fetch(url, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk, 'Accept': 'application/x-ndjson' },
+      body: JSON.stringify(requestBody || {}),
+      signal: ctrl.signal
+    });
   }).then(function (res) {
     if (!res.ok) {
       return res.json().catch(function () { return {}; }).then(function (d) {

@@ -13,7 +13,7 @@ function noStore(response) {
 
 export async function handleIdeasRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, getUserApiKey, trackUsageSafe } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe } = deps;
 
   if (path === '/api/ideas/generate' && request.method === 'POST') {
     const token = bearer(request);
@@ -32,7 +32,7 @@ export async function handleIdeasRoutes(request, env, cors, deps) {
     if (denied) return noStore(denied);
 
     try {
-      const apiKey = body.apiKey || await getUserApiKey(env, payload.sub);
+      const apiKey = body.apiKey;
       const ideas = await generateIdeas(env, { brief: { ...body, category: validation.category }, plan, apiKey });
       if (!Array.isArray(ideas) || ideas.length !== 3) {
         return noStore(json({ error: 'invalid_ai_output' }, 502, cors));
@@ -72,7 +72,7 @@ export async function handleIdeasRoutes(request, env, cors, deps) {
     if (denied) return noStore(denied);
 
     try {
-      const apiKey = body.apiKey || await getUserApiKey(env, payload.sub);
+      const apiKey = body.apiKey;
       const idea = await reviseIdea(env, {
         category: validation.category,
         idea: body.idea,

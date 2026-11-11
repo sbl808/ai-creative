@@ -418,55 +418,17 @@ console.log('\n--- C) Deployment config validation ---');
 }
 
 
-console.log('\n--- D) BYOK encrypted storage lifecycle ---');
-{
-  const { getUserApiKey, saveUserApiKey, deleteUserApiKey } =
-    await import('../worker/src/core/utilities.js?byok=' + Date.now());
-  const rows = new Map();
-  const db = {
-    prepare(sql) {
-      let values = [];
-      return {
-        bind(...args) { values = args; return this; },
-        async first() {
-          if (sql.includes('SELECT gemini_key FROM user_keys')) {
-            const row = rows.get(values[0]);
-            return row ? { gemini_key: row.gemini_key } : null;
-          }
-          return null;
-        },
-        async run() {
-          if (sql.includes('INSERT INTO user_keys')) {
-            rows.set(values[0], { gemini_key: values[1] });
-          } else if (sql.includes('DELETE FROM user_keys')) {
-            rows.delete(values[0]);
-          } else if (sql.includes('UPDATE user_keys')) {
-            const row = rows.get(values[1]);
-            if (row && row.gemini_key === values[2]) rows.set(values[1], { gemini_key: values[0] });
-          }
-          return { success: true };
-        },
-      };
-    },
-  };
-  const byokEnv = { DB: db, KEY_ENCRYPTION_SECRET: 'unit-test-encryption-secret' };
-  const testKey = 'AIza-test-key-not-plaintext';
-  await saveUserApiKey(byokEnv, 'user-1', testKey);
-  const stored = rows.get('user-1')?.gemini_key || '';
-  check('saved API key is encrypted at rest (not plaintext)', !!stored && stored !== testKey && !stored.includes(testKey));
-  check('saved API key decrypts for its owner', await getUserApiKey(byokEnv, 'user-1') === testKey);
-  check('API key is isolated by user id', await getUserApiKey(byokEnv, 'user-2') === null);
-  await deleteUserApiKey(byokEnv, 'user-1');
-  check('delete removes only the selected user key', !rows.has('user-1') && await getUserApiKey(byokEnv, 'user-2') === null);
 
-  let missingSecretErr = null;
-  const writesBefore = rows.size;
-  try {
-    await saveUserApiKey({ DB: db, KEY_ENCRYPTION_SECRET: '' }, 'user-3', 'another-test-key');
-  } catch (e) { missingSecretErr = e; }
-  check('missing encryption secret fails closed before DB write',
-    !!missingSecretErr && /missing_key_encryption_secret/.test(missingSecretErr.message) && rows.size === writesBefore,
-    missingSecretErr && missingSecretErr.message);
+console.log('\n--- D) Retired D1 BYOK helper contract ---');
+{
+  const utilities = await import('../worker/src/core/utilities.js?legacy-byok-retired=' + Date.now());
+  const legacyExports = ['getUserApiKey', 'saveUserApiKey', 'deleteUserApiKey'];
+  check('legacy D1 BYOK helpers are no longer exported',
+    legacyExports.every((name) => !(name in utilities)));
+
+  const utilitiesSource = readFileSync(new URL('../worker/src/core/utilities.js', import.meta.url), 'utf8');
+  check('shared utilities contain no legacy D1 BYOK storage or encryption code',
+    !/user_keys|KEY_ENCRYPTION_SECRET|encryptSecret|decryptSecret/.test(utilitiesSource));
 }
 
 console.log('\n--- D) API test rate-limit migration contract ---');
@@ -547,38 +509,35 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
   console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
 }
 
-console.log('\n--- E) API key settings UI save/status contract ---');
+console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
 {
   const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
-  const setApiKeyStart = shared.indexOf('function setApiKey()');
-  const setApiKeyEnd = shared.indexOf('\nfunction ', setApiKeyStart + 1);
-  const setApiKey = setApiKeyStart >= 0
-    ? shared.slice(setApiKeyStart, setApiKeyEnd >= 0 ? setApiKeyEnd : undefined)
-    : '';
-  check('API key save returns a Promise for async completion',
-    setApiKey.includes('return fetch(') && setApiKey.includes('/api/user/apikey'));
+  const runtime = readFileSync(new URL('../worker/src/frontend/storage/byok-runtime.js', import.meta.url), 'utf8');
+  check('API key save delegates to encrypted IndexedDB repository',
+    shared.includes('AICS_BYOK.saveGemini(key)') &&
+    runtime.includes("window.AICS_API_KEYS.save(accountId, 'gemini', key, first)"));
   check('API key save reports cancellation/failure as false',
-    setApiKey.includes('if (!key) return Promise.resolve(false)') &&
-    setApiKey.includes('return false;'));
-  check('API key save treats non-2xx HTTP responses as failures',
-    setApiKey.includes('ok: r.ok') && setApiKey.includes('!result.ok || d.error'));
+    shared.includes('if (!key) return Promise.resolve(false)') && shared.includes('return false;'));
+  check('API key passphrase is held in memory only',
+    runtime.includes("var passphrase = ''") &&
+    !runtime.includes('localStorage.setItem') && !runtime.includes('sessionStorage') && !runtime.includes('document.cookie'));
+  check('settings status is read from browser-local IndexedDB',
+    settings.includes('AICS_BYOK.hasGemini()') && !settings.includes('/api/user/apikey/status'));
+  check('connection test decrypts key locally before transient request',
+    settings.includes('AICS_BYOK.withGeminiKey(') && settings.includes("api('/api/ai/test'"));
+  check('frontend no longer calls D1-backed API key save/status/delete routes',
+    !shared.includes('/api/user/apikey') && !settings.includes('/api/user/apikey'));
   check('settings refreshes status only after save resolves successfully',
-    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') &&
-    settings.includes('if(saved) loadKeyStatus();'));
+    settings.includes('Promise.resolve(window.setApiKey()).then(function(saved){') && settings.includes('if(saved) loadKeyStatus();'));
   check('API key status refresh does not depend on fixed two-second timer',
-    !settings.includes('setTimeout(loadKeyStatus,2000)') &&
-    !settings.includes('setTimeout(loadKeyStatus, 2000)'));
+    !settings.includes('setTimeout(loadKeyStatus,2000)') && !settings.includes('setTimeout(loadKeyStatus, 2000)'));
   const removeStart = settings.indexOf('function removeApiKey()');
   const removeEnd = settings.indexOf('\n}', removeStart);
-  const removeApiKey = removeStart >= 0
-    ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined)
-    : '';
-  check('API key deletion refreshes status after successful response',
-    removeApiKey.includes("showToast('API Key ဖျက်ပြီးပါပြီ','success');") &&
-    removeApiKey.includes('loadKeyStatus();'));
+  const removeApiKey = removeStart >= 0 ? settings.slice(removeStart, removeEnd >= 0 ? removeEnd : undefined) : '';
+  check('API key deletion refreshes browser-local status after success',
+    removeApiKey.includes('AICS_BYOK.removeGemini()') && removeApiKey.includes('loadKeyStatus();'));
 }
-
 console.log('\n--- F) API request body size protection ---');
 {
   const limit = 32 * 1024 * 1024;
