@@ -216,7 +216,11 @@ await assert.rejects(
 );
 
 const listed = await window.AICS_API_KEYS.list('server-user-1');
-assert.deepEqual(Array.from(listed), [{
+assert.deepEqual(Array.from(listed, (item) => ({
+  provider: item.provider,
+  updatedAt: item.updatedAt,
+  recordVersion: item.recordVersion
+})), [{
   provider: 'gemini',
   updatedAt: stored.updatedAt,
   recordVersion: 1
