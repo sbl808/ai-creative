@@ -4,7 +4,7 @@ import { getAIErrorHttpStatus } from '../ai/errors/index.js';
 export async function handleAiRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const url = new URL(request.url);
-  const { bearer, verifyTokenSafe, json, friendlyError, getUserApiKey } = deps;
+  const { bearer, verifyTokenSafe, json, friendlyError } = deps;
 
       // D1-backed fixed-window limit: five connection tests per user per ten minutes.
       // A shared database provides consistent limits across Worker isolates.
@@ -26,7 +26,7 @@ export async function handleAiRoutes(request, env, cors, deps) {
         const prompt = String(body.prompt || 'Reply with OK').slice(0, 500);
         const model = String(body.model || 'gemini-3.5-flash-lite').slice(0, 120);
         try {
-          const apiKey = String(body.apiKey || '').trim() || await getUserApiKey(env, payload.sub);
+          const apiKey = String(body.apiKey || '').trim();
           const out = await generateText(env, { model, prompt, apiKey, validationMode: 'connection_test' });
           return json({ ok: true, output: out }, 200, cors);
         } catch (e) {
