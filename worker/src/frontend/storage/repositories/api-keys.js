@@ -175,7 +175,7 @@ const SCRIPT = String.raw`(function () {
           };
         });
       }).catch(function (error) {
-        if (error && error.code) throw error;
+        if (error && typeof error.code === 'string') throw error;
         throw __aicsStorageError('credentials_encrypt_failed');
       });
     },
@@ -195,23 +195,23 @@ const SCRIPT = String.raw`(function () {
         try { request = store.get([id.accountId, id.provider]); }
         catch (error) { fail('credentials_read_failed', error); return; }
         request.onerror = function () { fail('credentials_read_failed', request.error); };
-        request.onsuccess = function () {
-          var record = request.result;
-          try { validateRecord(record, id); }
-          catch (error) { fail(error.code || 'credentials_record_invalid', error); return; }
-          deriveAesKey(passphrase, record.salt, 'decrypt').then(function (key) {
-            return crypto.subtle.decrypt({
-              name: CIPHER_NAME,
-              iv: record.iv,
-              additionalData: associatedData(record),
-              tagLength: 128
-            }, key, record.ciphertext);
-          }).then(function (plaintext) {
-            setOutput(decoder.decode(plaintext));
-          }).catch(function () {
-            fail('credentials_decrypt_failed');
-          });
-        };
+        request.onsuccess = function () { setOutput(request.result || null); };
+      }).then(function (record) {
+        try { validateRecord(record, id); }
+        catch (error) { throw __aicsStorageError(error.code || 'credentials_record_invalid'); }
+        return deriveAesKey(passphrase, record.salt, 'decrypt').then(function (key) {
+          return crypto.subtle.decrypt({
+            name: CIPHER_NAME,
+            iv: record.iv,
+            additionalData: associatedData(record),
+            tagLength: 128
+          }, key, record.ciphertext);
+        }).then(function (plaintext) {
+          return decoder.decode(plaintext);
+        }).catch(function (error) {
+          if (error && typeof error.code === 'string') throw error;
+          throw __aicsStorageError('credentials_decrypt_failed');
+        });
       });
     },
 
