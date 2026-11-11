@@ -528,11 +528,21 @@ function aicsStreamCall(url, body, opts) {
       if (opts.onError) opts.onError(err);
     }
   }
-  var p = fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk, 'Accept': 'application/x-ndjson' },
-    body: JSON.stringify(body || {}),
-    signal: ctrl.signal
+  // Every AI streaming request obtains its key from encrypted browser storage.
+  // Caller-supplied plaintext keys are overwritten by the IndexedDB value.
+  var p = Promise.resolve().then(function () {
+    if (!window.AICS_BYOK || typeof window.AICS_BYOK.withGeminiKey !== 'function') {
+      throw new Error('credentials_unavailable');
+    }
+    return window.AICS_BYOK.withGeminiKey(body || {});
+  }).then(function (requestBody) {
+    return fetch(url, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk, 'Accept': 'application/x-ndjson' },
+      body: JSON.stringify(requestBody || {}),
+      signal: ctrl.signal
+    });
   }).then(function (res) {
     if (!res.ok) {
       return res.json().catch(function () { return {}; }).then(function (d) {
