@@ -280,6 +280,11 @@ try {
     });
     await page.evaluate(() => localStorage.removeItem('aics_token'));
     await page.locator('#subtitleGenerateBtn').click();
+    await page.waitForFunction(() => {
+      const status = document.getElementById('subtitleStatus');
+      return status?.getAttribute('data-state') === 'error' &&
+        status.textContent.includes('Login ဝင်ထားခြင်း မရှိပါ');
+    });
     check(viewport.name + ': Generate SRT without a token is rejected before API request',
       generationRequests.length === 0 &&
       await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
@@ -289,6 +294,11 @@ try {
     await translationInput.fill(sampleSrt);
     await page.evaluate(() => localStorage.removeItem('aics_token'));
     await page.locator('#subtitleTranslateBtn').click();
+    await page.waitForFunction(() => {
+      const status = document.getElementById('subtitleStatus');
+      return status?.getAttribute('data-state') === 'error' &&
+        status.textContent.includes('Login ဝင်ထားခြင်း မရှိပါ');
+    });
     check(viewport.name + ': Translate SRT without a token is rejected before API request',
       translationRequests.length === 0 &&
       await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
