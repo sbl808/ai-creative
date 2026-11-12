@@ -22,6 +22,7 @@ const cases = [
   ['content', createContentImageAdapter],
   ['short', createShortImageAdapter],
   ['shop', createShopImageAdapter],
+  ['story', (engine) => createImageStudioAdapter('story', engine)],
 ];
 
 for (const [studioId, createAdapter] of cases) {
@@ -67,9 +68,5 @@ await createContentImageAdapter(fakeEngine)({}, {
 });
 assert.deepEqual(captured[0].request.input, { prompt: 'Content scene' });
 
-assert.throws(
-  () => createImageStudioAdapter('story', fakeEngine),
-  (error) => error.message === 'unsupported_image_adapter_studio',
-);
 
 console.log('Shared Image Studio Adapters: PASS');
