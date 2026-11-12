@@ -5,31 +5,10 @@
  * browser. No media is uploaded and no AI processing/API action is invoked.
  */
 import assert from 'node:assert/strict';
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
 
 const url = process.env.AICS_BASE_URL || 'http://127.0.0.1:8787';
-const signingKey = String(process.env.AICS_TEST_SESSION_SIGNING_KEY || '').trim();
-assert.ok(signingKey.length >= 32, 'A local-only test signing key is required');
-
-function base64url(value) {
-  return Buffer.from(value).toString('base64url');
-}
-
-function createProTestToken(userId, email) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64url(JSON.stringify({
-    sub: String(userId),
-    email,
-    plan: 'PRO',
-    iat: now,
-    exp: now + 3600,
-  }));
-  const unsigned = header + '.' + payload;
-  const signature = createHmac('sha256', signingKey).update(unsigned).digest('base64url');
-  return unsigned + '.' + payload + '.' + signature;
-}
 let browser;
 const checks = [];
 function check(name, condition, detail = '') {
@@ -49,14 +28,15 @@ try {
   assert.equal(signup.status(), 201, 'Local Subtitle E2E account should be created');
   const account = await signup.json();
   assert.ok(account.user_id, 'Signup should return a local test user ID');
-  const token = createProTestToken(account.user_id, email);
+  const token = String(account.token || '');
+  assert.ok(token, 'Local signup should return a signed session token');
   await homeContext.addCookies([{
     name: 'aics_token', value: token, url,
     httpOnly: true, secure: new URL(url).protocol === 'https:', sameSite: 'Lax',
   }]);
   await homePage.addInitScript((value) => {
     localStorage.setItem('aics_token', value);
-    localStorage.setItem('aics_plan', 'PRO');
+    localStorage.setItem('aics_plan', 'FREE');
   }, token);
   const homeResponse = await homePage.goto(url + '/app', { waitUntil: 'domcontentloaded' });
   check(
