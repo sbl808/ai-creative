@@ -5,6 +5,7 @@ import { createImageStudioImageAdapter } from '../worker/src/media-adapters/imag
 import { createContentImageAdapter } from '../worker/src/media-adapters/content/image.adapter.js';
 import { createShortImageAdapter } from '../worker/src/media-adapters/short/image.adapter.js';
 import { createShopImageAdapter } from '../worker/src/media-adapters/shop/image.adapter.js';
+import { createStoryImageAdapter } from '../worker/src/media-adapters/story/image.adapter.js';
 
 const captured = [];
 const fakeEngine = async (env, request, executionContext) => {
@@ -22,7 +23,7 @@ const cases = [
   ['content', createContentImageAdapter],
   ['short', createShortImageAdapter],
   ['shop', createShopImageAdapter],
-  ['story', (engine) => createImageStudioAdapter('story', engine)],
+  ['story', createStoryImageAdapter],
 ];
 
 for (const [studioId, createAdapter] of cases) {
