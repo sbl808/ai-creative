@@ -963,8 +963,11 @@ await check('Voice Studio routes Audio → SRT through the shared Voice SRT adap
   const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
   return {
     ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+      source.includes('export async function buildVoiceSrtPrompt(env, knownText)') &&
+      source.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')") &&
+      source.includes('return buildVoiceSrtInstruction(lineRule, knownText);') &&
+      source.includes('const instruction = await buildVoiceSrtPrompt(env, knownText);') &&
       source.includes('return generateVoiceSrtShared(env, {') &&
-      source.includes('const instruction = buildVoiceSrtInstruction(lineRule, knownText);') &&
       source.includes('prompt: instruction,') &&
       !source.includes('generateMultimodal'),
     msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',
