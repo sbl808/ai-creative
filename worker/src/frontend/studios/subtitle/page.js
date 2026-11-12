@@ -5,6 +5,7 @@ import { SUBTITLE_HOME_HTML } from './ui.js';
 import { CONSTANTS_SCRIPT } from './constants.js';
 import { STATE_SCRIPT } from './state.js';
 import { HELPERS_SCRIPT } from './helpers.js';
+import { ACTIONS_SCRIPT } from './actions.js';
 
 export const SUBTITLE_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -61,6 +62,10 @@ body{
   outline:2px solid var(--subtitle-primary);outline-offset:2px;
 }
 .subtitle-card .subtitle-note{margin:12px 0 0;font-size:12px}
+.subtitle-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.subtitle-button{min-height:44px;padding:10px 16px;border:1px solid var(--subtitle-primary);border-radius:9px;background:var(--subtitle-primary);color:#101426;font:inherit;font-weight:700;cursor:pointer}
+.subtitle-button.secondary{background:transparent;color:var(--subtitle-text);border-color:var(--subtitle-border-strong)}
+.subtitle-button:disabled{opacity:.55;cursor:wait}
 .subtitle-status{
   margin:16px 0 0;padding:12px 14px;
   border:1px solid var(--subtitle-border);border-radius:9px;
@@ -90,7 +95,7 @@ ${renderStudioShell({
   content:SUBTITLE_HOME_HTML
 })}
 ${sidebarScript()}
-<script>${CONSTANTS_SCRIPT}${STATE_SCRIPT}${HELPERS_SCRIPT}</script>
+<script>${CONSTANTS_SCRIPT}${STATE_SCRIPT}${HELPERS_SCRIPT}${ACTIONS_SCRIPT}</script>
 </body>
 </html>`;
 
