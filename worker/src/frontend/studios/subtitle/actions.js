@@ -118,6 +118,22 @@ function subtitleValidateEditorSrt() {
   status.setAttribute('data-state', 'error');
 }
 
+function subtitleSendEditedSrtToTranslation() {
+  var editor = document.getElementById('subtitleSrtInput');
+  var translationInput = document.getElementById('subtitleTranslationInput');
+  if (!editor || !translationInput) return;
+
+  var editedSrt = editor.value;
+  if (!editedSrt.trim()) {
+    subtitleSetStatus('ဘာသာပြန်ရန် Editor ထဲတွင် SRT စာသား ထည့်ပေးပါ။', true);
+    return;
+  }
+
+  translationInput.value = editedSrt;
+  translationInput.focus();
+  subtitleSetStatus('ပြင်ထားသော SRT ကို ဘာသာပြန်ရန်နေရာသို့ ပို့ပြီးပါပြီ။ ဦးတည်ချက်ကို စစ်ဆေးပြီး ဘာသာပြန်နိုင်ပါသည်။', false);
+}
+
 function subtitleTranslateSrt() {
   if (SUBTITLE_STATE.processingState === 'processing') return;
   var input = document.getElementById('subtitleTranslationInput');
@@ -173,11 +189,13 @@ function subtitleDownloadTranslatedSrt() {
   var translate = document.getElementById('subtitleTranslateBtn');
   var downloadTranslated = document.getElementById('subtitleDownloadTranslatedBtn');
   var validate = document.getElementById('subtitleValidateBtn');
+  var sendToTranslation = document.getElementById('subtitleSendToTranslationBtn');
   if (generate) generate.addEventListener('click', subtitleGenerateSrt);
   if (download) download.addEventListener('click', subtitleDownloadSrt);
   if (editor) editor.addEventListener('input', function () { SUBTITLE_STATE.editedSrt = editor.value; });
   if (translate) translate.addEventListener('click', subtitleTranslateSrt);
   if (downloadTranslated) downloadTranslated.addEventListener('click', subtitleDownloadTranslatedSrt);
   if (validate) validate.addEventListener('click', subtitleValidateEditorSrt);
+  if (sendToTranslation) sendToTranslation.addEventListener('click', subtitleSendEditedSrtToTranslation);
 })();
 `;
