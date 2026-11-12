@@ -6,10 +6,13 @@ import {
 import { resolveModel } from '../../core/aiModels.js';
 import { generateText } from '../../core/ai/aiService.js';
 
+// Subtitle reuses the existing transcribe model task until model-task
+// configuration is migrated independently; no D1 model data is changed.
 const TASK_BY_STUDIO = Object.freeze({
   content: 'content.transcribe',
   voice: 'voice.transcribe',
   shop: 'voice.transcribe',
+  subtitle: 'voice.transcribe',
 });
 
 function safeError(code) {
