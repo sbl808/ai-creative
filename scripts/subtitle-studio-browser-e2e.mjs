@@ -190,6 +190,27 @@ try {
       });
     });
 
+    const mediaInput = page.locator('#subtitleMediaFile');
+
+    // Empty selection and oversized files must be rejected before any API call.
+    await mediaInput.setInputFiles([]);
+    await page.locator('#subtitleGenerateBtn').click();
+    check(viewport.name + ': missing media is rejected before API request',
+      generationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('ဖိုင် ရွေးပေးပါ'));
+
+    await mediaInput.setInputFiles({
+      name: 'subtitle-too-large.wav',
+      mimeType: 'audio/wav',
+      buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+    });
+    await page.locator('#subtitleGenerateBtn').click();
+    check(viewport.name + ': media larger than 5MB is rejected before API request',
+      generationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('5MB'));
+
     await page.locator('#subtitleKnownText').fill(knownText);
     await page.locator('#subtitleMediaFile').setInputFiles({
       name: 'subtitle-fixture.wav',
@@ -209,6 +230,20 @@ try {
       generationRequest.body.type === '2');
     check(viewport.name + ': Generate SRT response populates editor',
       await editor.inputValue() === generatedSrt);
+
+    // The exact 5MB boundary is permitted by the client-side size guard.
+    const exactLimitResponse = page.waitForResponse(response =>
+      response.url().includes('/api/studio/subtitle/srt') && response.request().method() === 'POST');
+    await mediaInput.setInputFiles({
+      name: 'subtitle-exact-limit.wav',
+      mimeType: 'audio/wav',
+      buffer: Buffer.alloc(5 * 1024 * 1024),
+    });
+    await page.locator('#subtitleGenerateBtn').click();
+    await exactLimitResponse;
+    check(viewport.name + ': exactly 5MB media reaches the mocked API',
+      generationRequests.length === 2 &&
+      generationRequests[1].body.audioBase64.length === Math.ceil((5 * 1024 * 1024) / 3) * 4);
 
     await translationInput.fill(sampleSrt);
     await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
