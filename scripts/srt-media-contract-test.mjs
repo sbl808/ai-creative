@@ -25,6 +25,15 @@ assert.deepEqual(validateSrtRequestV1({
   input: { audioBase64: 'YXVkaW8=', mimeType: 'audio/webm;codecs=opus' },
 }), { ok: true, errors: [] });
 
+for (const studioId of ['story', 'short', 'shop']) {
+  const unsupportedStudioRequest = validateSrtRequestV1({
+    ...validRequest,
+    studioId,
+  });
+  assert.equal(unsupportedStudioRequest.ok, false);
+  assert.ok(unsupportedStudioRequest.errors.includes('invalid_studio_id'));
+}
+
 const privacySentinels = {
   audio: 'PRIVATE_SRT_AUDIO_SENTINEL_82af',
   text: 'PRIVATE_SRT_TEXT_SENTINEL_31bd',
