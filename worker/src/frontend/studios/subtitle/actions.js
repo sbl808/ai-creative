@@ -82,14 +82,12 @@ function subtitleGenerateSrt() {
   reader.readAsDataURL(file);
 }
 
-function subtitleDownloadSrt() {
-  var editor = document.getElementById('subtitleSrtInput');
-  var text = editor ? editor.value : '';
-  if (!text.trim()) { subtitleSetStatus('သိမ်းရန် SRT စာသား မရှိပါ။', true); return; }
+function subtitleDownloadText(text, filename, emptyMessage) {
+  if (!String(text || '').trim()) { subtitleSetStatus(emptyMessage, true); return; }
   var url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
   var anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = 'subtitle.srt';
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -97,12 +95,69 @@ function subtitleDownloadSrt() {
   subtitleSetStatus('SRT ဖိုင်ကို Browser မှာ သိမ်းဆည်းရန် ပြင်ဆင်ပြီးပါပြီ။', false);
 }
 
+function subtitleDownloadSrt() {
+  var editor = document.getElementById('subtitleSrtInput');
+  subtitleDownloadText(editor ? editor.value : '', 'subtitle.srt', 'သိမ်းရန် SRT စာသား မရှိပါ။');
+}
+
+function subtitleTranslateSrt() {
+  if (SUBTITLE_STATE.processingState === 'processing') return;
+  var input = document.getElementById('subtitleTranslationInput');
+  var directionInput = document.getElementById('subtitleTranslationDirection');
+  var button = document.getElementById('subtitleTranslateBtn');
+  var srtText = input ? input.value : '';
+  var direction = directionInput ? directionInput.value : 'MY_TO_CN';
+  if (!srtText.trim()) { subtitleSetStatus('ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ။', true); return; }
+  if (direction !== 'MY_TO_CN' && direction !== 'CN_TO_MY') {
+    subtitleSetStatus('ဘာသာပြန်ဦးတည်ချက် မမှန်ကန်ပါ။', true);
+    return;
+  }
+
+  SUBTITLE_STATE.processingState = 'processing';
+  SUBTITLE_STATE.errorState = null;
+  SUBTITLE_STATE.translationDirection = direction;
+  if (button) button.disabled = true;
+  subtitleSetStatus('SRT ကို ဘာသာပြန်နေပါသည်…', false);
+
+  subtitleApiPost('/api/studio/subtitle/translate-srt', {
+    srtText: srtText,
+    direction: direction,
+    type: '2'
+  }).then(function (result) {
+    var translated = String(result.srt || '');
+    if (!translated.trim()) throw new Error('empty_result');
+    SUBTITLE_STATE.translatedSrt = translated;
+    var output = document.getElementById('subtitleTranslatedOutput');
+    if (output) output.value = translated;
+    SUBTITLE_STATE.processingState = 'done';
+    subtitleSetStatus('SRT ဘာသာပြန်ပြီးပါပြီ။ ရလဒ်ကို စစ်ဆေးပြီး .srt ဖိုင်အဖြစ် သိမ်းနိုင်ပါသည်။', false);
+  }).catch(function (error) {
+    SUBTITLE_STATE.processingState = 'error';
+    SUBTITLE_STATE.errorState = String(error && error.message || 'translate_error');
+    var code = SUBTITLE_STATE.errorState;
+    var message = code === 'unauthorized' || code === 'invalid_token' ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။' :
+      code === 'feature_denied' || code === 'feature_disabled' ? 'ဒီ Feature ကို အသုံးပြုခွင့်မရှိသေးပါ။' :
+      code === 'missing_srt' ? 'ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ။' :
+      'SRT ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။';
+    subtitleSetStatus(message, true);
+  }).finally(function () { if (button) button.disabled = false; });
+}
+
+function subtitleDownloadTranslatedSrt() {
+  var output = document.getElementById('subtitleTranslatedOutput');
+  subtitleDownloadText(output ? output.value : '', 'subtitle-translated.srt', 'သိမ်းရန် ဘာသာပြန်ရလဒ် မရှိပါ။');
+}
+
 (function initSubtitleActions() {
   var generate = document.getElementById('subtitleGenerateBtn');
   var download = document.getElementById('subtitleDownloadBtn');
   var editor = document.getElementById('subtitleSrtInput');
+  var translate = document.getElementById('subtitleTranslateBtn');
+  var downloadTranslated = document.getElementById('subtitleDownloadTranslatedBtn');
   if (generate) generate.addEventListener('click', subtitleGenerateSrt);
   if (download) download.addEventListener('click', subtitleDownloadSrt);
   if (editor) editor.addEventListener('input', function () { SUBTITLE_STATE.editedSrt = editor.value; });
+  if (translate) translate.addEventListener('click', subtitleTranslateSrt);
+  if (downloadTranslated) downloadTranslated.addEventListener('click', subtitleDownloadTranslatedSrt);
 })();
 `;
