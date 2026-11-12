@@ -101,7 +101,7 @@ try {
     const translatedOutput = page.locator('#subtitleTranslatedOutput');
     const sendToTranslation = page.locator('#subtitleSendToTranslationBtn');
     const sendToEditor = page.locator('#subtitleSendTranslatedToEditorBtn');
-    const sampleSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ';
+    const sampleSrt = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ';
 
     check(viewport.name + ': editor-to-translation controls exist',
       await sendToTranslation.count() === 1 && await sendToEditor.count() === 1);
@@ -120,7 +120,7 @@ try {
     check(viewport.name + ': empty editor shows an error',
       await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
 
-    const translatedSrt = '1\\n00:00:00,000 --> 00:00:02,000\\n你好';
+    const translatedSrt = '1\n00:00:00,000 --> 00:00:02,000\n你好';
     await translatedOutput.evaluate((element, value) => { element.value = value; }, translatedSrt);
     await sendToEditor.click();
     check(viewport.name + ': translated SRT is copied exactly back to editor',
