@@ -53,6 +53,15 @@ export const STUDIO_REGISTRY = {
     component: 'VoiceStudio',
     enabled: true,
   },
+  subtitle: {
+    id: 'subtitle',
+    name: 'Subtitle Studio',
+    nameMy: 'စာတန်းထိုး',
+    icon: '💬',
+    route: '/app/subtitle',
+    component: 'SubtitleStudio',
+    enabled: true,
+  },
   shop: {
     id: 'shop',
     name: 'Shop Studio',
@@ -65,7 +74,7 @@ export const STUDIO_REGISTRY = {
 };
 
 // Sidebar တွင် ပြသမည့် Studio အစဉ်
-export const STUDIO_ORDER = ['story', 'content', 'short', 'image', 'voice', 'shop'];
+export const STUDIO_ORDER = ['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop'];
 
 // Site Links — Telegram / Facebook (တစ်နေရာတည်းမှ ပြင်နိုင်ရန်)
 // ⚠️ ဤနေရာတွင်သာ သင့် Real Link များ ထည့်ပါ — Sidebar အားလုံးတွင် အလိုအလျောက် ပြောင်းပါမည်
