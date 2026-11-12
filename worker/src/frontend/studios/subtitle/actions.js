@@ -182,6 +182,23 @@ function subtitleDownloadTranslatedSrt() {
   subtitleDownloadText(output ? output.value : '', 'subtitle-translated.srt', 'သိမ်းရန် ဘာသာပြန်ရလဒ် မရှိပါ။');
 }
 
+function subtitleSendTranslatedSrtToEditor() {
+  var output = document.getElementById('subtitleTranslatedOutput');
+  var editor = document.getElementById('subtitleSrtInput');
+  if (!output || !editor) return;
+
+  var translatedSrt = output.value;
+  if (!translatedSrt.trim()) {
+    subtitleSetStatus('Editor သို့ ပြန်ပို့ရန် ဘာသာပြန်ရလဒ် မရှိပါ။', true);
+    return;
+  }
+
+  editor.value = translatedSrt;
+  SUBTITLE_STATE.editedSrt = translatedSrt;
+  editor.focus();
+  subtitleSetStatus('ဘာသာပြန်ရလဒ်ကို SRT Editor သို့ ပြန်ပို့ပြီးပါပြီ။ လိုအပ်သလို ပြင်ဆင်ပြီး စစ်ဆေးနိုင်ပါသည်။', false);
+}
+
 (function initSubtitleActions() {
   var generate = document.getElementById('subtitleGenerateBtn');
   var download = document.getElementById('subtitleDownloadBtn');
@@ -190,6 +207,7 @@ function subtitleDownloadTranslatedSrt() {
   var downloadTranslated = document.getElementById('subtitleDownloadTranslatedBtn');
   var validate = document.getElementById('subtitleValidateBtn');
   var sendToTranslation = document.getElementById('subtitleSendToTranslationBtn');
+  var sendTranslatedToEditor = document.getElementById('subtitleSendTranslatedToEditorBtn');
   if (generate) generate.addEventListener('click', subtitleGenerateSrt);
   if (download) download.addEventListener('click', subtitleDownloadSrt);
   if (editor) editor.addEventListener('input', function () { SUBTITLE_STATE.editedSrt = editor.value; });
@@ -197,5 +215,6 @@ function subtitleDownloadTranslatedSrt() {
   if (downloadTranslated) downloadTranslated.addEventListener('click', subtitleDownloadTranslatedSrt);
   if (validate) validate.addEventListener('click', subtitleValidateEditorSrt);
   if (sendToTranslation) sendToTranslation.addEventListener('click', subtitleSendEditedSrtToTranslation);
+  if (sendTranslatedToEditor) sendTranslatedToEditor.addEventListener('click', subtitleSendTranslatedSrtToEditor);
 })();
 `;
