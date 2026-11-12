@@ -12,6 +12,7 @@ const IMAGE_TASK_BY_STUDIO = Object.freeze({
   content: 'content.image',
   short: 'short.image',
   shop: 'shop.image',
+  story: 'story.image',
 });
 
 function createSafeError(code) {

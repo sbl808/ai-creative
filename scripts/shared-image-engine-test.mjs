@@ -33,6 +33,7 @@ for (const [studioId, task] of [
   ['content', 'content.image'],
   ['short', 'short.image'],
   ['shop', 'shop.image'],
+  ['story', 'story.image'],
 ]) {
   calls.length = 0;
   const response = await generate({}, {

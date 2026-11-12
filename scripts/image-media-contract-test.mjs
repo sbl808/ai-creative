@@ -19,12 +19,13 @@ const validPromptRequest = {
   },
 };
 
-assert.deepEqual(IMAGE_STUDIO_IDS, ['content', 'short', 'image', 'shop']);
+assert.deepEqual(IMAGE_STUDIO_IDS, ['content', 'short', 'image', 'shop', 'story']);
 assert.deepEqual(IMAGE_STUDIO_OPERATIONS, {
   image: ['prompt', 'ad-prompt', 'generate'],
   content: ['generate'],
   short: ['generate'],
   shop: ['generate'],
+  story: ['generate'],
 });
 
 assert.deepEqual(validateImageRequestV1(validPromptRequest), { ok: true, errors: [] });
@@ -33,7 +34,7 @@ assert.deepEqual(validateImageRequestV1({
   operation: 'ad-prompt',
 }), { ok: true, errors: [] });
 
-for (const studioId of ['content', 'short', 'shop']) {
+for (const studioId of ['content', 'short', 'shop', 'story']) {
   assert.deepEqual(validateImageRequestV1({
     contractVersion: 1,
     studioId,
@@ -62,7 +63,7 @@ assert.deepEqual(validateImageRequestV1({
 
 // Other generate routes must reject reference images until their routes
 // explicitly support passing them to the image generator.
-for (const studioId of ['content', 'short', 'image']) {
+for (const studioId of ['content', 'short', 'image', 'story']) {
   const result = validateImageRequestV1({
     contractVersion: 1,
     studioId,
@@ -77,7 +78,7 @@ for (const studioId of ['content', 'short', 'image']) {
 }
 
 // Studios without an inspected Image route must not be admitted.
-for (const studioId of ['story', 'voice', 'unknown']) {
+for (const studioId of ['voice', 'unknown']) {
   const result = validateImageRequestV1({
     contractVersion: 1,
     studioId,
@@ -89,7 +90,7 @@ for (const studioId of ['story', 'voice', 'unknown']) {
 }
 
 // Prompt operations are reserved for Image Studio.
-for (const studioId of ['content', 'short', 'shop']) {
+for (const studioId of ['content', 'short', 'shop', 'story']) {
   const result = validateImageRequestV1({
     contractVersion: 1,
     studioId,
@@ -133,7 +134,7 @@ assert.deepEqual(validateImageResponseV1({
   result: { prompt: 'A cinematic scene', map: null },
 }), { ok: true, errors: [] });
 
-for (const studioId of ['content', 'short', 'shop']) {
+for (const studioId of ['content', 'short', 'shop', 'story']) {
   assert.deepEqual(validateImageResponseV1({
     contractVersion: 1,
     studioId,

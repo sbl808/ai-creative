@@ -1,18 +1,12 @@
 /**
  * Versioned, UI-independent contract for shared Audio production.
  * Studio adapters translate existing Studio payloads to/from this contract.
+ * Only Studios with active Shared Audio Engine capabilities are accepted.
  * Do not include API keys, auth tokens, or persist user media in this module.
  */
 
 export const AUDIO_CONTRACT_VERSION = 1;
-export const AUDIO_STUDIO_IDS = Object.freeze([
-  'story',
-  'content',
-  'short',
-  'image',
-  'voice',
-  'shop',
-]);
+export const AUDIO_STUDIO_IDS = Object.freeze(['content', 'voice', 'shop']);
 export const AUDIO_OPERATIONS = Object.freeze([
   'tts',
   'transcribe',

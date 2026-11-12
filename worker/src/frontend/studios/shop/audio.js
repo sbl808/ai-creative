@@ -85,7 +85,7 @@ function generateAudio(){
   shopBusy=true;
   // Unified: Audio Result section အတွင်း loading ပြသည် (processing step မရှိ)
   if(window.aicsResultLoading)window.aicsResultLoading.show('audioLoading','AI ပြင်ဆင်နေသည်...',text);
-  api('/api/studio/voice/tts',{method:'POST',body:{text:text,voiceName:voice}})
+  api('/api/studio/shop/audio/tts',{method:'POST',body:{text:text,voiceName:voice}})
   .then(function(d){
     shopBusy=false;
     if(window.aicsResultLoading)window.aicsResultLoading.hide('audioLoading');
@@ -171,7 +171,7 @@ function generateSrt(){
   shopBusy=true;
   // Unified: SRT Result section အတွင်း loading ပြသည် (processing step မရှိ)
   if(window.aicsResultLoading)window.aicsResultLoading.show('srtLoading','AI က သင့်အတွက် SRT စာတန်းထိုးကို ပြင်ဆင်နေသည်...');
-  api('/api/studio/voice/srt',{method:'POST',body:{audioBase64:lastAudioBase64,mimeType:(shopState.audio.result.mimeType||'audio/wav'),type:'2'}})
+  api('/api/studio/shop/audio/srt',{method:'POST',body:{audioBase64:lastAudioBase64,mimeType:(shopState.audio.result.mimeType||'audio/wav'),type:'2'}})
   .then(function(d){
     shopBusy=false;
     if(window.aicsResultLoading)window.aicsResultLoading.hide('srtLoading');
@@ -281,7 +281,7 @@ function translateSrt(){
   shopBusy=true;
   // Unified: ဘာသာပြန် Result section အတွင်း loading ပြသည် (processing step မရှိ)
   if(window.aicsResultLoading)window.aicsResultLoading.show('transLoading','AI က သင့်အတွက် ဘာသာပြန်ကို ပြင်ဆင်နေသည်...',srt);
-  api('/api/studio/voice/translate-srt',{method:'POST',body:{srtText:srt,direction:dir,type:'2'}})
+  api('/api/studio/shop/audio/translate-srt',{method:'POST',body:{srtText:srt,direction:dir,type:'2'}})
   .then(function(d){
     shopBusy=false;
     if(window.aicsResultLoading)window.aicsResultLoading.hide('transLoading');

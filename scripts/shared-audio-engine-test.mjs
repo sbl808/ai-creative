@@ -93,7 +93,7 @@ const env = {};
   assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });
 }
 
-// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
+// Shop TTS uses the existing Voice provider task without routing through Voice API.\n{\n  const { calls, generate } = makeServices();\n  const response = await generate(env, {\n    contractVersion: AUDIO_CONTRACT_VERSION,\n    studioId: 'shop',\n    operation: 'tts',\n    input: { text: 'Shop product narration', voiceName: 'Kore' },\n  }, executionContext);\n  const modelCall = calls.find((call) => call.type === 'resolveModel');\n  const speechCall = calls.find((call) => call.type === 'generateSpeech');\n  assert.deepEqual(modelCall.args, [env, 'voice', 'PRO', 'selected-audio-model', 'voice.voice']);\n  assert.equal(speechCall.args.task, 'voice.voice');\n  assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });\n  assert.equal(response.studioId, 'shop');\n}\n\n// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
 {
   const { calls, generate } = makeServices();
   const prompt = 'VOICE_STUDIO_TRANSCRIPTION_INSTRUCTION';
@@ -176,10 +176,9 @@ const env = {};
   assert.equal(response.result.mimeType, 'audio/wav');
 }
 
-// Unsupported capabilities remain unavailable until route-backed support exists.
+// Studios outside the active contract allowlist are rejected during request validation.
 for (const [studioId, operation, input] of [
   ['story', 'tts', { text: 'Story TTS is not currently route-backed' }],
-  ['content', 'transcribe', { audioBase64: PRIVATE_AUDIO }],
   ['short', 'tts', { text: 'Short TTS is not currently route-backed' }],
   ['image', 'transcribe', { audioBase64: PRIVATE_AUDIO }],
 ]) {
@@ -190,6 +189,21 @@ for (const [studioId, operation, input] of [
       studioId,
       operation,
       input,
+    }, executionContext),
+    (error) => error.code === 'invalid_audio_request',
+  );
+  assert.equal(calls.length, 0);
+}
+
+// A valid Studio ID with an inactive operation is rejected by the engine capability map.
+{
+  const { calls, generate } = makeServices();
+  await assert.rejects(
+    () => generate(env, {
+      contractVersion: AUDIO_CONTRACT_VERSION,
+      studioId: 'content',
+      operation: 'transcribe',
+      input: { audioBase64: PRIVATE_AUDIO },
     }, executionContext),
     (error) => error.code === 'unsupported_shared_audio_capability',
   );

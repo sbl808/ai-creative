@@ -8,7 +8,7 @@ import { generateSharedImage } from '../../media-production/image/engine.js';
  * Provider credentials and plan/model context stay outside the contract request.
  */
 export function createImageStudioAdapter(studioId, engine = generateSharedImage) {
-  if (!['image', 'content', 'short', 'shop'].includes(studioId)) {
+  if (!['image', 'content', 'short', 'shop', 'story'].includes(studioId)) {
     throw new Error('unsupported_image_adapter_studio');
   }
 

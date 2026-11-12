@@ -5,7 +5,8 @@ import { getCMSData } from '../cms/repositories/index.js';
 import { getGlobalPolicyConfig } from '../cms/global-policies/index.js';
 import { getStudioVideoContext } from '../cms/studio-brains/index.js';
 import { buildPromptContext } from '../prompt/orchestrator/index.js';
-import { generateText, generateImage } from '../core/ai/aiService.js';
+import { generateText } from '../core/ai/aiService.js';
+import { generateStoryVideoImage as generateStoryVideoImageShared } from '../media-adapters/story/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 import { mapLegacyCMSTemplate, mapBrainFields, buildStoryFactsBlock } from './story/shared.js';
 
@@ -134,10 +135,11 @@ export async function generateStoryVideoPlan(env, {
 // Tab 2 — Story Video Scene/Character Image Generate
 export async function generateStoryVideoImage(env, { prompt, apiKey, model, plan }) {
   if (!prompt || !String(prompt).trim()) throw new Error('missing_prompt');
-  return generateImage(env, {
-    model: await resolveModel(env, 'image', plan, model, 'story.image'), task: 'story.image',
+  return generateStoryVideoImageShared(env, {
+    model: await resolveModel(env, 'image', plan, model, 'story.image'),
     prompt: String(prompt).trim(),
     apiKey,
+    plan,
   });
 }
 

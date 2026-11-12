@@ -896,7 +896,7 @@ console.log('— AI Studio task forwarding contracts —');
 // Studio-owned tasks remain in their Studio implementation files.
 // Shared Image/Audio Engine task IDs are verified in their respective engine checks below.
 const studioTaskContracts={
- story:['story.text','story.image'],
+ story:['story.text'],
  content:['content.text'],
  short:['short.text'],
  image:['image.text'],
@@ -905,7 +905,7 @@ const studioTaskContracts={
 for(const [studio,tasks] of Object.entries(studioTaskContracts)){
  await check(studio+' forwards Studio-owned task IDs to the AI Service',async()=>{
   let source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
-  // Story Video Plan image generation remains in its dedicated module.
+  // Story Video Plan image execution is verified through the Shared Image Engine below.
   if(studio==='story'){
    source+='\\n'+await readFile(new URL('../worker/src/studios/story-video-plan.js',import.meta.url),'utf8');
   }
@@ -914,6 +914,18 @@ for(const [studio,tasks] of Object.entries(studioTaskContracts)){
  });
 }
 
+await check('Story Video Plan delegates final image generation to its shared Story adapter', async () => {
+ const source=await readFile(new URL('../worker/src/studios/story-video-plan.js',import.meta.url),'utf8');
+ return {
+  ok:source.includes("from '../media-adapters/story/image.adapter.js'") &&
+   source.includes('return generateStoryVideoImageShared(env, {') &&
+   source.includes("resolveModel(env, 'image', plan, model, 'story.image')") &&
+   !source.includes("import { generateText, generateImage }") &&
+   !source.includes('return generateImage(env,'),
+  msg:'Story prompt workflow remains Studio-owned; final image execution uses the shared adapter',
+ };
+});
+
 await check('Shared Image Engine maps Studio image task IDs and Studio adapters are connected',async()=>{
  const engine=await readFile(new URL('../worker/src/media-production/image/engine.js',import.meta.url),'utf8');
  const expected={
@@ -921,13 +933,16 @@ await check('Shared Image Engine maps Studio image task IDs and Studio adapters 
   content:'content.image',
   short:'short.image',
   shop:'shop.image',
+  story:'story.image',
  };
  const missing=[];
  for(const [studio,task] of Object.entries(expected)){
   const mapping=studio+": '"+task+"'";
   if(!engine.includes(mapping)) missing.push(studio+'='+task);
-  const source=await readFile(new URL('../worker/src/studios/'+studio+'.js',import.meta.url),'utf8');
-  if(!source.includes("from '../media-adapters/"+studio+"/image.adapter.js'")){
+  const sourcePath=studio==='story'?'../worker/src/studios/story-video-plan.js':'../worker/src/studios/'+studio+'.js';
+  const source=await readFile(new URL(sourcePath,import.meta.url),'utf8');
+  const adapterImport="from '../media-adapters/"+studio+"/image.adapter.js'";
+  if(!source.includes(adapterImport)){
    missing.push(studio+' adapter export');
   }
  }
@@ -963,8 +978,11 @@ await check('Voice Studio routes Audio → SRT through the shared Voice SRT adap
   const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
   return {
     ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+      source.includes('export async function buildVoiceSrtPrompt(env, knownText)') &&
+      source.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')") &&
+      source.includes('return buildVoiceSrtInstruction(lineRule, knownText);') &&
+      source.includes('const instruction = await buildVoiceSrtPrompt(env, knownText);') &&
       source.includes('return generateVoiceSrtShared(env, {') &&
-      source.includes('const instruction = buildVoiceSrtInstruction(lineRule, knownText);') &&
       source.includes('prompt: instruction,') &&
       !source.includes('generateMultimodal'),
     msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',

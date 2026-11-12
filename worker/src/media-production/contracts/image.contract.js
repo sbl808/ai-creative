@@ -7,12 +7,12 @@
 export const IMAGE_CONTRACT_VERSION = 1;
 
 // Only Studios with inspected, existing Image-related routes are permitted.
-// Story and Voice are intentionally excluded until matching routes are verified.
 export const IMAGE_STUDIO_IDS = Object.freeze([
   'content',
   'short',
   'image',
   'shop',
+  'story',
 ]);
 
 export const IMAGE_OPERATIONS = Object.freeze([
@@ -22,13 +22,14 @@ export const IMAGE_OPERATIONS = Object.freeze([
 ]);
 
 // Image Studio owns prompt/ad-prompt generation and image generation.
-// Content, Short, and Shop use only the shared image-generation capability
-// through their existing video-image endpoints.
+// Content, Short, Shop, and Story use shared image generation through
+// their existing video-image endpoints.
 export const IMAGE_STUDIO_OPERATIONS = Object.freeze({
   image: Object.freeze(['prompt', 'ad-prompt', 'generate']),
   content: Object.freeze(['generate']),
   short: Object.freeze(['generate']),
   shop: Object.freeze(['generate']),
+  story: Object.freeze(['generate']),
 });
 
 const STUDIO_IDS = new Set(IMAGE_STUDIO_IDS);
@@ -95,7 +96,7 @@ function validateImages(images, errors) {
  * Request shape:
  * {
  *   contractVersion: 1,
- *   studioId: 'content' | 'short' | 'image' | 'shop',
+ *   studioId: 'content' | 'short' | 'image' | 'shop' | 'story',
  *   operation: 'prompt' | 'ad-prompt' | 'generate',
  *   input: { idea | prompt, model?, type?, images? }
  * }

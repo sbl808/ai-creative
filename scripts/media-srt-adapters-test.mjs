@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { SRT_CONTRACT_VERSION } from '../worker/src/media-production/contracts/srt.contract.js';
 import { createContentSrtAdapter } from '../worker/src/media-adapters/content/srt.adapter.js';
 import { createVoiceSrtAdapter } from '../worker/src/media-adapters/voice/srt.adapter.js';
+import { createShopSrtAdapter } from '../worker/src/media-adapters/shop/srt.adapter.js';
 import { createSrtStudioAdapter } from '../worker/src/media-adapters/srt/index.js';
 
 const env = { TEST_ENV: true };
@@ -81,8 +82,25 @@ function createEngine() {
   });
 }
 
+// Shop uses a dedicated adapter and preserves the shared contract boundary.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createShopSrtAdapter(engine);
+  const result = await adapter.generate(env, {
+    audioBase64: AUDIO,
+    mimeType: 'audio/wav',
+    apiKey: API_KEY,
+    model: 'shop-transcribe-model',
+    plan: 'PRO',
+    prompt: PROMPT,
+  });
+  assert.deepEqual(result, { srt: SRT });
+  assert.equal(calls[0][1].studioId, 'shop');
+  assert.equal(calls[0][2].prompt, PROMPT);
+}
+
 // Unverified Studios cannot obtain the shared SRT adapter.
-for (const studioId of ['story', 'short', 'shop', 'image']) {
+for (const studioId of ['story', 'short', 'image']) {
   assert.throws(
     () => createSrtStudioAdapter(studioId),
     (error) => error.message === 'unsupported_srt_adapter_studio',

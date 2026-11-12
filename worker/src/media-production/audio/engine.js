@@ -13,6 +13,8 @@ const AUDIO_TASK_BY_STUDIO = Object.freeze({
     tts: 'voice.voice',
     transcribe: 'voice.transcribe',
   }),
+  // Shop preserves the current Voice TTS model task while owning its adapter/API.
+  shop: Object.freeze({ tts: 'voice.voice' }),
 });
 
 function createSafeError(code) {

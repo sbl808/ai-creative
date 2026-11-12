@@ -1,12 +1,12 @@
 /**
  * Versioned contract for translating existing SRT subtitle text.
- * Verified current consumers: Voice Studio and Content Studio.
+ * Verified current consumers: Voice Studio, Content Studio, and Shop Studio.
  * Keep translation separate from Audio -> SRT generation.
  * Never include credentials or persist user subtitle content here.
  */
 
 export const TRANSLATION_CONTRACT_VERSION = 1;
-export const TRANSLATION_STUDIO_IDS = Object.freeze(['voice', 'content']);
+export const TRANSLATION_STUDIO_IDS = Object.freeze(['voice', 'content', 'shop']);
 export const TRANSLATION_OPERATIONS = Object.freeze(['translate-srt']);
 export const TRANSLATION_DIRECTIONS = Object.freeze([
   'MY_TO_CN',
@@ -48,7 +48,7 @@ function validateEnvelope(value, errors) {
 
 /**
  * Request:
- * { contractVersion, studioId: 'voice' | 'content',
+ * { contractVersion, studioId: 'voice' | 'content' | 'shop',
  *   operation: 'translate-srt',
  *   input: { srtText, direction?, model?, type? } }
  *

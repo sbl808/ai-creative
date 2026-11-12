@@ -9,6 +9,7 @@ import { generateText } from '../../core/ai/aiService.js';
 const TASK_BY_STUDIO = Object.freeze({
   content: 'content.transcribe',
   voice: 'voice.transcribe',
+  shop: 'voice.transcribe',
 });
 
 function safeError(code) {

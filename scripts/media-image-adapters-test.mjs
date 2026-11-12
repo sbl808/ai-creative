@@ -5,6 +5,7 @@ import { createImageStudioImageAdapter } from '../worker/src/media-adapters/imag
 import { createContentImageAdapter } from '../worker/src/media-adapters/content/image.adapter.js';
 import { createShortImageAdapter } from '../worker/src/media-adapters/short/image.adapter.js';
 import { createShopImageAdapter } from '../worker/src/media-adapters/shop/image.adapter.js';
+import { createStoryImageAdapter } from '../worker/src/media-adapters/story/image.adapter.js';
 
 const captured = [];
 const fakeEngine = async (env, request, executionContext) => {
@@ -22,6 +23,7 @@ const cases = [
   ['content', createContentImageAdapter],
   ['short', createShortImageAdapter],
   ['shop', createShopImageAdapter],
+  ['story', createStoryImageAdapter],
 ];
 
 for (const [studioId, createAdapter] of cases) {
@@ -67,9 +69,5 @@ await createContentImageAdapter(fakeEngine)({}, {
 });
 assert.deepEqual(captured[0].request.input, { prompt: 'Content scene' });
 
-assert.throws(
-  () => createImageStudioAdapter('story', fakeEngine),
-  (error) => error.message === 'unsupported_image_adapter_studio',
-);
 
 console.log('Shared Image Studio Adapters: PASS');

@@ -86,17 +86,19 @@ export function buildVoiceSrtInstruction(lineRule, knownText) {
   );
 }
 
-export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan, apiKey, model, knownText }) {
-  if (!audioBase64) throw new Error('missing_audio');
+export async function buildVoiceSrtPrompt(env, knownText) {
   let lineRule = '';
   try {
     const c = await getCMSData(env, CMS_STUDIO, 'PRO', '3');
     if (c) lineRule = buildSystemPrompt(c);
   } catch (e) { /* CMS မရှိရင် Default သုံးသည် */ }
   if (!lineRule || !lineRule.trim()) lineRule = DEFAULT_LINE_RULE;
+  return buildVoiceSrtInstruction(lineRule, knownText);
+}
 
-  const instruction = buildVoiceSrtInstruction(lineRule, knownText);
-
+export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan, apiKey, model, knownText }) {
+  if (!audioBase64) throw new Error('missing_audio');
+  const instruction = await buildVoiceSrtPrompt(env, knownText);
   return generateVoiceSrtShared(env, {
     audioBase64,
     mimeType: mimeType || 'audio/mpeg',
