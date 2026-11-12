@@ -9,8 +9,7 @@ function subtitleSetStatus(message, isError) {
 }
 
 function subtitleGetToken() {
-  try { if (typeof TOKEN !== 'undefined' && TOKEN) return TOKEN; } catch (error) {}
-  return '';
+  try { return localStorage.getItem('aics_token') || ''; } catch (error) { return ''; }
 }
 
 function subtitleApiPost(path, body) {
