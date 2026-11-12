@@ -1,7 +1,5 @@
 // AI Creative Studio — Subtitle Studio / state.js
-// Browser-side state only. User-generated content must remain in browser memory / IndexedDB.
-// This module does not read or write localStorage, call APIs, or persist user content.
-
+// Browser memory only. Do not persist media or generated user content in the Worker.
 export const STATE_SCRIPT = `
 var SUBTITLE_STATE = {
   mode: 'media-to-srt',
@@ -24,13 +22,7 @@ var SUBTITLE_INPUTS = {
   translationDirection: 'MY_TO_CN'
 };
 
-var SUBTITLE_MEDIA = {
-  file: null,
-  fileName: '',
-  mimeType: '',
-  duration: null
-};
-
+var SUBTITLE_MEDIA = { file: null, fileName: '', mimeType: '', duration: null };
 var SUBTITLE_REQUEST_ID = 0;
 
 function newSubtitleState(mode) {
