@@ -105,6 +105,39 @@ try {
     const sendToEditor = page.locator('#subtitleSendTranslatedToEditorBtn');
     const sampleSrt = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ';
 
+    const validationStatus = page.locator('#subtitleValidationStatus');
+    const validateButton = page.locator('#subtitleValidateBtn');
+
+    await editor.fill(sampleSrt);
+    await validateButton.click();
+    check(viewport.name + ': valid SRT passes editor validation',
+      await validationStatus.getAttribute('data-state') === 'success' &&
+      (await validationStatus.textContent()).includes('Subtitle အပိုင်း 1 ခု'));
+
+    await editor.fill('1\n00:00:XX,000 --> 00:00:02,000\nမင်္ဂလာပါ');
+    await validateButton.click();
+    check(viewport.name + ': malformed timestamp is rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Timestamp ပုံစံ မမှန်ကန်ပါ'));
+
+    await editor.fill('1\n00:00:03,000 --> 00:00:02,000\nမင်္ဂလာပါ');
+    await validateButton.click();
+    check(viewport.name + ': end timestamp before start is rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Timestamp အချိန် မမှန်ကန်ပါ'));
+
+    await editor.fill('1\n00:00:00,000 --> 00:00:02,000\n   ');
+    await validateButton.click();
+    check(viewport.name + ': empty cue text is rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Subtitle စာသား မရှိပါ'));
+
+    await editor.fill('   ');
+    await validateButton.click();
+    check(viewport.name + ': empty SRT is rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('SRT စာသား ဗလာဖြစ်နေပါသည်'));
+
     check(viewport.name + ': editor-to-translation controls exist',
       await sendToTranslation.count() === 1 && await sendToEditor.count() === 1);
     await editor.fill(sampleSrt);
