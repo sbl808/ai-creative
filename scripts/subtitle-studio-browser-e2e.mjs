@@ -272,6 +272,29 @@ try {
 
     const mediaInput = page.locator('#subtitleMediaFile');
 
+    // Missing browser token must stop both workflows before any Worker API request.
+    await mediaInput.setInputFiles({
+      name: 'subtitle-auth-fixture.wav',
+      mimeType: 'audio/wav',
+      buffer: fakeAudio,
+    });
+    await page.evaluate(() => localStorage.removeItem('aics_token'));
+    await page.locator('#subtitleGenerateBtn').click();
+    check(viewport.name + ': Generate SRT without a token is rejected before API request',
+      generationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('Login ဝင်ထားခြင်း မရှိပါ'));
+    await page.evaluate(value => localStorage.setItem('aics_token', value), token);
+
+    await translationInput.fill(sampleSrt);
+    await page.evaluate(() => localStorage.removeItem('aics_token'));
+    await page.locator('#subtitleTranslateBtn').click();
+    check(viewport.name + ': Translate SRT without a token is rejected before API request',
+      translationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('Login ဝင်ထားခြင်း မရှိပါ'));
+    await page.evaluate(value => localStorage.setItem('aics_token', value), token);
+
     // Translation validation must stop invalid input before reaching the Worker API.
     await translationInput.fill('   ');
     await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
