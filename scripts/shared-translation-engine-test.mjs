@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { createSharedTranslationEngine } from '../worker/src/media-production/translation/engine.js';
 import { TRANSLATION_CONTRACT_VERSION } from '../worker/src/media-production/contracts/translation.contract.js';
 
-const sourceSrt = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ';
-const translatedSrt = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ\n你好';
+const sourceSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ';
+const translatedSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ\\n你好';
 
 function request(studioId) {
   return {
@@ -35,6 +35,7 @@ async function testStudioTaskMappings() {
   for (const [studioId, task] of [
     ['content', 'content.transcribe'],
     ['voice', 'voice.transcribe'],
+    ['shop', 'voice.transcribe'],
   ]) {
     const response = await engine({}, request(studioId), {
       apiKey: 'test-key',
