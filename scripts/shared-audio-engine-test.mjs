@@ -176,10 +176,9 @@ const env = {};
   assert.equal(response.result.mimeType, 'audio/wav');
 }
 
-// Unsupported capabilities remain unavailable until route-backed support exists.
+// Studios outside the active contract allowlist are rejected during request validation.
 for (const [studioId, operation, input] of [
   ['story', 'tts', { text: 'Story TTS is not currently route-backed' }],
-  ['content', 'transcribe', { audioBase64: PRIVATE_AUDIO }],
   ['short', 'tts', { text: 'Short TTS is not currently route-backed' }],
   ['image', 'transcribe', { audioBase64: PRIVATE_AUDIO }],
 ]) {
@@ -190,6 +189,21 @@ for (const [studioId, operation, input] of [
       studioId,
       operation,
       input,
+    }, executionContext),
+    (error) => error.code === 'invalid_audio_request',
+  );
+  assert.equal(calls.length, 0);
+}
+
+// A valid Studio ID with an inactive operation is rejected by the engine capability map.
+{
+  const { calls, generate } = makeServices();
+  await assert.rejects(
+    () => generate(env, {
+      contractVersion: AUDIO_CONTRACT_VERSION,
+      studioId: 'content',
+      operation: 'transcribe',
+      input: { audioBase64: PRIVATE_AUDIO },
     }, executionContext),
     (error) => error.code === 'unsupported_shared_audio_capability',
   );
