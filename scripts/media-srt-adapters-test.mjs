@@ -97,7 +97,10 @@ function createEngine() {
   assert.deepEqual(result, { srt: SRT });
   assert.equal(calls[0][1].studioId, 'shop');
   assert.equal(calls[0][2].prompt, PROMPT);
-}\n\n// Unverified Studios cannot obtain the shared SRT adapter.\nfor (const studioId of ['story', 'short', 'image']) {
+}
+
+// Unverified Studios cannot obtain the shared SRT adapter.
+for (const studioId of ['story', 'short', 'image']) {
   assert.throws(
     () => createSrtStudioAdapter(studioId),
     (error) => error.message === 'unsupported_srt_adapter_studio',
