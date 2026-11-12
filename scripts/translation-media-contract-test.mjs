@@ -25,6 +25,13 @@ const validContentRequest = {
 };
 assert.deepEqual(validateTranslationRequestV1(validContentRequest), { ok: true, errors: [] });
 
+const validShopRequest = {
+  ...validVoiceRequest,
+  studioId: 'shop',
+  input: { srtText: '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ', direction: 'MY_TO_CN' },
+};
+assert.deepEqual(validateTranslationRequestV1(validShopRequest), { ok: true, errors: [] });
+
 const privacySentinel = 'PRIVATE_TRANSLATION_SRT_SENTINEL_7c91';
 const invalidRequest = validateTranslationRequestV1({
   ...validVoiceRequest,
@@ -41,7 +48,7 @@ assert.ok(validateTranslationRequestV1({
 
 assert.ok(validateTranslationRequestV1({
   ...validVoiceRequest,
-  studioId: 'shop',
+  studioId: 'story',
 }).errors.includes('invalid_studio_id'));
 
 assert.deepEqual(validateTranslationResponseV1({
