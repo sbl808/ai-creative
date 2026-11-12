@@ -78,7 +78,7 @@ const executionContext = {
   assert.equal(providerCall.args.prompt, 'CONTENT_CMS_INSTRUCTION');
 }
 
-// Missing browser BYOK must fail before model resolution or provider calls.
+// Shop preserves the existing Voice SRT provider task while using its own Studio ID.\n{\n  const { calls, generate } = makeServices();\n  const response = await generate(env, {\n    ...request,\n    studioId: 'shop',\n  }, { ...executionContext, prompt: 'SHOP_SRT_INSTRUCTION' });\n  const modelCall = calls.find((call) => call.type === 'resolveModel');\n  const providerCall = calls.find((call) => call.type === 'generateMultimodal');\n  assert.equal(modelCall.args[4], 'voice.transcribe');\n  assert.equal(providerCall.args.task, 'voice.transcribe');\n  assert.equal(providerCall.args.prompt, 'SHOP_SRT_INSTRUCTION');\n  assert.equal(response.studioId, 'shop');\n}\n\n// Missing browser BYOK must fail before model resolution or provider calls.
 {
   const { calls, generate } = makeServices();
   await assert.rejects(
@@ -102,7 +102,6 @@ const executionContext = {
 for (const unsupported of [
   { ...request, studioId: 'story' },
   { ...request, studioId: 'short' },
-  { ...request, studioId: 'shop' },
 ]) {
   const { calls, generate } = makeServices();
   await assert.rejects(
