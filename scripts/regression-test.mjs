@@ -543,6 +543,8 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     '/api/studio/image/prompt',
     '/api/studio/voice/tts',
     '/api/studio/shop/content/generate',
+    '/api/studio/subtitle/srt',
+    '/api/studio/subtitle/translate-srt',
   ];
   const statuses = [];
   // Empty but valid JSON reaches each route's input validation after rate limiting.
@@ -554,7 +556,7 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/tts', {
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/translate-srt', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
   const blockedBody = await blocked.json();
