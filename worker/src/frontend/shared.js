@@ -34,7 +34,7 @@ const SHELL_ICONS = {
 export function shellIcon(name) {
   return '<svg class="lucide-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (SHELL_ICONS[name] || SHELL_ICONS.sparkles) + '</svg>';
 }
-const STUDIO_SHELL_ICONS = { story: 'book', content: 'pen', short: 'clapperboard', image: 'image', voice: 'mic', shop: 'shoppingBag' };
+const STUDIO_SHELL_ICONS = { story: 'book', content: 'pen', short: 'clapperboard', image: 'image', voice: 'mic', subtitle: 'message', shop: 'shoppingBag' };
 
 // ---- Sidebar အတွင်း Studio Link များ (Registry မှ ထုတ်သည်) ----
 // data-studio attribute — Admin မှ Studio ပိတ်ထားပါက Script က ဤ Link ကို ဖျောက်သည် (Phase 4)
