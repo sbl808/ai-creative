@@ -14,7 +14,8 @@ export const SUBTITLE_HOME_HTML = `
       <h2 id="subtitleEditorTitle">📝 SRT Editor</h2>
       <p>ဖန်တီးပြီးသော SRT သို့မဟုတ် ရှိပြီးသား SRT ကို ဒီနေရာမှာ ပြင်ဆင်နိုင်ပါသည်။</p>
       <label for="subtitleSrtInput">SRT စာသား</label><textarea id="subtitleSrtInput" class="subtitle-srt-input" rows="12" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" spellcheck="false"></textarea>
-      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleDownloadBtn">.srt ဖိုင် သိမ်းရန်</button></div>
+      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleDownloadBtn">.srt ဖိုင် သိမ်းရန်</button><button type="button" class="subtitle-button secondary" id="subtitleValidateBtn">SRT စစ်ဆေးရန်</button></div>
+      <p class="subtitle-note" id="subtitleValidationStatus" role="status" aria-live="polite">SRT ပုံစံနှင့် Timestamp များကို စစ်ဆေးနိုင်ပါသည်။</p>
     </section>
     <section class="subtitle-card" aria-labelledby="subtitleTranslateTitle">
       <h2 id="subtitleTranslateTitle">🌐 SRT ဘာသာပြန်ရန်</h2>
