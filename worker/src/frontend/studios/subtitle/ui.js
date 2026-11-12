@@ -30,7 +30,7 @@ export const SUBTITLE_HOME_HTML = `
       <div class="subtitle-actions"><button type="button" class="subtitle-button" id="subtitleTranslateBtn">SRT ဘာသာပြန်ရန်</button></div>
       <label for="subtitleTranslatedOutput">ဘာသာပြန်ရလဒ်</label>
       <textarea id="subtitleTranslatedOutput" rows="9" placeholder="ဘာသာပြန်ရလဒ်ကို ဒီနေရာတွင် ပြသပါမည်" spellcheck="false" readonly></textarea>
-      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleDownloadTranslatedBtn">ဘာသာပြန် SRT သိမ်းရန်</button></div>
+      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleDownloadTranslatedBtn">ဘာသာပြန် SRT သိမ်းရန်</button><button type="button" class="subtitle-button" id="subtitleSendTranslatedToEditorBtn">ဘာသာပြန်ရလဒ်ကို Editor သို့ ပြန်ပို့မည်</button></div>
     </section>
   </div>
   <p class="subtitle-status" id="subtitleStatus" role="status" aria-live="polite">Media ဖိုင်ရွေးပြီး SRT ဖန်တီးနိုင်သလို ရှိပြီးသား SRT ကိုလည်း ဘာသာပြန်နိုင်ပါသည်။</p>
