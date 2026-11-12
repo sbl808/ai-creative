@@ -7,7 +7,7 @@
  */
 
 export const SRT_CONTRACT_VERSION = 1;
-export const SRT_STUDIO_IDS = Object.freeze(['content', 'voice']);
+export const SRT_STUDIO_IDS = Object.freeze(['content', 'voice', 'shop']);
 export const SRT_OPERATIONS = Object.freeze(['audio-to-srt']);
 
 const STUDIO_IDS = new Set(SRT_STUDIO_IDS);
