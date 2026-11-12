@@ -7,6 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const url = process.env.AICS_BASE_URL || 'http://127.0.0.1:8787';
@@ -141,6 +142,43 @@ try {
     check(viewport.name + ': empty translated output does not overwrite editor',
       await editor.inputValue() === 'KEEP EDITOR CONTENT');
     check(viewport.name + ': empty translated output shows an error',
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
+
+    // Verify browser downloads contain the exact editor/output text and filename.
+    await editor.fill(sampleSrt);
+    const editorDownloadPromise = page.waitForEvent('download');
+    await page.locator('#subtitleDownloadBtn').click();
+    const editorDownload = await editorDownloadPromise;
+    check(viewport.name + ': editor download uses subtitle.srt filename',
+      editorDownload.suggestedFilename() === 'subtitle.srt');
+    const editorDownloadBytes = await readFile(await editorDownload.path());
+    check(viewport.name + ': editor download contains exact SRT text',
+      editorDownloadBytes.toString('utf8') === sampleSrt);
+
+    await translatedOutput.evaluate((element, value) => { element.value = value; }, translatedSrt);
+    const translatedDownloadPromise = page.waitForEvent('download');
+    await page.locator('#subtitleDownloadTranslatedBtn').click();
+    const translatedDownload = await translatedDownloadPromise;
+    check(viewport.name + ': translated download uses subtitle-translated.srt filename',
+      translatedDownload.suggestedFilename() === 'subtitle-translated.srt');
+    const translatedDownloadBytes = await readFile(await translatedDownload.path());
+    check(viewport.name + ': translated download contains exact SRT text',
+      translatedDownloadBytes.toString('utf8') === translatedSrt);
+
+    await editor.fill('  ');
+    const emptyEditorDownloadPromise = page.waitForEvent('download', { timeout: 250 })
+      .then(() => true).catch(() => false);
+    await page.locator('#subtitleDownloadBtn').click();
+    check(viewport.name + ': empty editor download is blocked',
+      !(await emptyEditorDownloadPromise) &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
+
+    await translatedOutput.evaluate(element => { element.value = '  '; });
+    const emptyTranslatedDownloadPromise = page.waitForEvent('download', { timeout: 250 })
+      .then(() => true).catch(() => false);
+    await page.locator('#subtitleDownloadTranslatedBtn').click();
+    check(viewport.name + ': empty translated download is blocked',
+      !(await emptyTranslatedDownloadPromise) &&
       await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
 
 
