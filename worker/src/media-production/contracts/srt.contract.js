@@ -1,18 +1,13 @@
 /**
  * Versioned, UI-independent contract for shared SRT generation.
  * This contract covers the verified Audio -> SRT flow only.
+ * Only Studios with active Shared SRT Engine capabilities are accepted.
  * Script -> SRT remains a separate future path until its current API is verified.
  * Do not include credentials or persist user media in this module.
  */
 
 export const SRT_CONTRACT_VERSION = 1;
-export const SRT_STUDIO_IDS = Object.freeze([
-  'story',
-  'content',
-  'short',
-  'voice',
-  'shop',
-]);
+export const SRT_STUDIO_IDS = Object.freeze(['content', 'voice']);
 export const SRT_OPERATIONS = Object.freeze(['audio-to-srt']);
 
 const STUDIO_IDS = new Set(SRT_STUDIO_IDS);
