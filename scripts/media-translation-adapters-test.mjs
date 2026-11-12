@@ -48,7 +48,7 @@ function createEngine() {
   assert.equal(calls[0][2].apiKey, API_KEY);
   assert.equal(calls[0][2].model, 'content-translation-model');
   assert.equal(calls[0][2].plan, undefined);
-  assert.ok(calls[0][2].prompt.includes('SRT:\\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
   assert.ok(calls[0][2].prompt.includes('SRT Number'));
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
 }
@@ -92,7 +92,7 @@ function createEngine() {
     },
   });
   assert.equal(calls[0][2].plan, 'PRO');
-  assert.ok(calls[0][2].prompt.includes('SRT:\\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
   assert.ok(calls[0][2].prompt.includes('အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်'));
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
 }
