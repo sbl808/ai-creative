@@ -6,7 +6,7 @@
  */
 
 export const AUDIO_CONTRACT_VERSION = 1;
-export const AUDIO_STUDIO_IDS = Object.freeze(['content', 'voice']);
+export const AUDIO_STUDIO_IDS = Object.freeze(['content', 'voice', 'shop']);
 export const AUDIO_OPERATIONS = Object.freeze([
   'tts',
   'transcribe',
