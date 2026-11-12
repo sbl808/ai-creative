@@ -55,6 +55,7 @@ try {
 
   for (const viewport of [
     { name: 'desktop', width: 1280, height: 900, columns: 2 },
+    { name: 'tablet', width: 820, height: 1180, columns: 2 },
     { name: 'mobile', width: 390, height: 844, columns: 1 },
   ]) {
     const context = await browser.newContext({
@@ -94,6 +95,52 @@ try {
     check(viewport.name + ': expected responsive columns', layout.columns === viewport.columns, JSON.stringify(layout));
     check(viewport.name + ': media input fits viewport', layout.mediaFits);
     check(viewport.name + ': SRT editor fits viewport', layout.editorFits);
+
+    const editor = page.locator('#subtitleSrtInput');
+    const translationInput = page.locator('#subtitleTranslationInput');
+    const translatedOutput = page.locator('#subtitleTranslatedOutput');
+    const sendToTranslation = page.locator('#subtitleSendToTranslationBtn');
+    const sendToEditor = page.locator('#subtitleSendTranslatedToEditorBtn');
+    const sampleSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ';
+
+    check(viewport.name + ': editor-to-translation controls exist',
+      await sendToTranslation.count() === 1 && await sendToEditor.count() === 1);
+    await editor.fill(sampleSrt);
+    await sendToTranslation.click();
+    check(viewport.name + ': edited SRT is copied exactly to translation input',
+      await translationInput.inputValue() === sampleSrt);
+    check(viewport.name + ': editor-to-translation success status is shown',
+      (await page.locator('#subtitleStatus').textContent()).includes('ပို့ပြီးပါပြီ'));
+
+    await translationInput.fill('KEEP TRANSLATION INPUT');
+    await editor.fill('   ');
+    await sendToTranslation.click();
+    check(viewport.name + ': empty editor does not overwrite translation input',
+      await translationInput.inputValue() === 'KEEP TRANSLATION INPUT');
+    check(viewport.name + ': empty editor shows an error',
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
+
+    const translatedSrt = '1\\n00:00:00,000 --> 00:00:02,000\\n你好';
+    await translatedOutput.evaluate((element, value) => { element.value = value; }, translatedSrt);
+    await sendToEditor.click();
+    check(viewport.name + ': translated SRT is copied exactly back to editor',
+      await editor.inputValue() === translatedSrt);
+    check(viewport.name + ': translated output remains unchanged after copy',
+      await translatedOutput.inputValue() === translatedSrt);
+    check(viewport.name + ': editor receives focus after translated SRT copy',
+      await editor.evaluate(element => document.activeElement === element));
+    check(viewport.name + ': editor state updates after translated SRT copy',
+      await editor.inputValue() === translatedSrt);
+    check(viewport.name + ': translation-to-editor success status is shown',
+      (await page.locator('#subtitleStatus').textContent()).includes('ပြန်ပို့ပြီးပါပြီ'));
+
+    await editor.fill('KEEP EDITOR CONTENT');
+    await translatedOutput.evaluate(element => { element.value = '  '; });
+    await sendToEditor.click();
+    check(viewport.name + ': empty translated output does not overwrite editor',
+      await editor.inputValue() === 'KEEP EDITOR CONTENT');
+    check(viewport.name + ': empty translated output shows an error',
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
