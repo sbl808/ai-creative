@@ -25,7 +25,7 @@ function request(path, body) {
 
 function dependencies(overrides = {}) {
   return {
-    bearer: (req) => req.headers.get('Authorization')?.replace(/^Bearer\\s+/i, '') || '',
+    bearer: (req) => req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') || '',
     verifyTokenSafe: async () => ({ sub: 'story-route-test-user' }),
     json: (data, status) => new Response(JSON.stringify(data), {
       status,
@@ -67,9 +67,9 @@ const route = await readFile(
   new URL('../worker/src/routes/studios/story-video-plan.routes.js', import.meta.url),
   'utf8',
 );
-assert.match(route, /return json\\(\\{ ok: true, data: out\\.data, mimeType: out\\.mimeType \\}, 200, cors\\)/);
-assert.match(route, /return json\\(\\{ error: 'image_error', detail: friendlyError\\(e\\) \\}, 500, cors\\)/);
-assert.match(route, /path === '\\/api\\/studio\\/story\\/video-image'/);
-assert.match(route, /requireFeature\\(env, 'story\\.video_image', plan, '1', cors\\)/);
+assert.ok(route.includes('return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors)'));
+assert.ok(route.includes("return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors)"));
+assert.ok(route.includes("path === '/api/studio/story/video-image'"));
+assert.ok(route.includes("requireFeature(env, 'story.video_image', plan, '1', cors)"));
 
 console.log('Story Video Plan Route Contracts: PASS');
