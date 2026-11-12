@@ -831,17 +831,31 @@ const stage13Cases = [
   { path: '/api/studio/content/video-image', feature: 'content.video_image', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/content/srt', feature: 'content.srt', body: { audioBase64: 'YWJj' } },
   { path: '/api/studio/content/translate-srt', feature: 'content.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello' } },
+  { path: '/api/studio/subtitle/srt', feature: 'subtitle.srt', body: { audioBase64: 'YWJj', type: '2' } },
+  { path: '/api/studio/subtitle/translate-srt', feature: 'subtitle.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello', type: '2' } },
   { path: '/api/studio/short/video-image', feature: 'short.video_image', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/image/generate', feature: 'image.generate', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/shop/video-image', feature: 'shop.video_image', body: { prompt: 'test prompt', type: '1' } },
 ];
-await check('all six Stage 13 routes reject requests without a valid token', async () => {
+await check('all eight Stage 13 routes reject requests without a valid token', async () => {
   const statuses = [];
   for (const item of stage13Cases) {
     const r = await send(item.path, 'POST', {}, item.body);
     statuses.push(r.status);
   }
   return { ok: statuses.every(status => status === 401), msg: `statuses=${statuses.join(',')}` };
+});
+await check('Subtitle SRT endpoints validate required payloads without invoking AI', async () => {
+  const headers = await withToken();
+  const srt = await send('/api/studio/subtitle/srt', 'POST', headers, {});
+  const translation = await send('/api/studio/subtitle/translate-srt', 'POST', headers, {});
+  const srtBody = await srt.json();
+  const translationBody = await translation.json();
+  return {
+    ok: srt.status === 400 && srtBody.error === 'missing_audio' &&
+      translation.status === 400 && translationBody.error === 'missing_srt',
+    msg: `srt=${srt.status}/${srtBody.error} translate=${translation.status}/${translationBody.error}`,
+  };
 });
 await check('Admin-disabled Stage 13 features are blocked before any AI/provider call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };
