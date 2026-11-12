@@ -240,7 +240,7 @@ try {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ ok: true, srt: generatedSrt }),
+        body: JSON.stringify({ ok: true, srt: generationMode === 'empty' ? '' : generatedSrt }),
       });
     });
 
@@ -258,7 +258,7 @@ try {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ ok: true, srt: translatedApiSrt }),
+        body: JSON.stringify({ ok: true, srt: translationMode === 'empty' ? '' : translatedApiSrt }),
       });
     });
 
@@ -328,6 +328,20 @@ try {
     check(viewport.name + ': Generate SRT response populates editor',
       await editor.inputValue() === generatedSrt);
 
+    // A successful HTTP response with an empty SRT must fail safely and preserve editor content.
+    const editorBeforeEmptyGeneration = 'KEEP EDITOR CONTENT AFTER EMPTY GENERATION';
+    await editor.fill(editorBeforeEmptyGeneration);
+    generationMode = 'empty';
+    await page.locator('#subtitleGenerateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleStatus')?.getAttribute('data-state') === 'error');
+    const emptyGenerationStatus = await page.locator('#subtitleStatus').textContent();
+    check(viewport.name + ': empty Generate SRT result is rejected safely',
+      emptyGenerationStatus.includes('SRT ဖန်တီးရာတွင် အခက်အခဲ') &&
+      !emptyGenerationStatus.includes('empty_result'));
+    check(viewport.name + ': empty Generate SRT result preserves editor content',
+      await editor.inputValue() === editorBeforeEmptyGeneration);
+    generationMode = 'success';
+
     // The exact 5MB boundary is permitted by the client-side size guard.
     const exactLimitResponse = page.waitForResponse(response =>
       response.url().includes('/api/studio/subtitle/srt') && response.request().method() === 'POST');
@@ -356,6 +370,20 @@ try {
       translationRequest.body.type === '2');
     check(viewport.name + ': Translate SRT response populates output',
       await translatedOutput.inputValue() === translatedApiSrt);
+
+    // A successful HTTP response with an empty translation must preserve prior output.
+    const outputBeforeEmptyTranslation = 'KEEP TRANSLATED OUTPUT AFTER EMPTY RESULT';
+    await translatedOutput.evaluate((element, value) => { element.value = value; }, outputBeforeEmptyTranslation);
+    translationMode = 'empty';
+    await page.locator('#subtitleTranslateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleStatus')?.getAttribute('data-state') === 'error');
+    const emptyTranslationStatus = await page.locator('#subtitleStatus').textContent();
+    check(viewport.name + ': empty Translate SRT result is rejected safely',
+      emptyTranslationStatus.includes('SRT ဘာသာပြန်ရာတွင် အခက်အခဲ') &&
+      !emptyTranslationStatus.includes('empty_result'));
+    check(viewport.name + ': empty Translate SRT result preserves previous output',
+      await translatedOutput.inputValue() === outputBeforeEmptyTranslation);
+    translationMode = 'success';
 
     generationMode = 'error';
     await page.locator('#subtitleGenerateBtn').click();
