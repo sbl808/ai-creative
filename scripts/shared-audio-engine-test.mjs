@@ -93,7 +93,7 @@ const env = {};
   assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });
 }
 
-// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
+// Shop TTS uses the existing Voice provider task without routing through Voice API.\n{\n  const { calls, generate } = makeServices();\n  const response = await generate(env, {\n    contractVersion: AUDIO_CONTRACT_VERSION,\n    studioId: 'shop',\n    operation: 'tts',\n    input: { text: 'Shop product narration', voiceName: 'Kore' },\n  }, executionContext);\n  const modelCall = calls.find((call) => call.type === 'resolveModel');\n  const speechCall = calls.find((call) => call.type === 'generateSpeech');\n  assert.deepEqual(modelCall.args, [env, 'voice', 'PRO', 'selected-audio-model', 'voice.voice']);\n  assert.equal(speechCall.args.task, 'voice.voice');\n  assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });\n  assert.equal(response.studioId, 'shop');\n}\n\n// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
 {
   const { calls, generate } = makeServices();
   const prompt = 'VOICE_STUDIO_TRANSCRIPTION_INSTRUCTION';
