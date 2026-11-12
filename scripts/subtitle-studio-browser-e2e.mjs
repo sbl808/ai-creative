@@ -201,7 +201,7 @@ try {
     check(viewport.name + ': Generate SRT API is called once', generationRequests.length === 1);
     const generationRequest = generationRequests[0];
     check(viewport.name + ': Generate SRT uses POST and Bearer authorization',
-      generationRequest.method === 'POST' && /^Bearer\\s+\\S+/.test(generationRequest.headers.authorization || ''));
+      generationRequest.method === 'POST' && /^Bearer\s+\S+/.test(generationRequest.headers.authorization || ''));
     check(viewport.name + ': Generate SRT sends expected media and known-text payload',
       generationRequest.body.audioBase64 === fakeAudio.toString('base64') &&
       generationRequest.body.mimeType === 'audio/wav' &&
@@ -217,7 +217,7 @@ try {
     check(viewport.name + ': Translate SRT API is called once', translationRequests.length === 1);
     const translationRequest = translationRequests[0];
     check(viewport.name + ': Translate SRT uses POST and Bearer authorization',
-      translationRequest.method === 'POST' && /^Bearer\\s+\\S+/.test(translationRequest.headers.authorization || ''));
+      translationRequest.method === 'POST' && /^Bearer\s+\S+/.test(translationRequest.headers.authorization || ''));
     check(viewport.name + ': Translate SRT sends exact text, direction, and type',
       translationRequest.body.srtText === sampleSrt &&
       translationRequest.body.direction === 'CN_TO_MY' &&
