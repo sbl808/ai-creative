@@ -8,6 +8,7 @@ import {
 import {
   createVoiceAudioAdapter,
 } from '../worker/src/media-adapters/voice/audio.adapter.js';
+import { createShopAudioAdapter } from '../worker/src/media-adapters/shop/audio.adapter.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-test-key';
@@ -119,3 +120,25 @@ function createEngine(result) {
 }
 
 console.log('Shared Audio Studio Adapters: PASS');
+
+
+// Shop TTS has an isolated Studio adapter while retaining the shared engine.
+{
+  const { calls, engine } = createEngine({
+    data: 'UklGRg==',
+    mimeType: 'audio/wav',
+  });
+  const adapter = createShopAudioAdapter(engine);
+  const result = await adapter.tts(env, {
+    text: PRIVATE_TEXT,
+    voiceName: 'Kore',
+    apiKey: API_KEY,
+    model: 'selected-model',
+    plan: 'PRO',
+  });
+  assert.deepEqual(result, { data: 'UklGRg==', mimeType: 'audio/wav' });
+  assert.equal(calls[0][1].studioId, 'shop');
+  assert.equal(calls[0][1].operation, 'tts');
+  assert.equal(calls[0][2].apiKey, API_KEY);
+  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+}
