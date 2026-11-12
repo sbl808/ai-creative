@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Subtitle Studio browser smoke test.
+ * Subtitle Studio browser smoke and API-contract test.
  * Uses the repository's in-process E2E worker server and a real Chromium
- * browser. No media is uploaded and no AI processing/API action is invoked.
+ * browser. Media is a synthetic test fixture; Subtitle API requests are
+ * intercepted and mocked. No real user media or AI provider is contacted.
  */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
