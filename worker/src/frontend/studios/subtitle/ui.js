@@ -20,7 +20,7 @@ export const SUBTITLE_HOME_HTML = `
       <h2 id="subtitleTranslateTitle">🌐 SRT ဘာသာပြန်ရန်</h2>
       <p>မူရင်း SRT စာသားကို ထည့်ပြီး ဘာသာပြန်ဦးတည်ချက် ရွေးပါ။</p>
       <label for="subtitleTranslationDirection">ဘာသာပြန်ဦးတည်ချက်</label>
-      <select id="subtitleTranslationDirection" class="subtitle-select">
+      <select id="subtitleTranslationDirection" class="subtitle-select" style="display:block;width:100%;max-width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--subtitle-border-strong);border-radius:8px;background:var(--subtitle-subtle);color:var(--subtitle-text);font:inherit;">
         <option value="MY_TO_CN">မြန်မာ → တရုတ်</option>
         <option value="CN_TO_MY">တရုတ် → မြန်မာ</option>
       </select>
