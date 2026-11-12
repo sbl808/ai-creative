@@ -223,6 +223,8 @@ try {
     const knownText = 'မင်္ဂလာပါ - API fixture';
     let generationMode = 'success';
     let translationMode = 'success';
+    let generationRelease = null;
+    let translationRelease = null;
     let generationRequests = [];
     let translationRequests = [];
 
@@ -236,6 +238,9 @@ try {
       if (generationMode === 'error') {
         await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'srt_error', detail: 'private provider detail' }) });
         return;
+      }
+      if (generationMode === 'delayed') {
+        await new Promise(resolve => { generationRelease = resolve; });
       }
       await route.fulfill({
         status: 200,
@@ -254,6 +259,9 @@ try {
       if (translationMode === 'error') {
         await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'translate_error', detail: 'private provider detail' }) });
         return;
+      }
+      if (translationMode === 'delayed') {
+        await new Promise(resolve => { translationRelease = resolve; });
       }
       await route.fulfill({
         status: 200,
@@ -314,8 +322,20 @@ try {
       mimeType: 'audio/wav',
       buffer: fakeAudio,
     });
+    generationMode = 'delayed';
     await page.locator('#subtitleGenerateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleGenerateBtn')?.disabled);
+    check(viewport.name + ': Generate SRT button is disabled while processing',
+      await page.locator('#subtitleGenerateBtn').isDisabled());
+    check(viewport.name + ': Generate SRT sends one request while pending', generationRequests.length === 1);
+    await page.locator('#subtitleGenerateBtn').dispatchEvent('click');
+    check(viewport.name + ': repeated Generate click does not send another request', generationRequests.length === 1);
+    generationRelease();
+    generationRelease = null;
     await page.waitForFunction(() => document.getElementById('subtitleSrtInput')?.value.includes('Generated subtitle'));
+    check(viewport.name + ': Generate SRT button is re-enabled after success',
+      !(await page.locator('#subtitleGenerateBtn').isDisabled()));
+    generationMode = 'success';
     check(viewport.name + ': Generate SRT API is called once', generationRequests.length === 1);
     const generationRequest = generationRequests[0];
     check(viewport.name + ': Generate SRT uses POST and Bearer authorization',
@@ -360,8 +380,20 @@ try {
 
     await translationInput.fill(sampleSrt);
     await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
+    translationMode = 'delayed';
     await page.locator('#subtitleTranslateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleTranslateBtn')?.disabled);
+    check(viewport.name + ': Translate SRT button is disabled while processing',
+      await page.locator('#subtitleTranslateBtn').isDisabled());
+    check(viewport.name + ': Translate SRT sends one request while pending', translationRequests.length === 1);
+    await page.locator('#subtitleTranslateBtn').dispatchEvent('click');
+    check(viewport.name + ': repeated Translate click does not send another request', translationRequests.length === 1);
+    translationRelease();
+    translationRelease = null;
     await page.waitForFunction(() => document.getElementById('subtitleTranslatedOutput')?.value.includes('API translation'));
+    check(viewport.name + ': Translate SRT button is re-enabled after success',
+      !(await page.locator('#subtitleTranslateBtn').isDisabled()));
+    translationMode = 'success';
     check(viewport.name + ': Translate SRT API is called once', translationRequests.length === 1);
     const translationRequest = translationRequests[0];
     check(viewport.name + ': Translate SRT uses POST and Bearer authorization',
