@@ -25,7 +25,12 @@ assert.deepEqual(validateSrtRequestV1({
   input: { audioBase64: 'YXVkaW8=', mimeType: 'audio/webm;codecs=opus' },
 }), { ok: true, errors: [] });
 
-for (const studioId of ['story', 'short', 'shop']) {
+assert.deepEqual(validateSrtRequestV1({
+  ...validRequest,
+  studioId: 'shop',
+}), { ok: true, errors: [] });
+
+for (const studioId of ['story', 'short']) {
   const unsupportedStudioRequest = validateSrtRequestV1({
     ...validRequest,
     studioId,
