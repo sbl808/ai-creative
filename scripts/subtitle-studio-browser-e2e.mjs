@@ -323,8 +323,11 @@ try {
       buffer: fakeAudio,
     });
     generationMode = 'delayed';
+    const generationRequestPending = page.waitForRequest(request =>
+      request.url().includes('/api/studio/subtitle/srt') && request.method() === 'POST');
     await page.locator('#subtitleGenerateBtn').click();
     await page.waitForFunction(() => document.getElementById('subtitleGenerateBtn')?.disabled);
+    await generationRequestPending;
     check(viewport.name + ': Generate SRT button is disabled while processing',
       await page.locator('#subtitleGenerateBtn').isDisabled());
     check(viewport.name + ': Generate SRT sends one request while pending', generationRequests.length === 1);
@@ -426,6 +429,8 @@ try {
     check(viewport.name + ': Generate SRT API error is shown safely',
       generationErrorStatus.includes('SRT ဖန်တီးရာတွင် အခက်အခဲ') &&
       !generationErrorStatus.includes('private provider detail'));
+    check(viewport.name + ': Generate SRT button is re-enabled after error',
+      !(await page.locator('#subtitleGenerateBtn').isDisabled()));
 
     translationMode = 'error';
     await page.locator('#subtitleTranslateBtn').click();
@@ -434,6 +439,8 @@ try {
     check(viewport.name + ': Translate SRT API error is shown safely',
       translationErrorStatus.includes('SRT ဘာသာပြန်ရာတွင် အခက်အခဲ') &&
       !translationErrorStatus.includes('private provider detail'));
+    check(viewport.name + ': Translate SRT button is re-enabled after error',
+      !(await page.locator('#subtitleTranslateBtn').isDisabled()));
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
