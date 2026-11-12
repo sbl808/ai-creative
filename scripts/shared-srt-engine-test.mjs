@@ -98,7 +98,7 @@ const executionContext = {
   assert.equal(calls.length, 0);
 }
 
-// Unsupported Studio/operation combinations must not invoke provider services.
+// Studios outside the active SRT contract allowlist are rejected during request validation.
 for (const unsupported of [
   { ...request, studioId: 'story' },
   { ...request, studioId: 'short' },
@@ -107,7 +107,7 @@ for (const unsupported of [
   const { calls, generate } = makeServices();
   await assert.rejects(
     () => generate(env, unsupported, executionContext),
-    (error) => error.code === 'unsupported_shared_srt_capability',
+    (error) => error.code === 'invalid_srt_request',
   );
   assert.equal(calls.length, 0);
 }
