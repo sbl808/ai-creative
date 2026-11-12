@@ -264,6 +264,31 @@ try {
 
     const mediaInput = page.locator('#subtitleMediaFile');
 
+    // Translation validation must stop invalid input before reaching the Worker API.
+    await translationInput.fill('   ');
+    await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
+    await page.locator('#subtitleTranslateBtn').click();
+    check(viewport.name + ': empty translation SRT is rejected before API request',
+      translationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ'));
+
+    await translationInput.fill(sampleSrt);
+    await page.locator('#subtitleTranslationDirection').evaluate((element) => {
+      const invalidOption = document.createElement('option');
+      invalidOption.value = 'INVALID';
+      invalidOption.textContent = 'Invalid direction fixture';
+      element.appendChild(invalidOption);
+      element.value = 'INVALID';
+    });
+    await page.locator('#subtitleTranslateBtn').click();
+    check(viewport.name + ': invalid translation direction is rejected before API request',
+      translationRequests.length === 0 &&
+      await page.locator('#subtitleStatus').getAttribute('data-state') === 'error' &&
+      (await page.locator('#subtitleStatus').textContent()).includes('ဘာသာပြန်ဦးတည်ချက် မမှန်ကန်ပါ'));
+
+    await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
+
     // Empty selection and oversized files must be rejected before any API call.
     await mediaInput.setInputFiles([]);
     await page.locator('#subtitleGenerateBtn').click();
