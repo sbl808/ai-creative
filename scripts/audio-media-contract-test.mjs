@@ -29,7 +29,12 @@ const validTranscribeRequest = {
 };
 assert.deepEqual(validateAudioRequestV1(validTranscribeRequest), { ok: true, errors: [] });
 
-for (const studioId of ['story', 'short', 'image', 'shop']) {
+assert.deepEqual(validateAudioRequestV1({
+  ...validTtsRequest,
+  studioId: 'shop',
+}), { ok: true, errors: [] });
+
+for (const studioId of ['story', 'short', 'image']) {
   const unsupportedStudioRequest = validateAudioRequestV1({
     ...validTranscribeRequest,
     studioId,
