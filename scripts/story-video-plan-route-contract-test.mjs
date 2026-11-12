@@ -18,7 +18,10 @@ const cases = [
 function request(path, body) {
   return new Request('https://test.local' + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer valid-test-token',
+    },
     body: JSON.stringify(body),
   });
 }
