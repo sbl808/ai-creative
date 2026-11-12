@@ -14,6 +14,7 @@ export const STUDIO_LOADERS = {
   short: () => import('./studios/short/page.js'),
   image: () => import('./studios/image/page.js'),
   voice: () => import('./studios/voice/page.js'),
+  subtitle: () => import('./studios/subtitle/page.js'),
   shop: () => import('./studios/shop/page.js'),
 };
 
