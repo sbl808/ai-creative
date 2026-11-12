@@ -3,11 +3,12 @@ import { TRANSLATION_CONTRACT_VERSION } from '../worker/src/media-production/con
 import { createTranslationStudioAdapter } from '../worker/src/media-adapters/translation/index.js';
 import { createContentTranslationAdapter } from '../worker/src/media-adapters/content/translation.adapter.js';
 import { createVoiceTranslationAdapter } from '../worker/src/media-adapters/voice/translation.adapter.js';
+import { createShopTranslationAdapter } from '../worker/src/media-adapters/shop/translation.adapter.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-translation-test-key';
-const SOURCE_SRT = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ';
-const RESULT_SRT = '1\n00:00:00,000 --> 00:00:02,000\nမင်္ဂလာပါ\n你好';
+const SOURCE_SRT = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ';
+const RESULT_SRT = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ\\n你好';
 
 function createEngine() {
   const calls = [];
@@ -47,7 +48,7 @@ function createEngine() {
   assert.equal(calls[0][2].apiKey, API_KEY);
   assert.equal(calls[0][2].model, 'content-translation-model');
   assert.equal(calls[0][2].plan, undefined);
-  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('SRT:\\n' + SOURCE_SRT));
   assert.ok(calls[0][2].prompt.includes('SRT Number'));
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
 }
@@ -91,7 +92,7 @@ function createEngine() {
     },
   });
   assert.equal(calls[0][2].plan, 'PRO');
-  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('SRT:\\n' + SOURCE_SRT));
   assert.ok(calls[0][2].prompt.includes('အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်'));
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
 }
@@ -108,6 +109,43 @@ function createEngine() {
   });
   assert.equal(calls[0][1].input.direction, 'CN_TO_MY');
   assert.ok(calls[0][2].prompt.includes('ဒီ မြန်မာဘာသာပြန် Line'));
+}
+
+// Shop previously called Voice API, so it preserves the same translation prompt,
+// direction defaults and plan context while using a Shop-scoped contract.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createShopTranslationAdapter(engine);
+  const result = await adapter.translate(env, {
+    srtText: SOURCE_SRT,
+    apiKey: API_KEY,
+    model: 'shop-translation-model',
+    plan: 'PRO',
+    type: '2',
+  });
+
+  assert.deepEqual(result, { srt: RESULT_SRT });
+  assert.equal(calls[0][1].studioId, 'shop');
+  assert.equal(calls[0][1].input.direction, 'MY_TO_CN');
+  assert.equal(calls[0][1].input.type, '2');
+  assert.equal(calls[0][2].plan, 'PRO');
+  assert.ok(calls[0][2].prompt.includes('အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်'));
+  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+}
+
+// Shop maps the reverse direction and retains the Voice API's 15-character wrapping rule.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createShopTranslationAdapter(engine);
+  await adapter.translate(env, {
+    srtText: SOURCE_SRT,
+    direction: 'CN_TO_MY',
+    apiKey: API_KEY,
+    plan: 'PRO',
+  });
+  assert.equal(calls[0][1].input.direction, 'CN_TO_MY');
+  assert.ok(calls[0][2].prompt.includes('စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ'));
+  assert.ok(calls[0][2].prompt.includes('Number/Timestamp'));
 }
 
 // Empty SRT is rejected before invoking the shared engine.
