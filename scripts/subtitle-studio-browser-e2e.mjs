@@ -343,6 +343,7 @@ try {
     generationMode = 'success';
 
     // The exact 5MB boundary is permitted by the client-side size guard.
+    const requestsBeforeExactLimit = generationRequests.length;
     const exactLimitResponse = page.waitForResponse(response =>
       response.url().includes('/api/studio/subtitle/srt') && response.request().method() === 'POST');
     await mediaInput.setInputFiles({
@@ -352,9 +353,10 @@ try {
     });
     await page.locator('#subtitleGenerateBtn').click();
     await exactLimitResponse;
+    const exactLimitRequest = generationRequests.at(-1);
     check(viewport.name + ': exactly 5MB media reaches the mocked API',
-      generationRequests.length === 2 &&
-      generationRequests[1].body.audioBase64.length === Math.ceil((5 * 1024 * 1024) / 3) * 4);
+      generationRequests.length === requestsBeforeExactLimit + 1 &&
+      exactLimitRequest?.body.audioBase64.length === Math.ceil((5 * 1024 * 1024) / 3) * 4);
 
     await translationInput.fill(sampleSrt);
     await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
