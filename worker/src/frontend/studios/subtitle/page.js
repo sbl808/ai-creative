@@ -1,7 +1,10 @@
 // AI Creative Studio — Subtitle Studio / page.js
-// Initial HTML composition. Workflow scripts are intentionally not connected yet.
+// HTML composition with browser-side Subtitle workflow foundations.
 import { sidebarScript, renderStudioShell } from '../../shared.js';
 import { SUBTITLE_HOME_HTML } from './ui.js';
+import { CONSTANTS_SCRIPT } from './constants.js';
+import { STATE_SCRIPT } from './state.js';
+import { HELPERS_SCRIPT } from './helpers.js';
 
 export const SUBTITLE_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -87,6 +90,7 @@ ${renderStudioShell({
   content:SUBTITLE_HOME_HTML
 })}
 ${sidebarScript()}
+<script>${CONSTANTS_SCRIPT}${STATE_SCRIPT}${HELPERS_SCRIPT}</script>
 </body>
 </html>`;
 
