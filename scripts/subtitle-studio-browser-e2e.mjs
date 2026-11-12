@@ -25,8 +25,27 @@ try {
     httpOnly: true, sameSite: 'Lax',
   }]);
   const homePage = await homeContext.newPage();
+  // Attach the session cookie explicitly to the browser context and verify
+  // the server-side session before asserting the protected Home route.
+  const expectedCookie = 'aics_token=' + encodeURIComponent(token);
+  await homePage.setExtraHTTPHeaders({ Cookie: expectedCookie });
+  const authProbe = await homePage.request.get(url + '/app', {
+    headers: { Cookie: expectedCookie },
+    maxRedirects: 0,
+  });
+  const authProbeLocation = authProbe.headers().location || '';
+  check(
+    'E2E session is accepted by protected Home route',
+    authProbe.status() === 200,
+    'HTTP ' + authProbe.status() + ', redirect=' + (authProbeLocation ? new URL(authProbeLocation, url).pathname : 'none'),
+  );
   const homeResponse = await homePage.goto(url + '/app', { waitUntil: 'domcontentloaded' });
-  check('Home Dashboard returns HTTP 200', homeResponse?.status() === 200);
+  check(
+    'Home Dashboard returns HTTP 200',
+    homeResponse?.status() === 200,
+    'HTTP ' + (homeResponse?.status() ?? 'no response') +
+      ', finalPath=' + new URL(homePage.url()).pathname,
+  );
   const card = homePage.locator('[data-studio="subtitle"][data-home-action="navigate-studio"]');
   check('Subtitle Studio card is present', await card.count() === 1);
   await card.click();
