@@ -142,6 +142,105 @@ try {
     check(viewport.name + ': empty translated output shows an error',
       await page.locator('#subtitleStatus').getAttribute('data-state') === 'error');
 
+
+    // Intercept the Worker API so browser tests verify request contracts and UI
+    // behavior without contacting an AI provider or transmitting real media.
+    const generatedSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nGenerated subtitle';
+    const translatedApiSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nAPI translation';
+    const fakeAudio = Buffer.from('subtitle-browser-e2e-audio-fixture');
+    const knownText = 'မင်္ဂလာပါ - API fixture';
+    let generationMode = 'success';
+    let translationMode = 'success';
+    let generationRequests = [];
+    let translationRequests = [];
+
+    await page.route('**/api/studio/subtitle/srt', async (route) => {
+      const request = route.request();
+      generationRequests.push({
+        method: request.method(),
+        headers: request.headers(),
+        body: request.postDataJSON(),
+      });
+      if (generationMode === 'error') {
+        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'srt_error', detail: 'private provider detail' }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, srt: generatedSrt }),
+      });
+    });
+
+    await page.route('**/api/studio/subtitle/translate-srt', async (route) => {
+      const request = route.request();
+      translationRequests.push({
+        method: request.method(),
+        headers: request.headers(),
+        body: request.postDataJSON(),
+      });
+      if (translationMode === 'error') {
+        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'translate_error', detail: 'private provider detail' }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, srt: translatedApiSrt }),
+      });
+    });
+
+    await page.locator('#subtitleKnownText').fill(knownText);
+    await page.locator('#subtitleMediaFile').setInputFiles({
+      name: 'subtitle-fixture.wav',
+      mimeType: 'audio/wav',
+      buffer: fakeAudio,
+    });
+    await page.locator('#subtitleGenerateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleSrtInput')?.value.includes('Generated subtitle'));
+    check(viewport.name + ': Generate SRT API is called once', generationRequests.length === 1);
+    const generationRequest = generationRequests[0];
+    check(viewport.name + ': Generate SRT uses POST and Bearer authorization',
+      generationRequest.method === 'POST' && /^Bearer\\s+\\S+/.test(generationRequest.headers.authorization || ''));
+    check(viewport.name + ': Generate SRT sends expected media and known-text payload',
+      generationRequest.body.audioBase64 === fakeAudio.toString('base64') &&
+      generationRequest.body.mimeType === 'audio/wav' &&
+      generationRequest.body.knownText === knownText &&
+      generationRequest.body.type === '2');
+    check(viewport.name + ': Generate SRT response populates editor',
+      await editor.inputValue() === generatedSrt);
+
+    await translationInput.fill(sampleSrt);
+    await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
+    await page.locator('#subtitleTranslateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleTranslatedOutput')?.value.includes('API translation'));
+    check(viewport.name + ': Translate SRT API is called once', translationRequests.length === 1);
+    const translationRequest = translationRequests[0];
+    check(viewport.name + ': Translate SRT uses POST and Bearer authorization',
+      translationRequest.method === 'POST' && /^Bearer\\s+\\S+/.test(translationRequest.headers.authorization || ''));
+    check(viewport.name + ': Translate SRT sends exact text, direction, and type',
+      translationRequest.body.srtText === sampleSrt &&
+      translationRequest.body.direction === 'CN_TO_MY' &&
+      translationRequest.body.type === '2');
+    check(viewport.name + ': Translate SRT response populates output',
+      await translatedOutput.inputValue() === translatedApiSrt);
+
+    generationMode = 'error';
+    await page.locator('#subtitleGenerateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleStatus')?.getAttribute('data-state') === 'error');
+    const generationErrorStatus = await page.locator('#subtitleStatus').textContent();
+    check(viewport.name + ': Generate SRT API error is shown safely',
+      generationErrorStatus.includes('SRT ဖန်တီးရာတွင် အခက်အခဲ') &&
+      !generationErrorStatus.includes('private provider detail'));
+
+    translationMode = 'error';
+    await page.locator('#subtitleTranslateBtn').click();
+    await page.waitForFunction(() => document.getElementById('subtitleStatus')?.getAttribute('data-state') === 'error');
+    const translationErrorStatus = await page.locator('#subtitleStatus').textContent();
+    check(viewport.name + ': Translate SRT API error is shown safely',
+      translationErrorStatus.includes('SRT ဘာသာပြန်ရာတွင် အခက်အခဲ') &&
+      !translationErrorStatus.includes('private provider detail'));
+
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
     check(viewport.name + ': Subtitle UI survives refresh', await page.locator('#subtitleWorkflow').isVisible());
