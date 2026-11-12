@@ -11,6 +11,8 @@ import { generateMultimodal } from '../../core/ai/aiService.js';
 const SRT_TASK_BY_STUDIO = Object.freeze({
   content: 'content.transcribe',
   voice: 'voice.transcribe',
+  // Shop previously used Voice SRT; retain its provider task mapping during API isolation.
+  shop: 'voice.transcribe',
 });
 
 function createSafeError(code) {
