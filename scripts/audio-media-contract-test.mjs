@@ -29,11 +29,14 @@ const validTranscribeRequest = {
 };
 assert.deepEqual(validateAudioRequestV1(validTranscribeRequest), { ok: true, errors: [] });
 
-assert.deepEqual(validateAudioRequestV1({
-  ...validTranscribeRequest,
-  studioId: 'short',
-  input: { ...validTranscribeRequest.input, mimeType: 'audio/webm;codecs=opus' },
-}), { ok: true, errors: [] });
+for (const studioId of ['story', 'short', 'image', 'shop']) {
+  const unsupportedStudioRequest = validateAudioRequestV1({
+    ...validTranscribeRequest,
+    studioId,
+  });
+  assert.equal(unsupportedStudioRequest.ok, false);
+  assert.ok(unsupportedStudioRequest.errors.includes('invalid_studio_id'));
+}
 
 const privacySentinels = {
   text: 'PRIVATE_AUDIO_TEXT_SENTINEL_6a2f',
