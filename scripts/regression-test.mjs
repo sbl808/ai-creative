@@ -17,6 +17,7 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { isAiGenerationRoute } from '../worker/src/middleware/requestGuards.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -530,6 +531,14 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
   }
   return { ok: statuses.slice(0, 5).every(status => status === 400) && statuses[5] === 429,
     msg: `statuses=${statuses.join(',')}` };
+});
+
+console.log('— Subtitle shared AI rate-limit route matching —');
+await check('Subtitle SRT and translation POST endpoints are included; non-POST is excluded', async () => {
+  const srt = isAiGenerationRoute('/api/studio/subtitle/srt', 'POST');
+  const translation = isAiGenerationRoute('/api/studio/subtitle/translate-srt', 'POST');
+  const get = isAiGenerationRoute('/api/studio/subtitle/srt', 'GET');
+  return { ok: srt && translation && !get, msg: 'srt=' + srt + ' translation=' + translation + ' get=' + get };
 });
 
 console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
