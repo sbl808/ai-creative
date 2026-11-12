@@ -114,6 +114,31 @@ try {
       await validationStatus.getAttribute('data-state') === 'success' &&
       (await validationStatus.textContent()).includes('Subtitle အပိုင်း 1 ခု'));
 
+    await editor.fill('0\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ');
+    await validateButton.click();
+    check(viewport.name + ': cue number zero is rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Subtitle Number မမှန်ကန်ပါ'));
+
+    await editor.fill('1\\n00:60:00,000 --> 00:61:00,000\\nမင်္ဂလာပါ');
+    await validateButton.click();
+    check(viewport.name + ': timestamp minutes 60 are rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Timestamp အချိန် မမှန်ကန်ပါ'));
+
+    await editor.fill('1\\n00:00:60,000 --> 00:01:01,000\\nမင်္ဂလာပါ');
+    await validateButton.click();
+    check(viewport.name + ': timestamp seconds 60 are rejected',
+      await validationStatus.getAttribute('data-state') === 'error' &&
+      (await validationStatus.textContent()).includes('Timestamp အချိန် မမှန်ကန်ပါ'));
+
+    const twoCueSrt = '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ\\n\\n2\\n00:00:02,000 --> 00:00:04,000\\nနေကောင်းလား';
+    await editor.fill(twoCueSrt);
+    await validateButton.click();
+    check(viewport.name + ': two valid SRT cues pass validation',
+      await validationStatus.getAttribute('data-state') === 'success' &&
+      (await validationStatus.textContent()).includes('Subtitle အပိုင်း 2 ခု'));
+
     await editor.fill('1\n00:00:XX,000 --> 00:00:02,000\nမင်္ဂလာပါ');
     await validateButton.click();
     check(viewport.name + ': malformed timestamp is rejected',
