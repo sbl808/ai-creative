@@ -487,7 +487,6 @@ function syncSubtitleType(type){
   var isSubtitle=$('iStudio').value==='SUBTITLE';
   $('iType').classList.toggle('hidden',isSubtitle);
   $('iSubtitleType').classList.toggle('hidden',!isSubtitle);
-  if(isSubtitle&&type===undefined){$('iPlan').value='PRO';}
   if(isSubtitle){
     var value=type||$('iSubtitleType').value||'SRT_GENERATE';
     var known=value==='SRT_GENERATE'||value==='SRT_TRANSLATE';
@@ -495,7 +494,12 @@ function syncSubtitleType(type){
     if(legacy)legacy.remove();
     if(!known){var option=document.createElement('option');option.value=value;option.textContent='Legacy: '+value;option.setAttribute('data-legacy','1');$('iSubtitleType').appendChild(option);}
     $('iSubtitleType').value=value;
-  }else if(type){$('iType').value=type;}
+    $('iPlan').disabled=known;
+    if(known)$('iPlan').value='PRO';
+  }else{
+    $('iPlan').disabled=false;
+    if(type)$('iType').value=type;
+  }
 }
 
 function addEdit(id){
