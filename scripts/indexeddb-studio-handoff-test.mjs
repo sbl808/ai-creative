@@ -46,6 +46,24 @@ const shopHandoffEnd = shopAudio.indexOf('window.handoffShopAudioToSubtitle', sh
 assert.ok(shopHandoffStart >= 0 && shopHandoffEnd > shopHandoffStart);
 const shopHandoffSource = shopAudio.slice(shopHandoffStart, shopHandoffEnd);
 assert.doesNotMatch(shopHandoffSource, /audioBase64\s*:/, 'handoff metadata must not duplicate audio bytes');
+const subtitleActions = readFileSync(new URL('../worker/src/frontend/studios/subtitle/actions.js', import.meta.url), 'utf8');
+const subtitleUi = readFileSync(new URL('../worker/src/frontend/studios/subtitle/ui.js', import.meta.url), 'utf8');
+assert.match(subtitleActions, /function subtitleLoadShopAudioHandoff\(\)/);
+assert.match(subtitleActions, /AICS_HANDOFFS\.get\(handoffId\)/);
+assert.match(subtitleActions, /AICS_STUDIO_DRAFTS\.load\('shop'\)/);
+assert.match(subtitleActions, /record\.source !== 'shop'/);
+assert.match(subtitleActions, /record\.target !== 'subtitle'/);
+assert.match(subtitleActions, /record\.payload\.kind !== 'shop-audio-reference'/);
+assert.match(subtitleActions, /subtitleFingerprint\(audio\.data\)/);
+assert.match(subtitleActions, /fingerprint !== record\.payload\.audioFingerprint/);
+assert.match(subtitleActions, /SUBTITLE_STATE\.mediaInput = null/);
+assert.match(subtitleActions, /function subtitleRequestSrt\(/);
+assert.match(subtitleActions, /subtitleRequestSrt\(importedBase64, handoffMedia\.mimeType, known, button\)/);
+assert.match(subtitleActions, /subtitleLoadShopAudioHandoff\(\);/);
+assert.match(subtitleUi, /id="subtitleHandoffStatus"/);
+assert.doesNotMatch(subtitleActions, /AICS_HANDOFFS\.remove\(/, 'receiving audio must not delete the handoff record');
+assert.doesNotMatch(subtitleActions, /AICS_STUDIO_DRAFTS\.remove\(/, 'receiving audio must not delete the Shop draft');
+
 
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
