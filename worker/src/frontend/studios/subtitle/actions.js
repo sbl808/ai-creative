@@ -1,6 +1,6 @@
 // AI Creative Studio — Subtitle Studio browser actions.
 // Media and generated SRT remain in browser memory; no persistence or logging.
-export const ACTIONS_SCRIPT = String.raw`
+export const ACTIONS_SCRIPT = String.raw\`
 function subtitleSetStatus(message, isError) {
   var status = document.getElementById('subtitleStatus');
   if (!status) return;
@@ -15,17 +15,43 @@ function subtitleGetToken() {
 function subtitleApiPost(path, body) {
   var token = subtitleGetToken();
   if (!token) return Promise.reject(new Error('unauthorized'));
-  return fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    cache: 'no-store',
-    body: JSON.stringify(body)
+  if (!window.AICS_BYOK || typeof window.AICS_BYOK.withGeminiKey !== 'function') {
+    return Promise.reject(new Error('credentials_unavailable'));
+  }
+
+  // API Key ကို Browser IndexedDB မှ ဖွင့်ယူပြီး လက်ရှိ Request အတွက်သာ ထည့်ပို့သည်။
+  // Key ကို localStorage သို့မဟုတ် Studio state ထဲ မသိမ်းပါ။
+  return window.AICS_BYOK.withGeminiKey(body).then(function (requestBody) {
+    return fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      cache: 'no-store',
+      body: JSON.stringify(requestBody)
+    });
   }).then(function (response) {
     return response.json().catch(function () { return {}; }).then(function (data) {
       if (!response.ok) throw new Error(data.error || 'request_failed');
       return data;
     });
   });
+}
+
+function subtitleFriendlyRequestError(code, fallback) {
+  var messages = {
+    credentials_unavailable: 'Browser Storage မရနိုင်ပါ။ စာမျက်နှာကို ပြန်ဖွင့်ပြီး ထပ်ကြိုးစားပါ။',
+    credentials_login_required: 'Login ဝင်ပြီးမှ API Key ကို အသုံးပြုနိုင်ပါသည်။',
+    credentials_account_unavailable: 'Account အချက်အလက် မရရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
+    credentials_not_found: 'Gemini API Key မထည့်ရသေးပါ။ Settings မှာ API Key ထည့်ပါ။',
+    credentials_passphrase_cancelled: 'API Key ဖွင့်ရန် Passphrase မထည့်ရသေးပါ။',
+    credentials_passphrase_required: 'API Key ဖွင့်ရန် Passphrase ထည့်ပေးပါ။',
+    credentials_decrypt_failed: 'Passphrase မမှန်ပါ သို့မဟုတ် API Key ကို ဖွင့်မရပါ။',
+    missing_api_key: 'Gemini API Key မရရှိပါ။ Settings မှာ API Key ကို စစ်ဆေးပါ။',
+    unauthorized: 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
+    invalid_token: 'Login သက်တမ်းကုန်ဆုံးသွားပါသည်။ ပြန်လည် Login ဝင်ပါ။',
+    feature_denied: 'ဒီ Feature ကို သင့် Plan နဲ့ အသုံးပြုခွင့်မရှိသေးပါ။',
+    feature_disabled: 'ဒီ Feature ကို လောလောဆယ် ပိတ်ထားပါသည်။'
+  };
+  return messages[String(code || '')] || fallback;
 }
 
 function subtitleGenerateSrt() {
@@ -73,9 +99,7 @@ function subtitleGenerateSrt() {
       SUBTITLE_STATE.processingState = 'error';
       SUBTITLE_STATE.errorState = String(error && error.message || 'request_failed');
       var code = SUBTITLE_STATE.errorState;
-      var message = code === 'unauthorized' || code === 'invalid_token' ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။' :
-        code === 'feature_denied' || code === 'feature_disabled' ? 'ဒီ Feature ကို အသုံးပြုခွင့်မရှိသေးပါ။' :
-        'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။';
+      var message = subtitleFriendlyRequestError(code, 'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။');
       subtitleSetStatus(message, true);
     }).finally(function () { if (button) button.disabled = false; });
   };
@@ -169,10 +193,8 @@ function subtitleTranslateSrt() {
     SUBTITLE_STATE.processingState = 'error';
     SUBTITLE_STATE.errorState = String(error && error.message || 'translate_error');
     var code = SUBTITLE_STATE.errorState;
-    var message = code === 'unauthorized' || code === 'invalid_token' ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။' :
-      code === 'feature_denied' || code === 'feature_disabled' ? 'ဒီ Feature ကို အသုံးပြုခွင့်မရှိသေးပါ။' :
-      code === 'missing_srt' ? 'ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ။' :
-      'SRT ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။';
+    var message = code === 'missing_srt' ? 'ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ။' :
+      subtitleFriendlyRequestError(code, 'SRT ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။');
     subtitleSetStatus(message, true);
   }).finally(function () { if (button) button.disabled = false; });
 }
@@ -217,4 +239,4 @@ function subtitleSendTranslatedSrtToEditor() {
   if (sendToTranslation) sendToTranslation.addEventListener('click', subtitleSendEditedSrtToTranslation);
   if (sendTranslatedToEditor) sendTranslatedToEditor.addEventListener('click', subtitleSendTranslatedSrtToEditor);
 })();
-`;
+\`;
