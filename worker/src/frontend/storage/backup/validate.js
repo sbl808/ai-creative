@@ -115,7 +115,7 @@ function installBackupValidator(target, config) {
     if (record.contractVersion !== 1) throw fail('backup_invalid_record');
     requireString(record, 'source', 40);
     requireString(record, 'target', 40);
-    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(record.target) === -1) {
+    if (['story', 'content', 'short', 'image', 'voice', 'shop', 'subtitle'].indexOf(record.target) === -1) {
       throw fail('backup_invalid_record');
     }
     if (!isObject(record.payload)) throw fail('backup_invalid_record');
