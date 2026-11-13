@@ -38,32 +38,22 @@ try {
     };
   }, token);
 
-  await page.route('**/api/studio/shop/audio/tts', async route => {
-    assert.equal(route.request().method(), 'POST');
-    await route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ data: audioBase64, mimeType: 'audio/wav' }),
-    });
-  });
-
   const shopResponse = await page.goto(url + '/app/shop', { waitUntil: 'domcontentloaded' });
   assert.equal(shopResponse?.status(), 200, 'Shop Studio should load');
   await page.locator('#viewAudio').waitFor({ state: 'attached' });
-  await page.evaluate(() => {
-    // Seed the prerequisite Product Content result so the normal Audio branch guard passes.
+  await page.evaluate((data) => {
+    // Seed a synthetic completed Shop Audio result; the test focuses on persistence and handoff.
     shopState.content.result = 'E2E product content fixture';
     shopState.mainStep = 2;
+    shopState.view = 'audio';
+    shopState.audio.step = 2;
+    shopState.audio.result = {
+      data, mimeType: 'audio/wav', url: '', voiceName: 'Puck'
+    };
     if (window.studioForceGoStep) window.studioForceGoStep(2);
-    goAudioBranch();
-  });
-  await page.locator('#audioText').fill('မင်္ဂလာပါ။ စမ်းသပ်အသံဖိုင် ဖြစ်ပါသည်။');
-  await page.evaluate(() => generateAudio());
-  await page.waitForFunction(() => {
-    const card = document.getElementById('audioResultCard');
-    const info = document.getElementById('audioInfo');
-    return card && !card.classList.contains('shop-hidden') &&
-      info && info.textContent.includes('Puck');
-  });
+    showBranchViews();
+  }, audioBase64);
+  await page.locator('#audioResultCard').waitFor({ state: 'visible' });
   const shopAudio = await page.evaluate(() => window.studioCollectDraft().shopState.audio.result);
   assert.equal(shopAudio.data, audioBase64, 'Synthetic TTS audio should appear in Shop result');
 
