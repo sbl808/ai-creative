@@ -12,9 +12,9 @@ export const SUBTITLE_HOME_HTML = `
       <div class="subtitle-actions"><button type="button" class="subtitle-button" id="subtitleGenerateBtn">SRT ဖန်တီးရန်</button></div>
       <hr class="subtitle-divider">
       <h3 id="subtitleTranscribeTitle">🗒️ Audio → Text (အသံမှ စာသား)</h3>
-      <p>ရွေးထားသော Audio / Video မှ စာသားကို အရင်ထုတ်ယူနိုင်ပါသည်။ ဒီစာသားကို နောက်တစ်ဆင့်တွင် SRT ဖန်တီးရာ၌လည်း အသုံးပြုနိုင်မည်ဖြစ်သည်။</p>
+      <p>ရွေးထားသော Audio / Video မှ စာသားကို သီးခြားထုတ်ယူပြီး အောက်တွင် ပြင်ဆင်နိုင်ပါသည်။</p>
       <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleTranscribeBtn" disabled aria-describedby="subtitleTranscribeStatus">စာသားထုတ်ရန်</button></div>
-      <p class="subtitle-note" id="subtitleTranscribeStatus" role="status" aria-live="polite">Audio → Text လုပ်ဆောင်ချက်ကို နောက်အဆင့်တွင် API နှင့် ချိတ်ဆက်ပါမည်။</p>
+      <p class="subtitle-note" id="subtitleTranscribeStatus" role="status" aria-live="polite">Audio ဖိုင် ရွေးပါ သို့မဟုတ် Shop မှ Audio ပို့ပါ။ ဖိုင်အရွယ်အစား 5MB အထိသာ လက်ခံပါသည်။</p>
       <label for="subtitleTranscriptOutput">ထုတ်ယူထားသော စာသား</label>
       <textarea id="subtitleTranscriptOutput" rows="7" placeholder="Audio မှ ထုတ်ယူထားသော စာသားကို ဒီနေရာတွင် ပြသပါမည်။"></textarea>
     </section>
