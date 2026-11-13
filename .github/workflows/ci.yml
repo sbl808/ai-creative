@@ -262,3 +262,4 @@ jobs:
           node --experimental-default-type=module scripts/subtitle-studio-browser-e2e.mjs
           node --experimental-default-type=module scripts/shop-subtitle-handoff-browser-e2e.mjs
           node --experimental-default-type=module scripts/voice-subtitle-handoff-browser-e2e.mjs
+          node --experimental-default-type=module scripts/voice-subtitle-responsive-browser-e2e.mjs
