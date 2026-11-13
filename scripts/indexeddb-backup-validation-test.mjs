@@ -60,6 +60,14 @@ assert.equal(valid.backup.stores.drafts[0].studio, 'short');
 assert.equal(valid.backup.stores.ideas[0].result.title, 'A story idea');
 assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 7);
 
+const subtitleHandoffBackup = JSON.parse(JSON.stringify(validBackup));
+subtitleHandoffBackup.stores.studio_handoffs[0].target = 'subtitle';
+assert.equal(validateBackupEnvelope(subtitleHandoffBackup, ownerId).valid, true);
+assert.equal(validateBackupText(JSON.stringify(subtitleHandoffBackup), ownerId).valid, true);
+const unsupportedHandoffBackup = JSON.parse(JSON.stringify(validBackup));
+unsupportedHandoffBackup.stores.studio_handoffs[0].target = 'future-studio';
+expectCode(unsupportedHandoffBackup, 'backup_invalid_record');
+
 const currentBackup = JSON.parse(JSON.stringify(validBackup));
 currentBackup.schemaVersion = 7;
 currentBackup.stores.media_assets = [{
