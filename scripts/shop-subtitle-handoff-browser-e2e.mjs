@@ -53,7 +53,7 @@ try {
     if (window.studioForceGoStep) window.studioForceGoStep(2);
     showBranchViews();
   }, audioBase64);
-  await page.locator('#audioResultCard').waitFor({ state: 'visible' });
+  await page.waitForFunction(() => !document.getElementById('audioResultCard')?.classList.contains('shop-hidden'));
   const shopAudio = await page.evaluate(() => window.studioCollectDraft().shopState.audio.result);
   assert.equal(shopAudio.data, audioBase64, 'Synthetic TTS audio should appear in Shop result');
 
