@@ -1,6 +1,6 @@
 // AI Creative Studio — Subtitle Studio browser actions.
 // Media and generated SRT remain in browser memory; no persistence or logging.
-export const ACTIONS_SCRIPT = String.raw\`
+export const ACTIONS_SCRIPT = String.raw`
 function subtitleSetStatus(message, isError) {
   var status = document.getElementById('subtitleStatus');
   if (!status) return;
@@ -239,4 +239,4 @@ function subtitleSendTranslatedSrtToEditor() {
   if (sendToTranslation) sendToTranslation.addEventListener('click', subtitleSendEditedSrtToTranslation);
   if (sendTranslatedToEditor) sendTranslatedToEditor.addEventListener('click', subtitleSendTranslatedSrtToEditor);
 })();
-\`;
+`;
