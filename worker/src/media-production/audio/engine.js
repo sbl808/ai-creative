@@ -13,6 +13,9 @@ const AUDIO_TASK_BY_STUDIO = Object.freeze({
     tts: 'voice.voice',
     transcribe: 'voice.transcribe',
   }),
+  subtitle: Object.freeze({
+    transcribe: 'subtitle.transcribe',
+  }),
   // Shop preserves the current Voice TTS model task while owning its adapter/API.
   shop: Object.freeze({ tts: 'voice.voice' }),
 });
@@ -33,6 +36,7 @@ function createSafeError(code) {
  * Current route-backed capabilities:
  * - Content: TTS
  * - Voice: TTS and audio transcription
+ * - Subtitle: audio transcription
  *
  * Studio-specific prompts and workflows remain in their Studio modules.
  */
