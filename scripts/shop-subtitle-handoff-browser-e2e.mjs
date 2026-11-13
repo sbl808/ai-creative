@@ -52,6 +52,8 @@ try {
   await page.evaluate(() => {
     // Seed the prerequisite Product Content result so the normal Audio branch guard passes.
     shopState.content.result = 'E2E product content fixture';
+    shopState.mainStep = 2;
+    if (window.studioForceGoStep) window.studioForceGoStep(2);
     goAudioBranch();
   });
   await page.locator('#audioText').fill('မင်္ဂလာပါ။ စမ်းသပ်အသံဖိုင် ဖြစ်ပါသည်။');
