@@ -72,7 +72,12 @@ assert.match(subtitleActions, /record\.payload\.kind !== 'shop-audio-reference'/
 assert.match(subtitleActions, /!audio \|\| typeof audio\.data !== 'string' \|\| !audio\.data/, 'missing Shop audio is rejected');
 assert.match(subtitleActions, /fingerprint !== record\.payload\.audioFingerprint/, 'changed Shop audio is rejected');
 assert.match(subtitleActions, /SUBTITLE_STATE\.mediaInput = \{/, 'only verified audio is exposed to Subtitle input');
-assert.match(subtitleActions, /Shop Audio Handoff ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။/, 'invalid handoff shows a safe error');
+assert.match(subtitleActions, /Studio Handoff ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။/, 'invalid handoff shows a safe generic error');
+assert.match(subtitleActions, /record\.source === 'voice' && record\.payload\.kind === 'voice-audio-reference'/, 'Voice audio reference handoff is supported');
+assert.match(subtitleActions, /AICS_STUDIO_DRAFTS\.load\('voice'\)/, 'Voice Draft is loaded only through the explicit connect action');
+assert.match(subtitleActions, /voice_audio_missing/, 'missing Voice audio is rejected safely');
+assert.match(subtitleActions, /voice_audio_mismatch/, 'changed or mismatched Voice audio is rejected safely');
+assert.match(subtitleActions, /voiceConnectButton\.onclick = function \(\)/, 'Voice Draft loading requires an explicit user click');
 assert.match(subtitleActions, /!file && \(!handoffMedia \|\| !handoffMedia\.audioBase64\)/, 'SRT generation requires a selected file or verified handoff audio');
 
 
