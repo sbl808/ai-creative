@@ -153,6 +153,21 @@ assert.deepEqual(backup.stores.media_assets.map(record => record.id), ['ma-a']);
 assert.ok(!json.includes('B private'));
 assert.equal(sourceData.creations.length, 2, 'export must not mutate IndexedDB records');
 
+const maxBytes = 50 * 1024 * 1024;
+const boundaryRecord = { id: 'c-size', user_id: 'user-a', title: '' };
+sourceData.creations.push(boundaryRecord);
+const baselineJson = await window.AICS_BACKUP.exportJson();
+boundaryRecord.title = 'x'.repeat(maxBytes - Buffer.byteLength(baselineJson, 'utf8'));
+const boundaryJson = await window.AICS_BACKUP.exportJson();
+assert.equal(Buffer.byteLength(boundaryJson, 'utf8'), maxBytes, 'an export exactly at 50 MiB must be allowed');
+boundaryRecord.title += 'x';
+await assert.rejects(
+  window.AICS_BACKUP.exportJson(),
+  error => error && error.code === 'backup_file_too_large',
+  'an export larger than 50 MiB must be rejected'
+);
+sourceData.creations.pop();
+
 const download = await window.AICS_BACKUP.download();
 assert.match(download.filename, /^aics-browser-backup-/);
 
