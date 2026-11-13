@@ -8,9 +8,7 @@
 //   generateContentVoice(env,{text,voiceName,plan,apiKey,model}) → { data, mimeType }  (TTS — WAV)
 //   generateContentVideo(env,{idea,contentType,generationLevel,plan,apiKey,model}) → { characters, scenes, rawFallback }
 //   generateContentVideoImage(env,{prompt,plan,apiKey,model}) → { data, mimeType }
-//   generateContentSrt(env,{audioBase64,mimeType,apiKey,model}) → { srt }
-//   translateContentSrt(env,{srtText,direction,apiKey,model}) → { srt }
-// ⚠️ Content Scene Schema သည် Story/Short နှင့် မတူပါ (frontend/content.js ကြောင့်):
+////// ⚠️ Content Scene Schema သည် Story/Short နှင့် မတူပါ (frontend/content.js ကြောင့်):
 //   characters: [ { name, description } ]
 //   scenes:     [ { number, duration, visualPrompt, description, dialogue } ]
 
@@ -18,8 +16,6 @@ import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateText } from '../core/ai/aiService.js';
 import { generateContentVoice as generateSharedContentVoice } from '../media-adapters/content/audio.adapter.js';
-import { generateContentSrtShared } from '../media-adapters/content/srt.adapter.js';
-import { translateContentSrtShared } from '../media-adapters/content/translation.adapter.js';
 export { generateContentVideoImage } from '../media-adapters/content/image.adapter.js';
 import { resolveModel } from '../core/aiModels.js';
 
@@ -206,36 +202,6 @@ export async function generateContentVideo(env, { idea, contentType, generationL
 }
 
 // Content Scene Image ကို Shared Image Adapter က ဆောင်ရွက်သည်။
-
-// ============================================================
-// Tab 3 — SRT Subtitle from Audio
-// ============================================================
-export async function generateContentSrt(env, { audioBase64, mimeType, apiKey, model }) {
-  if (!audioBase64) throw new Error('missing_audio');
-  const instruction =
-    'အောက်ပါ Audio ကို SRT (SubRip Subtitle) format အတိုင်း Transcribe လုပ်ပါ။ ' +
-    'Audio ရဲ့ speech pacing ကို ကြည့်ပြီး Timestamp ကို အကြမ်းဖျင်း ခန့်မှန်းပါ။ ' +
-    'TEXT LINE RULE (အရေးကြီး): Subtitle Block တစ်ခုစီရဲ့ Text Line ကို ' +
-    "'အဓိပ္ပါယ်ပြည့်စုံပြီး အလယ်အလတ် ရှည်လျားမှုရှိသော စကားစု (Phrase)' တစ်ခုအလိုက်သာ ခွဲပါ — " +
-    'Character အရေအတွက် ရေတွက်၍ လုံးဝ မခွဲပါနှင့်။ ' +
-    'အရမ်းတိုတို (စကားလုံး ၁-၂ လုံးတည်း) မဖြစ်စေရပါ။ ' +
-    'SRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။';
-  return generateContentSrtShared(env, {
-    audioBase64,
-    mimeType: mimeType || 'audio/mpeg',
-    apiKey,
-    model,
-    prompt: instruction,
-  });
-}
-
-// ============================================================
-// Tab 3 — Translate SRT (my ↔ cn)
-// ============================================================
-export async function translateContentSrt(env, { srtText, direction, apiKey, model }) {
-  if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
-  return translateContentSrtShared(env, { srtText, direction, apiKey, model });
-}
 
 // ============================================================
 // Content-specific Parsers (Story/Short နှင့် သီးခြား)
