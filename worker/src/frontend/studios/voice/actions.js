@@ -22,34 +22,21 @@ function vLockBadge(){return USER_PLAN==='PRO'?'':' <span class="lock">🔒 Pro<
 
 // ===== Body / Stepper / Chips =====
 function vSetBody(html){
-  // aiModelSel2 ကို DOM ပြန်ဆွဲခြင်းကြောင့် မပျောက်စေရန် Store သို့ အရင်ပြန်ထည့်ပြီးမှ Slot ထဲသို့ ရွှေ့သည်
-  var store=vEl('voiceModel2Store'),g=vEl('voiceModel2Group');
-  if(store&&g&&g.parentNode!==store)store.appendChild(g);
   vEl('voiceWorkflowBody').innerHTML=html;
-  var slot=vEl('voiceModel2Slot');
-  if(slot&&g)slot.appendChild(g);
   vFill();
 }
 function vSetStep(n){VOICE_STATE.voiceStep=n;renderStepper(VOICE_STEPS,n);var status=vEl('voiceStatus'),step=VOICE_STEPS.filter(function(x){return x.n===n;})[0];if(status&&step)status.textContent='အဆင့် '+n+' / '+VOICE_STEPS.length+' — '+step.label;}
 function renderStepper(items,current){var c=vEl('voiceStepper'),h='';if(!c)return;h+='<ol class="voice-step-list" role="list">';items.forEach(function(x){var cls=x.n===current?'active':(x.n<current?'done':'');h+='<li class="vstep '+cls+'" role="listitem" data-step="'+x.n+'"'+(x.n===current?' aria-current="step"':'')+'>'+(x.n<current?'✓ ':'')+esc(x.label)+'</li>';});h+='</ol>';c.innerHTML=h;var active=c.querySelector('.vstep.active');if(active&&window.studioScrollElementIntoView)window.studioScrollElementIntoView(active,'#voiceStepper',true);}
 function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');var id=el.getAttribute('aria-describedby');if(id){var note=vEl(id);if(note&&note.classList.contains('field-error'))note.remove();el.removeAttribute('aria-describedby');}}
 function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
-function renderChips(){
-  var h='';
-  VOICE_MODES.forEach(function(m){
-    var on=VOICE_STATE.voiceMode===m.id;
-    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" data-voice-action="switch-mode" data-voice-mode="'+esc(m.id)+'">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
-  });
-  vEl('voiceChips').innerHTML=h;
-}
+function renderChips(){ /* Voice Studio now has one workflow: Text → Voice. */ }
 // TTS = aiModelSel (Action bar) · အသံ→စာ / ဘာသာပြန် = aiModelSel2 (Format screen ထဲ) — တစ်ကြိမ်တွင် တစ်ခုသာ ပြသည်
 function vSyncModelBar(){
   var m=document.querySelector('.aics-actions-model');
-  if(m)m.style.display=(VOICE_STATE.voiceMode==='text-to-voice')?'':'none';
+  if(m)m.style.display='';
 }
 function vHasResult(){
-  var s=VOICE_STATE;
-  return !!((s.audioResult&&s.audioResult.data)||(s.voiceResult&&typeof s.voiceResult.text==='string')||s.srtResult||s.translationResult);
+  return !!(VOICE_STATE.audioResult&&VOICE_STATE.audioResult.data);
 }
 function resetVoiceBranch(mode,source){
   // ရလဒ်များကိုသာ ရှင်းသည် — VOICE_INPUTS နှင့် တင်ထားသော ဖိုင် (MEDIA_AUDIO) ကို ထိန်းထားသည်
@@ -73,7 +60,7 @@ function vSyncEdits(){
 }
 function vCapture(){
   var I=VOICE_INPUTS;
-  [['ttsText','tts'],['speakingStyle','speaking'],['voiceName','voice'],['voiceInstruction','instruction'],['audience','audience'],['srtSourceText','srt']].forEach(function(p){
+  [['ttsText','tts'],['speakingStyle','speaking'],['voiceName','voice'],['voiceInstruction','instruction'],['audience','audience']].forEach(function(p){
     var x=vEl(p[0]);if(x&&x.value!==undefined)I[p[1]]=x.value;
   });
   var d=vEl('translationDirection');if(d&&d.value)VOICE_STATE.translationDirection=d.value;
@@ -81,7 +68,7 @@ function vCapture(){
 }
 function vFill(){
   var I=VOICE_INPUTS;
-  var map={ttsText:I.tts,speakingStyle:I.speaking,voiceName:I.voice,voiceInstruction:I.instruction,audience:I.audience,srtSourceText:I.srt};
+  var map={ttsText:I.tts,speakingStyle:I.speaking,voiceName:I.voice,voiceInstruction:I.instruction,audience:I.audience};
   Object.keys(map).forEach(function(id){var x=vEl(id);if(x&&map[id]!==undefined&&map[id]!==null)x.value=map[id];});
   var d=vEl('translationDirection');if(d)d.value=VOICE_STATE.translationDirection;
   ['ttsText','speakingStyle','voiceInstruction','srtSourceText','srtEditor','translatedEditor','textResult'].forEach(function(id){autoGrow(vEl(id));});
@@ -124,80 +111,36 @@ function vReadMedia(cb){
 
 // ===== Step 1 — Input =====
 function vRenderInput(){
-  var m=VOICE_STATE.voiceMode;
-  VOICE_STATE.view='input';vSetStep(1);renderChips();vSyncModelBar();
-  var b='';
-  if(m==='text-to-voice'){
-    b='<div class="vcard"><div class="vtitle">📝 စာသား</div><p class="hint">Voice အဖြစ် ဖန်တီးလိုသော စာသားကို ထည့်ပါ။</p>'
-      +(VOICE_STATE.source?'<div class="source-note">Content Studio မှ နောက်ဆုံးပြင်ထားသော Content ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။</div>':'')
-      +'<div class="form-group"><label for="ttsText">စာသားအကြောင်းအရာ *</label><textarea id="ttsText" required aria-required="true" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" data-voice-input="grow-clear"></textarea></div>'
-      +'<div class="btn-row voice-space-top-0"><button type="button" class="btn ghost" data-voice-action="paste" data-voice-target="ttsText">📋 Paste</button><button type="button" class="btn ghost" data-voice-action="example">✨ ဥပမာ</button></div></div>';
-  }else if(m==='media-to-text'){
-    var note=MEDIA_AUDIO.base64?'<div class="source-note">ယခင်ဖိုင် — '+esc(MEDIA_AUDIO.fileName||'audio')+' ကို မှတ်ထားပါသည်။ ဖိုင်အသစ် မရွေးလျှင် ဒီဖိုင်ကို ဆက်သုံးမည်။</div>':'';
-    b='<div class="vcard"><div class="vtitle">🎧 အသံ / Video</div><p class="hint">Audio သို့မဟုတ် Video ဖိုင်ကို တင်ပါ။ 5MB အထိ အသုံးပြုနိုင်ပါသည်။</p>'+note
-      +'<div class="form-group"><label for="mediaFile">Audio / Video File *</label><input type="file" id="mediaFile" required aria-required="true" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv" data-voice-change="clear-validation"></div></div>';
-  }else{
-    b='<div class="vcard"><div class="vtitle">🌐 SRT စာသား</div><p class="hint">ဘာသာပြန်လိုသော SRT ကို paste လုပ်ပါ သို့မဟုတ် .srt ဖိုင်တင်ပါ။</p>'
-      +'<div class="form-group"><label for="srtSourceText">SRT *</label><textarea id="srtSourceText" class="srt-box" required aria-required="true" placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;မင်္ဂလာပါ" data-voice-input="grow-clear"></textarea></div>'
-      +'<div class="btn-row voice-space-top-0"><button type="button" class="btn ghost" data-voice-action="paste" data-voice-target="srtSourceText">📋 Paste</button></div>'
-      +'<div class="form-group voice-space-top-14"><label>သို့မဟုတ် .srt ဖိုင်</label><input type="file" id="srtFile" accept=".srt,.txt,text/plain" data-voice-change="srt-file"></div></div>';
-  }
+  VOICE_STATE.voiceMode='text-to-voice';
+  VOICE_STATE.view='input';vSetStep(1);vSyncModelBar();
+  var b='<div class="vcard"><div class="vtitle">📝 စာသား</div><p class="hint">Voice အဖြစ် ဖန်တီးလိုသော စာသားကို ထည့်ပါ။</p>'
+    +(VOICE_STATE.source?'<div class="source-note">Content Studio မှ နောက်ဆုံးပြင်ထားသော Content ကို အလိုအလျောက် ထည့်ပေးထားပါသည်။</div>':'')
+    +'<div class="form-group"><label for="ttsText">စာသားအကြောင်းအရာ *</label><textarea id="ttsText" required aria-required="true" placeholder="Voice ပြောင်းလိုသော Text ကို ထည့်ပါ" data-voice-input="grow-clear"></textarea></div>'
+    +'<div class="btn-row voice-space-top-0"><button type="button" class="btn ghost" data-voice-action="paste" data-voice-target="ttsText">📋 Paste</button><button type="button" class="btn ghost" data-voice-action="example">✨ ဥပမာ</button></div></div>';
   vSetBody(voiceErrorBanner()+b);
   setStickyActions([bReset(),{label:'Next →',cls:'primary',fn:vInputNext}]);
 }
 function vInputNext(){
-  vCapture();var m=VOICE_STATE.voiceMode;
-  if(m==='text-to-voice'){
-    if(!VOICE_INPUTS.tts.trim()){vShowValidation('ttsText','Voice ပြောင်းလိုသော စာသားကို ထည့်ပါ။');return;}
-    vRenderFormat();
-  }else if(m==='media-to-text'){
-    vReadMedia(function(){vRenderFormat();});
-  }else{
-    if(!VOICE_INPUTS.srt.trim()){vShowValidation('srtSourceText','ဘာသာပြန်လိုသော SRT စာသားကို ထည့်ပါ။');return;}
-    vRenderFormat();
-  }
+  vCapture();
+  if(!VOICE_INPUTS.tts.trim()){vShowValidation('ttsText','Voice ပြောင်းလိုသော စာသားကို ထည့်ပါ။');return;}
+  vRenderFormat();
 }
-
-// ===== Step 2 — Format =====
 function vSetMediaOutput(o){vCapture();VOICE_STATE.mediaOutput=o;vRenderFormat();}
 function vRenderFormat(){
-  var m=VOICE_STATE.voiceMode,b='';
-  VOICE_STATE.view='format';vSetStep(2);renderChips();vSyncModelBar();
-  if(m==='text-to-voice'){
-    b='<div class="vcard"><div class="vtitle">🎚️ အသံပုံစံ</div><p class="hint">အသံနှင့် စကားပြောပုံစံကို ရွေးပါ။ AI Model ကို အောက်ဆုံးဘားမှာ ရွေးနိုင်ပါသည်။</p>'
-      +'<div class="source-note">“'+esc(shortHint(VOICE_INPUTS.tts))+'”</div>'
-      +'<div class="form-group"><label for="voiceName">Voice Style</label><select id="voiceName">'+voiceOptions()+'</select></div>'
-      +'<div class="form-group"><label for="speakingStyle">Speaking Style</label><textarea id="speakingStyle" placeholder="ဥပမာ - နူးညံ့စွာ၊ တက်ကြွစွာ၊ သဘာဝကျစွာ ပြောပါ" data-voice-input="grow"></textarea></div>'
-      +'<div class="form-group"><label for="voiceInstruction">ညွှန်ကြားချက် (Optional)</label><textarea id="voiceInstruction" placeholder="AI အသံအတွက် ထပ်မံညွှန်ကြားလိုသည်များ" data-voice-input="grow"></textarea></div>'
-      +'<div class="form-group"><label for="audience">ပရိသတ်</label><select id="audience"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select></div></div>';
-  }else if(m==='media-to-text'){
-    var srtSel=VOICE_STATE.mediaOutput==='srt';
-    b='<div class="vcard"><div class="vtitle">📤 Output</div><p class="hint">ဖိုင် — '+esc(MEDIA_AUDIO.fileName||'audio')+'</p>'
-      +'<div class="seg">'
-      +'<button type="button" class="choice-card'+(srtSel?'':' active')+'" data-voice-action="set-media-output" data-voice-output="text"><strong>📝 စာသား</strong><span>စကားပြောစာသားကို Text အဖြစ်ရယူရန်</span></button>'
-      +'<button type="button" class="choice-card'+(srtSel?' active':'')+'" data-voice-action="set-media-output" data-voice-output="srt"><strong>📄 မူရင်း SRT'+vLockBadge()+'</strong><span>Timestamp ပါတဲ့ subtitle အဖြစ် ရယူရန်</span></button></div>'
-      +'<div id="voiceModel2Slot" class="voice-space-top-14"></div></div>';
-  }else{
-    b='<div class="vcard"><div class="vtitle">🌐 ဘာသာပြန်ဦးတည်ချက်</div><p class="hint">SRT Number နှင့် Timestamp များကို မပြောင်းဘဲ စာသားကိုသာ ဘာသာပြန်ပါမည်။</p>'
-      +'<div class="form-group"><label>ဘာသာပြန်ဦးတည်ချက်</label>'+vDirSelect()+'</div>'
-      +'<div id="voiceModel2Slot"></div>'
-      +(USER_PLAN==='PRO'?'':'<div class="pro-note">🔒 ဘာသာပြန်ခြင်းကို Pro User သာ အသုံးပြုနိုင်ပါသည်။</div>')+'</div>';
-  }
+  VOICE_STATE.voiceMode='text-to-voice';
+  VOICE_STATE.view='format';vSetStep(2);vSyncModelBar();
+  var b='<div class="vcard"><div class="vtitle">🎚️ အသံပုံစံ</div><p class="hint">အသံနှင့် စကားပြောပုံစံကို ရွေးပါ။ AI Model ကို အောက်ဆုံးဘားမှာ ရွေးနိုင်ပါသည်။</p>'
+    +'<div class="source-note">“'+esc(shortHint(VOICE_INPUTS.tts))+'”</div>'
+    +'<div class="form-group"><label for="voiceName">Voice Style</label><select id="voiceName">'+voiceOptions()+'</select></div>'
+    +'<div class="form-group"><label for="speakingStyle">Speaking Style</label><textarea id="speakingStyle" placeholder="ဥပမာ - နူးညံ့စွာ၊ တက်ကြွစွာ၊ သဘာဝကျစွာ ပြောပါ" data-voice-input="grow"></textarea></div>'
+    +'<div class="form-group"><label for="voiceInstruction">ညွှန်ကြားချက် (Optional)</label><textarea id="voiceInstruction" placeholder="AI အသံအတွက် ထပ်မံညွှန်ကြားလိုသည်များ" data-voice-input="grow"></textarea></div>'
+    +'<div class="form-group"><label for="audience">ပရိသတ်</label><select id="audience"><option>လူတိုင်း</option><option>လူငယ်</option><option>လူကြီး</option><option>ကလေး</option></select></div></div>';
   vSetBody(voiceErrorBanner()+b);
   setStickyActions([
     {label:'← Back',cls:'ghost',fn:function(){vCapture();vRenderInput();}},
-    {label:'✨ ဖန်တီးရန်',cls:'primary',fn:vGenerate}
+    {label:'✨ အသံဖန်တီးရန်',cls:'primary',fn:vGenerate}
   ]);
 }
-function vGenerate(){
-  vCapture();var m=VOICE_STATE.voiceMode;
-  if(m==='text-to-voice'){vRunTts();}
-  else if(m==='media-to-text'){
-    if(VOICE_STATE.mediaOutput==='srt'){if(!vPro())return;VOICE_STATE.voiceResult=null;vRunSrt('media');}
-    else vRunTranscribe();
-  }else{vRunTranslation('translate');}
-}
-
 // ===== Step 3 — Generate (loading) =====
 function vRenderLoading(msg,hint){
   VOICE_STATE.view='loading';vSetStep(3);renderChips();vSyncModelBar();
@@ -305,20 +248,13 @@ function vBackFromSrt(){
 
 // ===== Step 4 — Result Hub (shared aicsResultHub) =====
 function vPipeline(kind){
-  var s=VOICE_STATE,m=s.voiceMode,p=[];
-  var hasSrt=!!s.srtResult,hasTr=!!(s.translationResult||translatedSrt);
-  if(m==='text-to-voice')p.push({label:'အသံ',done:true,current:kind==='audio'});
-  else if(m==='media-to-text'&&(kind==='text'||(s.voiceResult&&typeof s.voiceResult.text==='string')))p.push({label:'စာသား',done:true,current:kind==='text'});
-  if(m==='translate')p.push({label:'SRT',done:true});
-  else p.push({label:'SRT',done:hasSrt,current:kind==='srt'});
-  p.push({label:'ဘာသာပြန်',done:hasTr,current:kind==='translation'});
-  return p;
+  return [{label:'စာသား',done:true},{label:'အသံ',done:true,current:kind==='audio'}];
 }
 function vRenderResult(kind){
   VOICE_STATE.view='result';VOICE_STATE.resultKind=kind;
   vSetStep(4);renderChips();vSyncModelBar();
-  var fn={audio:vRenderAudioResult,text:vRenderTextResult,srt:vRenderSrtResult,translation:vRenderTranslationResult}[kind];
-  fn();
+  if(kind!=='audio'){vRenderInput();return;}
+  vRenderAudioResult();
 }
 // ===== GLOBAL RESULT UI — Voice results use the shared Global Result Box (media-safe, no collapse) =====
 function vWrapResult(id,type){
@@ -332,8 +268,8 @@ function vRenderAudioResult(){
     pipeline:vPipeline('audio'),
     body:'<div class="audio-box" id="voiceAudioBox"><audio controls src="'+esc(url)+'"></audio></div>',
     tools:[{label:'💾 Download',fn:downloadVoiceAudio},{label:'💾 သိမ်းရန်',fn:saveVoiceCreation},{label:'↻ Retry',fn:vRunTts}],
-    nextTitle:'ဒီရလဒ်နဲ့ ဆက်လုပ်ရန်',
-    next:[{icon:'📄',label:'မူရင်း SRT ဖန်တီးရန်',desc:'Timestamp ပါသော subtitle',locked:USER_PLAN!=='PRO',fn:function(){vStartSrt('voice');}}]
+    nextTitle:'အသံရလဒ်',
+    next:[]
   });
   vSetBody(voiceErrorBanner()+'<div class="vcard"><div class="vtitle">🎧 အသံ ရလဒ်</div>'+hub+'</div>');
   vWrapResult('voiceAudioBox','audio');
@@ -465,12 +401,7 @@ function studioRestoreDraft(){/* Draft is restored by Voice Studio after its DOM
 window.studioRestoreDraft=studioRestoreDraft;
 
 function vResultAvailable(k){
-  var s=VOICE_STATE;
-  if(k==='audio')return !!LAST_AUDIO.base64;
-  if(k==='text')return !!(s.voiceResult&&typeof s.voiceResult.text==='string');
-  if(k==='srt')return !!s.srtResult;
-  if(k==='translation')return !!(s.translationResult||translatedSrt);
-  return false;
+  return k==='audio'&&!!LAST_AUDIO.base64;
 }
 function vHandleDelegatedAction(event){
   var target=event.target;
@@ -478,8 +409,7 @@ function vHandleDelegatedAction(event){
   var action=target.closest('[data-voice-action]');
   if(!action)return;
   var name=action.getAttribute('data-voice-action');
-  if(name==='switch-mode')voiceSwitchMode(action.getAttribute('data-voice-mode'));
-  else if(name==='paste')vPasteInto(action.getAttribute('data-voice-target'));
+  if(name==='paste')vPasteInto(action.getAttribute('data-voice-target'));
   else if(name==='example')vExample();
   else if(name==='set-media-output')vSetMediaOutput(action.getAttribute('data-voice-output'));
 }
@@ -495,7 +425,7 @@ function vHandleDelegatedChange(event){
   if(!target||!target.matches)return;
   var action=target.getAttribute('data-voice-change');
   if(action==='clear-validation')vClearValidation(target);
-  else if(action==='srt-file')vSrtFilePicked();
+
 }
 (function initVoice(){
   if(!TOKEN){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
