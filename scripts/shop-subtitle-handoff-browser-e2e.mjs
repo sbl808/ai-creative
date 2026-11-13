@@ -33,9 +33,6 @@ try {
   await page.addInitScript((value) => {
     localStorage.setItem('aics_token', value);
     localStorage.setItem('aics_plan', 'PRO');
-    window.AICS_BYOK = {
-      withGeminiKey: async (body) => ({ ...body, apiKey: 'shop-subtitle-e2e-key' }),
-    };
   }, token);
 
   const shopResponse = await page.goto(url + '/app/shop', { waitUntil: 'domcontentloaded' });
@@ -80,6 +77,18 @@ try {
   assert.equal(stored.handoff?.payload?.kind, 'shop-audio-reference');
   assert.equal(stored.audio?.data, audioBase64, 'Audio bytes should remain in the Shop IndexedDB draft');
   assert.equal(stored.handoffHasAudioBytes, false, 'Handoff record must not duplicate audio bytes');
+
+  // Override the production BYOK runtime after app initialization, as in the
+  // Subtitle Studio browser E2E test. addInitScript runs too early and is
+  // overwritten by the application's byok-runtime.js.
+  await page.evaluate(() => {
+    window.AICS_BYOK = {
+      withGeminiKey: async (body) => ({
+        ...body,
+        apiKey: 'shop-subtitle-e2e-key',
+      }),
+    };
+  });
 
   let srtRequest;
   await page.route('**/api/studio/subtitle/srt', async route => {
