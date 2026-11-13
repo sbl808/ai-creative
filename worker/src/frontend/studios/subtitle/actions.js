@@ -174,8 +174,8 @@ function subtitleLoadShopAudioHandoff() {
       throw new Error('invalid_handoff');
     }
     return window.AICS_STUDIO_DRAFTS.load('shop').then(function (draft) {
-      var audio = draft && draft.data && draft.data.shopState &&
-        draft.data.shopState.audio && draft.data.shopState.audio.result;
+      var audio = draft && draft.data && draft.data.data && draft.data.data.shopState &&
+        draft.data.data.shopState.audio && draft.data.data.shopState.audio.result;
       if (!audio || typeof audio.data !== 'string' || !audio.data) {
         throw new Error('shop_audio_missing');
       }
