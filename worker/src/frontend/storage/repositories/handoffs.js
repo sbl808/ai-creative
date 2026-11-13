@@ -3,7 +3,7 @@ function __aicsValidateHandoff(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw __aicsStorageError('invalid_handoff');
  if(input.contractVersion!==1)throw __aicsStorageError('unsupported_handoff_version');
  if(typeof input.source!=='string'||!input.source||input.source.length>40)throw __aicsStorageError('invalid_handoff_source');
- if(typeof input.target!=='string'||['story','content','short','image','voice','shop'].indexOf(input.target)===-1)throw __aicsStorageError('invalid_handoff_target');
+ if(typeof input.target!=='string'||['story','content','short','image','voice','shop','subtitle'].indexOf(input.target)===-1)throw __aicsStorageError('invalid_handoff_target');
  if(!input.payload||typeof input.payload!=='object'||Array.isArray(input.payload))throw __aicsStorageError('invalid_handoff_payload');
 }
 window.AICS_HANDOFFS={
