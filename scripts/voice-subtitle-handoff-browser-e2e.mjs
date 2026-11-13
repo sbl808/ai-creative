@@ -80,6 +80,7 @@ try {
     const repository = window.AICS_STUDIO_DRAFTS;
     const originalLoad = repository.load.bind(repository);
     const calls = [];
+    window.__voiceDraftLoadCalls = calls;
     repository.load = function (studio) {
       calls.push(studio);
       return originalLoad(studio);
@@ -93,11 +94,12 @@ try {
   const connected = await page.evaluate(() => ({
     mediaInput: SUBTITLE_STATE.mediaInput,
     status: document.getElementById('subtitleHandoffStatus')?.textContent || '',
-    loadCalls: window.__voiceDraftLoadCalls || null,
+    loadCalls: window.__voiceDraftLoadCalls ? window.__voiceDraftLoadCalls.slice() : [],
   }));
   assert.equal(connected.mediaInput?.source, 'voice');
   assert.equal(connected.mediaInput?.audioBase64, audioBase64);
   assert.equal(connected.mediaInput?.mimeType, 'audio/wav');
+  assert.deepEqual(connected.loadCalls, ['voice'], 'Voice Draft should load only after the Connect click');
 
   // Mock the Subtitle API so the test validates the actual request contract
   // without contacting Gemini or transmitting real user media.
