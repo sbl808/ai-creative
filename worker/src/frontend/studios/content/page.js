@@ -80,12 +80,6 @@ select option{background:var(--bg-card);color:var(--text)}
 .aics-work .audio-container{margin-top:12px}
 .aics-work .audio-container audio{width:100%;margin-top:8px}
 .aics-work .voice-hint{font-size:12px;color:var(--text3);margin-top:8px;font-style:italic}
-.aics-work .srt-box{font-family:'Courier New',monospace;font-size:12.5px;min-height:120px;line-height:1.5}
-.aics-work .direction-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
-.aics-work .direction-chip{padding:8px 14px;border:1px solid var(--border);border-radius:20px;font-size:12.5px;cursor:pointer;color:var(--text2);transition:all .2s;user-select:none;min-height:36px;display:inline-flex;align-items:center}
-.aics-work .direction-chip:hover{border-color:var(--cyan);color:var(--cyan)}
-.aics-work .direction-chip.selected{background:rgba(0,229,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
-.aics-work .divider{border:none;border-top:1px solid var(--border);margin:18px 0}
 .aics-work .result-label{font-size:12px;font-weight:600;color:var(--success);margin-bottom:6px}
 .aics-work .characters-list{display:flex;flex-wrap:wrap;gap:10px}
 .aics-work .scene-image-area{margin-top:12px;text-align:center}
@@ -207,18 +201,6 @@ ${sidebarScript()}
       case 'generate-voice':window.generateVoice();break;
       case 'content-nav-audio':window.csNav(22);break;
       case 'download-audio':window.downloadAudio();break;
-      case 'generate-srt':window.generateSrt();break;
-      case 'copy-result-srt':window.copyText('resultSrt');break;
-      case 'download-result-srt':window.downloadSrt('resultSrt','content_subtitle.srt');break;
-      case 'translate-srt':window.translateSrt();break;
-      case 'select-direction':
-        window.selectDirection(button);
-        button.parentElement.querySelectorAll('.direction-chip').forEach(function(chip){
-          chip.setAttribute('aria-pressed',String(chip===button));
-        });
-        break;
-      case 'copy-translated-srt':window.copyText('resultSrtTranslated');break;
-      case 'download-translated-srt':window.downloadSrt('resultSrtTranslated','content_subtitle_translated.srt');break;
       case 'copy-character':window.copyCharText(Number(button.dataset.aicsIndex));break;
       case 'copy-scene':window.copySceneText(Number(button.dataset.aicsIndex));break;
       case 'copy-environment':window.copyEnvText(Number(button.dataset.aicsIndex));break;
@@ -248,9 +230,6 @@ a{color:var(--cyan)}
 .btn-purple{background:#334155;color:#fff}
 .btn-ghost{color:#475569;border-color:#e2e8f0}
 .btn-ghost:hover{color:#0f766e;border-color:#0f766e}
-.aics-work .type-chip,.aics-work .direction-chip{background:#fff;border-color:var(--border);color:var(--text2);border-radius:8px}
-.aics-work .type-chip:hover,.aics-work .direction-chip:hover{border-color:var(--cyan);color:var(--cyan)}
-.aics-work .direction-chip.selected{background:#f0fdfa;border-color:var(--cyan);color:#115e59}
 .aics-work .result-card,.aics-work .final-char-card,.aics-work .final-scene-card{background:#fff;border-color:var(--border)}
 .aics-work .result-card-label,.aics-work .final-prompt-label,.aics-work .final-box-label{color:#0f766e}
 .aics-work .result-card-body,.aics-work .final-prompt-text{color:var(--text)}
@@ -265,7 +244,6 @@ a{color:var(--cyan)}
 .aics-work .error-box{background:#fef2f2;border-color:#fecaca;color:#991b1b}
 .toast{background:#fff;border-color:#bbf7d0;color:#166534;box-shadow:0 4px 16px rgba(15,23,42,.12)}
 :where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:2px solid #0f766e!important;outline-offset:2px!important}
-.aics-work .direction-chip{font:inherit;cursor:pointer}
 @media(max-width:767px){
  .aics-work .aics-out-hub .aics-out-cards{grid-template-columns:1fr}
  .aics-work .aics-out-hub .aics-out-card{flex-direction:row;align-items:center;gap:10px;padding:14px}
@@ -285,9 +263,9 @@ html[data-aics-theme] .aics-app .aics-work :is(.card-title-sub,.story-intro,.for
 html[data-aics-theme] .aics-app .aics-work :is(.btn-primary,.primary){background:var(--aics-primary)!important;border-color:var(--aics-primary-border,var(--aics-primary))!important;color:#fff!important}
 html[data-aics-theme] .aics-app .aics-work :is(.btn-primary,.primary):hover{background:var(--aics-primary-hover,var(--aics-primary))!important}
 html[data-aics-theme] .aics-app .aics-work :is(.btn-secondary,.secondary,.btn-purple,.purple,.btn-ghost,.ghost){background:var(--aics-surface-subtle)!important;border-color:var(--aics-border-strong)!important;color:var(--aics-text)!important}
-html[data-aics-theme] .aics-app .aics-work :is(.type-chip,.direction-chip,.vchip,.choice-card,.mode-card){color:var(--aics-text)!important}
-html[data-aics-theme] .aics-app .aics-work :is(.type-chip,.direction-chip,.vchip,.choice-card,.mode-card):hover{border-color:var(--aics-primary)!important}
-html[data-aics-theme] .aics-app .aics-work :is(.direction-chip.selected,.vchip.active,.vstep.active){background:var(--aics-primary-soft,var(--aics-surface-subtle))!important;border-color:var(--aics-primary-border,var(--aics-border-strong))!important;color:var(--aics-text)!important}
+html[data-aics-theme] .aics-app .aics-work :is(.type-chip,.vchip,.choice-card,.mode-card){color:var(--aics-text)!important}
+html[data-aics-theme] .aics-app .aics-work :is(.type-chip,.vchip,.choice-card,.mode-card):hover{border-color:var(--aics-primary)!important}
+html[data-aics-theme] .aics-app .aics-work :is(.vchip.active,.vstep.active){background:var(--aics-primary-soft,var(--aics-surface-subtle))!important;border-color:var(--aics-primary-border,var(--aics-border-strong))!important;color:var(--aics-text)!important}
 html[data-aics-theme] .aics-app .aics-work :is(a,.result-card-label,.final-prompt-label,.final-box-label,.aics-out-icon){color:var(--aics-primary)!important}
 html[data-aics-theme] .aics-app .aics-work .error-box{background:var(--aics-surface-subtle)!important;border-color:var(--aics-danger,var(--aics-border))!important;color:var(--aics-danger,var(--aics-text))!important}
 html[data-aics-theme] .aics-app .toast{background:var(--aics-surface)!important;border-color:var(--aics-border-strong)!important;color:var(--aics-text)!important}
