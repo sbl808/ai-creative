@@ -29,6 +29,24 @@ assert.match(ACTIONS_SCRIPT, /window\.studioReset = function studioResetStorySes
 assert.match(ACTIONS_SCRIPT, /window\.AICS_SESSIONS\.remove\(storySessionId\)/);
 assert.match(ACTIONS_SCRIPT, /localStorage\.removeItem\('aics_draft_story_imgcache'\)/);
 
+const shopAudio = readFileSync(new URL('../worker/src/frontend/studios/shop/audio.js', import.meta.url), 'utf8');
+const shopUi = readFileSync(new URL('../worker/src/frontend/studios/shop/ui.js', import.meta.url), 'utf8');
+const shopActions = readFileSync(new URL('../worker/src/frontend/studios/shop/actions.js', import.meta.url), 'utf8');
+assert.match(shopUi, /data-shop-action="handoffShopAudioToSubtitle"/);
+assert.match(shopActions, /'handoffShopAudioToSubtitle'/);
+assert.match(shopAudio, /function handoffShopAudioToSubtitle\(\)/);
+assert.match(shopAudio, /window\.studioPersistDraft\(false\)/);
+assert.match(shopAudio, /AICS_STUDIO_DRAFTS\.load\('shop'\)/);
+assert.match(shopAudio, /kind:'shop-audio-reference'/);
+assert.match(shopAudio, /audioFingerprint:audioFingerprint/);
+assert.match(shopAudio, /target:'subtitle'/);
+assert.match(shopAudio, /window\.location\.href='\/app\/subtitle\?handoff='/);
+const shopHandoffStart = shopAudio.indexOf('function handoffShopAudioToSubtitle');
+const shopHandoffEnd = shopAudio.indexOf('window.handoffShopAudioToSubtitle', shopHandoffStart);
+assert.ok(shopHandoffStart >= 0 && shopHandoffEnd > shopHandoffStart);
+const shopHandoffSource = shopAudio.slice(shopHandoffStart, shopHandoffEnd);
+assert.doesNotMatch(shopHandoffSource, /audioBase64\s*:/, 'handoff metadata must not duplicate audio bytes');
+
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const story = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
 const storyUi = readFileSync(new URL('../worker/src/frontend/studios/story/ui.js', import.meta.url), 'utf8');
