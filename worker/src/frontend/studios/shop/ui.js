@@ -258,6 +258,7 @@ ${aicsResultLoadingHtml('audioLoading','AI ပြင်ဆင်နေသည်.
 <div class="audio-info" id="audioInfo">Audio မရှိသေးပါ</div>
 <div class="btn-row">
 <button class="btn btn-secondary btn-sm" data-shop-event="click" data-shop-action="downloadAudio">&#128190; Save Audio</button>
+<button class="btn btn-primary btn-sm" data-shop-event="click" data-shop-action="handoffShopAudioToSubtitle">&#8594; Subtitle Studio သို့ ပို့ရန်</button>
 </div>
 <hr class="divider">
 <div class="srt-label">&#128221; မူရင်း SRT စာတန်းထိုး ဖန်တီးရန် <span class="pro-tag">PRO</span></div>
