@@ -11,6 +11,7 @@ assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
 assert.match(source, /createObjectStore\('studio_handoffs'/);
 assert.match(source, /window\.AICS_HANDOFFS\s*=\s*\{/);
 assert.match(source, /contractVersion!==1/);
+assert.match(source, /\['story','content','short','image','voice','shop','subtitle'\]\.indexOf\(input\.target\)/, 'IndexedDB handoff repository accepts Subtitle as a target');
 assert.match(source, /owner_target_createdAt/);
 new vm.Script(source, { filename: 'client-storage.js' });
 new vm.Script(ACTIONS_SCRIPT, { filename: 'story-actions.js' });
