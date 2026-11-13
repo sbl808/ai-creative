@@ -3,6 +3,7 @@ import { buildSystemPrompt } from '../../cms/prompt-templates/index.js';
 
 const CMS_STUDIO = 'SUBTITLE';
 const CMS_GENERATE_TYPE = 'SRT_GENERATE';
+const CMS_TRANSLATE_TYPE = 'SRT_TRANSLATE';
 
 const DEFAULT_SRT_RULES = [
   'SUBTITLE SRT GENERATION RULES:',
@@ -34,6 +35,19 @@ async function loadSubtitleGenerateCmsPrompt(env, plan, legacyType) {
 
   const legacy = String(legacyType || '').trim();
   if (legacy && legacy !== CMS_GENERATE_TYPE) {
+    return loadSubtitleCmsPrompt(env, plan, legacy);
+  }
+  return '';
+}
+
+async function loadSubtitleTranslationCmsPrompt(env, plan, legacyType) {
+  // Translation အတွက် သီးခြား Canonical CMS Record ကို ဦးစားပေးသည်။
+  const canonical = await loadSubtitleCmsPrompt(env, plan, CMS_TRANSLATE_TYPE);
+  if (canonical) return canonical;
+
+  // CMS record မပြောင်းရွှေ့ရသေးမီ လက်ရှိ legacy type ကို fallback သုံးသည်။
+  const legacy = String(legacyType || '').trim();
+  if (legacy && legacy !== CMS_TRANSLATE_TYPE) {
     return loadSubtitleCmsPrompt(env, plan, legacy);
   }
   return '';
@@ -79,7 +93,7 @@ export async function buildSubtitleTranslationPrompt(env, {
   const languageInstruction = normalizedDirection === 'CN_TO_MY'
     ? 'တရုတ်ဘာသာမှ မြန်မာဘာသာသို့ ဘာသာပြန်ပါ။'
     : 'မြန်မာဘာသာမှ တရုတ်ဘာသာသို့ ဘာသာပြန်ပါ။';
-  const system = await loadSubtitleCmsPrompt(env, plan, type);
+  const system = await loadSubtitleTranslationCmsPrompt(env, plan, type);
 
   return [
     system,
