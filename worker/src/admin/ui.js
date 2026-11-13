@@ -487,6 +487,7 @@ function syncSubtitleType(type){
   var isSubtitle=$('iStudio').value==='SUBTITLE';
   $('iType').classList.toggle('hidden',isSubtitle);
   $('iSubtitleType').classList.toggle('hidden',!isSubtitle);
+  if(isSubtitle&&type===undefined){$('iPlan').value='PRO';}
   if(isSubtitle){
     var value=type||$('iSubtitleType').value||'SRT_GENERATE';
     var known=value==='SRT_GENERATE'||value==='SRT_TRANSLATE';
