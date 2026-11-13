@@ -46,6 +46,7 @@ function subtitleFriendlyRequestError(code, fallback) {
     credentials_passphrase_required: 'API Key ဖွင့်ရန် Passphrase ထည့်ပေးပါ။',
     credentials_decrypt_failed: 'Passphrase မမှန်ပါ သို့မဟုတ် API Key ကို ဖွင့်မရပါ။',
     empty_result: 'AI မှ စာသားရလဒ် မရရှိပါ။ ထပ်မံကြိုးစားပါ။',
+    empty_srt_result: 'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
     transcribe_error: 'Audio မှ စာသားထုတ်ယူရာတွင် အခက်အခဲရှိနေပါသည်။',
     missing_api_key: 'Gemini API Key မရရှိပါ။ Settings မှာ API Key ကို စစ်ဆေးပါ။',
     unauthorized: 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
@@ -173,7 +174,7 @@ function subtitleRequestSrt(audioBase64, mimeType, known, button) {
   }).then(function (result) {
     var editor = document.getElementById('subtitleSrtInput');
     var srt = String(result.srt || '');
-    if (!srt) throw new Error('empty_result');
+    if (!srt) throw new Error('empty_srt_result');
     SUBTITLE_STATE.sourceSrt = srt;
     SUBTITLE_STATE.editedSrt = srt;
     if (editor) { editor.value = srt; editor.focus(); }
