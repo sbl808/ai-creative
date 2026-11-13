@@ -14,7 +14,7 @@ const DEFAULT_SRT_RULES = [
   '- Timestamp များသည် Audio ၏ အမှန်တကယ် speech pacing နှင့် အနီးစပ်ဆုံး ကိုက်ညီရမည်။',
   '- Subtitle block များ၏ နံပါတ်စဉ်ကို 1 မှ စ၍ အစဉ်လိုက် သတ်မှတ်ပါ။',
   '- မကြားရသော စကားလုံးများကို မခန့်မှန်းတီထွင်ပါနှင့်။',
-].join('\\n');
+].join('\n');
 
 async function loadSubtitleCmsPrompt(env, plan, type) {
   try {
@@ -55,14 +55,14 @@ export async function buildSubtitleSrtPrompt(env, {
         'မူရင်းစာသားကို အစဉ်လိုက် SRT Subtitle block များအဖြစ် သဘာဝကျစွာ ခွဲပါ။',
         'မူရင်းစာသား:',
         sourceText,
-      ].join('\\n')
+      ].join('\n')
     : 'အောက်ပါ Audio ကို SRT (SubRip Subtitle) format ဖြင့် တိကျစွာ Transcribe လုပ်ပါ။';
   return [
     system,
     DEFAULT_SRT_RULES,
     instructions,
     'SRT format ကိုသာ ပြန်ပေးပါ။ ရှင်းလင်းချက် သို့မဟုတ် Markdown code fence မထည့်ပါနှင့်။',
-  ].filter(Boolean).join('\\n\\n');
+  ].filter(Boolean).join('\n\n');
 }
 
 export async function buildSubtitleTranslationPrompt(env, {
@@ -92,5 +92,5 @@ export async function buildSubtitleTranslationPrompt(env, {
     'SRT format ကိုသာ ပြန်ပေးပါ။ ရှင်းလင်းချက် သို့မဟုတ် Markdown code fence မထည့်ပါနှင့်။',
     'INPUT SRT:',
     source,
-  ].filter(Boolean).join('\\n\\n');
+  ].filter(Boolean).join('\n\n');
 }
