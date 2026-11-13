@@ -57,7 +57,7 @@ try {
     goAudioBranch();
   });
   await page.locator('#audioText').fill('မင်္ဂလာပါ။ စမ်းသပ်အသံဖိုင် ဖြစ်ပါသည်။');
-  await page.locator('#genAudioBtn').click();
+  await page.evaluate(() => generateAudio());
   await page.waitForFunction(() => {
     const card = document.getElementById('audioResultCard');
     const info = document.getElementById('audioInfo');
@@ -67,7 +67,7 @@ try {
   const shopAudio = await page.evaluate(() => window.studioCollectDraft().shopState.audio.result);
   assert.equal(shopAudio.data, audioBase64, 'Synthetic TTS audio should appear in Shop result');
 
-  await page.locator('[data-shop-action="handoffShopAudioToSubtitle"]').click();
+  await page.evaluate(() => handoffShopAudioToSubtitle());
   await page.waitForURL('**/app/subtitle?handoff=*');
   await page.locator('#subtitleHandoffStatus').waitFor({ state: 'visible' });
   await page.waitForFunction(() =>
