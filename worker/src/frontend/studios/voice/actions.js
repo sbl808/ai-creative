@@ -141,6 +141,11 @@ function vRenderFormat(){
     {label:'✨ အသံဖန်တီးရန်',cls:'primary',fn:vGenerate}
   ]);
 }
+function vGenerate(){
+  vCapture();
+  vRunTts();
+}
+
 // ===== Step 3 — Generate (loading) =====
 function vRenderLoading(msg,hint){
   VOICE_STATE.view='loading';vSetStep(3);renderChips();vSyncModelBar();
