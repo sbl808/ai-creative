@@ -251,6 +251,50 @@ function vBackFromSrt(){
   else vRenderFormat();
 }
 
+// Voice → Subtitle Handoff: audio bytes remain only in the Voice IndexedDB draft.
+function voiceAudioFingerprint(base64Data){
+  if(!window.crypto||!window.crypto.subtle||typeof window.TextEncoder!=='function'){
+    return Promise.reject(new Error('handoff_fingerprint_unavailable'));
+  }
+  var bytes=new window.TextEncoder().encode(String(base64Data||''));
+  return window.crypto.subtle.digest('SHA-256',bytes).then(function(buffer){
+    return Array.prototype.map.call(new Uint8Array(buffer),function(value){
+      return value.toString(16).padStart(2,'0');
+    }).join('');
+  });
+}
+function handoffVoiceAudioToSubtitle(){
+  var audioData=String(LAST_AUDIO&&LAST_AUDIO.base64||'');
+  if(!audioData){toast('Subtitle Studio သို့ ပို့ရန် Audio မရှိသေးပါ','error');return;}
+  if(!window.AICS_HANDOFFS||!window.AICS_STUDIO_DRAFTS||typeof saveDraft!=='function'){
+    toast('IndexedDB Handoff ကို ယခု အသုံးမပြုနိုင်ပါ','error');return;
+  }
+  var mimeType=String(LAST_AUDIO.mime||'audio/wav');
+  var voiceName=String(VOICE_INPUTS.voice||'Voice');
+  saveDraft().then(function(saved){
+    if(saved!==true)throw new Error('voice_draft_save_failed');
+    return window.AICS_STUDIO_DRAFTS.load('voice');
+  }).then(function(record){
+    var stored=record&&record.data&&record.data.data&&record.data.data.state&&record.data.data.state.audioResult;
+    if(!stored||String(stored.data||'')!==audioData)throw new Error('voice_audio_draft_mismatch');
+    return voiceAudioFingerprint(audioData);
+  }).then(function(audioFingerprint){
+    return window.AICS_HANDOFFS.create({
+      contractVersion:1,
+      source:'voice',
+      target:'subtitle',
+      payload:{kind:'voice-audio-reference',audioFingerprint:audioFingerprint,mimeType:mimeType,voiceName:voiceName}
+    });
+  }).then(function(handoff){
+    if(!handoff||!handoff.id)throw new Error('voice_handoff_create_failed');
+    toast('✓ Subtitle Studio သို့ Audio လွှဲပေးပြီးပါပြီ','success');
+    window.location.href='/app/subtitle?handoff='+encodeURIComponent(handoff.id);
+  }).catch(function(){
+    toast('Audio လွှဲပေး၍ မရပါ။ Voice Draft ကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ','error');
+  });
+}
+window.handoffVoiceAudioToSubtitle=handoffVoiceAudioToSubtitle;
+
 // ===== Step 4 — Result Hub (shared aicsResultHub) =====
 function vPipeline(kind){
   return [{label:'စာသား',done:true},{label:'အသံ',done:true,current:kind==='audio'}];
@@ -272,7 +316,7 @@ function vRenderAudioResult(){
   var hub=aicsResultHub({
     pipeline:vPipeline('audio'),
     body:'<div class="audio-box" id="voiceAudioBox"><audio controls src="'+esc(url)+'"></audio></div>',
-    tools:[{label:'💾 Download',fn:downloadVoiceAudio},{label:'💾 သိမ်းရန်',fn:saveVoiceCreation},{label:'↻ Retry',fn:vRunTts}],
+    tools:[{label:'💾 Download',fn:downloadVoiceAudio},{label:'💾 သိမ်းရန်',fn:saveVoiceCreation},{label:'Subtitle သို့ ပို့ရန်',fn:handoffVoiceAudioToSubtitle},{label:'↻ Retry',fn:vRunTts}],
     nextTitle:'အသံရလဒ်',
     next:[]
   });
