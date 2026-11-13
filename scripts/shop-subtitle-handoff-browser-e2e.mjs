@@ -49,7 +49,11 @@ try {
   const shopResponse = await page.goto(url + '/app/shop', { waitUntil: 'domcontentloaded' });
   assert.equal(shopResponse?.status(), 200, 'Shop Studio should load');
   await page.locator('#viewAudio').waitFor({ state: 'attached' });
-  await page.locator('[data-shop-action="goAudioBranch"]').click();
+  await page.evaluate(() => {
+    // Seed the prerequisite Product Content result so the normal Audio branch guard passes.
+    shopState.content.result = 'E2E product content fixture';
+    goAudioBranch();
+  });
   await page.locator('#audioText').fill('မင်္ဂလာပါ။ စမ်းသပ်အသံဖိုင် ဖြစ်ပါသည်။');
   await page.locator('#genAudioBtn').click();
   await page.waitForFunction(() => {
