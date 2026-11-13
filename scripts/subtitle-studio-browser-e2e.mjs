@@ -71,7 +71,12 @@ try {
       localStorage.setItem('aics_token', value);
       localStorage.setItem('aics_plan', 'PRO');
     }, token);
-    await context.addInitScript(() => {
+    const page = await context.newPage();
+    const response = await page.goto(url + '/app/subtitle', { waitUntil: 'domcontentloaded' });
+    check(viewport.name + ': Subtitle page returns HTTP 200', response?.status() === 200);
+    await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
+    await page.evaluate(() => {
+      // Override the production BYOK runtime only in this isolated browser test.
       window.AICS_BYOK = {
         withGeminiKey: async (body) => ({
           ...body,
@@ -79,10 +84,7 @@ try {
         }),
       };
     });
-    const page = await context.newPage();
-    const response = await page.goto(url + '/app/subtitle', { waitUntil: 'domcontentloaded' });
-    check(viewport.name + ': Subtitle page returns HTTP 200', response?.status() === 200);
-    await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
+
     check(viewport.name + ': page title is Subtitle Studio', (await page.title()).includes('Subtitle Studio'));
     check(viewport.name + ': media input exists', await page.locator('#subtitleMediaFile').count() === 1);
     check(viewport.name + ': SRT editor exists', await page.locator('#subtitleSrtInput').count() === 1);
