@@ -118,7 +118,7 @@ ${TASK_INSTRUCTIONS_VIEW}
     </main>
   </section>
 </div>
-<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" onclick="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" style="width:100%"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" onclick="closeForm()">Cancel</button><button class="btn primary" onclick="save()">Save Changes</button></div></div></div></div>
+<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" onclick="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%" onchange="syncSubtitleType()"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" placeholder="Sub-Type" style="width:100%"><select id="iSubtitleType" class="hidden" style="width:100%" aria-label="Subtitle prompt type" onchange="syncSubtitleType(this.value)"><option value="SRT_GENERATE">SRT_GENERATE · Generate</option><option value="SRT_TRANSLATE">SRT_TRANSLATE · Translate</option></select></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" onclick="closeForm()">Cancel</button><button class="btn primary" onclick="save()">Save Changes</button></div></div></div></div>
 </div>
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
@@ -140,6 +140,7 @@ var STUDIO_GROUPS=[
   {g:'Short', v:[['SHORT','စာသား'],['SHORTVIDEO','ဗီဒီယို']]},
   {g:'Image', v:[['IMAGE','ပုံ']]},
   {g:'Voice', v:[['VOICE','အသံ']]},
+  {g:'Subtitle', v:[['SUBTITLE','စာတန်းထိုး']]},
   {g:'Shop', v:[['SHOPCONTENT','စာသား'],['SHOPVIDEO','ဗီဒီယို']]},
   {g:'Ideas', v:[['IDEAS','အကြံဉာဏ်']]}
 ];
@@ -482,6 +483,20 @@ function renderList(){
   });
 }
 
+function syncSubtitleType(type){
+  var isSubtitle=$('iStudio').value==='SUBTITLE';
+  $('iType').classList.toggle('hidden',isSubtitle);
+  $('iSubtitleType').classList.toggle('hidden',!isSubtitle);
+  if(isSubtitle){
+    var value=type||$('iSubtitleType').value||'SRT_GENERATE';
+    var known=value==='SRT_GENERATE'||value==='SRT_TRANSLATE';
+    var legacy=$('iSubtitleType').querySelector('option[data-legacy="1"]');
+    if(legacy)legacy.remove();
+    if(!known){var option=document.createElement('option');option.value=value;option.textContent='Legacy: '+value;option.setAttribute('data-legacy','1');$('iSubtitleType').appendChild(option);}
+    $('iSubtitleType').value=value;
+  }else if(type){$('iType').value=type;}
+}
+
 function addEdit(id){
   editingId=id;
   var it=null;
@@ -490,6 +505,7 @@ function addEdit(id){
   $('iStudio').value=it?it.studio:'STORY';
   $('iPlan').value=it?it.plan:'FREE';
   $('iType').value=it?it.type:'1';
+  syncSubtitleType(it?it.type:'SRT_GENERATE');
   FIELDS.forEach(function(f){$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value=it?(it[f]||''):'';});
   $('formWrap').classList.remove('hidden');
   window.scrollTo(0,0);
@@ -503,13 +519,15 @@ function copyRow(id){
   $('iStudio').value=it.studio||'STORY';
   $('iPlan').value=it.plan||'FREE';
   $('iType').value=it.type||'1';
+  syncSubtitleType(it.type||'SRT_GENERATE');
   FIELDS.forEach(function(f){$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value=it[f]||'';});
 }
 
 function closeForm(){$('formWrap').classList.add('hidden');}
 
 function save(){
-  var data={studio:$('iStudio').value,plan:$('iPlan').value,type:$('iType').value};
+  var studio=$('iStudio').value;
+  var data={studio:studio,plan:$('iPlan').value,type:studio==='SUBTITLE'?$('iSubtitleType').value:$('iType').value};
   FIELDS.forEach(function(f){data[f]=$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value;});
   var url='/api/cms'+(editingId?'/'+editingId:'');
   api(url,editingId?'PUT':'POST',data).then(function(d){
