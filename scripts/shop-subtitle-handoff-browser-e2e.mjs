@@ -71,7 +71,7 @@ try {
     const draft = await window.AICS_STUDIO_DRAFTS.load('shop');
     return {
       handoff,
-      audio: draft?.data?.shopState?.audio?.result,
+      audio: draft?.data?.data?.shopState?.audio?.result,
       handoffHasAudioBytes: Object.prototype.hasOwnProperty.call(handoff?.payload || {}, 'audioBase64'),
     };
   }, handoffId);
@@ -100,7 +100,7 @@ try {
     draft: await window.AICS_STUDIO_DRAFTS.load('shop'),
   }), handoffId);
   assert.ok(after.handoff, 'Handoff record should remain available after generation');
-  assert.equal(after.draft?.data?.shopState?.audio?.result?.data, audioBase64,
+  assert.equal(after.draft?.data?.data?.shopState?.audio?.result?.data, audioBase64,
     'Shop audio draft should remain unchanged after Subtitle generation');
 
   console.log('Shop → Subtitle Handoff browser E2E passed (handoff, IndexedDB reference, verified audio, SRT request, retention).');
