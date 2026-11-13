@@ -63,6 +63,18 @@ assert.match(subtitleActions, /subtitleLoadShopAudioHandoff\(\);/);
 assert.match(subtitleUi, /id="subtitleHandoffStatus"/);
 assert.doesNotMatch(subtitleActions, /AICS_HANDOFFS\.remove\(/, 'receiving audio must not delete the handoff record');
 assert.doesNotMatch(subtitleActions, /AICS_STUDIO_DRAFTS\.remove\(/, 'receiving audio must not delete the Shop draft');
+assert.match(subtitleActions, /typeof window\.AICS_HANDOFFS\.get !== 'function'/, 'missing Handoff storage is handled safely');
+assert.match(subtitleActions, /typeof window\.AICS_STUDIO_DRAFTS\.load !== 'function'/, 'missing draft storage is handled safely');
+assert.match(subtitleActions, /!record \|\| record\.contractVersion !== 1/, 'missing or unsupported Handoff is rejected');
+assert.match(subtitleActions, /record\.source !== 'shop'/, 'wrong Handoff source is rejected');
+assert.match(subtitleActions, /record\.target !== 'subtitle'/, 'wrong Handoff target is rejected');
+assert.match(subtitleActions, /record\.payload\.kind !== 'shop-audio-reference'/, 'wrong Handoff payload kind is rejected');
+assert.match(subtitleActions, /!audio \|\| typeof audio\.data !== 'string' \|\| !audio\.data/, 'missing Shop audio is rejected');
+assert.match(subtitleActions, /fingerprint !== record\.payload\.audioFingerprint/, 'changed Shop audio is rejected');
+assert.match(subtitleActions, /SUBTITLE_STATE\.mediaInput = \{/, 'only verified audio is exposed to Subtitle input');
+assert.match(subtitleActions, /Shop Audio Handoff ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။/, 'invalid handoff shows a safe error');
+assert.match(subtitleActions, /!file && \(!handoffMedia \|\| !handoffMedia\.audioBase64\)/, 'SRT generation requires a selected file or verified handoff audio');
+
 
 
 const idea = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
