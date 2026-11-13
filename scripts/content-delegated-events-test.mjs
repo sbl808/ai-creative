@@ -11,17 +11,21 @@ assert.ok(!inlineEventAttribute.test(fragments), 'Content Studio active fragment
 
 for (const action of [
   'toggle-audio-advanced', 'generate-voice', 'content-nav-audio', 'download-audio',
-  'generate-srt', 'copy-result-srt', 'download-result-srt', 'translate-srt',
-  'select-direction', 'copy-translated-srt', 'download-translated-srt',
   'back-to-content-result', 'save-content-result'
 ]) {
   assert.ok(fragments.includes('data-aics-action="' + action + '"'), 'Content action marker: ' + action);
+}
+for (const removedAction of [
+  'generate-srt', 'copy-result-srt', 'download-result-srt', 'translate-srt',
+  'select-direction', 'copy-translated-srt', 'download-translated-srt'
+]) {
+  assert.ok(!fragments.includes('data-aics-action="' + removedAction + '"'), 'Removed Content SRT action: ' + removedAction);
 }
 for (const change of ['voice-gender-male', 'voice-gender-female', 'effective-voice']) {
   assert.ok(fragments.includes('data-aics-change="' + change + '"'), 'Content change marker: ' + change);
 }
 assert.ok(fragments.includes('data-aics-input="auto-grow"'), 'Content auto-grow input marker exists');
 assert.ok(page.includes("document.addEventListener('click'") && page.includes("document.addEventListener('change'") && page.includes("document.addEventListener('input'"), 'Content delegated listeners exist');
-assert.ok(page.includes("case 'select-direction'"), 'Direction selection is handled through delegation');
+assert.ok(!page.includes("case 'select-direction'"), 'Content Studio no longer handles Subtitle direction selection');
 
 console.log('Content Studio delegated event tests passed.');
