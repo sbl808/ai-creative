@@ -505,7 +505,7 @@ function addEdit(id){
   $('iStudio').value=it?it.studio:'STORY';
   $('iPlan').value=it?it.plan:'FREE';
   $('iType').value=it?it.type:'1';
-  syncSubtitleType(it?it.type:'SRT_GENERATE');
+  syncSubtitleType(it?it.type:'1');
   FIELDS.forEach(function(f){$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value=it?(it[f]||''):'';});
   $('formWrap').classList.remove('hidden');
   window.scrollTo(0,0);
