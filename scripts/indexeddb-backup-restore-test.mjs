@@ -364,6 +364,7 @@ assert.deepEqual(
 
 const v5Backup = clone(backup);
 v5Backup.schemaVersion = 5;
+delete v5Backup.stores.ideas;
 delete v5Backup.stores.media_assets;
 
 const v5Db = createFakeIndexedDB(seed);
