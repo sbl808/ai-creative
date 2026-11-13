@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { TRANSLATION_CONTRACT_VERSION } from '../worker/src/media-production/contracts/translation.contract.js';
 import { createTranslationStudioAdapter } from '../worker/src/media-adapters/translation/index.js';
-import { createContentTranslationAdapter } from '../worker/src/media-adapters/content/translation.adapter.js';
 import { createVoiceTranslationAdapter } from '../worker/src/media-adapters/voice/translation.adapter.js';
 import { createShopTranslationAdapter } from '../worker/src/media-adapters/shop/translation.adapter.js';
 
@@ -22,49 +21,6 @@ function createEngine() {
     };
   };
   return { calls, engine };
-}
-
-// Content preserves its lowercase default, legacy prompt wording and undefined plan.
-{
-  const { calls, engine } = createEngine();
-  const adapter = createContentTranslationAdapter(engine);
-  const result = await adapter.translate(env, {
-    srtText: SOURCE_SRT,
-    apiKey: API_KEY,
-    model: 'content-translation-model',
-  });
-
-  assert.deepEqual(result, { srt: RESULT_SRT });
-  assert.deepEqual(calls[0][1], {
-    contractVersion: TRANSLATION_CONTRACT_VERSION,
-    studioId: 'content',
-    operation: 'translate-srt',
-    input: {
-      srtText: SOURCE_SRT,
-      direction: 'MY_TO_CN',
-      model: 'content-translation-model',
-    },
-  });
-  assert.equal(calls[0][2].apiKey, API_KEY);
-  assert.equal(calls[0][2].model, 'content-translation-model');
-  assert.equal(calls[0][2].plan, undefined);
-  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
-  assert.ok(calls[0][2].prompt.includes('SRT Number'));
-  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
-}
-
-// Content maps a Chinese-to-Myanmar direction and retains its own wrapping instruction.
-{
-  const { calls, engine } = createEngine();
-  const adapter = createContentTranslationAdapter(engine);
-  await adapter.translate(env, {
-    srtText: SOURCE_SRT,
-    direction: 'cn-to-my',
-    apiKey: API_KEY,
-  });
-  assert.equal(calls[0][1].input.direction, 'CN_TO_MY');
-  assert.ok(calls[0][2].prompt.includes('စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ'));
-  assert.ok(calls[0][2].prompt.includes('Number/Timestamp အသစ် မဖန်တီးဘဲ'));
 }
 
 // Voice preserves its uppercase default, Studio-specific wording and plan.
@@ -151,7 +107,7 @@ function createEngine() {
 // Empty SRT is rejected before invoking the shared engine.
 {
   const { calls, engine } = createEngine();
-  const adapter = createContentTranslationAdapter(engine);
+  const adapter = createShopTranslationAdapter(engine);
   await assert.rejects(
     () => adapter.translate(env, { srtText: '  ', apiKey: API_KEY }),
     (error) => error.message === 'missing_srt',
@@ -171,7 +127,7 @@ assert.throws(
 
 // Engine errors are propagated without exposing or replacing their safe codes.
 {
-  const adapter = createContentTranslationAdapter(async () => {
+  const adapter = createVoiceTranslationAdapter(async () => {
     const error = new Error('missing_api_key');
     error.code = 'missing_api_key';
     throw error;
