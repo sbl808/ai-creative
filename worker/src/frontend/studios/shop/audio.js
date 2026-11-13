@@ -159,6 +159,47 @@ function downloadAudio(){
   a.download='shop_audio.wav';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
+// Shop → Subtitle Handoff: audio bytes remain in the Shop IndexedDB draft.
+function shopAudioFingerprint(base64Data){
+  if(!window.crypto||!window.crypto.subtle||typeof window.TextEncoder!=='function'){
+    return Promise.reject(new Error('handoff_fingerprint_unavailable'));
+  }
+  var bytes=new window.TextEncoder().encode(String(base64Data||''));
+  return window.crypto.subtle.digest('SHA-256',bytes).then(function(buffer){
+    return Array.prototype.map.call(new Uint8Array(buffer),function(value){return value.toString(16).padStart(2,'0');}).join('');
+  });
+}
+function handoffShopAudioToSubtitle(){
+  var audio=shopState.audio&&shopState.audio.result;
+  if(!audio||!audio.data){showToast('Subtitle Studio သို့ ပို့ရန် Audio မရှိသေးပါ','error');return;}
+  if(!window.AICS_HANDOFFS||!window.AICS_STUDIO_DRAFTS||!window.studioPersistDraft){
+    showToast('IndexedDB Handoff ကို ယခု အသုံးမပြုနိုင်ပါ','error');return;
+  }
+  var audioData=String(audio.data);
+  var mimeType=String(audio.mimeType||'audio/wav');
+  var voiceName=String(audio.voiceName||'Voice');
+  window.studioPersistDraft(false).then(function(saved){
+    if(saved!==true)throw new Error('shop_draft_save_failed');
+    return window.AICS_STUDIO_DRAFTS.load('shop');
+  }).then(function(record){
+    var stored=record&&record.data&&record.data.data&&record.data.data.shopState&&record.data.data.shopState.audio&&record.data.data.shopState.audio.result;
+    if(!stored||String(stored.data||'')!==audioData)throw new Error('shop_audio_draft_mismatch');
+    return shopAudioFingerprint(audioData);
+  }).then(function(audioFingerprint){
+    return window.AICS_HANDOFFS.create({
+      contractVersion:1,
+      source:'shop',
+      target:'subtitle',
+      payload:{kind:'shop-audio-reference',audioFingerprint:audioFingerprint,mimeType:mimeType,voiceName:voiceName}
+    });
+  }).then(function(handoff){
+    showToast('✓ Subtitle Studio သို့ Audio လွှဲပေးပြီးပါပြီ','success');
+    window.location.href='/app/subtitle?handoff='+encodeURIComponent(handoff.id);
+  }).catch(function(){
+    showToast('Audio လွှဲပေး၍ မရပါ။ Shop Draft ကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ','error');
+  });
+}
+window.handoffShopAudioToSubtitle=handoffShopAudioToSubtitle;
 // ===== SRT =====
 function generateSrt(){
   if(USER_PLAN!=='PRO'){showToast('Pro Feature ပါ','error');return;}
