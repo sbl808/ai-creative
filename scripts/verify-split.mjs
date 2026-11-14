@@ -219,6 +219,18 @@ if (loader !== null) {
   }
 }
 
+// Verify the API-only Subtitle page uses the existing IndexedDB draft path,
+// without reading a Subtitle content draft from localStorage.
+const sharedShell = readSource(path.join(FRONTEND, 'shared.js'), 'shared Studio shell');
+if (sharedShell !== null) {
+  const subtitleDraftAllowlist = '["content", "short", "image", "shop", "subtitle"]';
+  const allowlistCount = sharedShell.split(subtitleDraftAllowlist).length - 1;
+  if (allowlistCount === 4) pass('Subtitle: shared shell uses IndexedDB for save, reset, persist, and restore');
+  else fail('Subtitle: expected four shared-shell IndexedDB allowlists, found ' + allowlistCount);
+  if (sharedShell.includes('if (SHELL_ID !== "subtitle")')) pass('Subtitle: shared shell skips legacy localStorage draft reads');
+  else fail('Subtitle: shared shell may read content drafts from localStorage');
+}
+
 // Check relative module dependencies across the frontend JavaScript source.
 // This includes shared modules imported by Studio pages, as well as all current
 // frontend files where stale _legacy references might remain. Only source text
