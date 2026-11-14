@@ -235,7 +235,7 @@ const subtitleDraft = await window.AICS_STUDIO_DRAFTS.save('subtitle', {
   step: 3,
   data: {
     transcript: 'Subtitle transcript draft',
-    srt: '1\\n00:00:00,000 --> 00:00:02,000\\nSubtitle line'
+    srt: '1\n00:00:00,000 --> 00:00:02,000\nSubtitle line'
   }
 });
 assert.equal(subtitleDraft.studio, 'subtitle');
