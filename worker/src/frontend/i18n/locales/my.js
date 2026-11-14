@@ -37,7 +37,7 @@ const dictionary = Object.freeze({
   'nav.facebook': 'Facebook',
   'nav.logout': 'ထွက်ရန်',
   'plan.free': 'FREE',
-  'plan.pro': 'PRO'
+  'plan.pro': 'PRO',
   "nav.studio.story": "ဇာတ်လမ်း",
   "nav.studio.content": "ကွန်တင့်",
   "nav.studio.short": "ရှော့တ်",

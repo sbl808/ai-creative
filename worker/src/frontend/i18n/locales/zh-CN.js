@@ -37,7 +37,7 @@ const dictionary = Object.freeze({
   'nav.facebook': 'Facebook',
   'nav.logout': '退出登录',
   'plan.free': '免费版',
-  'plan.pro': '专业版'
+  'plan.pro': '专业版',
   "nav.studio.story": "故事",
   "nav.studio.content": "内容",
   "nav.studio.short": "短视频",
