@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
 assert.match(source, /window\.AICS_DRAFTS\s*=\s*\{/);
 assert.match(source, /createObjectStore\('drafts'/);
 assert.match(source, /createIndex\('owner_studio', \['ownerId', 'studio'\], \{ unique: true \}\)/);
