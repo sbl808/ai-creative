@@ -61,9 +61,8 @@ const dictionary = Object.freeze({
   "toast.story.restoreFailed": "Could not restore the session. Please retry.",
   "confirm.logout": "Are you sure you want to log out?",
   "confirm.proceed": "Continue?",
-});
 
-  "auth.welcome": "Welcome back",
+"auth.welcome": "Welcome back",
   "auth.signin.subtitle": "Sign in to your workspace",
   "auth.google": "Continue with Google",
   "auth.or": "OR",
@@ -93,4 +92,6 @@ const dictionary = Object.freeze({
   "auth.signup.title": "Create your account",
   "auth.signup.subtitle": "Sign up — it only takes a moment",
   "auth.signup.success": "Account created successfully!",
+});
+
 export default dictionary;
