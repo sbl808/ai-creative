@@ -1,5 +1,5 @@
-// AI Creative Studio — Voice Studio / helpers.js (V2 refactor)
-// Browser-side helpers — extracted VERBATIM from frontend/voice.js (v1, byte-identical slice).
+// AI Creative Studio — Voice Studio / helpers.js (TTS-only runtime)
+// Legacy Subtitle draft fields remain readable and persistable until the approved handoff migration.
 // The whole <script> is reassembled in page.js in the original source order.
 export const HELPERS_SCRIPT = `function toast(msg,type){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2600);}
 // Error ဖြစ်ပြီး Input Step သို့ Auto Back ဖြစ်သောအခါ Input Screen ထဲတွင် ရှင်းလင်းသော Error Message ပြရန်
@@ -12,13 +12,7 @@ function friendlyError(d,fallback){
     unauthorized:'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
     invalid_token:'Login အချက်အလက် မမှန်ကန်ပါ။ ပြန်လည် Login ဝင်ပါ။',
     missing_text:'စာသား ထည့်ပေးပါ။',
-    missing_audio:'အသံ သို့မဟုတ် Video ဖိုင် ရွေးပေးပါ။',
-    missing_srt:'SRT စာသား မရှိသေးပါ။',
     tts_error:'အသံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
-    transcribe_error:'စာသားဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
-    srt_error:'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
-    translate_error:'ဘာသာပြန်ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
-    empty_transcription:'ရလဒ် ဗလာဖြစ်နေပါသည် — AI က အကြောင်းအရာ မပြန်ပါ။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
     feature_denied:'ဒီ Feature ကို သင့် Plan နဲ့ အသုံးပြုခွင့်မရှိသေးပါ။',
     pro_only:'ဒီ Feature ကို Pro User သာ အသုံးပြုနိုင်ပါသည်။',
     feature_disabled:'ဒီ Feature ကို ယခု ပိတ်ထားပါသည်။',
@@ -29,9 +23,8 @@ function friendlyError(d,fallback){
 }
 function api(path,body){
   body=body||{};
-  // Model dropdown ၂ ခု: TTS → aiModelSel (category=voice) · transcribe/SRT/translate → aiModelSel2 (category=transcribe)
-  var selId=(path.indexOf('/tts')>-1)?'aiModelSel':'aiModelSel2';
-  var sel=document.getElementById(selId);if(sel&&sel.value)body.model=sel.value;
+  // Voice Studio သည် TTS Model Selector တစ်ခုတည်းကို အသုံးပြုသည်။
+  var sel=document.getElementById('aiModelSel');if(sel&&sel.value)body.model=sel.value;
   var h={'Content-Type':'application/json'};if(TOKEN)h.Authorization='Bearer '+TOKEN;
   return window.aicsApiFetch(path,body,{method:'POST',headers:h}).then(function(r){
     return r.json().catch(function(){return {error:'request_error'};}).then(function(d){if(!r.ok&&!d.error)d.error='request_error';return d;});
@@ -74,11 +67,11 @@ function voiceApplyDraftData(d){
   VOICE_STATE=Object.assign(newVoiceState(s.voiceMode,s.source),s);
   if(d.inputs&&typeof d.inputs==='object')VOICE_INPUTS=Object.assign(VOICE_INPUTS,d.inputs);
   if(d.mediaAudio&&typeof d.mediaAudio==='object'){
-    MEDIA_AUDIO={base64:String(d.mediaAudio.base64||''),mime:String(d.mediaAudio.mime||''),fileName:String(d.mediaAudio.fileName||'')};
+    MEDIA_AUDIO={base64:String(d.mediaAudio.base64||''),mime:String(d.mediaAudio.mime||''),fileName:String(d.mediaAudio.fileName||'')}; // Legacy Subtitle draft compatibility
   }else{
     MEDIA_AUDIO={base64:'',mime:'',fileName:String(d.mediaFileName||'')};
   }
-  translatedSrt=String(d.translation||VOICE_STATE.translationResult||'');
+  translatedSrt=String(d.translation||VOICE_STATE.translationResult||''); // Legacy Subtitle draft compatibility
   LAST_AUDIO={base64:'',mime:'audio/wav',url:''};
   if(d.lastAudio&&typeof d.lastAudio==='object'){
     LAST_AUDIO={base64:String(d.lastAudio.base64||''),mime:String(d.lastAudio.mime||'audio/wav'),url:''};
