@@ -132,6 +132,8 @@ const dictionary = Object.freeze({
   "publicHome.theme.toggle": "切换主题",
   "publicHome.aria.home": "AI Creative Studio 首页",
   "publicHome.aria.preview": "AI Creative Studio 预览",
+  "publicHome.meta.title": "AI Creative Studio — 用 AI 创作更多精彩内容",
+  "publicHome.meta.description": "使用 AI Creative Studio，在一个工作空间中创作故事、社交内容、短视频、图像、语音和商品内容。",
 });
 
 export default dictionary;
