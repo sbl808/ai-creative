@@ -24,13 +24,15 @@ export { aicsResultLoadingHtml } from './shared.js';
 // Toast — canonical base component (HTML element + browser-side script)
 // ---------------------------------------------------------------------------
 export function aicsToastHtml(defaultText) {
-  return '<div class="toast" id="toast">' + (defaultText || '&#9989; ကူးယူပြီးပါပြီ') + '</div>';
+  if (defaultText) return '<div class="toast" id="toast">' + defaultText + '</div>';
+  return '<div class="toast" id="toast" data-i18n="toast.copy.success">&#9989; ကူးယူပြီးပါပြီ</div>';
 }
 
 export const AICS_TOAST_SCRIPT = `
 function aicsShowToast(msg, type, ms) {
   var t = document.getElementById('toast');
   if (!t) return;
+  if (typeof msg === 'string' && msg.indexOf('i18n:') === 0 && window.AICS_I18N) msg = window.AICS_I18N.t(msg.slice(5));
   t.textContent = msg || '';
   t.className = 'toast show' + (type ? ' ' + type : '');
   setTimeout(function () { t.className = 'toast'; }, ms || 2500);
@@ -42,8 +44,8 @@ function aicsShowToast(msg, type, ms) {
 // ---------------------------------------------------------------------------
 export const AICS_COPY_SCRIPT = `
 function aicsCopyText(text, doneMsg) {
-  if (!text) { if (typeof aicsShowToast === 'function') aicsShowToast('Text မရှိပါ'); return; }
-  var onDone = function () { if (typeof aicsShowToast === 'function') aicsShowToast(doneMsg || '&#9989; ကူးယူပြီးပါပြီ'); };
+  if (!text) { if (typeof aicsShowToast === 'function') aicsShowToast('i18n:toast.copy.empty'); return; }
+  var onDone = function () { if (typeof aicsShowToast === 'function') aicsShowToast(doneMsg || 'i18n:toast.copy.success'); };
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(onDone);
   } else {
@@ -92,7 +94,8 @@ function aicsHideError() {
 // ---------------------------------------------------------------------------
 export const AICS_CONFIRM_SCRIPT = `
 function aicsConfirm(message, onYes) {
-  if (window.confirm(message || 'ဆက်လုပ်မည်လား?')) { if (onYes) onYes(); return true; }
+  var text = message || (window.AICS_I18N ? window.AICS_I18N.t('confirm.proceed') : 'ဆက်လုပ်မည်လား?');
+  if (window.confirm(text)) { if (onYes) onYes(); return true; }
   return false;
 }
 `;
@@ -101,7 +104,7 @@ function aicsConfirm(message, onYes) {
 // Modal — generic overlay helpers (login overlay pattern)
 // ---------------------------------------------------------------------------
 export const AICS_MODAL_SCRIPT = `
-function aicsShowModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
+function aicsShowModal(id) { var m = document.getElementById(id); if (m) { if (window.AICS_I18N) window.AICS_I18N.applyDOM(m); m.style.display = 'flex'; } }
 function aicsHideModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
 `;
 
