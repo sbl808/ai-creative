@@ -125,72 +125,72 @@ ${renderSidebar('home',{variant:'studio'})}
 <main class="main-content aics-main">
   <div class="topbar">
     <div>
-      <h1 id="greeting">မင်္ဂလာပါ 👋</h1>
-      <p class="subtitle">ဒီနေ့ ဘာဖန်တီးချင်ပါသလဲ?</p>
+      <h1 id="greeting" data-i18n="dashboard.greeting">မင်္ဂလာပါ 👋</h1>
+      <p class="subtitle" data-i18n="dashboard.subtitle">ဒီနေ့ ဘာဖန်တီးချင်ပါသလဲ?</p>
     </div>
-    <div class="api-pill sparkle" role="button" tabindex="0" data-home-action="open-key-guide">✨ အခမဲ့ API KEY ယူရန်</div>
+    <div class="api-pill sparkle" role="button" tabindex="0" data-home-action="open-key-guide" data-i18n="dashboard.apiKey.button">✨ အခမဲ့ API KEY ယူရန်</div>
   </div>
   <div class="hero-banner">
     <div class="hero-banner-icons">
       <span class="hbi-1">🎬</span><span class="hbi-2">🎭</span><span class="hbi-3">🖼️</span>
       <span class="hbi-4">🎙️</span><span class="hbi-5">🛍️</span><span class="hbi-6">✨</span><span class="hbi-7">📖</span>
     </div>
-    <div class="hero-banner-text"><div class="main-line" id="heroBannerText">AI Creative Studio မှ ကြိုဆိုပါတယ် ✨</div></div>
+    <div class="hero-banner-text"><div class="main-line" id="heroBannerText" data-i18n="dashboard.banner.1">AI Creative Studio မှ ကြိုဆိုပါတယ် ✨</div></div>
   </div>
-  <div class="section-label">အမြန်ဖန်တီးရန်</div>
+  <div class="section-label" data-i18n="dashboard.quickCreate.title">အမြန်ဖန်တီးရန်</div>
   <div class="quick-grid">
-    <div class="studio-card card-story" data-studio="story" role="link" tabindex="0" aria-label="Open story studio" data-home-action="navigate-studio">
+    <div class="studio-card card-story" data-studio="story" role="link" tabindex="0" aria-label="Open story studio" data-i18n-aria-label="dashboard.aria.studio.story" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">📖</div>
-      <div class="title">ဇာတ်လမ်း Studio</div>
-      <div class="desc" id="desc-story">AI ဖြင့် Story ရေးပါ</div>
+      <div class="title" data-i18n="dashboard.studio.story.title">ဇာတ်လမ်း Studio</div>
+      <div class="desc" id="desc-story" data-i18n="dashboard.studio.story.description.1">AI ဖြင့် Story ရေးပါ</div>
     </div>
-    <div class="studio-card card-content" data-studio="content" role="link" tabindex="0" aria-label="Open content studio" data-home-action="navigate-studio">
+    <div class="studio-card card-content" data-studio="content" role="link" tabindex="0" aria-label="Open content studio" data-i18n-aria-label="dashboard.aria.studio.content" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">✍️</div>
-      <div class="title">Content Studio</div>
-      <div class="desc" id="desc-content">AI ဖြင့် Content ရေးပါ</div>
+      <div class="title" data-i18n="dashboard.studio.content.title">Content Studio</div>
+      <div class="desc" id="desc-content" data-i18n="dashboard.studio.content.description.1">AI ဖြင့် Content ရေးပါ</div>
     </div>
-    <div class="studio-card card-short" data-studio="short" role="link" tabindex="0" aria-label="Open short studio" data-home-action="navigate-studio">
+    <div class="studio-card card-short" data-studio="short" role="link" tabindex="0" aria-label="Open short studio" data-i18n-aria-label="dashboard.aria.studio.short" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎬</div>
-      <div class="title">Short Studio</div>
-      <div class="desc" id="desc-short">TikTok/Reels Script ဖန်တီးပါ</div>
+      <div class="title" data-i18n="dashboard.studio.short.title">Short Studio</div>
+      <div class="desc" id="desc-short" data-i18n="dashboard.studio.short.description.1">TikTok/Reels Script ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-image" data-studio="image" role="link" tabindex="0" aria-label="Open image studio" data-home-action="navigate-studio">
+    <div class="studio-card card-image" data-studio="image" role="link" tabindex="0" aria-label="Open image studio" data-i18n-aria-label="dashboard.aria.studio.image" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎨</div>
-      <div class="title">ပုံ Studio</div>
-      <div class="desc" id="desc-image">AI Image Prompt ဖန်တီးပါ</div>
+      <div class="title" data-i18n="dashboard.studio.image.title">ပုံ Studio</div>
+      <div class="desc" id="desc-image" data-i18n="dashboard.studio.image.description.1">AI Image Prompt ဖန်တီးပါ</div>
     </div>
-    <div class="studio-card card-voice" data-studio="voice" role="link" tabindex="0" aria-label="Open voice studio" data-home-action="navigate-studio">
+    <div class="studio-card card-voice" data-studio="voice" role="link" tabindex="0" aria-label="Open voice studio" data-i18n-aria-label="dashboard.aria.studio.voice" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🎙</div>
-      <div class="title">အသံ Studio</div>
-      <div class="desc" id="desc-voice">Voice နဲ့ Text ပြောင်းပါ</div>
+      <div class="title" data-i18n="dashboard.studio.voice.title">အသံ Studio</div>
+      <div class="desc" id="desc-voice" data-i18n="dashboard.studio.voice.description.1">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
-    <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-home-action="navigate-studio">
+    <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-i18n-aria-label="dashboard.aria.studio.shop" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
-      <div class="title">ရောင်းချရေး Studio</div>
-      <div class="desc" id="desc-shop">Marketing Content ဖန်တီးပါ</div>
+      <div class="title" data-i18n="dashboard.studio.shop.title">ရောင်းချရေး Studio</div>
+      <div class="desc" id="desc-shop" data-i18n="dashboard.studio.shop.description.1">Marketing Content ဖန်တီးပါ</div>
     </div>
   </div>
   <div class="section-label">
-    နောက်ဆုံးဖန်တီးထားသော Project များ
-    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" data-home-action="navigate-creations">အားလုံးကြည့်ရန် →</span>
+    <span data-i18n="dashboard.recent.title">နောက်ဆုံးဖန်တီးထားသော Project များ</span>
+    <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" data-i18n-aria-label="dashboard.aria.viewAll" data-home-action="navigate-creations" data-i18n="dashboard.recent.viewAll">အားလုံးကြည့်ရန် →</span>
   </div>
-  <div id="recentProjectsArea"><p style="color:var(--text3);">Loading...</p></div>
+  <div id="recentProjectsArea"><p style="color:var(--text3);" data-i18n="dashboard.loading">Loading...</p></div>
 </main>
 </div>
 </div>
 <div class="modal-overlay" id="freeKeyModal">
   <div class="free-key-modal">
-    <button class="modal-close" data-home-action="close-key-guide" aria-label="Close">✕</button>
-    <h3>✨ အခမဲ့ API Key ယူနည်း</h3>
-    <div class="sub">Gemini API Key အခမဲ့ ရယူနည်း — အဆင့် ၅ ဆင့်သာ လိုပါသည်</div>
-    <div class="free-key-step"><div class="num">1</div><div class="txt">အောက်က <b>အပြာရောင် ခလုတ်</b> ကို နှိပ်ပါ — Google AI Studio ၏ API Key စာမျက်နှာသို့ အလိုအလျောက် ရောက်ပါမည်</div></div>
-    <div class="free-key-step"><div class="num">2</div><div class="txt">ထိုစာမျက်နှာတွင် <b>Google အကောင့်</b> ဖြင့် Login ဝင်ပါ</div></div>
-    <div class="free-key-step"><div class="num">3</div><div class="txt"><b>"Create API key"</b> ခလုတ်ကို နှိပ်ပါ (ပထမဆုံးအကြိမ်ဆိုလျှင် သဘောတူညီချက်ကို လက်ခံပါ)</div></div>
-    <div class="free-key-step"><div class="num">4</div><div class="txt">ထွက်လာသော <b>Key ကို Copy</b> လုပ်ပါ (AIza... ဖြင့် စတင်ပါသည်)</div></div>
-    <div class="free-key-step"><div class="num">5</div><div class="txt">အောက်က <b>"ဆက်တင်များတွင် Key ထည့်ရန်"</b> ကို နှိပ်၍ Key ကို ထည့်ပါ — ပြီးပါပြီ! 🎉</div></div>
+    <button class="modal-close" data-home-action="close-key-guide" aria-label="Close" data-i18n-aria-label="dashboard.apiKey.modal.close">✕</button>
+    <h3 data-i18n="dashboard.apiKey.modal.title">✨ အခမဲ့ API Key ယူနည်း</h3>
+    <div class="sub" data-i18n="dashboard.apiKey.modal.subtitle">Gemini API Key အခမဲ့ ရယူနည်း — အဆင့် ၅ ဆင့်သာ လိုပါသည်</div>
+    <div class="free-key-step"><div class="num">1</div><div class="txt" data-i18n="dashboard.apiKey.step.1">အောက်ပါ အပြာရောင်ခလုတ်ကို နှိပ်ပြီး Google AI Studio ၏ API Key စာမျက်နှာသို့ သွားပါ။</div></div>
+    <div class="free-key-step"><div class="num">2</div><div class="txt" data-i18n="dashboard.apiKey.step.2">ထိုစာမျက်နှာတွင် Google အကောင့်ဖြင့် Login ဝင်ပါ။</div></div>
+    <div class="free-key-step"><div class="num">3</div><div class="txt" data-i18n="dashboard.apiKey.step.3">Create API key ခလုတ်ကို နှိပ်ပါ။ ပထမဆုံးအကြိမ်ဆိုလျှင် သဘောတူညီချက်ကို လက်ခံပါ။</div></div>
+    <div class="free-key-step"><div class="num">4</div><div class="txt" data-i18n="dashboard.apiKey.step.4">ထွက်လာသော API Key ကို Copy လုပ်ပါ။</div></div>
+    <div class="free-key-step"><div class="num">5</div><div class="txt" data-i18n="dashboard.apiKey.step.5">ဆက်တင်များတွင် Key ထည့်ရန်ကို နှိပ်ပြီး API Key ကို ထည့်ပါ။</div></div>
     <div class="free-key-actions">
-      <a class="btn-primary-glow" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">🚀 API Key ဖန်တီးရန် သွားမည်</a>
-      <a class="btn-ghost-full" href="/app/settings">🔑 ဆက်တင်များတွင် Key ထည့်ရန်</a>
+      <a class="btn-primary-glow" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" data-i18n="dashboard.apiKey.action.create">🚀 API Key ဖန်တီးရန် သွားမည်</a>
+      <a class="btn-ghost-full" href="/app/settings" data-i18n="dashboard.apiKey.action.settings">🔑 ဆက်တင်များတွင် Key ထည့်ရန်</a>
     </div>
   </div>
 </div>
@@ -219,36 +219,33 @@ document.addEventListener('keydown', function (event) {
   event.preventDefault();
   action.click();
 });
-var BANNER_MESSAGES = [
-  "AI Creative Studio မှ ကြိုဆိုပါတယ် ✨",
-  "သင့်ရဲ့ Creative Idea ကို AI နဲ့ အသက်သွင်းလိုက်ပါ 🚀",
-  "ဇာတ်လမ်း၊ ပုံ၊ အသံ — အားလုံး တစ်နေရာတည်းမှာ 🎨"
-];
+var BANNER_MESSAGE_KEYS = ["dashboard.banner.1", "dashboard.banner.2", "dashboard.banner.3"];
+function homeT(key) { return window.AICS_I18N && window.AICS_I18N.t ? window.AICS_I18N.t(key) : key; }
 var bannerIndex = 0;
 function rotateBanner(){
   var el=document.getElementById('heroBannerText');
-  if(!el||BANNER_MESSAGES.length<2)return;
+  if(!el||BANNER_MESSAGE_KEYS.length<2)return;
   el.style.opacity=0;
-  setTimeout(function(){bannerIndex=(bannerIndex+1)%BANNER_MESSAGES.length;el.innerText=BANNER_MESSAGES[bannerIndex];el.style.opacity=1;},600);
+  setTimeout(function(){bannerIndex=(bannerIndex+1)%BANNER_MESSAGE_KEYS.length;el.innerText=homeT(BANNER_MESSAGE_KEYS[bannerIndex]);el.style.opacity=1;},600);
 }
 setInterval(rotateBanner,4000);
-var CARD_MESSAGES={
-  story:["AI ဖြင့် Story ရေးပါ","ဇာတ်လမ်းအမျိုးမျိုး ဖန်တီးပါ"],
-  content:["AI ဖြင့် Content ရေးပါ","Facebook Content လွယ်ကူစွာ ဖန်တီးပါ"],
-  short:["TikTok/Reels Script ဖန်တီးပါ","Short Video Idea ဖန်တီးပါ"],
-  image:["AI Image Prompt ဖန်တီးပါ","ပုံလှလှလေးတွေ ဖန်တီးပါ"],
-  voice:["Voice နဲ့ Text ပြောင်းပါ","အသံဖိုင်ကို Subtitle ပြောင်းပါ"],
-  shop:["Marketing Content ဖန်တီးပါ","ရောင်းအား တက်အောင် ကူညီပါ"]
+var CARD_MESSAGE_KEYS={
+  story:["dashboard.studio.story.description.1","dashboard.studio.story.description.2"],
+  content:["dashboard.studio.content.description.1","dashboard.studio.content.description.2"],
+  short:["dashboard.studio.short.description.1","dashboard.studio.short.description.2"],
+  image:["dashboard.studio.image.description.1","dashboard.studio.image.description.2"],
+  voice:["dashboard.studio.voice.description.1","dashboard.studio.voice.description.2"],
+  shop:["dashboard.studio.shop.description.1","dashboard.studio.shop.description.2"]
 };
 function rotateCard(key,index){
-  var el=document.getElementById('desc-'+key);var list=CARD_MESSAGES[key];
+  var el=document.getElementById('desc-'+key);var list=CARD_MESSAGE_KEYS[key];
   if(!el||!list||list.length<2)return;
   el.style.opacity=0;el.style.transform='translateY(6px)';
-  setTimeout(function(){index=(index+1)%list.length;el.innerText=list[index];el.style.opacity=1;el.style.transform='translateY(0)';setTimeout(function(){rotateCard(key,index);},3200);},500);
+  setTimeout(function(){index=(index+1)%list.length;el.innerText=homeT(list[index]);el.style.opacity=1;el.style.transform='translateY(0)';setTimeout(function(){rotateCard(key,index);},3200);},500);
 }
 Object.keys(CARD_MESSAGES).forEach(function(key,i){setTimeout(function(){rotateCard(key,0);},3200+(i*250));});
 var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
-(function(){var h=new Date().getHours();var t="မင်္ဂလာပါ 🌙";if(h<12)t="မင်္ဂလာပါ 👋";else if(h<17)t="မင်္ဂလာပါ ☀️";document.getElementById('greeting').innerText=t;})();
+// Greeting is localized through the shared data-i18n runtime.
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 // Phase 8 — အခမဲ့ API Key လမ်းညွှန် Modal ဖွင့်/ပိတ်
 function openFreeKeyGuide(){var m=document.getElementById('freeKeyModal');if(m)m.classList.add('show');}
@@ -260,13 +257,13 @@ function closeFreeKeyGuide(){var m=document.getElementById('freeKeyModal');if(m)
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 // (toggleSidebar / logout / setApiKey / TG-FB link များကို Shared Sidebar Script သို့ ရွှေ့ပြီးပါပြီ — Phase 2)
 if(!TOKEN){
-  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="color:var(--cyan);text-decoration:underline;">Login / Sign Up စာမျက်နှာသို့ သွားရန်</a></p></div>';
+  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2 data-i18n="dashboard.login.required">🔒 ဆက်လက်အသုံးပြုရန် Login ဝင်ပါ</h2><p style="margin:16px 0;"><a href="/login" style="color:var(--cyan);text-decoration:underline;" data-i18n="dashboard.login.link">Login / Sign Up စာမျက်နှာသို့ သွားရန်</a></p></div>';if(window.AICS_I18N)window.AICS_I18N.applyDOM(document.querySelector('.main-content'));
 }else{
   // Phase 13 — Option 2: Recent များကို Browser IndexedDB မှ ဖတ်သည်
   AICS_CREATIONS.list().then(function(items){
     var area=document.getElementById('recentProjectsArea');
     if(!items||items.length===0){
-      area.innerHTML='<div class="empty-projects">📭 Save ထားသော Creation မရှိသေးပါ — Studio တစ်ခုခုမှာ Generate လုပ်ပြီး Save လုပ်ကြည့်ပါ</div>';
+      area.innerHTML='<div class="empty-projects"><strong data-i18n="dashboard.empty.title">📭 သိမ်းထားသော Creation မရှိသေးပါ</strong><p data-i18n="dashboard.empty.description">Studio တစ်ခုခုတွင် ဖန်တီးပြီး Save လုပ်ကြည့်ပါ။</p></div>';if(window.AICS_I18N)window.AICS_I18N.applyDOM(area);
       return;
     }
     var top3=items.slice(0,3);
@@ -274,16 +271,16 @@ if(!TOKEN){
     top3.forEach(function(c){
       var icon=STUDIO_ICONS[c.studio]||'📄';
       var dateStr=c.created_at?fmtHomeDate(c.created_at):'';
-      html+='<div class="project-card"><div class="p-icon">'+icon+'</div><div class="p-title">'+escapeHtml(c.title||'(Untitled)')+'</div><div class="p-date">'+dateStr+'</div><button class="project-open-btn" data-home-action="navigate-creations">ဖွင့်ရန်</button></div>';
+      html+='<div class="project-card"><div class="p-icon">'+icon+'</div><div class="p-title">'+escapeHtml(c.title||'(Untitled)')+'</div><div class="p-date">'+dateStr+'</div><button class="project-open-btn" data-home-action="navigate-creations" data-i18n="dashboard.project.open">ဖွင့်ရန်</button></div>';
     });
     html+='</div>';
-    area.innerHTML=html;
-  }).catch(function(){document.getElementById('recentProjectsArea').innerHTML='<div class="empty-projects">Browser Storage ဖွင့်မရပါ</div>';});
+    area.innerHTML=html;if(window.AICS_I18N)window.AICS_I18N.applyDOM(area);
+  }).catch(function(){var area=document.getElementById('recentProjectsArea');area.innerHTML='<div class="empty-projects" data-i18n="dashboard.storage.error">Browser Storage ကို ဖွင့်မရပါ။</div>';if(window.AICS_I18N)window.AICS_I18N.applyDOM(area);});
 }
 function fmtHomeDate(s){
   var d=new Date(s);
   if(isNaN(d.getTime())) d=new Date(String(s).replace(' ','T')+'Z');
-  return isNaN(d.getTime())?'':d.toLocaleDateString();
+  return isNaN(d.getTime())?'':d.toLocaleDateString(window.AICS_I18N?window.AICS_I18N.getLocale():'my');
 }
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
 </script>
