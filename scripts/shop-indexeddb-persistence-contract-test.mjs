@@ -10,7 +10,7 @@ assert.match(SHOP_HTML, /window\.AICS_STUDIO_DRAFTS\.load\(SHELL_ID\)/,
   'Shop Studio must restore its owner-scoped IndexedDB draft');
 assert.match(SHOP_HTML, /window\.AICS_STUDIO_DRAFTS\.save\(SHELL_ID,\s*\{/,
   'Shared shell must save the current studio draft through the IndexedDB adapter');
-assert.match(SHOP_HTML, /\["content", "short", "image", "shop"\]\.indexOf\(SHELL_ID\) === -1/,
+assert.match(SHOP_HTML, /\["content", "short", "image", "shop", "subtitle"\]\.indexOf\(SHELL_ID\) === -1/,
   'Shared IndexedDB persistence must explicitly support Shop Studio');
 assert.match(SHOP_HTML, /window\.studioPersistDraft\(false\)/,
   'Shop automatic draft saves must use IndexedDB');
