@@ -40,7 +40,7 @@ function testLoginLocalizationContract() {
   const authKeys = [
     'auth.welcome', 'auth.signin.subtitle', 'auth.google', 'auth.or',
     'auth.email', 'auth.password', 'auth.password.confirm', 'auth.password.show',
-    'auth.password.hide', 'auth.forgot', 'auth.signin', 'auth.signup',
+    'auth.password.hide', 'auth.password.showConfirm', 'auth.forgot', 'auth.signin', 'auth.signup',
     'auth.noAccount', 'auth.createAccount', 'auth.loading', 'auth.session.expired',
     'auth.error.email', 'auth.error.passwordRequired', 'auth.error.passwordLength',
     'auth.error.passwordMismatch', 'auth.error.signin', 'auth.error.signup',
@@ -57,6 +57,8 @@ function testLoginLocalizationContract() {
   assert.ok(LOGIN_HTML.includes('AICS_APP_PREFERENCES.getLanguage()'), 'login reads browser-global language preference');
   assert.ok(LOGIN_HTML.includes('AICS_I18N.setLocale(locale)'), 'login applies saved app language');
   assert.ok(LOGIN_HTML.includes('data-i18n="auth.email"'), 'login uses explicit translation markers');
+  assert.ok(LOGIN_HTML.includes('data-i18n-aria-label="auth.password.showConfirm"'), 'password visibility control has a localized accessible label');
+  assert.ok(!LOGIN_HTML.includes('btn.innerHTML'), 'login status labels do not inject translated text as HTML');
   assert.ok(LOGIN_HTML.includes("fetch('/api/auth/signin'"), 'signin endpoint remains unchanged');
   assert.ok(LOGIN_HTML.includes("fetch('/api/auth/signup'"), 'signup endpoint remains unchanged');
   assert.ok(LOGIN_HTML.includes('JSON.stringify({ email: email, password: pass })'), 'signup payload remains email and password only');
