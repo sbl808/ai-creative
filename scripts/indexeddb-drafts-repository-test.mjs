@@ -231,7 +231,24 @@ assert.equal(restoredShopDraft.data.data.shopState.content.result, 'Shop content
   'Shop Studio draft must survive IndexedDB save and restore');
 assert.equal((await window.AICS_DRAFTS.list()).length, 3);
 
+const subtitleDraft = await window.AICS_STUDIO_DRAFTS.save('subtitle', {
+  step: 3,
+  data: {
+    transcript: 'Subtitle transcript draft',
+    srt: '1\\n00:00:00,000 --> 00:00:02,000\\nSubtitle line'
+  }
+});
+assert.equal(subtitleDraft.studio, 'subtitle');
+const restoredSubtitleDraft = await window.AICS_STUDIO_DRAFTS.load('subtitle');
+assert.equal(restoredSubtitleDraft.studio, 'subtitle');
+assert.equal(restoredSubtitleDraft.data.data.transcript, 'Subtitle transcript draft');
+assert.equal((await window.AICS_DRAFTS.list()).length, 4);
+
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'story', data: {} }), /invalid_draft_studio/);
+await assert.rejects(
+  window.AICS_STUDIO_DRAFTS.save('story', { step: 1, data: {} }),
+  /invalid_draft_studio/,
+);
 await assert.rejects(window.AICS_DRAFTS.save({ studio: 'image', data: [] }), /invalid_draft_data/);
 
 activeToken = makeToken('user-b');
