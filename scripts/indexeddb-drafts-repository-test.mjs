@@ -1,3 +1,4 @@
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 #!/usr/bin/env node
 /**
  * IndexedDB Drafts Repository ownership and CRUD contract.
@@ -9,7 +10,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
+assert.ok(source.includes("indexedDB.open('aics_creations_v1', " + STORAGE_SCHEMA_VERSION + ")"));
 assert.match(source, /window\.AICS_DRAFTS\s*=\s*\{/);
 assert.match(source, /createObjectStore\('drafts'/);
 assert.match(source, /createIndex\('owner_studio', \['ownerId', 'studio'\], \{ unique: true \}\)/);
