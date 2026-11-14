@@ -1,3 +1,4 @@
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
@@ -7,7 +8,7 @@ import { HELPERS_SCRIPT } from '../worker/src/frontend/studios/story/helpers.js'
 import { renderStudioShell } from '../worker/src/frontend/shared.js';
 
 const source = clientStorageScript();
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
+assert.match(source, new RegExp("indexedDB\\\\.open\\('aics_creations_v1', " + STORAGE_SCHEMA_VERSION + "\\\\)"));
 assert.match(source, /createObjectStore\('studio_handoffs'/);
 assert.match(source, /window\.AICS_HANDOFFS\s*=\s*\{/);
 assert.match(source, /contractVersion!==1/);
