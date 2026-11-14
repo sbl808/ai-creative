@@ -132,6 +132,8 @@ const dictionary = Object.freeze({
   "publicHome.theme.toggle": "အရောင်ပုံစံ ပြောင်းရန်",
   "publicHome.aria.home": "AI Creative Studio ပင်မစာမျက်နှာ",
   "publicHome.aria.preview": "AI Creative Studio အကြိုမြင်ကွင်း",
+  "publicHome.meta.title": "AI Creative Studio — AI ဖြင့် ပိုမိုဖန်တီးလိုက်ပါ",
+  "publicHome.meta.description": "AI Creative Studio ဖြင့် Story၊ Content၊ Short၊ Image၊ Voice နှင့် Shop Content များကို တစ်နေရာတည်းတွင် ဖန်တီးပါ။",
 });
 
 export default dictionary;
