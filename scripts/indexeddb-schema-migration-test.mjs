@@ -4,7 +4,7 @@ import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/ve
 import { schemaMigrationsScript } from '../worker/src/frontend/storage/schema/migrations.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 
-assert.equal(STORAGE_SCHEMA_VERSION, 7);
+assert.equal(STORAGE_SCHEMA_VERSION, 8);
 const context = {};
 vm.runInNewContext(schemaMigrationsScript(), context);
 
@@ -72,6 +72,12 @@ const versionSix = fakeDb([
 context.__aicsRunSchemaMigrations(versionSix, 6, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(versionSix.names(), expected, 'v6 user data stores must remain while media_assets is added');
 
+assert.deepEqual(Array.from(fresh.store('user_settings').indexes.keys()).sort(), ['ownerId', 'updatedAt']);
+const settingsOwnerIndex = fresh.store('user_settings').indexes.get('ownerId');
+assert.deepEqual({ keyPath: settingsOwnerIndex.keyPath, unique: settingsOwnerIndex.unique }, { keyPath: 'ownerId', unique: true });
+const versionSeven = fakeDb(expected.filter(name => name !== 'user_settings'));
+context.__aicsRunSchemaMigrations(versionSeven, 7, STORAGE_SCHEMA_VERSION);
+assert.deepEqual(versionSeven.names(), expected, 'v7 stores must remain while user_settings is added');
 const current = fakeDb(expected);
 context.__aicsRunSchemaMigrations(current, STORAGE_SCHEMA_VERSION, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(current.names(), expected);
