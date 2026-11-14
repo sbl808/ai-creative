@@ -217,7 +217,8 @@ function testDashboardLocalizationContract() {
   assert.ok(APP_HTML.includes('homeT(list[index])'), 'rotating studio descriptions use the shared translator');
 }
 
-\ntestDashboardLocalizationContract();\ntestLocaleConfiguration();
+
+testDashboardLocalizationContract();\ntestLocaleConfiguration();
 testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
 testLoginLocalizationContract();
