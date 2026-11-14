@@ -252,6 +252,8 @@ ${sidebarScript()}
     }
   }
   input.addEventListener('change',function(){
+    activeRequest++;
+    transcript.value='';
     var file=input.files&&input.files[0];
     if(!file){clearFile();return;}
     if(!file.type||file.type.indexOf('audio/')!==0){
@@ -284,7 +286,7 @@ ${sidebarScript()}
       Object.keys(panels).forEach(function(key){panels[key].hidden=key!==selected;});
     });
   });
-  window.addEventListener('pagehide',function(){if(objectUrl)URL.revokeObjectURL(objectUrl);});
+  window.addEventListener('pagehide',function(){activeRequest++;if(objectUrl)URL.revokeObjectURL(objectUrl);});
 })();
 </script>
 </body>
