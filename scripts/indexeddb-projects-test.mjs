@@ -159,7 +159,7 @@ vm.runInNewContext(source, context, { timeout: 1000 });
 
 assert.equal(fakeIndexedDB.version, 3, 'database should be v3 before handoff schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 7, 'database must upgrade from v3 to v7');
+assert.equal(fakeIndexedDB.version, 8, 'database must upgrade from v3 to v8');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
 assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');
