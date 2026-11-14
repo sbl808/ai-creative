@@ -204,15 +204,15 @@ if (loader !== null) {
     const source = readSource(pagePath, page.slug + ' API-only page module');
     if (source !== null) {
       const code = stripComments(source);
-      const namedExport = new RegExp('\\\\bexport\\\\s+const\\\\s+' + page.exp + '\\\\b');
-      const defaultExport = new RegExp('\\\\bexport\\\\s+default\\\\s+' + page.exp + '\\\\s*;');
+      const namedExport = new RegExp('\\bexport\\s+const\\s+' + page.exp + '\\b');
+      const defaultExport = new RegExp('\\bexport\\s+default\\s+' + page.exp + '\\s*;');
       if (namedExport.test(code)) pass(page.slug + ': API-only page declares named export ' + page.exp);
       else fail(page.slug + ': API-only page is missing named export ' + page.exp);
       if (defaultExport.test(code)) pass(page.slug + ': API-only page default export points to ' + page.exp);
       else fail(page.slug + ': API-only page default export does not point to ' + page.exp);
     }
     const mapping = new RegExp(
-      "\\\\b" + page.slug + "\\\\s*:\\\\s*\\\\(\\\\s*\\\\)\\\\s*=>\\\\s*import\\\\s*\\\\(\\\\s*['\"]\\\\./studios/" + page.slug + "/page\\\\.js['\"]\\\\s*\\\\)",
+      "\\b" + page.slug + "\\s*:\\s*\\(\\s*\\)\\s*=>\\s*import\\s*\\(\\s*['\"]\\./studios/" + page.slug + "/page\\.js['\"]\\s*\\)",
     );
     if (mapping.test(stripComments(loader))) pass('loader: API-only ' + page.slug + ' maps to studios/' + page.slug + '/page.js');
     else fail('loader: missing or incorrect API-only page mapping for ' + page.slug);
