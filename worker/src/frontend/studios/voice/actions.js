@@ -13,11 +13,8 @@ function voiceReset(){
   }).catch(function(){toast('IndexedDB ထဲမှ Voice Draft ဖျက်မအောင်မြင်ပါ','error');});
 }
 function bReset(){return {label:'Reset',cls:'ghost',fn:voiceReset};}
-function vPro(){
-  if(USER_PLAN!=='PRO'){toast('ဒီ Feature ကို Pro User သာ အသုံးပြုနိုင်ပါသည်','error');return false;}
-  return true;
-}
-function vLockBadge(){return USER_PLAN==='PRO'?'':' <span class="lock">🔒 Pro</span>';}
+
+
 
 // ===== Body / Stepper / Chips =====
 function vSetBody(html){vEl('voiceWorkflowBody').innerHTML=html;vFill();}
@@ -141,9 +138,8 @@ function applyContentTransfer(){
     var d=JSON.parse(raw);if(!d||!d.text)return;
     resetVoiceBranch(d.source||'content');
     if(d.source==='ideas'){
-      // Idea handoff replaces the Voice draft inputs as well as its previous result.
-      VOICE_INPUTS={tts:d.text,speaking:'',voice:'Kore',instruction:'',audience:d.audience||'လူတိုင်း',srt:''};
-      MEDIA_AUDIO={base64:'',mime:'',fileName:''};
+      // Replace active TTS inputs but preserve legacy Subtitle draft fields until Task 5D migrates them.
+       VOICE_INPUTS=Object.assign({},VOICE_INPUTS,{tts:d.text,speaking:'',voice:'Kore',instruction:'',audience:d.audience||'လူတိုင်း'});
     }else{
       VOICE_INPUTS.tts=d.text;
       if(d.speakingStyle)VOICE_INPUTS.speaking=d.speakingStyle;
