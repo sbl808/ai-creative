@@ -144,11 +144,25 @@ ${appPreferencesRepositoryScript()}
 ${i18nRuntimeScript()}
 (function(){
   var preferences = window.AICS_APP_PREFERENCES;
-  if (!preferences || typeof preferences.getLanguage !== 'function') return;
+  var languageSelect = document.getElementById("publicLanguage");
+  if (languageSelect) {
+    languageSelect.addEventListener("change", function () {
+      var nextLocale = languageSelect.value;
+      if (!preferences || typeof preferences.setLanguage !== "function" || !window.AICS_I18N) return;
+      preferences.setLanguage(nextLocale).then(function (savedLocale) {
+        window.AICS_I18N.setLocale(savedLocale);
+      }).catch(function () {
+        languageSelect.value = window.AICS_I18N.getLocale();
+      });
+    });
+  }
+  if (!preferences || typeof preferences.getLanguage !== "function") return;
   preferences.getLanguage().then(function (locale) {
     if (window.AICS_I18N) window.AICS_I18N.setLocale(locale);
+    if (languageSelect) languageSelect.value = locale;
   }).catch(function () {
     // Keep the shared i18n default locale when IndexedDB is unavailable.
+    if (languageSelect && window.AICS_I18N) languageSelect.value = window.AICS_I18N.getLocale();
   });
 })();
 (function(){
