@@ -243,7 +243,7 @@ function rotateCard(key,index){
   el.style.opacity=0;el.style.transform='translateY(6px)';
   setTimeout(function(){index=(index+1)%list.length;el.innerText=homeT(list[index]);el.style.opacity=1;el.style.transform='translateY(0)';setTimeout(function(){rotateCard(key,index);},3200);},500);
 }
-Object.keys(CARD_MESSAGES).forEach(function(key,i){setTimeout(function(){rotateCard(key,0);},3200+(i*250));});
+Object.keys(CARD_MESSAGE_KEYS).forEach(function(key,i){setTimeout(function(){rotateCard(key,0);},3200+(i*250));});
 var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
 // Greeting is localized through the shared data-i18n runtime.
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
