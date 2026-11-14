@@ -53,7 +53,7 @@ function testLoginLocalizationContract() {
       assert.ok(LOCALE_DICTIONARIES[locale][key], locale + ': missing ' + key);
     }
   }
-  assert.ok(LOGIN_HTML.includes('${i18nRuntimeScript()}'), 'login page loads shared i18n runtime');
+  assert.ok(LOGIN_HTML.includes('window.AICS_I18N = Object.freeze'), 'login page loads shared i18n runtime');
   assert.ok(LOGIN_HTML.includes('preferences.getLanguage()'), 'login reads browser-global language preference');
   assert.ok(LOGIN_HTML.includes('AICS_I18N.setLocale(locale)'), 'login applies saved app language');
   assert.ok(LOGIN_HTML.includes('data-i18n="auth.email"'), 'login uses explicit translation markers');
