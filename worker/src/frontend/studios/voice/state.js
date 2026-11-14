@@ -13,9 +13,10 @@ function newVoiceState(mode,source){
   };
 }
 var VOICE_STATE=newVoiceState('text-to-voice','');
-var VOICE_INPUTS={tts:'',speaking:'',voice:'Kore',instruction:'',audience:'လူတိုင်း',srt:''};
+var VOICE_INPUTS={tts:'',speaking:'',voice:'Kore',instruction:'',audience:'လူတိုင်း'};
 var VOICE_DRAFT_VALUES=null;
 var LAST_AUDIO={base64:'',mime:'audio/wav',url:''};
+// Legacy Subtitle payload containers: retained only to avoid overwriting existing Voice drafts before Task 5D migration.
 var MEDIA_AUDIO={base64:'',mime:'',fileName:''};
 var translatedSrt='';
 var voiceDraftKey='aics_voice_workflow_v3';
