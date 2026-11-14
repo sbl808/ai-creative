@@ -79,7 +79,7 @@ export function i18nRuntimeScript(initialLocale = DEFAULT_LOCALE) {
     '      applyDOM();',
     '    }',
     '    return locale;',
-    '  }'
+    '  }',
     '  if (typeof window !== "undefined") {',
     '    window.AICS_I18N = Object.freeze({',
     '      t: translate,',
