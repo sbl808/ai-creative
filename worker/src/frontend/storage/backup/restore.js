@@ -1,5 +1,5 @@
 const SCRIPT = String.raw`(function () {
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts', 'media_assets'];
+  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts', 'media_assets', 'user_settings'];
   var ownerIndexes = {
     creations: 'user_id',
     projects: 'user_id',
@@ -8,7 +8,8 @@ const SCRIPT = String.raw`(function () {
     session_results: 'ownerId',
     ideas: 'ownerId',
     drafts: 'ownerId',
-    media_assets: 'ownerId'
+    media_assets: 'ownerId',
+    user_settings: 'ownerId'
   };
 
   function restore(backup, options) {
