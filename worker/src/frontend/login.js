@@ -1,7 +1,6 @@
 import { storageErrorsScript } from './storage/storage-errors.js';
 import { databaseScript } from './storage/database.js';
 import { storageOwnerScript } from './storage/storage-owner.js';
-import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
 import { appPreferencesRepositoryScript } from './storage/repositories/app-preferences.js';
 
 // ============================================================
@@ -105,7 +104,6 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 
   <!-- Email / Password Sign In -->
   <form id="signinForm">
-    <div class="field" id="suNameField" style="display:none;"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" placeholder="မင်းရဲ့နာမည်" maxlength="60"></div>
     <div class="field"><label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
     <div class="field"><label for="siPass">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" aria-pressed="false">Show</button></div></div>
     <div class="field" id="suCfField" style="display:none;"><label for="suCf">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
@@ -121,7 +119,6 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 ${storageErrorsScript()}
 ${databaseScript()}
 ${storageOwnerScript()}
-${userSettingsRepositoryScript()}
 ${appPreferencesRepositoryScript()}
 (function () {
   'use strict';
@@ -187,11 +184,9 @@ ${appPreferencesRepositoryScript()}
 
   function doSignup() {
     clearBox();
-    var name = document.getElementById('suName').value.trim();
     var email = document.getElementById('siEmail').value.trim();
     var pass = document.getElementById('siPass').value;
     var cf = document.getElementById('suCf').value;
-    if (!name) { showBox('error', '👤 Name ထည့်ပါ။'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 Email ပုံစံ မမှန်ပါ။'); return; }
     if (pass.length < 6) { showBox('error', '🔑 Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။'); return; }
     if (pass !== cf) { showBox('error', '🔁 Password နှစ်ခု မတူပါ။'); return; }
@@ -199,7 +194,7 @@ ${appPreferencesRepositoryScript()}
     fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name, email: email, password: pass })
+      body: JSON.stringify({ email: email, password: pass })
     }).then(function (r) { return r.json(); }).then(function (d) {
       setLoading(false);
       if (!d || !d.token) {
@@ -208,17 +203,9 @@ ${appPreferencesRepositoryScript()}
         return;
       }
       try { localStorage.setItem('aics_token', d.token); localStorage.setItem('aics_email', d.email || ''); localStorage.setItem('aics_plan', d.plan || 'FREE'); } catch (e2) {}
-      var profileSave = window.AICS_USER_SETTINGS
-        ? window.AICS_USER_SETTINGS.save({ profile: { name: name } })
-        : Promise.reject(new Error('profile_storage_unavailable'));
-      profileSave.then(function () {
-        headline.textContent = '✅ Account created!';
-        subline.textContent = 'နာမည်ကို ဤ Browser ၏ IndexedDB ထဲတွင် သိမ်းပြီးပါပြီ။ Workspace သို့ ပို့ဆောင်နေသည်…';
-        setTimeout(function () { location.href = '/app'; }, 350);
-      }).catch(function () {
-        showBox('info', 'Account ဖန်တီးပြီးပါပြီ။ Profile Name ကို Settings ထဲတွင် ထပ်သိမ်းနိုင်ပါသည်။');
-        setTimeout(function () { location.href = '/app'; }, 1400);
-      });
+      headline.textContent = '✅ Account created!';
+      subline.textContent = 'Personal Workspace သို့ ပို့ဆောင်နေသည်…';
+      setTimeout(function () { location.href = '/app'; }, 350);
     }).catch(function () {
       setLoading(false);
       showBox('error', '🌐 Network error — ပြန်ကြိုးစားပါ။');
@@ -229,9 +216,8 @@ ${appPreferencesRepositoryScript()}
     showBox('info', 'Password မေ့နေပါက Google Login သုံးပါ သို့မဟုတ် Admin ကို ဆက်သွယ်ပါ။');
   });
 
-  // ---- Sign Up Mode (Name / Confirm ကို ဖော်/ဖျောက်သည်) ----
+  // ---- Sign Up Mode (Confirm Password ကို ဖော်/ဖျောက်သည်) ----
   var mode = 'signin';
-  var nameField = document.getElementById('suNameField');
   var cfField = document.getElementById('suCfField');
   // Password visibility is a presentation-only toggle; it does not alter auth requests.
   document.querySelectorAll('[data-password-toggle]').forEach(function (toggle) {
@@ -250,7 +236,6 @@ ${appPreferencesRepositoryScript()}
     if (mode === 'signup') {
       headline.textContent = 'Create your account';
       subline.textContent = 'Sign up — စက္ကန့်ပိုင်းအတွင်း ပြီးပါသည်';
-      nameField.style.display = '';
       cfField.style.display = '';
       btn.textContent = 'Create Account';
       document.getElementById('toSignup').textContent = 'Sign in';
@@ -258,7 +243,6 @@ ${appPreferencesRepositoryScript()}
     } else {
       headline.textContent = 'Welcome back';
       subline.textContent = 'Sign in to your workspace';
-      nameField.style.display = 'none';
       cfField.style.display = 'none';
       btn.textContent = 'Sign In';
       document.getElementById('toSignup').textContent = 'Sign up';
