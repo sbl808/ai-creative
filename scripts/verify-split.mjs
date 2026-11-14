@@ -292,6 +292,27 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
   }
 }
 
+
+ // Voice frontend boundary: the Voice page must expose TTS only. Existing legacy
+ // Subtitle draft payloads remain preserved until the dedicated migration task.
+const voiceActions = readSource(path.join(FRONTEND, 'studios', 'voice', 'actions.js'), 'Voice TTS-only actions');
+const voiceHelpers = readSource(path.join(FRONTEND, 'studios', 'voice', 'helpers.js'), 'Voice draft compatibility');
+const voiceState = readSource(path.join(FRONTEND, 'studios', 'voice', 'state.js'), 'Voice TTS-only state');
+if (voiceActions !== null) {
+  const forbidden = ['/api/studio/subtitle/', 'vRunTranscribe', 'vRunSrt', 'vRunTranslation', 'media-to-text', 'srtEditor', 'translatedEditor', 'aiModelSel2'];
+  const found = forbidden.filter(token => voiceActions.includes(token));
+  if (found.length === 0 && voiceActions.includes("api('/api/studio/voice/tts'")) pass('Voice frontend exposes TTS only; Subtitle actions and controls are separated');
+  else fail('Voice frontend still contains Subtitle runtime references: ' + found.join(', '));
+}
+if (voiceHelpers !== null && voiceState !== null) {
+  const preservesLegacy = voiceHelpers.includes('mediaAudio:MEDIA_AUDIO') &&
+    voiceHelpers.includes('translation:translatedSrt') &&
+    voiceHelpers.includes('voiceApplyDraftData') &&
+    voiceState.includes('Legacy Subtitle payload containers');
+  if (preservesLegacy) pass('Voice draft restore/save preserves legacy Subtitle payloads for Task 5D migration');
+  else fail('Voice legacy Subtitle draft compatibility is not preserved');
+}
+
 console.log('\nStudio architecture verification: ' + checks.length + ' checks passed, ' + failures.length + ' failure(s).');
 if (failures.length > 0) {
   console.error('VERIFICATION FAILED. No files were modified by this script.');
