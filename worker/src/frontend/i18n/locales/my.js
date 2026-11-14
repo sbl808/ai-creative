@@ -61,9 +61,8 @@ const dictionary = Object.freeze({
   "toast.story.restoreFailed": "Session ပြန်ဖွင့်မရပါ။ ထပ်မံကြိုးစားပါ။",
   "confirm.logout": "Logout လုပ်မှာလား?",
   "confirm.proceed": "ဆက်လုပ်မည်လား?",
-});
 
-  "auth.welcome": "ပြန်လည်ကြိုဆိုပါတယ်",
+"auth.welcome": "ပြန်လည်ကြိုဆိုပါတယ်",
   "auth.signin.subtitle": "သင့် Workspace သို့ ဝင်ရောက်ပါ",
   "auth.google": "Google ဖြင့် ဆက်လက်ရန်",
   "auth.or": "သို့မဟုတ်",
@@ -93,4 +92,6 @@ const dictionary = Object.freeze({
   "auth.signup.title": "အကောင့်အသစ် ဖန်တီးပါ",
   "auth.signup.subtitle": "အကောင့်ဖွင့်ရန် — ခဏအတွင်း ပြီးပါမည်",
   "auth.signup.success": "အကောင့်ဖန်တီးပြီးပါပြီ!",
+});
+
 export default dictionary;
