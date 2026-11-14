@@ -96,7 +96,7 @@ assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
-assert.doesNotMatch(authSource, /INSERT INTO users \\(email, name/);
+assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
 assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
