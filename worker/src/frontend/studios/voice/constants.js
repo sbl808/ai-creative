@@ -18,14 +18,9 @@ const VOICES = [
   ['Vindemiatrix','နူးညံ့သိမ်မွေ့ (Gentle)'],['Sadachbia','တက်ကြွရှင်သန် (Lively)'],
   ['Sadaltager','ဗဟုသုတရှိ (Knowledgeable)'],['Sulafat','နွေးထွေး (Warm)']
 ];
-// V2.1 Unified Workflow — Stepper ၄ ဆင့်တည်း (mode မည်သည်ဖြစ်စေ)
-// Input → Format → Generate → Result Hub  (SRT / ဘာသာပြန် ဆက်လုပ်ခြင်းကို Result Hub ထဲတွင်သာ ပြသည်)
+// Voice Studio — Text-to-Voice workflow
 const VOICE_STEPS = [
   {n:1,label:'Input'},{n:2,label:'Format'},{n:3,label:'Generate'},{n:4,label:'Result'}
-];
-// Mode chips (စာမျက်နှာတစ်ခုတည်း)
-const VOICE_MODES = [
-  {id:'text-to-voice',icon:'📝',label:'စာ → အသံ'}
 ];
 function esc(s) {
   const value = s == null ? '' : String(s);
