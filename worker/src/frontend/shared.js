@@ -378,7 +378,7 @@ export function sidebarScript() {
     '    window.AICS_APP_PREFERENCES.getLanguage().then(function (locale) { window.AICS_I18N.setLocale(locale); }).catch(function () { window.AICS_I18N.setLocale("zh-CN"); });\n' +
     '  } else { window.AICS_I18N.applyDOM(); }\n' +
     '})();\n' +
-    sidebarSessionHistoryScript() + '\n'
+    sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
