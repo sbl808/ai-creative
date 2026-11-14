@@ -14,8 +14,10 @@ assert.match(page, /rate_limit_unavailable/);
 assert.match(page, /transcribe_error/);
 assert.match(page, /audioBase64=await readAudioBase64\(file\)/);
 assert.match(page, /transcript\.value=result/);
-const pageScript = page.slice(page.lastIndexOf('<script>'));\nassert.doesNotMatch(pageScript, /console\.(?:log|error|warn)\s*\(/);
-assert.doesNotMatch(pageScript, /indexedDB\.open|AICS_CREATIONS\.save|AICS_HISTORY\.save/);\nassert.doesNotMatch(pageScript, /fetch\(\s*['\"]\/api\/studio\/subtitle\/transcribe/);
+const pageScript = page.slice(page.lastIndexOf('<script>'));
+assert.doesNotMatch(pageScript, /console\.(?:log|error|warn)\s*\(/);
+assert.doesNotMatch(pageScript, /indexedDB\.open|AICS_CREATIONS\.save|AICS_HISTORY\.save/);
+assert.doesNotMatch(pageScript, /fetch\(\s*['\"]\/api\/studio\/subtitle\/transcribe/);
 assert.match(page, /URL\.revokeObjectURL/);
 
 const sharedUi = await readFile(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
