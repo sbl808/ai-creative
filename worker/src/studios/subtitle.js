@@ -3,9 +3,9 @@
 
 import { getCMSData } from '../cms/repositories/index.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
-import { generateVoiceSrtShared } from '../media-adapters/voice/srt.adapter.js';
-import { translateVoiceSrtShared } from '../media-adapters/voice/translation.adapter.js';
-import { transcribeVoiceAudio } from '../media-adapters/voice/audio.adapter.js';
+import { generateSubtitleSrtShared } from '../media-adapters/subtitle/srt.adapter.js';
+import { translateSubtitleSrtShared } from '../media-adapters/subtitle/translation.adapter.js';
+import { transcribeSubtitleAudio } from '../media-adapters/subtitle/audio.adapter.js';
 
 const CMS_STUDIO = 'VOICE';
 
@@ -19,7 +19,7 @@ export async function transcribeAudio(env, { audioBase64, mimeType, type, plan, 
   const prompt = system
     ? (system + '\n\nအထက်ပါ instruction အတိုင်း အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။')
     : 'အောက်က Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ။ Transcribe လုပ်ထားသော Text ကိုသာ ပြန်ပေးပါ။';
-  return transcribeVoiceAudio(env, {
+  return transcribeSubtitleAudio(env, {
     audioBase64, mimeType, plan, apiKey, model, prompt,
   });
 }
@@ -82,7 +82,7 @@ export async function buildVoiceSrtPrompt(env, knownText) {
 export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan, apiKey, model, knownText }) {
   if (!audioBase64) throw new Error('missing_audio');
   const instruction = await buildVoiceSrtPrompt(env, knownText);
-  return generateVoiceSrtShared(env, {
+  return generateSubtitleSrtShared(env, {
     audioBase64,
     mimeType: mimeType || 'audio/mpeg',
     apiKey,
@@ -94,5 +94,5 @@ export async function generateVoiceSrt(env, { audioBase64, mimeType, type, plan,
 
 export async function translateVoiceSrt(env, { srtText, direction, type, plan, apiKey, model }) {
   if (!srtText || !String(srtText).trim()) throw new Error('missing_srt');
-  return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });
+  return translateSubtitleSrtShared(env, { srtText, direction, type, plan, apiKey, model });
 }
