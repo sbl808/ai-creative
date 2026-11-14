@@ -36,10 +36,7 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   try {
     const decision = await limiter.limit({ key: userId });
     if (!decision?.success) {
-      return json({ error: 'rate_limited', limit: 10, window_seconds: 60 }, 429, {
-        ...cors,
-        'Retry-After': '60',
-      });
+      return json({ error: 'rate_limited', limit: 10, window_seconds: 60 }, 429, cors);
     }
   } catch (_) {
     return json({ error: 'rate_limit_unavailable' }, 503, cors);
