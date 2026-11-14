@@ -83,6 +83,13 @@ v8Backup.stores.user_settings = [{
 assert.equal(validateBackupEnvelope(v8Backup, ownerId).recordCount, 9);
 assert.equal(validateBackupText(JSON.stringify(v8Backup), ownerId).recordCount, 9);
 
+// Schema v9 adds browser-global app_preferences, which is intentionally excluded from user backups.
+const v9Backup = JSON.parse(JSON.stringify(v8Backup));
+v9Backup.schemaVersion = 9;
+assert.equal(validateBackupEnvelope(v9Backup, ownerId).recordCount, 9);
+assert.equal(validateBackupText(JSON.stringify(v9Backup), ownerId).recordCount, 9);
+assert.equal(Object.prototype.hasOwnProperty.call(v9Backup.stores, 'app_preferences'), false);
+
 for (const invalidSettings of [
   { ...v8Backup.stores.user_settings[0], ownerId: 'user-b' },
   { ...v8Backup.stores.user_settings[0], profile: { name: 123 } },
