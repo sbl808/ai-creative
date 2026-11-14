@@ -11,6 +11,7 @@ import {
 import { i18nRuntimeScript } from '../worker/src/frontend/i18n/runtime.js';
 import { LOGIN_HTML } from '../worker/src/frontend/login.js';
 import { PRELOGIN_HOME_HTML } from '../worker/src/frontend/prelogin-home.js';
+import { APP_HTML } from '../worker/src/frontend/home.js';
 
 function testLocaleConfiguration() {
   assert.equal(DEFAULT_LOCALE, 'zh-CN');
@@ -165,7 +166,58 @@ function testBrowserRuntime() {
   assert.equal(window.AICS_I18N.t('common.action.save'), 'Save');
 }
 
-testLocaleConfiguration();
+
+
+function testDashboardLocalizationContract() {
+  const dashboardKeys = [
+    'dashboard.greeting', 'dashboard.subtitle', 'dashboard.apiKey.button',
+    'dashboard.banner.1', 'dashboard.banner.2', 'dashboard.banner.3',
+    'dashboard.quickCreate.title',
+    'dashboard.studio.story.title', 'dashboard.studio.content.title',
+    'dashboard.studio.short.title', 'dashboard.studio.image.title',
+    'dashboard.studio.voice.title', 'dashboard.studio.shop.title',
+    'dashboard.studio.story.description.1', 'dashboard.studio.story.description.2',
+    'dashboard.studio.content.description.1', 'dashboard.studio.content.description.2',
+    'dashboard.studio.short.description.1', 'dashboard.studio.short.description.2',
+    'dashboard.studio.image.description.1', 'dashboard.studio.image.description.2',
+    'dashboard.studio.voice.description.1', 'dashboard.studio.voice.description.2',
+    'dashboard.studio.shop.description.1', 'dashboard.studio.shop.description.2',
+    'dashboard.recent.title', 'dashboard.recent.viewAll',
+    'dashboard.aria.viewAll', 'dashboard.aria.studio.story',
+    'dashboard.aria.studio.content', 'dashboard.aria.studio.short',
+    'dashboard.aria.studio.image', 'dashboard.aria.studio.voice',
+    'dashboard.aria.studio.shop', 'dashboard.loading',
+    'dashboard.empty.title', 'dashboard.empty.description',
+    'dashboard.project.open', 'dashboard.storage.error',
+    'dashboard.login.required', 'dashboard.login.link',
+    'dashboard.apiKey.modal.close', 'dashboard.apiKey.modal.title',
+    'dashboard.apiKey.modal.subtitle', 'dashboard.apiKey.step.1',
+    'dashboard.apiKey.step.2', 'dashboard.apiKey.step.3',
+    'dashboard.apiKey.step.4', 'dashboard.apiKey.step.5',
+    'dashboard.apiKey.action.create', 'dashboard.apiKey.action.settings'
+  ];
+
+  for (const locale of SUPPORTED_LOCALES) {
+    for (const key of dashboardKeys) {
+      assert.ok(LOCALE_DICTIONARIES[locale][key], locale + ': missing ' + key);
+    }
+  }
+
+  const markedKeys = Array.from(APP_HTML.matchAll(/data-i18n(?:-aria-label)?="([^"]+)"/g), match => match[1]);
+  assert.ok(markedKeys.length >= 35, 'dashboard exposes explicit translation markers');
+  for (const key of markedKeys) {
+    assert.ok(LOCALE_DICTIONARIES.my[key], 'dashboard marker has a dictionary entry: ' + key);
+  }
+
+  assert.ok(APP_HTML.includes('AICS_I18N.applyDOM(document.querySelector(\'.main-content\'))'), 'login-required state is localized after dynamic rendering');
+  assert.ok(APP_HTML.includes('AICS_I18N.applyDOM(area)'), 'recent-project dynamic states are localized after rendering');
+  assert.ok(APP_HTML.includes('AICS_CREATIONS.list()'), 'recent creations are read through the browser creation store');
+  assert.ok(APP_HTML.includes('escapeHtml(c.title||\'(Untitled)\')'), 'user-created project titles are escaped before rendering');
+  assert.ok(APP_HTML.includes('homeT(BANNER_MESSAGE_KEYS[bannerIndex])'), 'rotating banner uses the shared translator');
+  assert.ok(APP_HTML.includes('homeT(list[index])'), 'rotating studio descriptions use the shared translator');
+}
+
+\ntestDashboardLocalizationContract();\ntestLocaleConfiguration();
 testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
 testLoginLocalizationContract();
