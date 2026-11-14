@@ -21,9 +21,10 @@ assert.ok(home.includes("document.addEventListener('click'") && home.includes("d
 for (const tab of ['profile', 'prefs', 'apikey', 'backup']) {
   assert.ok(settings.includes('data-settings-tab="' + tab + '"'), 'Settings tab marker: ' + tab);
 }
-for (const action of ['retry-key-status', 'save-name', 'set-api-key', 'test-api-key', 'remove-api-key']) {
+for (const action of ['retry-key-status', 'set-api-key', 'test-api-key', 'remove-api-key']) {
   assert.ok(settings.includes('data-settings-action="' + action + '"'), 'Settings action marker: ' + action);
 }
+assert.ok(!settings.includes('data-settings-action="save-name"'), 'Removed Profile Name action is not present in Settings');
 assert.ok(settings.includes('id="prefsForm"') && settings.includes("addEventListener('submit'"), 'Settings form uses a registered submit listener');
 
 assert.ok(projects.includes('data-project-action="create"'), 'Projects create action marker exists');
