@@ -72,6 +72,7 @@ const dictionary = Object.freeze({
   "auth.password.confirm": "စကားဝှက် အတည်ပြုရန်",
   "auth.password.show": "ပြရန်",
   "auth.password.hide": "ဖျောက်ရန်",
+  "auth.password.showConfirm": "အတည်ပြုစကားဝှက် ပြရန်",,
   "auth.forgot": "စကားဝှက် မေ့နေပါသလား?",
   "auth.signin": "ဝင်ရောက်ရန်",
   "auth.signup": "အကောင့်ဖွင့်ရန်",
