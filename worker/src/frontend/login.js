@@ -106,8 +106,8 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
   <!-- Email / Password Sign In -->
   <form id="signinForm">
     <div class="field"><label for="siEmail" data-i18n="auth.email">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-placeholder="auth.email.placeholder" required></div>
-    <div class="field"><label for="siPass" data-i18n="auth.password">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" aria-pressed="false">Show</button></div></div>
-    <div class="field" id="suCfField" style="display:none;"><label for="suCf" data-i18n="auth.password.confirm">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
+    <div class="field"><label for="siPass" data-i18n="auth.password">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" data-i18n-aria-label="auth.password.show" aria-pressed="false" data-i18n="auth.password.show">Show</button></div></div>
+    <div class="field" id="suCfField" style="display:none;"><label for="suCf" data-i18n="auth.password.confirm">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" data-i18n-aria-label="auth.password.showConfirm" aria-pressed="false" data-i18n="auth.password.show">Show</button></div></div>
     <div class="row2"><button type="button" class="link" id="forgotBtn" data-i18n="auth.forgot">Forgot password?</button></div>
     <button class="btn btn-primary" id="signinBtn" type="submit" data-i18n="auth.signin">Sign In</button>
   </form>
@@ -198,7 +198,7 @@ ${i18nRuntimeScript()}
     var email = document.getElementById('siEmail').value.trim();
     var pass = document.getElementById('siPass').value;
     var cf = document.getElementById('suCf').value;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 Email ပုံစံ မမှန်ပါ။'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 ' + t('auth.error.email')); return; }
     if (pass.length < 6) { showBox('error', '🔑 ' + t('auth.error.passwordLength')); return; }
     if (pass !== cf) { showBox('error', '🔁 ' + t('auth.error.passwordMismatch')); return; }
     setLoading(true);
@@ -215,7 +215,7 @@ ${i18nRuntimeScript()}
       }
       try { localStorage.setItem('aics_token', d.token); localStorage.setItem('aics_email', d.email || ''); localStorage.setItem('aics_plan', d.plan || 'FREE'); } catch (e2) {}
       headline.textContent = '✅ ' + t('auth.signup.success');
-      subline.textContent = 'Personal Workspace သို့ ပို့ဆောင်နေသည်…';
+      subline.textContent = t('auth.redirecting');
       setTimeout(function () { location.href = '/app'; }, 350);
     }).catch(function () {
       setLoading(false);
@@ -239,7 +239,7 @@ ${i18nRuntimeScript()}
       input.type = show ? 'text' : 'password';
       toggle.textContent = t(show ? 'auth.password.hide' : 'auth.password.show');
       toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
-      toggle.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + (input.id === 'suCf' ? 'confirm password' : 'password'));
+      toggle.setAttribute('aria-label', t(show ? 'auth.password.hide' : (input.id === 'suCf' ? 'auth.password.showConfirm' : 'auth.password.show')));
     });
   });
   document.getElementById('toSignup').addEventListener('click', function () {
