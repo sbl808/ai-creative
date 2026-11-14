@@ -38,7 +38,7 @@ function request(path, body, { token = 'valid-test-token', rawBody } = {}) {
 
 function dependencies(overrides = {}) {
   return {
-    bearer: (req) => req.headers.get('Authorization')?.replace(/^Bearer\\s+/i, '') || '',
+    bearer: (req) => req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') || '',
     verifyTokenSafe: async () => ({ sub: 'subtitle-route-test-user' }),
     json: (data, status = 200, cors = {}) => new Response(JSON.stringify(data), {
       status,
