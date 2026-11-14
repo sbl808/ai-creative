@@ -6,7 +6,7 @@ import { generateSharedSrt } from '../../media-production/srt/engine.js';
  * Studio-specific prompts and credentials stay outside the versioned contract.
  */
 export function createSrtStudioAdapter(studioId, engine = generateSharedSrt) {
-  if (!['content', 'voice', 'shop'].includes(studioId)) {
+  if (!['content', 'voice', 'shop', 'subtitle'].includes(studioId)) {
     throw new Error('unsupported_srt_adapter_studio');
   }
 
