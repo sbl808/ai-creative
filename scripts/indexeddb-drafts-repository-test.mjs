@@ -1,5 +1,5 @@
-import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 #!/usr/bin/env node
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 /**
  * IndexedDB Drafts Repository ownership and CRUD contract.
  * Run: node --experimental-default-type=module scripts/indexeddb-drafts-repository-test.mjs
