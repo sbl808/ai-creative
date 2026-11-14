@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
 assert.match(source, /createObjectStore\('projects'/);
 assert.match(source, /createObjectStore\('studio_sessions'/);
 assert.match(source, /createObjectStore\('session_results'/);
