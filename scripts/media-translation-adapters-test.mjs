@@ -211,7 +211,7 @@ console.log('Shared Translation Studio Adapters: PASS');
   assert.equal(calls[0][2].apiKey, API_KEY);
   assert.equal(calls[0][2].model, 'subtitle-translation-model');
   assert.equal(calls[0][2].plan, 'FREE');
-  assert.ok(calls[0][2].prompt.includes('SRT:\\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
   assert.ok(calls[0][2].prompt.includes('မြန်မာဘာသာ'));
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
 }
