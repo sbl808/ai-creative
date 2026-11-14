@@ -475,17 +475,7 @@ export function sidebarScript() {
     '      }\n' +
     '      var se = document.getElementById(\'sideEmail\');\n' +
     '      if (se) se.textContent = d.email || \'—\';\n' +
-    '      var sn = document.getElementById(\'sideName\');\n' +
-    '      var fallbackName = (d.email || \'\').split(\'@\')[0] || \'User\';\n' +
-    '      if (sn) { sn.textContent = fallbackName; var fallbackAvatar = document.getElementById(\'sideAvatar\'); if (fallbackAvatar) fallbackAvatar.textContent = fallbackName.charAt(0).toUpperCase(); }\n' +
-    '      if (sn && typeof window.AICS_LOAD_USER_SETTINGS === \'function\') {\n' +
-    '        window.AICS_LOAD_USER_SETTINGS().then(function (record) {\n' +
-    '          var displayName = record && record.profile && record.profile.name || fallbackName;\n' +
-    '          sn.textContent = displayName;\n' +
-    '          var avatar = document.getElementById(\'sideAvatar\');\n' +
-    '          if (avatar) avatar.textContent = displayName.charAt(0).toUpperCase();\n' +
-    '        }).catch(function () {});\n' +
-    '      }\n' +
+    '      // Sidebar တွင် Profile Name မပြတော့ပါ။ Legacy profile.name ဒေတာကို မဖတ်/မပြင်ပါ။\n' +
     '      var ue = document.getElementById(\'userEmail\');\n' +
     '      if (ue) ue.textContent = d.email || \'\';\n' +
     '      var pb = document.getElementById(\'planBadge\');\n' +
