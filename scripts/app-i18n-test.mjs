@@ -10,6 +10,7 @@ import {
 } from '../worker/src/frontend/i18n/index.js';
 import { i18nRuntimeScript } from '../worker/src/frontend/i18n/runtime.js';
 import { LOGIN_HTML } from '../worker/src/frontend/login.js';
+import { PRELOGIN_HOME_HTML } from '../worker/src/frontend/prelogin-home.js';
 
 function testLocaleConfiguration() {
   assert.equal(DEFAULT_LOCALE, 'zh-CN');
@@ -78,6 +79,17 @@ function testTranslatorFallbackAndInterpolation() {
   assert.equal(translateWithFallback('test.present', {}), 'Hello {{name}}');
 }
 
+function testPublicHomeLocalizationBootstrap() {
+  assert.ok(PRELOGIN_HOME_HTML.includes('window.AICS_I18N = Object.freeze'), 'public home loads the shared i18n runtime');
+  assert.ok(PRELOGIN_HOME_HTML.includes('window.AICS_APP_PREFERENCES'), 'public home loads shared app preferences');
+  assert.ok(PRELOGIN_HOME_HTML.includes('preferences.getLanguage()'), 'public home reads the saved browser language');
+  assert.ok(PRELOGIN_HOME_HTML.includes('AICS_I18N.setLocale(locale)'), 'public home applies the saved language');
+  assert.ok(PRELOGIN_HOME_HTML.includes('app_preferences'), 'public home reuses the existing app_preferences store');
+  assert.ok(PRELOGIN_HOME_HTML.includes('Keep the shared i18n default locale'), 'public home keeps the default locale if IndexedDB fails');
+  assert.ok(PRELOGIN_HOME_HTML.includes('<html lang="my"'), 'public home source language is normalized by the shared runtime on load');
+  assert.ok(!PRELOGIN_HOME_HTML.includes("localStorage.setItem('aics-language'"), 'public home does not store language in localStorage');
+}
+
 function testBrowserRuntime() {
   const window = {};
   const label = {
@@ -108,6 +120,7 @@ testLocaleConfiguration();
 testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
 testLoginLocalizationContract();
+testPublicHomeLocalizationBootstrap();
 testBrowserRuntime();
 
 console.log('App i18n Core tests passed.');
