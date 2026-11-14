@@ -116,7 +116,7 @@ a{color:var(--cyan);text-decoration:none;}
 <body>
 <div class="aics-app" id="aicsApp">
 <header class="aics-header">
-<button type="button" class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
+<button type="button" class="aics-menu-btn" data-aics-sidebar-action="toggle" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" data-i18n-aria-label="menu.toggle" aria-controls="sidebar" aria-expanded="false">&#9776;</button>
 <div class="aics-brand"><span class="aics-brand-icon">🎨</span><span class="aics-title">AI Creative Studio</span></div>
 <div class="aics-pro" id="sidePlan">FREE</div>
 </header>
