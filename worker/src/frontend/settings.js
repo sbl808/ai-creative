@@ -118,6 +118,7 @@ ${renderSidebar('settings',{variant:'studio'})}
         <label for="pref_lang">ဘာသာစကား (Language)</label>
         <select id="pref_lang" class="form-select">
           <option value="my">မြန်မာ (Myanmar)</option>
+          <option value="zh-CN">简体中文 (Chinese)</option>
           <option value="en">English</option>
         </select>
       </div>
@@ -161,6 +162,32 @@ if (prefsForm) prefsForm.addEventListener('submit', function (event) {
   event.preventDefault();
   savePrefs(event);
 });
+var appLanguageSelect = document.getElementById('pref_lang');
+var savedAppLanguage = 'zh-CN';
+if (appLanguageSelect) appLanguageSelect.addEventListener('change', saveAppLanguage);
+function saveAppLanguage(){
+  var select = document.getElementById('pref_lang');
+  if (!select || !window.AICS_APP_PREFERENCES || typeof window.AICS_APP_PREFERENCES.setLanguage !== 'function') {
+    if (select) select.value = savedAppLanguage;
+    showToast('App Language Storage မရနိုင်ပါ','error');
+    return;
+  }
+  var requestedLanguage = select.value;
+  select.disabled = true;
+  window.AICS_APP_PREFERENCES.setLanguage(requestedLanguage).then(function(language){
+    savedAppLanguage = language;
+    select.value = language;
+    if (window.AICS_I18N && typeof window.AICS_I18N.setLocale === 'function') {
+      window.AICS_I18N.setLocale(language);
+    }
+    showToast('✓ App Language ကို Browser ထဲတွင် သိမ်းပြီးပါပြီ','success');
+  }).catch(function(){
+    select.value = savedAppLanguage;
+    showToast('App Language သိမ်း၍ မရပါ။ ယခင်ဘာသာစကားကို ပြန်ထားပါသည်။','error');
+  }).then(function(){
+    select.disabled = false;
+  });
+}
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
@@ -224,7 +251,19 @@ function loadSettings(){
         if(!pm.value&&pm.options.length>0)pm.value=pm.options[0].value;
       }).catch(function(){});
     })();
-    document.getElementById('pref_lang').value=s.language||'my';
+    var languageSelect = document.getElementById('pref_lang');
+    if (window.AICS_APP_PREFERENCES && typeof window.AICS_APP_PREFERENCES.getLanguage === 'function') {
+      window.AICS_APP_PREFERENCES.getLanguage().then(function(language){
+        savedAppLanguage = language;
+        languageSelect.value = language;
+      }).catch(function(){
+        savedAppLanguage = 'zh-CN';
+        languageSelect.value = savedAppLanguage;
+      });
+    } else {
+      savedAppLanguage = 'zh-CN';
+      languageSelect.value = savedAppLanguage;
+    }
     document.getElementById('pref_theme').value=s.theme||'dark';
     loadKeyStatus();
     loadPlanCatalog();
@@ -272,7 +311,6 @@ function savePrefs(ev){
   }
   window.AICS_USER_SETTINGS.save({settings:{
     default_model:document.getElementById('pref_model').value.trim(),
-    language:document.getElementById('pref_lang').value,
     theme:document.getElementById('pref_theme').value
   }}).then(function(record){
     btn.disabled=false;btn.textContent='💾 သိမ်းပါ';
