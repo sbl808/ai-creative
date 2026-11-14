@@ -1,3 +1,4 @@
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { clientStorageScript } from '../worker/src/frontend/storage/client-storage.js';
@@ -139,7 +140,7 @@ const json = await window.AICS_BACKUP.exportJson();
 const backup = JSON.parse(json);
 assert.equal(backup.format, 'aics-browser-backup');
 assert.equal(backup.exportVersion, 1);
-assert.equal(backup.schemaVersion, 8);
+assert.equal(backup.schemaVersion, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(Object.keys(backup.stores).sort(), [
   'creations', 'drafts', 'ideas', 'media_assets', 'projects', 'session_results', 'studio_handoffs', 'studio_sessions', 'user_settings'
 ]);

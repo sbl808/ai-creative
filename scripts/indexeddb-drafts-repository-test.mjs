@@ -185,7 +185,7 @@ const savedA = await window.AICS_DRAFTS.save({
   draftVersion: 2,
   data: { prompt: 'User A content draft' }
 });
-assert.equal(fakeIndexedDB.version, 8);
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION);
 assert.equal(savedA.ownerId, 'user-a');
 assert.equal(savedA.studio, 'content');
 assert.equal(savedA.draftVersion, 2);
