@@ -72,6 +72,7 @@ const dictionary = Object.freeze({
   "auth.password.confirm": "确认密码",
   "auth.password.show": "显示",
   "auth.password.hide": "隐藏",
+  "auth.password.showConfirm": "显示确认密码",,
   "auth.forgot": "忘记密码？",
   "auth.signin": "登录",
   "auth.signup": "注册",
