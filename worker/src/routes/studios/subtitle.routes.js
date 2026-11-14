@@ -2,7 +2,7 @@ import {
   transcribeAudio,
   generateVoiceSrt,
   translateVoiceSrt,
-} from '../../studios/voice/index.js';
+} from '../../studios/subtitle.js';
 
 export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
