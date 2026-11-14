@@ -50,16 +50,24 @@ function testTranslatorFallbackAndInterpolation() {
 
 function testBrowserRuntime() {
   const window = {};
-  const document = { documentElement: { lang: 'my' } };
+  const label = {
+    textContent: 'အဟောင်း',
+    attributes: { 'data-i18n': 'nav.home' },
+    getAttribute(name) { return this.attributes[name] || null; },
+    setAttribute(name, value) { this.attributes[name] = value; }
+  };
+  const document = { documentElement: { lang: 'my' }, querySelectorAll() { return [label]; } };
   const script = i18nRuntimeScript();
 
   assert.equal(script.includes('</script'), false, 'runtime must not contain a closing script tag');
   vm.runInNewContext(script, { window, document });
 
   assert.equal(window.AICS_I18N.getLocale(), 'zh-CN');
+  assert.equal(label.textContent, '首页', 'explicit static labels use the default locale');
   assert.equal(window.AICS_I18N.t('common.action.save'), '保存');
   assert.deepEqual(Array.from(window.AICS_I18N.getSupportedLocales()), ['my', 'zh-CN', 'en']);
   assert.equal(window.AICS_I18N.setLocale('my'), 'my');
+  assert.equal(label.textContent, 'ပင်မ', 'explicit static labels update when locale changes');
   assert.equal(document.documentElement.lang, 'my');
   assert.equal(window.AICS_I18N.t('common.action.save'), 'သိမ်းပါ');
   assert.equal(window.AICS_I18N.setLocale('en-US'), 'en');

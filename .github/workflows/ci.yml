@@ -40,6 +40,8 @@ jobs:
         run: node --experimental-default-type=module scripts/shared-translation-engine-test.mjs
       - name: Run App i18n Core tests
         run: node --experimental-default-type=module scripts/app-i18n-test.mjs
+      - name: Run Shared Shell i18n tests
+        run: node --experimental-default-type=module scripts/shared-shell-i18n-test.mjs
       - name: Run Shared Translation Studio Adapter tests
         run: node --experimental-default-type=module scripts/media-translation-adapters-test.mjs
       - name: Run Shared Audio Studio Adapter tests

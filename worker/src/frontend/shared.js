@@ -89,10 +89,10 @@ function studioPageSidebar(activeId) {
   const homeActive = activeId === 'home' ? ' active' : '';
   const historyActive = activeId === 'history' ? ' active' : '';
   const sessionHistoryHtml = activeId === 'story'
-    ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
-      '<div class="nav-label">RECENT HISTORY</div>' +
-      '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
+    ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions" data-i18n-aria-label="nav.recentStorySessions">' +
+      '<div class="nav-label" data-i18n="nav.recentHistory">RECENT HISTORY</div>' +
+      '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted" data-i18n="common.status.loading">Loading...</div></div>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions" data-i18n="common.action.loadMore">Load More</button>' +
       '</section>'
     : '';
   return (
@@ -271,7 +271,7 @@ function sidebarSessionHistoryScript() {
     if (!append) listNode.innerHTML = '';
     if (!items || !items.length) {
       if (!append && !listNode.children.length) {
-        listNode.innerHTML = '<div class="aics-session-muted">Session မရှိသေးပါ</div>';
+        listNode.innerHTML = '<div class="aics-session-muted" data-i18n="nav.noRecentSessions">' + (window.AICS_I18N ? window.AICS_I18N.t('nav.noRecentSessions') : 'Session မရှိသေးပါ') + '</div>';
       }
       return;
     }
@@ -295,7 +295,7 @@ function sidebarSessionHistoryScript() {
     if (!append) {
       cursor = null;
       hasMore = false;
-      listNode.innerHTML = '<div class="aics-session-muted">Loading...</div>';
+      listNode.innerHTML = '<div class="aics-session-muted" data-i18n="common.status.loading">' + (window.AICS_I18N ? window.AICS_I18N.t('common.status.loading') : 'Loading...') + '</div>';
     }
     if (moreButton) moreButton.disabled = true;
 
@@ -310,7 +310,7 @@ function sidebarSessionHistoryScript() {
       if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
-      if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
+      if (!append) listNode.innerHTML = '<div class="aics-session-muted" data-i18n="nav.historyLoadFailed">' + (window.AICS_I18N ? window.AICS_I18N.t('nav.historyLoadFailed') : 'History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။') + '</div>';
       if (moreButton) moreButton.style.display = 'none';
     }).then(function () {
       loading = false;
@@ -331,7 +331,7 @@ function sidebarSessionHistoryScript() {
     var sessionId = button && button.getAttribute('data-session-id');
     if (!sessionId || button.disabled) return;
     if (typeof window.studioLoadSession !== 'function') {
-      __sbToast('Story Studio မဖွင့်ရသေးပါ။ ပြန်စမ်းကြည့်ပါ။', true);
+      __sbToast('i18n:toast.story.notReady', true);
       return;
     }
 
@@ -340,14 +340,14 @@ function sidebarSessionHistoryScript() {
     button.classList.add('is-loading');
 
     window.studioLoadSession(sessionId).then(function () {
-      __sbToast('✓ Story Session ပြန်ဖွင့်ပြီးပါပြီ', false);
+      __sbToast('i18n:toast.story.restored', false);
       var sidebar = document.getElementById('sidebar');
       var backdrop = document.getElementById('backdrop');
       if (sidebar) sidebar.classList.remove('open');
       if (backdrop) backdrop.classList.remove('show');
     }).catch(function (error) {
       console.error('Story session restore failed:', error);
-      __sbToast('Session ပြန်ဖွင့်မရပါ။ ထပ်မံကြိုးစားပါ။', true);
+      __sbToast('i18n:toast.story.restoreFailed', true);
     }).then(function () {
       for (var j = 0; j < buttons.length; j++) buttons[j].disabled = false;
       button.classList.remove('is-loading');
