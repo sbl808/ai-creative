@@ -218,7 +218,8 @@ function testDashboardLocalizationContract() {
 }
 
 
-testDashboardLocalizationContract();\ntestLocaleConfiguration();
+testDashboardLocalizationContract();
+testLocaleConfiguration();
 testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
 testLoginLocalizationContract();
