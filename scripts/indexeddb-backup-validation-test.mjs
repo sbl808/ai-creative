@@ -69,6 +69,35 @@ currentBackup.stores.media_assets = [{
 assert.equal(validateBackupEnvelope(currentBackup, ownerId).recordCount, 8);
 assert.equal(validateBackupText(JSON.stringify(currentBackup), ownerId).recordCount, 8);
 
+// Schema v8 must include the owner-scoped User Settings record.
+const v8Backup = JSON.parse(JSON.stringify(currentBackup));
+v8Backup.schemaVersion = 8;
+v8Backup.stores.user_settings = [{
+  id: ownerId,
+  ownerId,
+  profile: { name: 'User A' },
+  settings: { theme: 'dark', language: 'my' },
+  preferences: { compact_mode: 'true' },
+  updatedAt: '2026-11-04T07:00:00.000Z'
+}];
+assert.equal(validateBackupEnvelope(v8Backup, ownerId).recordCount, 9);
+assert.equal(validateBackupText(JSON.stringify(v8Backup), ownerId).recordCount, 9);
+
+for (const invalidSettings of [
+  { ...v8Backup.stores.user_settings[0], ownerId: 'user-b' },
+  { ...v8Backup.stores.user_settings[0], profile: { name: 123 } },
+  { ...v8Backup.stores.user_settings[0], settings: { unknown_setting: 'x' } },
+  { ...v8Backup.stores.user_settings[0], preferences: { unsafe: { nested: true } } }
+]) {
+  expectCode({
+    ...v8Backup,
+    stores: { ...v8Backup.stores, user_settings: [invalidSettings] }
+  }, invalidSettings.ownerId === 'user-b' ? 'backup_owner_mismatch' : 'backup_invalid_record');
+}
+
+const v7WithoutSettings = JSON.parse(JSON.stringify(currentBackup));
+assert.equal(validateBackupEnvelope(v7WithoutSettings, ownerId).recordCount, 8);
+
 // Media Asset V1 accepts exactly the six contract fields.
 const validMediaAsset = currentBackup.stores.media_assets[0];
 for (const forbiddenField of [
