@@ -27,6 +27,14 @@ const STUDIOS = [
   { slug: 'shop', exp: 'SHOP_HTML' },
 ];
 
+ // API-only pages are loaded independently and are not Dashboard Studio entries.
+const API_ONLY_PAGES = [
+  { slug: 'subtitle', exp: 'SUBTITLE_HTML' },
+];
+const ALL_PAGE_SLUGS = STUDIOS.map(studio => studio.slug).concat(
+  API_ONLY_PAGES.map(page => page.slug),
+);
+
 const failures = [];
 const checks = [];
 function pass(message) {
@@ -191,6 +199,24 @@ if (loader !== null) {
     if (mapping.test(stripComments(loader))) pass('loader: ' + slug + ' maps to studios/' + slug + '/page.js');
     else fail('loader: missing or incorrect lazy-loader mapping for ' + slug);
   }
+  for (const page of API_ONLY_PAGES) {
+    const pagePath = path.join(FRONTEND, 'studios', page.slug, 'page.js');
+    const source = readSource(pagePath, page.slug + ' API-only page module');
+    if (source !== null) {
+      const code = stripComments(source);
+      const namedExport = new RegExp('\\\\bexport\\\\s+const\\\\s+' + page.exp + '\\\\b');
+      const defaultExport = new RegExp('\\\\bexport\\\\s+default\\\\s+' + page.exp + '\\\\s*;');
+      if (namedExport.test(code)) pass(page.slug + ': API-only page declares named export ' + page.exp);
+      else fail(page.slug + ': API-only page is missing named export ' + page.exp);
+      if (defaultExport.test(code)) pass(page.slug + ': API-only page default export points to ' + page.exp);
+      else fail(page.slug + ': API-only page default export does not point to ' + page.exp);
+    }
+    const mapping = new RegExp(
+      "\\\\b" + page.slug + "\\\\s*:\\\\s*\\\\(\\\\s*\\\\)\\\\s*=>\\\\s*import\\\\s*\\\\(\\\\s*['\"]\\\\./studios/" + page.slug + "/page\\\\.js['\"]\\\\s*\\\\)",
+    );
+    if (mapping.test(stripComments(loader))) pass('loader: API-only ' + page.slug + ' maps to studios/' + page.slug + '/page.js');
+    else fail('loader: missing or incorrect API-only page mapping for ' + page.slug);
+  }
 }
 
 // Check relative module dependencies across the frontend JavaScript source.
@@ -248,7 +274,7 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
       }
     }
 
-    if (targetSlug && targetSlug !== ownSlug && STUDIOS.some(studio => studio.slug === targetSlug)) {
+    if (targetSlug && targetSlug !== ownSlug && ALL_PAGE_SLUGS.includes(targetSlug)) {
       fail(path.relative(ROOT, file) + ': cross-Studio dependency on ' + targetSlug + ' via ' + specifier);
     }
   }
