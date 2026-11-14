@@ -974,15 +974,15 @@ await check('Content Studio routes Audio → SRT through the shared Content SRT 
   };
 });
 
-await check('Subtitle Studio routes Audio → SRT through the shared Voice SRT adapter', async () => {
+await check('Subtitle Studio routes Audio → SRT through its shared Subtitle SRT adapter', async () => {
   const source = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+    ok: source.includes("from '../media-adapters/subtitle/srt.adapter.js'") &&
       source.includes('export async function buildVoiceSrtPrompt(env, knownText)') &&
       source.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')") &&
       source.includes('return buildVoiceSrtInstruction(lineRule, knownText);') &&
       source.includes('const instruction = await buildVoiceSrtPrompt(env, knownText);') &&
-      source.includes('return generateVoiceSrtShared(env, {') &&
+      source.includes('return generateSubtitleSrtShared(env, {') &&
       source.includes('prompt: instruction,') &&
       !source.includes('generateMultimodal'),
     msg: 'Subtitle SRT preserves its CMS/knownText instruction and uses the shared adapter',
@@ -1042,11 +1042,11 @@ await check('Content Studio routes SRT translation through the shared Content tr
     msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
   };
 });
-await check('Subtitle Studio routes SRT translation through the shared Voice translation adapter', async () => {
+await check('Subtitle Studio routes SRT translation through its shared Subtitle translation adapter', async () => {
   const source = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/translation.adapter.js'") &&
-      source.includes('return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
+    ok: source.includes("from '../media-adapters/subtitle/translation.adapter.js'") &&
+      source.includes('return translateSubtitleSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
       !source.includes("task: 'voice.transcribe', prompt: instruction"),
     msg: 'Subtitle SRT translation uses the shared adapter and preserves plan/type arguments',
   };
