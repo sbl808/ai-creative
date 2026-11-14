@@ -236,7 +236,7 @@ function vRunTranscribe(){
   VOICE_STATE.errorState=null;
   var rid=++VOICE_REQUEST_ID;
   vRenderLoading('AI က သင့်အတွက် စာသားကို ဖန်တီးနေသည်...',MEDIA_AUDIO.fileName||'');
-  api('/api/studio/voice/transcribe',{audioBase64:MEDIA_AUDIO.base64,mimeType:MEDIA_AUDIO.mime,type:'1'}).then(function(d){
+  api('/api/studio/subtitle/transcribe',{audioBase64:MEDIA_AUDIO.base64,mimeType:MEDIA_AUDIO.mime,type:'1'}).then(function(d){
     if(rid!==VOICE_REQUEST_ID)return;
     hideLoading();
     if(d.error)throw new Error(d.error+'|'+(d.detail||''));
@@ -253,7 +253,7 @@ function vRunSrt(source){
   VOICE_STATE.errorState=null;VOICE_STATE.srtSource=source;
   var rid=++VOICE_REQUEST_ID;
   vRenderLoading('AI က သင့်အတွက် SRT စာတန်းထိုးကို ပြင်ဆင်နေသည်...','');
-  api('/api/studio/voice/srt',{audioBase64:b.base64,mimeType:b.mime,type:'2',knownText:(source==='voice')?((VOICE_STATE.voiceInput&&VOICE_STATE.voiceInput.text)||VOICE_INPUTS.tts||''):''}).then(function(d){
+  api('/api/studio/subtitle/srt',{audioBase64:b.base64,mimeType:b.mime,type:'2',knownText:(source==='voice')?((VOICE_STATE.voiceInput&&VOICE_STATE.voiceInput.text)||VOICE_INPUTS.tts||''):''}).then(function(d){
     if(rid!==VOICE_REQUEST_ID)return;
     hideLoading();
     if(d.error)throw new Error(d.error+'|'+(d.detail||''));
@@ -270,7 +270,7 @@ function vRunTranslation(source){
   VOICE_STATE.errorState=null;VOICE_STATE.transSource=source;
   var rid=++VOICE_REQUEST_ID;
   vRenderLoading('AI က သင့်အတွက် ဘာသာပြန်ကို ပြင်ဆင်နေသည်...',srt);
-  api('/api/studio/voice/translate-srt',{srtText:srt,direction:VOICE_STATE.translationDirection,type:'2'}).then(function(d){
+  api('/api/studio/subtitle/translate-srt',{srtText:srt,direction:VOICE_STATE.translationDirection,type:'2'}).then(function(d){
     if(rid!==VOICE_REQUEST_ID)return;
     hideLoading();
     if(d.error)throw new Error(d.error+'|'+(d.detail||''));
