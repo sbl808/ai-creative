@@ -2,6 +2,7 @@ import { storageErrorsScript } from './storage/storage-errors.js';
 import { databaseScript } from './storage/database.js';
 import { storageOwnerScript } from './storage/storage-owner.js';
 import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
+import { appPreferencesRepositoryScript } from './storage/repositories/app-preferences.js';
 
 // ============================================================
 // AI CREATIVE STUDIO — Personal Login UI (Phase 12)
@@ -121,6 +122,7 @@ ${storageErrorsScript()}
 ${databaseScript()}
 ${storageOwnerScript()}
 ${userSettingsRepositoryScript()}
+${appPreferencesRepositoryScript()}
 (function () {
   'use strict';
   var box = document.getElementById('alertBox');

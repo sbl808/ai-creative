@@ -4,7 +4,7 @@ import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/ve
 import { schemaMigrationsScript } from '../worker/src/frontend/storage/schema/migrations.js';
 import { databaseScript } from '../worker/src/frontend/storage/database.js';
 
-assert.equal(STORAGE_SCHEMA_VERSION, 8);
+assert.equal(STORAGE_SCHEMA_VERSION, 9);
 const context = {};
 vm.runInNewContext(schemaMigrationsScript(), context);
 
@@ -28,7 +28,7 @@ function fakeDb(existing) {
   };
 }
 const expected = [
-  'creations', 'drafts', 'ideas', 'media_assets', 'projects',
+  'app_preferences', 'creations', 'drafts', 'ideas', 'media_assets', 'projects',
   'session_results', 'studio_handoffs', 'studio_sessions', 'user_settings'
 ];
 const fresh = fakeDb();
@@ -75,9 +75,12 @@ assert.deepEqual(versionSix.names(), expected, 'v6 user data stores must remain 
 assert.deepEqual(Array.from(fresh.store('user_settings').indexes.keys()).sort(), ['ownerId', 'updatedAt']);
 const settingsOwnerIndex = fresh.store('user_settings').indexes.get('ownerId');
 assert.deepEqual({ keyPath: settingsOwnerIndex.keyPath, unique: settingsOwnerIndex.unique }, { keyPath: 'ownerId', unique: true });
-const versionSeven = fakeDb(expected.filter(name => name !== 'user_settings'));
+const versionSeven = fakeDb(expected.filter(name => name !== 'user_settings' && name !== 'app_preferences'));
 context.__aicsRunSchemaMigrations(versionSeven, 7, STORAGE_SCHEMA_VERSION);
-assert.deepEqual(versionSeven.names(), expected, 'v7 stores must remain while user_settings is added');
+assert.deepEqual(versionSeven.names(), expected.filter(name => name !== 'app_preferences'), 'v7 stores must remain while user_settings is added');
+const versionEight = fakeDb(expected.filter(name => name !== 'app_preferences'));
+context.__aicsRunSchemaMigrations(versionEight, 8, STORAGE_SCHEMA_VERSION);
+assert.deepEqual(versionEight.names(), expected, 'v8 stores must remain while app_preferences is added');
 const current = fakeDb(expected);
 context.__aicsRunSchemaMigrations(current, STORAGE_SCHEMA_VERSION, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(current.names(), expected);

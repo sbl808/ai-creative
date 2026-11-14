@@ -90,6 +90,8 @@ jobs:
         run: node --experimental-default-type=module scripts/indexeddb-schema-migration-test.mjs
       - name: Run User Settings IndexedDB migration contract tests
         run: node --experimental-default-type=module scripts/user-settings-indexeddb-migration-test.mjs
+      - name: Run IndexedDB App Preferences tests
+        run: node --experimental-default-type=module scripts/indexeddb-app-preferences-test.mjs
       - name: Run IndexedDB Backup Format tests
         run: node --experimental-default-type=module scripts/indexeddb-backup-format-test.mjs
       - name: Run IndexedDB Backup Export tests
