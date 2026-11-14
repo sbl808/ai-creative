@@ -373,6 +373,23 @@ export function sidebarScript() {
     sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
+    'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
+    '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
+    '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
+    '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
+    '    if (record) return record;\n' +
+    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
+    '      .then(function (legacy) {\n' +
+    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
+    '        return window.AICS_USER_SETTINGS.save({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
+    '      });\n' +
+    '  }).then(function (record) {\n' +
+    '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
+    '    return record;\n' +
+    '  }).catch(function (error) { window.__aicsUserSettingsPromise = null; throw error; });\n' +
+    '  return window.__aicsUserSettingsPromise;\n' +
+    '};\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +
     '  fetch(\'/api/auth/session\').then(function (r) { return r.json(); }).then(function (d) {\n' +
@@ -449,11 +466,15 @@ export function sidebarScript() {
     '      var se = document.getElementById(\'sideEmail\');\n' +
     '      if (se) se.textContent = d.email || \'—\';\n' +
     '      var sn = document.getElementById(\'sideName\');\n' +
-    '      if (sn) {\n' +
-    '        var disp = d.name || (d.email || \'\').split(\'@\')[0] || \'User\';\n' +
-    '        sn.textContent = disp;\n' +
-    '        var av = document.getElementById(\'sideAvatar\');\n' +
-    '        if (av) av.textContent = disp.charAt(0).toUpperCase();\n' +
+    '      var fallbackName = (d.email || \'\').split(\'@\')[0] || \'User\';\n' +
+    '      if (sn) { sn.textContent = fallbackName; var fallbackAvatar = document.getElementById(\'sideAvatar\'); if (fallbackAvatar) fallbackAvatar.textContent = fallbackName.charAt(0).toUpperCase(); }\n' +
+    '      if (sn && typeof window.AICS_LOAD_USER_SETTINGS === \'function\') {\n' +
+    '        window.AICS_LOAD_USER_SETTINGS().then(function (record) {\n' +
+    '          var displayName = record && record.profile && record.profile.name || fallbackName;\n' +
+    '          sn.textContent = displayName;\n' +
+    '          var avatar = document.getElementById(\'sideAvatar\');\n' +
+    '          if (avatar) avatar.textContent = displayName.charAt(0).toUpperCase();\n' +
+    '        }).catch(function () {});\n' +
     '      }\n' +
     '      var ue = document.getElementById(\'userEmail\');\n' +
     '      if (ue) ue.textContent = d.email || \'\';\n' +
