@@ -29,7 +29,7 @@ function fakeDb(existing) {
 }
 const expected = [
   'creations', 'drafts', 'ideas', 'media_assets', 'projects',
-  'session_results', 'studio_handoffs', 'studio_sessions'
+  'session_results', 'studio_handoffs', 'studio_sessions', 'user_settings'
 ];
 const fresh = fakeDb();
 context.__aicsRunSchemaMigrations(fresh, 0, STORAGE_SCHEMA_VERSION);
