@@ -363,9 +363,13 @@ export default {
         if (studioHtml) {
           const g = await appSessionGuard(request, env, url.origin);
           if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
-          const studioConfigId = studioSlug === 'story-video-plan' ? 'story' : studioSlug;
-          const enabled = await isStudioEnabled(env, studioConfigId);
-          if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
+          if (studioSlug === 'subtitle') {
+            if (!isApiCapabilityEnabled('subtitle')) return htmlPage(studioDisabledPage(studioSlug));
+          } else {
+            const studioConfigId = studioSlug === 'story-video-plan' ? 'story' : studioSlug;
+            const enabled = await isStudioEnabled(env, studioConfigId);
+            if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
+          }
           return htmlPage(studioHtml);
         }
       }
