@@ -9,7 +9,8 @@ const OWNER_INDEX_BY_STORE = Object.freeze({
   session_results: 'ownerId',
   ideas: 'ownerId',
   drafts: 'ownerId',
-  media_assets: 'ownerId'
+  media_assets: 'ownerId',
+  user_settings: 'ownerId'
 });
 
 const SCRIPT = String.raw`window.AICS_BACKUP = (function () {
