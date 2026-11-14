@@ -93,7 +93,7 @@ function testPublicHomeLocalizationBootstrap() {
 
 function testPublicHomeTranslationCoverage() {
   const publicHomeKeys = [
-    'publicHome.language.label', 'publicHome.nav.studios', 'publicHome.nav.features',
+    'publicHome.meta.title', 'publicHome.meta.description', 'publicHome.language.label', 'publicHome.nav.studios', 'publicHome.nav.features',
     'publicHome.nav.about', 'publicHome.auth.login', 'publicHome.auth.start',
     'publicHome.hero.eyebrow', 'publicHome.hero.title.prefix',
     'publicHome.hero.title.highlight', 'publicHome.hero.title.suffix',
@@ -126,6 +126,9 @@ function testPublicHomeTranslationCoverage() {
   assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n="publicHome.footer.tagline"'), 'footer uses an explicit translation marker');
   assert.ok(PRELOGIN_HOME_HTML.includes('href="/login"'), 'login navigation destination remains unchanged');
   assert.ok(PRELOGIN_HOME_HTML.includes('id="themeToggle"'), 'theme toggle remains available');
+  assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n="publicHome.meta.title"'), 'document title uses an explicit translation marker');
+  assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n-content="publicHome.meta.description"'), 'meta description uses an explicit content marker');
+  assert.ok(PRELOGIN_HOME_HTML.includes('flex-wrap:wrap;padding:10px 0'), 'mobile navigation controls wrap instead of forcing one horizontal row');
 }
 
 function testBrowserRuntime() {
