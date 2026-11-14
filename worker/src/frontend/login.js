@@ -1,3 +1,8 @@
+import { storageErrorsScript } from './storage/storage-errors.js';
+import { databaseScript } from './storage/database.js';
+import { storageOwnerScript } from './storage/storage-owner.js';
+import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
+
 // ============================================================
 // AI CREATIVE STUDIO — Personal Login UI (Phase 12)
 // Professional SaaS Login + Sign Up — Dark Theme, Responsive
@@ -112,6 +117,10 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 </div>
 
 <script>
+${storageErrorsScript()}
+${databaseScript()}
+${storageOwnerScript()}
+${userSettingsRepositoryScript()}
 (function () {
   'use strict';
   var box = document.getElementById('alertBox');
@@ -197,9 +206,17 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
         return;
       }
       try { localStorage.setItem('aics_token', d.token); localStorage.setItem('aics_email', d.email || ''); localStorage.setItem('aics_plan', d.plan || 'FREE'); } catch (e2) {}
-      headline.textContent = '✅ Account created!';
-      subline.textContent = 'Personal Workspace သို့ ပို့ဆောင်နေသည်…';
-      setTimeout(function () { location.href = '/app'; }, 350);
+      var profileSave = window.AICS_USER_SETTINGS
+        ? window.AICS_USER_SETTINGS.save({ profile: { name: name } })
+        : Promise.reject(new Error('profile_storage_unavailable'));
+      profileSave.then(function () {
+        headline.textContent = '✅ Account created!';
+        subline.textContent = 'နာမည်ကို ဤ Browser ၏ IndexedDB ထဲတွင် သိမ်းပြီးပါပြီ။ Workspace သို့ ပို့ဆောင်နေသည်…';
+        setTimeout(function () { location.href = '/app'; }, 350);
+      }).catch(function () {
+        showBox('info', 'Account ဖန်တီးပြီးပါပြီ။ Profile Name ကို Settings ထဲတွင် ထပ်သိမ်းနိုင်ပါသည်။');
+        setTimeout(function () { location.href = '/app'; }, 1400);
+      });
     }).catch(function () {
       setLoading(false);
       showBox('error', '🌐 Network error — ပြန်ကြိုးစားပါ။');
