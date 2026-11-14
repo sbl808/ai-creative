@@ -35,12 +35,15 @@ function renderStepper(items,current){var c=vEl('voiceStepper'),h='';if(!c)retur
 function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');var id=el.getAttribute('aria-describedby');if(id){var note=vEl(id);if(note&&note.classList.contains('field-error'))note.remove();el.removeAttribute('aria-describedby');}}
 function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
 function renderChips(){
+  // Voice is a single-purpose Text-to-Voice Studio; mode navigation is not shown.
+  var container=vEl('voiceChips');
+  if(!container)return;
   var h='';
   VOICE_MODES.forEach(function(m){
     var on=VOICE_STATE.voiceMode===m.id;
-    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" data-voice-action="switch-mode" data-voice-mode="'+esc(m.id)+'">'+m.icon+' '+esc(m.label)+((m.pro&&USER_PLAN!=='PRO')?' <span class="lock">🔒 Pro</span>':'')+'</button>';
+    h+='<button type="button" class="vchip'+(on?' active':'')+'" aria-pressed="'+(on?'true':'false')+'" data-voice-action="switch-mode" data-voice-mode="'+esc(m.id)+'">'+m.icon+' '+esc(m.label)+'</button>';
   });
-  vEl('voiceChips').innerHTML=h;
+  container.innerHTML=h;
 }
 // TTS = aiModelSel (Action bar) · အသံ→စာ / ဘာသာပြန် = aiModelSel2 (Format screen ထဲ) — တစ်ကြိမ်တွင် တစ်ခုသာ ပြသည်
 function vSyncModelBar(){
@@ -508,7 +511,15 @@ function vHandleDelegatedChange(event){
   restoreDraft().then(function(restored){
     if(!restored)resetVoiceBranch('text-to-voice','');
     var s=VOICE_STATE;
-    if(restored&&s.view==='result'&&s.resultKind&&vResultAvailable(s.resultKind))vRenderResult(s.resultKind);
+    // Older Voice drafts may contain Subtitle workflow state. Keep stored fields
+    // intact for the dedicated handoff migration, but never render those modes here.
+    if(s.voiceMode!=='text-to-voice'){
+      s.voiceMode='text-to-voice';
+      s.view='input';
+      s.resultKind=null;
+      s.voiceStep=1;
+    }
+    if(restored&&s.view==='result'&&s.resultKind==='audio'&&vResultAvailable('audio'))vRenderResult('audio');
     else if(restored&&s.view==='format')vRenderFormat();
     else vRenderInput();
     applyContentTransfer();
