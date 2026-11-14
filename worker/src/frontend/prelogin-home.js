@@ -27,7 +27,7 @@ a:focus-visible,button:focus-visible{outline:3px solid #60a5fa;outline-offset:3p
 .brand-mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:white;background:linear-gradient(135deg,#2563eb,#06b6d4);box-shadow:0 8px 22px rgba(37,99,235,.22);font-size:22px}
 .brand-name{font-size:16px;line-height:1.2}.brand-name small{display:block;font-size:10px;letter-spacing:.16em;color:var(--muted);font-weight:700;margin-top:4px}
 .nav-links{display:flex;align-items:center;gap:26px;color:var(--muted);font-size:14px;font-weight:600}
-.nav-actions{display:flex;align-items:center;gap:10px}
+.nav-actions{display:flex;align-items:center;gap:10px}.language-control select{height:42px;max-width:120px;padding:0 9px;border:1px solid var(--line);border-radius:12px;background:var(--surface-solid);color:var(--text);font:inherit;font-size:12px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .btn{min-height:46px;padding:0 19px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid transparent;border-radius:13px;font-size:14px;font-weight:750;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s}
 .btn:hover{transform:translateY(-1px)}
 .btn-primary{background:linear-gradient(135deg,#2563eb,#0891b2);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.2)}
@@ -88,55 +88,55 @@ html[data-theme="dark"] .cta{background:linear-gradient(120deg,rgba(30,58,100,.8
 <!-- Backward-compatible health marker for existing route regression contract: API is running. -->
 <header class="nav">
   <div class="container nav-inner">
-    <a class="brand" href="/" aria-label="AI Creative Studio Home"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-name">AI Creative Studio<small>CREATE · REFINE · SHARE</small></span></a>
-    <nav class="nav-links" aria-label="Main navigation"><a href="#studios">Studios</a><a href="#features">Features</a><a href="#about">About</a></nav>
-    <div class="nav-actions"><button class="theme-btn" id="themeToggle" type="button" aria-label="Switch color theme" title="Switch color theme">☾</button><a class="btn btn-secondary" href="/login">Log in</a><a class="btn btn-primary" href="/login">Get started <span aria-hidden="true">→</span></a></div>
+    <a class="brand" href="/" aria-label="AI Creative Studio Home" data-i18n-aria-label="publicHome.aria.home"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-name">AI Creative Studio<small>CREATE · REFINE · SHARE</small></span></a>
+    <nav class="nav-links" aria-label="Main navigation"><a href="#studios" data-i18n="publicHome.nav.studios">Studios</a><a href="#features" data-i18n="publicHome.nav.features">Features</a><a href="#about" data-i18n="publicHome.nav.about">About</a></nav>
+    <div class="nav-actions"><label class="language-control"><span class="sr-only" data-i18n="publicHome.language.label">Language</span><select id="publicLanguage" aria-label="Language" data-i18n-aria-label="publicHome.language.label"><option value="my">မြန်မာ</option><option value="zh-CN">简体中文</option><option value="en">English</option></select></label><button class="theme-btn" id="themeToggle" type="button" aria-label="Switch color theme" title="Switch color theme" data-i18n-aria-label="publicHome.theme.toggle" data-i18n-title="publicHome.theme.toggle">☾</button><a class="btn btn-secondary" href="/login" data-i18n="publicHome.auth.login">Log in</a><a class="btn btn-primary" href="/login"><span data-i18n="publicHome.auth.start">Get started</span> <span aria-hidden="true">→</span></a></div>
   </div>
 </header>
 <main>
 <section class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="eyebrow"><span class="spark"></span> YOUR ALL-IN-ONE AI CREATIVE WORKSPACE</span>
-      <h1>စိတ်ကူးတွေကို <span class="gradient-text">ဖန်တီးမှု</span> အဖြစ် ပြောင်းလဲလိုက်ပါ။</h1>
-      <p class="hero-copy">Story ရေးသားခြင်း၊ Social Content ဖန်တီးခြင်း၊ Image နှင့် Voice ထုတ်လုပ်ခြင်းတို့ကို တစ်နေရာတည်းမှာ လွယ်ကူစွာ လုပ်ဆောင်နိုင်မယ့် သင့်ရဲ့ AI Creative Workspace။</p>
-      <div class="hero-actions"><a class="btn btn-primary" href="/login">အခမဲ့ စတင်အသုံးပြုရန် <span aria-hidden="true">→</span></a><a class="btn btn-secondary" href="#studios">Studio များကို ကြည့်ရန်</a></div>
-      <div class="trust-note"><span class="trust-check" aria-hidden="true">✓</span> သင့်စိတ်ကူးမှ စတင်ပြီး ဖန်တီးမှုတစ်ခုအဖြစ် အဆင့်ဆင့် တည်ဆောက်ပါ။</div>
+      <span class="eyebrow"><span class="spark"></span><span data-i18n="publicHome.hero.eyebrow">YOUR ALL-IN-ONE AI CREATIVE WORKSPACE</span></span>
+      <h1><span data-i18n="publicHome.hero.title.prefix">စိတ်ကူးတွေကို</span> <span class="gradient-text" data-i18n="publicHome.hero.title.highlight">ဖန်တီးမှု</span><span data-i18n="publicHome.hero.title.suffix"> အဖြစ် ပြောင်းလဲလိုက်ပါ။</span></h1>
+      <p class="hero-copy" data-i18n="publicHome.hero.description">Story ရေးသားခြင်း၊ Social Content ဖန်တီးခြင်း၊ Image နှင့် Voice ထုတ်လုပ်ခြင်းတို့ကို တစ်နေရာတည်းမှာ လွယ်ကူစွာ လုပ်ဆောင်နိုင်မယ့် သင့်ရဲ့ AI Creative Workspace။</p>
+      <div class="hero-actions"><a class="btn btn-primary" href="/login"><span data-i18n="publicHome.hero.cta.start">အခမဲ့ စတင်အသုံးပြုရန်</span> <span aria-hidden="true">→</span></a><a class="btn btn-secondary" href="#studios" data-i18n="publicHome.hero.cta.studios">Studio များကို ကြည့်ရန်</a></div>
+      <div class="trust-note"><span class="trust-check" aria-hidden="true">✓</span> <span data-i18n="publicHome.hero.trust">သင့်စိတ်ကူးမှ စတင်ပြီး ဖန်တီးမှုတစ်ခုအဖြစ် အဆင့်ဆင့် တည်ဆောက်ပါ။</span></div>
     </div>
-    <div class="visual" aria-label="AI Creative Studio preview">
+    <div class="visual" aria-label="AI Creative Studio preview" data-i18n-aria-label="publicHome.aria.preview">
       <div class="glow"></div>
       <div class="preview">
-        <div class="preview-top"><span class="preview-label">✦ Creative Workspace</span><span class="status">Ready to create</span></div>
-        <div class="preview-prompt"><strong>သင့်ရဲ့ နောက်ထပ် စိတ်ကူးက ဘာလဲ?</strong>Brief တစ်ခုကနေ စတင်ပြီး ကိုယ်ပိုင်ဖန်တီးမှုအဖြစ် ပြောင်းလဲလိုက်ပါ။</div>
+        <div class="preview-top"><span class="preview-label">✦ <span data-i18n="publicHome.preview.label">Creative Workspace</span></span><span class="status" data-i18n="publicHome.preview.status">Ready to create</span></div>
+        <div class="preview-prompt"><strong data-i18n="publicHome.preview.prompt.title">သင့်ရဲ့ နောက်ထပ် စိတ်ကူးက ဘာလဲ?</strong><span data-i18n="publicHome.preview.prompt.description">Brief တစ်ခုကနေ စတင်ပြီး ကိုယ်ပိုင်ဖန်တီးမှုအဖြစ် ပြောင်းလဲလိုက်ပါ။</span></div>
         <div class="preview-cards">
-          <div class="preview-card"><div class="preview-icon" aria-hidden="true">✍️</div><strong>Story Studio</strong><small>Stories &amp; scripts</small></div>
-          <div class="preview-card"><div class="preview-icon" aria-hidden="true">🪄</div><strong>Image Studio</strong><small>Visual ideas</small></div>
-          <div class="preview-card"><div class="preview-icon" aria-hidden="true">🎙️</div><strong>Voice Studio</strong><small>Audio &amp; narration</small></div>
-          <div class="preview-card"><div class="preview-icon" aria-hidden="true">📣</div><strong>Content Studio</strong><small>Social content</small></div>
+          <div class="preview-card"><div class="preview-icon" aria-hidden="true">✍️</div><strong>Story Studio</strong><small data-i18n="publicHome.preview.story">Stories &amp; scripts</small></div>
+          <div class="preview-card"><div class="preview-icon" aria-hidden="true">🪄</div><strong>Image Studio</strong><small data-i18n="publicHome.preview.image">Visual ideas</small></div>
+          <div class="preview-card"><div class="preview-icon" aria-hidden="true">🎙️</div><strong>Voice Studio</strong><small data-i18n="publicHome.preview.voice">Audio &amp; narration</small></div>
+          <div class="preview-card"><div class="preview-icon" aria-hidden="true">📣</div><strong>Content Studio</strong><small data-i18n="publicHome.preview.content">Social content</small></div>
         </div>
       </div>
-      <div class="floating">✦ One workspace · Many possibilities</div>
+      <div class="floating">✦ <span data-i18n="publicHome.preview.floating">One workspace · Many possibilities</span></div>
     </div>
   </div>
 </section>
 <section class="section" id="studios">
   <div class="container">
-    <div class="section-head"><span class="kicker">YOUR CREATIVE TOOLS</span><h2>ဖန်တီးမှုတိုင်းအတွက် Studio တစ်ခု</h2><p>သင့်အလုပ်နဲ့ ကိုက်ညီတဲ့ Studio ကို ရွေးချယ်ပြီး စိတ်ကူးတွေကို အကောင်အထည်ဖော်ပါ။</p></div>
+    <div class="section-head"><span class="kicker" data-i18n="publicHome.studios.kicker">YOUR CREATIVE TOOLS</span><h2 data-i18n="publicHome.studios.title">ဖန်တီးမှုတိုင်းအတွက် Studio တစ်ခု</h2><p data-i18n="publicHome.studios.description">သင့်အလုပ်နဲ့ ကိုက်ညီတဲ့ Studio ကို ရွေးချယ်ပြီး စိတ်ကူးတွေကို အကောင်အထည်ဖော်ပါ။</p></div>
     <div class="feature-grid">
-      <article class="feature"><div class="feature-icon" aria-hidden="true">✍️</div><h3>Story Studio</h3><p>ဇာတ်လမ်း၊ ဇာတ်ကောင်နဲ့ ဇာတ်ညွှန်း စိတ်ကူးတွေကို ဖွဲ့စည်းတည်ဆောက်ပါ။</p></article>
-      <article class="feature"><div class="feature-icon" aria-hidden="true">📝</div><h3>Content Studio</h3><p>Social Media အတွက် Caption၊ Post နဲ့ အကြောင်းအရာများ ဖန်တီးပါ။</p></article>
-      <article class="feature"><div class="feature-icon" aria-hidden="true">🎬</div><h3>Short Studio</h3><p>Short-form Video အတွက် စိတ်ဝင်စားဖွယ် Script နဲ့ အကြံဉာဏ်များ ပြင်ဆင်ပါ။</p></article>
-      <article class="feature"><div class="feature-icon" aria-hidden="true">🖼️</div><h3>Image Studio</h3><p>Visual Concept နဲ့ Image Generation အတွက် Prompt များ ဖန်တီးပါ။</p></article>
-      <article class="feature"><div class="feature-icon" aria-hidden="true">🎙️</div><h3>Voice Studio</h3><p>Narration၊ Voice နဲ့ Subtitle Workflow များကို တစ်နေရာတည်းမှာ စီစဉ်ပါ။</p></article>
-      <article class="feature"><div class="feature-icon" aria-hidden="true">🛍️</div><h3>Shop Studio</h3><p>Product အတွက် ကြော်ငြာစာသားနဲ့ Creative Content များ ပြုလုပ်ပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">✍️</div><h3>Story Studio</h3><p data-i18n="publicHome.studio.story">ဇာတ်လမ်း၊ ဇာတ်ကောင်နဲ့ ဇာတ်ညွှန်း စိတ်ကူးတွေကို ဖွဲ့စည်းတည်ဆောက်ပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">📝</div><h3>Content Studio</h3><p data-i18n="publicHome.studio.content">Social Media အတွက် Caption၊ Post နဲ့ အကြောင်းအရာများ ဖန်တီးပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">🎬</div><h3>Short Studio</h3><p data-i18n="publicHome.studio.short">Short-form Video အတွက် စိတ်ဝင်စားဖွယ် Script နဲ့ အကြံဉာဏ်များ ပြင်ဆင်ပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">🖼️</div><h3>Image Studio</h3><p data-i18n="publicHome.studio.image">Visual Concept နဲ့ Image Generation အတွက် Prompt များ ဖန်တီးပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">🎙️</div><h3>Voice Studio</h3><p data-i18n="publicHome.studio.voice">Narration၊ Voice နဲ့ Subtitle Workflow များကို တစ်နေရာတည်းမှာ စီစဉ်ပါ။</p></article>
+      <article class="feature"><div class="feature-icon" aria-hidden="true">🛍️</div><h3>Shop Studio</h3><p data-i18n="publicHome.studio.shop">Product အတွက် ကြော်ငြာစာသားနဲ့ Creative Content များ ပြုလုပ်ပါ။</p></article>
     </div>
   </div>
 </section>
 <section class="section" id="features">
-  <div class="container"><div class="cta"><div><h2>သင့်ရဲ့ နောက်ထပ် စိတ်ကူးကို စတင်လိုက်ပါ။</h2><p>Workspace ထဲဝင်ပြီး သင့်ဖန်တီးမှုကို ဆက်လက်တည်ဆောက်ပါ။</p></div><a class="btn btn-primary" href="/login">Login / Sign up <span aria-hidden="true">→</span></a></div></div>
+  <div class="container"><div class="cta"><div><h2 data-i18n="publicHome.cta.title">သင့်ရဲ့ နောက်ထပ် စိတ်ကူးကို စတင်လိုက်ပါ။</h2><p data-i18n="publicHome.cta.description">Workspace ထဲဝင်ပြီး သင့်ဖန်တီးမှုကို ဆက်လက်တည်ဆောက်ပါ။</p></div><a class="btn btn-primary" href="/login"><span data-i18n="publicHome.cta.button">Login / Sign up</span> <span aria-hidden="true">→</span></a></div></div>
 </section>
 </main>
-<footer id="about"><div class="container footer-inner"><span>© <span id="year"></span> AI Creative Studio. Built for your creativity.</span><div class="footer-links"><a href="/login">Log in</a><a href="#studios">Studios</a><a href="#features">Features</a></div></div></footer>
+<footer id="about"><div class="container footer-inner"><span>© <span id="year"></span> AI Creative Studio. <span data-i18n="publicHome.footer.tagline">Built for your creativity.</span></span><div class="footer-links"><a href="/login" data-i18n="publicHome.auth.login">Log in</a><a href="#studios" data-i18n="publicHome.nav.studios">Studios</a><a href="#features" data-i18n="publicHome.nav.features">Features</a></div></div></footer>
 <script>
 ${storageErrorsScript()}
 ${databaseScript()}
