@@ -1,5 +1,5 @@
 const SCRIPT = String.raw`(function () {
-  var STUDIOS = ['content', 'short', 'image', 'voice', 'shop'];
+  var STUDIOS = ['content', 'short', 'image', 'voice', 'shop', 'subtitle'];
 
   function studioName(value) {
     var name = String(value || '').trim().toLowerCase();
