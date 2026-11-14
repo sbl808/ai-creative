@@ -1,5 +1,9 @@
 // AI Creative Studio — Public pre-login Home Page
-// Presentation-only module. No authentication, API, or environment logic.
+// Public page reuses the shared application language preference and i18n runtime.
+import { storageErrorsScript } from './storage/storage-errors.js';
+import { databaseScript } from './storage/database.js';
+import { appPreferencesRepositoryScript } from './storage/repositories/app-preferences.js';
+import { i18nRuntimeScript } from './i18n/runtime.js';
 export const PRELOGIN_HOME_HTML = `<!DOCTYPE html>
 <html lang="my" data-theme="light">
 <head>
@@ -134,6 +138,19 @@ html[data-theme="dark"] .cta{background:linear-gradient(120deg,rgba(30,58,100,.8
 </main>
 <footer id="about"><div class="container footer-inner"><span>© <span id="year"></span> AI Creative Studio. Built for your creativity.</span><div class="footer-links"><a href="/login">Log in</a><a href="#studios">Studios</a><a href="#features">Features</a></div></div></footer>
 <script>
+${storageErrorsScript()}
+${databaseScript()}
+${appPreferencesRepositoryScript()}
+${i18nRuntimeScript()}
+(function(){
+  var preferences = window.AICS_APP_PREFERENCES;
+  if (!preferences || typeof preferences.getLanguage !== 'function') return;
+  preferences.getLanguage().then(function (locale) {
+    if (window.AICS_I18N) window.AICS_I18N.setLocale(locale);
+  }).catch(function () {
+    // Keep the shared i18n default locale when IndexedDB is unavailable.
+  });
+})();
 (function(){
   var root=document.documentElement;
   var toggle=document.getElementById('themeToggle');
