@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 /**
  * IndexedDB Media Asset Repository ownership and metadata-only contract.
  * Run: node --experimental-default-type=module scripts/indexeddb-media-assets-repository-test.mjs
@@ -105,7 +106,7 @@ const context = { window, localStorage, atob: (value) => Buffer.from(value, 'bas
 vm.runInNewContext(source, context, { timeout: 1000 });
 
 const assetA = await window.AICS_MEDIA_ASSETS.create({ studioId: 'image', mediaType: 'image' });
-assert.equal(fakeIndexedDB.version, 8);
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION);
 assert.equal(assetA.ownerId, 'user-a');
 assert.equal(assetA.contractVersion, 1);
 assert.equal(assetA.studioId, 'image');
