@@ -203,6 +203,15 @@ function testDashboardLocalizationContract() {
     }
   }
 
+  assert.ok(
+    APP_HTML.includes('Object.keys(CARD_MESSAGE_KEYS)'),
+    'dashboard card rotation iterates over defined message keys'
+  );
+  assert.ok(
+    !APP_HTML.includes('Object.keys(CARD_MESSAGES)'),
+    'dashboard does not reference the undefined CARD_MESSAGES variable'
+  );
+
   const markedKeys = Array.from(APP_HTML.matchAll(/data-i18n(?:-aria-label)?="([^"]+)"/g), match => match[1]);
   assert.ok(markedKeys.length >= 35, 'dashboard exposes explicit translation markers');
   for (const key of markedKeys) {
