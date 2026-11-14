@@ -99,7 +99,8 @@ assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
-assert.match(loginSource, /userSettingsRepositoryScript/);
-assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
+assert.doesNotMatch(loginSource, /suName|autocomplete="name"/, 'Signup UI must not collect a Profile Name');
+assert.doesNotMatch(loginSource, /userSettingsRepositoryScript|AICS_USER_SETTINGS\.save\(\{\s*profile:/, 'Signup must not persist a Profile Name');
+assert.match(loginSource, /JSON\.stringify\(\{\s*email:\s*email,\s*password:\s*pass\s*\}\)/, 'Signup must submit only Email and Password');
 
 console.log('User Settings IndexedDB migration contract tests passed.');
