@@ -9,7 +9,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 7\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
 assert.match(source, /window\.AICS_MEDIA_ASSETS\s*=\s*\{/);
 assert.match(source, /createObjectStore\('media_assets'/);
 
@@ -105,7 +105,7 @@ const context = { window, localStorage, atob: (value) => Buffer.from(value, 'bas
 vm.runInNewContext(source, context, { timeout: 1000 });
 
 const assetA = await window.AICS_MEDIA_ASSETS.create({ studioId: 'image', mediaType: 'image' });
-assert.equal(fakeIndexedDB.version, 7);
+assert.equal(fakeIndexedDB.version, 8);
 assert.equal(assetA.ownerId, 'user-a');
 assert.equal(assetA.contractVersion, 1);
 assert.equal(assetA.studioId, 'image');
