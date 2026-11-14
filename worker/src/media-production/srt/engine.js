@@ -13,6 +13,8 @@ const SRT_TASK_BY_STUDIO = Object.freeze({
   voice: 'voice.transcribe',
   // Shop previously used Voice SRT; retain its provider task mapping during API isolation.
   shop: 'voice.transcribe',
+  // Subtitle uses its own Studio ID while retaining the existing provider task.
+  subtitle: 'voice.transcribe',
 });
 
 function createSafeError(code) {
