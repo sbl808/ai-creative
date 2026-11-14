@@ -9,6 +9,7 @@ import {
   normalizeLocale
 } from '../worker/src/frontend/i18n/index.js';
 import { i18nRuntimeScript } from '../worker/src/frontend/i18n/runtime.js';
+import { LOGIN_HTML } from '../worker/src/frontend/login.js';
 
 function testLocaleConfiguration() {
   assert.equal(DEFAULT_LOCALE, 'zh-CN');
@@ -32,6 +33,33 @@ function testDictionaryParity() {
       assert.ok(dictionary[key].trim(), locale + ': ' + key + ' must not be empty');
     }
   }
+}
+
+
+function testLoginLocalizationContract() {
+  const authKeys = [
+    'auth.welcome', 'auth.signin.subtitle', 'auth.google', 'auth.or',
+    'auth.email', 'auth.password', 'auth.password.confirm', 'auth.password.show',
+    'auth.password.hide', 'auth.forgot', 'auth.signin', 'auth.signup',
+    'auth.noAccount', 'auth.createAccount', 'auth.loading', 'auth.session.expired',
+    'auth.error.email', 'auth.error.passwordRequired', 'auth.error.passwordLength',
+    'auth.error.passwordMismatch', 'auth.error.signin', 'auth.error.signup',
+    'auth.error.network', 'auth.forgot.help', 'auth.welcome.success',
+    'auth.redirecting', 'auth.signup.title', 'auth.signup.subtitle',
+    'auth.signup.success'
+  ];
+  for (const locale of SUPPORTED_LOCALES) {
+    for (const key of authKeys) {
+      assert.ok(LOCALE_DICTIONARIES[locale][key], locale + ': missing ' + key);
+    }
+  }
+  assert.ok(LOGIN_HTML.includes('${i18nRuntimeScript()}'), 'login page loads shared i18n runtime');
+  assert.ok(LOGIN_HTML.includes('AICS_APP_PREFERENCES.getLanguage()'), 'login reads browser-global language preference');
+  assert.ok(LOGIN_HTML.includes('AICS_I18N.setLocale(locale)'), 'login applies saved app language');
+  assert.ok(LOGIN_HTML.includes('data-i18n="auth.email"'), 'login uses explicit translation markers');
+  assert.ok(LOGIN_HTML.includes("fetch('/api/auth/signin'"), 'signin endpoint remains unchanged');
+  assert.ok(LOGIN_HTML.includes("fetch('/api/auth/signup'"), 'signup endpoint remains unchanged');
+  assert.ok(LOGIN_HTML.includes('JSON.stringify({ email: email, password: pass })'), 'signup payload remains email and password only');
 }
 
 function testTranslatorFallbackAndInterpolation() {
@@ -77,6 +105,7 @@ function testBrowserRuntime() {
 testLocaleConfiguration();
 testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
+testLoginLocalizationContract();
 testBrowserRuntime();
 
 console.log('App i18n Core tests passed.');
