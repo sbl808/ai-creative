@@ -54,7 +54,7 @@ function testLoginLocalizationContract() {
     }
   }
   assert.ok(LOGIN_HTML.includes('${i18nRuntimeScript()}'), 'login page loads shared i18n runtime');
-  assert.ok(LOGIN_HTML.includes('AICS_APP_PREFERENCES.getLanguage()'), 'login reads browser-global language preference');
+  assert.ok(LOGIN_HTML.includes('preferences.getLanguage()'), 'login reads browser-global language preference');
   assert.ok(LOGIN_HTML.includes('AICS_I18N.setLocale(locale)'), 'login applies saved app language');
   assert.ok(LOGIN_HTML.includes('data-i18n="auth.email"'), 'login uses explicit translation markers');
   assert.ok(LOGIN_HTML.includes('data-i18n-aria-label="auth.password.showConfirm"'), 'password visibility control has a localized accessible label');
