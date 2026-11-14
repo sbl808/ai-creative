@@ -72,6 +72,7 @@ const dictionary = Object.freeze({
   "auth.password.confirm": "Confirm Password",
   "auth.password.show": "Show",
   "auth.password.hide": "Hide",
+  "auth.password.showConfirm": "Show confirm password",,
   "auth.forgot": "Forgot password?",
   "auth.signin": "Sign In",
   "auth.signup": "Sign up",
