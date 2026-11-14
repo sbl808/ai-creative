@@ -94,6 +94,12 @@ const loginSource = await readFile(new URL('../worker/src/frontend/login.js', im
 assert.doesNotMatch(settingsSource, /profileName|saveName|window\.AICS_USER_SETTINGS\.save\(\{profile:/, 'Settings UI must not expose or save Profile Name');
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /pref_studio|pref_voice|default_studio\s*:|default_voice\s*:/, 'Settings UI must not expose or write Default Studio or Default Voice');
+assert.match(settingsSource, /<select id="pref_lang" class="form-select">[\s\S]*?<option value="my">[\s\S]*?<option value="zh-CN">[\s\S]*?<option value="en">/, 'App Language selector must offer Myanmar, Simplified Chinese, and English');
+assert.match(settingsSource, /window\.AICS_APP_PREFERENCES\.getLanguage\(\)/, 'App Language must load from browser-global app preferences');
+assert.match(settingsSource, /window\.AICS_APP_PREFERENCES\.setLanguage\(requestedLanguage\)/, 'App Language must save to browser-global app preferences');
+assert.match(settingsSource, /window\.AICS_I18N\.setLocale\(language\)/, 'Changing App Language must apply the locale immediately');
+assert.doesNotMatch(settingsSource, /value=s\.language\s*\|\|/, 'App Language must not load from legacy user_settings.language');
+assert.doesNotMatch(settingsSource, /language\s*:\s*document\.getElementById\('pref_lang'\)/, 'Saving model/theme must not overwrite legacy user_settings.language');
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
