@@ -61,9 +61,8 @@ const dictionary = Object.freeze({
   "toast.story.restoreFailed": "无法恢复会话，请重试。",
   "confirm.logout": "确定要退出登录吗？",
   "confirm.proceed": "要继续吗？",
-});
 
-  "auth.welcome": "欢迎回来",
+"auth.welcome": "欢迎回来",
   "auth.signin.subtitle": "登录您的工作空间",
   "auth.google": "使用 Google 继续",
   "auth.or": "或",
@@ -93,4 +92,6 @@ const dictionary = Object.freeze({
   "auth.signup.title": "创建您的账号",
   "auth.signup.subtitle": "注册只需片刻即可完成",
   "auth.signup.success": "账号创建成功！",
+});
+
 export default dictionary;
