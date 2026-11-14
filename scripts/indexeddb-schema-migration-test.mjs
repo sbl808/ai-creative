@@ -77,7 +77,7 @@ const settingsOwnerIndex = fresh.store('user_settings').indexes.get('ownerId');
 assert.deepEqual({ keyPath: settingsOwnerIndex.keyPath, unique: settingsOwnerIndex.unique }, { keyPath: 'ownerId', unique: true });
 const versionSeven = fakeDb(expected.filter(name => name !== 'user_settings' && name !== 'app_preferences'));
 context.__aicsRunSchemaMigrations(versionSeven, 7, STORAGE_SCHEMA_VERSION);
-assert.deepEqual(versionSeven.names(), expected.filter(name => name !== 'app_preferences'), 'v7 stores must remain while user_settings is added');
+assert.deepEqual(versionSeven.names(), expected, 'v7 stores must remain while user_settings and app_preferences are added');
 const versionEight = fakeDb(expected.filter(name => name !== 'app_preferences'));
 context.__aicsRunSchemaMigrations(versionEight, 8, STORAGE_SCHEMA_VERSION);
 assert.deepEqual(versionEight.names(), expected, 'v8 stores must remain while app_preferences is added');
