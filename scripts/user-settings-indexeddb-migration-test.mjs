@@ -91,8 +91,9 @@ const settingsSource = await readFile(new URL('../worker/src/frontend/settings.j
 const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
 const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
 const loginSource = await readFile(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
-assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{profile:/);
+assert.doesNotMatch(settingsSource, /profileName|saveName|window\.AICS_USER_SETTINGS\.save\(\{profile:/, 'Settings UI must not expose or save Profile Name');
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
+assert.doesNotMatch(settingsSource, /pref_studio|pref_voice|default_studio\s*:|default_voice\s*:/, 'Settings UI must not expose or write Default Studio or Default Voice');
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
