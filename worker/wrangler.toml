@@ -30,3 +30,28 @@ vars = { ENVIRONMENT = "prod", ALLOWED_ORIGINS = "https://aics-frontend-prod.pag
 binding = "DB"
 database_name = "aics-db-prod"
 database_id = "cloudflare အကောင့် မရှိသေးပါ"
+
+
+# Subtitle Audio → Text rate limiting.
+# Namespace IDs are provisional until a Cloudflare account exists; confirm that
+# each ID is unused in the account before any remote deployment.
+[[env.dev.ratelimits]]
+name = "SUBTITLE_RATE_LIMITER"
+namespace_id = "1001"
+[env.dev.ratelimits.simple]
+limit = 10
+period = 60
+
+[[env.staging.ratelimits]]
+name = "SUBTITLE_RATE_LIMITER"
+namespace_id = "1002"
+[env.staging.ratelimits.simple]
+limit = 10
+period = 60
+
+[[env.prod.ratelimits]]
+name = "SUBTITLE_RATE_LIMITER"
+namespace_id = "1003"
+[env.prod.ratelimits.simple]
+limit = 10
+period = 60

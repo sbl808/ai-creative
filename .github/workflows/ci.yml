@@ -44,6 +44,8 @@ jobs:
         run: node --experimental-default-type=module scripts/media-audio-adapters-test.mjs
       - name: Run Shop Audio Route contract tests
         run: node --experimental-default-type=module scripts/shop-audio-route-contract-test.mjs
+      - name: Run Subtitle Audio → Text route contract tests
+        run: node --experimental-default-type=module scripts/subtitle-audio-route-contract-test.mjs
       - name: Run Shared SRT Studio Adapter tests
         run: node --experimental-default-type=module scripts/media-srt-adapters-test.mjs
       - name: Run Shared Image Studio Adapter tests

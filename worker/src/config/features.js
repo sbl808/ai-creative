@@ -40,6 +40,7 @@ export const FEATURE_REGISTRY = {
   'voice.transcribe': { name: 'Voice Transcribe', nameMy: 'အသံကို စာပြောင်းခြင်း', access: 'FREE', desc: 'Voice Studio — Tab 2' },
   'voice.srt': { name: 'Voice SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Voice Studio — SRT (PRO)' },
   'voice.translate_srt': { name: 'Voice Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Voice Studio — Translate SRT (PRO)' },
+  'subtitle.transcribe': { name: 'Subtitle Transcribe', nameMy: 'Subtitle အသံမှ စာသားထုတ်ခြင်း', access: 'FREE', desc: 'Subtitle Studio — Audio → Text' },
 
   'shop.content_generate': { name: 'Shop Content Generate', nameMy: 'ဈေး Content ရေးခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 1' },
   'shop.content_revise': { name: 'Shop Content Revise', nameMy: 'ဈေး Content ပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 2' },
