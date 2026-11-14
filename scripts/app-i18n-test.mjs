@@ -139,7 +139,13 @@ function testBrowserRuntime() {
     getAttribute(name) { return this.attributes[name] || null; },
     setAttribute(name, value) { this.attributes[name] = value; }
   };
-  const document = { documentElement: { lang: 'my' }, querySelectorAll() { return [label]; } };
+  const meta = {
+    textContent: '',
+    attributes: { 'data-i18n-content': 'publicHome.meta.description', content: 'old description' },
+    getAttribute(name) { return this.attributes[name] || null; },
+    setAttribute(name, value) { this.attributes[name] = value; }
+  };
+  const document = { documentElement: { lang: 'my' }, querySelectorAll() { return [label, meta]; } };
   const script = i18nRuntimeScript();
 
   assert.equal(script.includes('</script'), false, 'runtime must not contain a closing script tag');
@@ -147,10 +153,12 @@ function testBrowserRuntime() {
 
   assert.equal(window.AICS_I18N.getLocale(), 'zh-CN');
   assert.equal(label.textContent, '首页', 'explicit static labels use the default locale');
+  assert.equal(meta.attributes.content, LOCALE_DICTIONARIES['zh-CN']['publicHome.meta.description'], 'explicit content attributes use the default locale');
   assert.equal(window.AICS_I18N.t('common.action.save'), '保存');
   assert.deepEqual(Array.from(window.AICS_I18N.getSupportedLocales()), ['my', 'zh-CN', 'en']);
   assert.equal(window.AICS_I18N.setLocale('my'), 'my');
   assert.equal(label.textContent, 'ပင်မ', 'explicit static labels update when locale changes');
+  assert.equal(meta.attributes.content, LOCALE_DICTIONARIES.my['publicHome.meta.description'], 'explicit content attributes update when locale changes');
   assert.equal(document.documentElement.lang, 'my');
   assert.equal(window.AICS_I18N.t('common.action.save'), 'သိမ်းပါ');
   assert.equal(window.AICS_I18N.setLocale('en-US'), 'en');
