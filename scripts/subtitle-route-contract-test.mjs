@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { handleSubtitleStudioRoutes } from '../worker/src/routes/studios/subtitle.routes.js';
+import worker from '../worker/src/index.js';
+import { API_CAPABILITY_REGISTRY, isApiCapabilityEnabled, STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 
 const cases = [
   {
@@ -134,4 +136,45 @@ assert.match(source, /direction:\s*body\.direction \|\| 'MY_TO_CN'/);
 assert.match(source, /friendlyError\(e\)/);
 assert.doesNotMatch(source, /console\.(?:log|error|warn)\s*\(/);
 
-console.log('Subtitle Studio Route Contracts: PASS');
+// Worker-entry integration: the independent Subtitle capability gate must be
+// evaluated before the route handler, while the six Dashboard Studios stay unchanged.
+assert.deepEqual(Object.keys(STUDIO_REGISTRY), ['story', 'content', 'short', 'image', 'voice', 'shop']);
+assert.equal(Object.hasOwn(STUDIO_REGISTRY, 'subtitle'), false, 'Subtitle must not become a seventh Dashboard Studio');
+assert.equal(isApiCapabilityEnabled('subtitle'), true, 'Subtitle API capability is enabled by its own registry');
+assert.equal(isApiCapabilityEnabled('unknown-capability'), false, 'unknown API capabilities must default to disabled');
+
+for (const item of cases) {
+  const response = await worker.fetch(
+    new Request('https://test.local' + item.path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }),
+    {},
+    {},
+  );
+  assert.equal(response.status, 401, item.path + ' must pass the enabled capability gate and reach route authentication');
+  assert.equal((await response.json()).error, 'unauthorized');
+}
+
+const previousSubtitleEnabled = API_CAPABILITY_REGISTRY.subtitle.enabled;
+try {
+  API_CAPABILITY_REGISTRY.subtitle.enabled = false;
+  for (const item of cases) {
+    const response = await worker.fetch(
+      new Request('https://test.local' + item.path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }),
+      {},
+      {},
+    );
+    assert.equal(response.status, 403, item.path + ' must be rejected when the Subtitle capability is disabled');
+    assert.equal((await response.json()).error, 'studio_disabled');
+  }
+} finally {
+  API_CAPABILITY_REGISTRY.subtitle.enabled = previousSubtitleEnabled;
+}
+
+console.log('Subtitle Studio Route Contracts + Worker Capability Gate Integration: PASS');

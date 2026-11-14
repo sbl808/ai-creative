@@ -37,6 +37,7 @@ import { verifyToken } from './platform/auth/index.js';
 import { trackUsage } from './core/usage.js';
 
 import { isStudioEnabled } from './configuration/studio-config/index.js';
+import { isApiCapabilityEnabled } from './config/studios.js';
 import { checkFeature } from './configuration/feature-config/index.js';
 import { getStudio } from './catalog/studios/index.js';
 import { APP_HTML } from './frontend/index.js';
@@ -451,10 +452,13 @@ export default {
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
         const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop|subtitle)\//) || [])[1];
-        if (studioApiId) {
-          // Subtitle temporarily shares the Voice Studio enabled setting.
-          const settingId = studioApiId === 'subtitle' ? 'voice' : studioApiId;
-          const enabled = await isStudioEnabled(env, settingId);
+        if (studioApiId === 'subtitle') {
+          // Subtitle is an API capability, not a seventh Dashboard Studio.
+          if (!isApiCapabilityEnabled(studioApiId)) {
+            return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+          }
+        } else if (studioApiId) {
+          const enabled = await isStudioEnabled(env, studioApiId);
           if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
         }
       }
