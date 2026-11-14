@@ -10,8 +10,8 @@ export const PRELOGIN_HOME_HTML = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f5f9ff">
-<title>AI Creative Studio — Create more with AI</title>
-<meta name="description" content="AI Creative Studio ဖြင့် Story, Content, Short, Image, Voice နှင့် Shop Content များကို တစ်နေရာတည်းတွင် ဖန်တီးပါ။">
+<title data-i18n="publicHome.meta.title">AI Creative Studio — Create more with AI</title>
+<meta name="description" content="AI Creative Studio ဖြင့် Story, Content, Short, Image, Voice နှင့် Shop Content များကို တစ်နေရာတည်းတွင် ဖန်တီးပါ။" data-i18n-content="publicHome.meta.description">
 <style>
 :root{color-scheme:light;--bg:#f5f9ff;--surface:rgba(255,255,255,.86);--surface-solid:#fff;--text:#14243b;--muted:#61718a;--line:#dce7f6;--blue:#2563eb;--blue-dark:#1d4ed8;--cyan:#0891b2;--shadow:0 24px 70px rgba(42,82,145,.12)}
 *{box-sizing:border-box}
@@ -80,7 +80,7 @@ html[data-theme="dark"] .preview-card{background:var(--surface-solid)}
 html[data-theme="dark"] .feature-icon,html[data-theme="dark"] .preview-icon{background:#1e3454}
 html[data-theme="dark"] .cta{background:linear-gradient(120deg,rgba(30,58,100,.8),rgba(17,75,88,.6));border-color:var(--line)}
 @media(max-width:900px){.hero{padding-top:65px}.hero-grid{grid-template-columns:1fr;gap:25px}.hero-copy{max-width:680px}.visual{min-height:360px}.feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nav-links{gap:15px}}
-@media(max-width:620px){.container{width:min(100% - 28px,1160px)}.nav-inner{min-height:68px;gap:10px}.brand-mark{width:38px;height:38px}.brand-name{font-size:13px}.brand-name small{font-size:9px}.nav-links{display:none}.nav-actions{gap:7px}.nav-actions .btn{min-height:42px;padding:0 12px;font-size:12px}.theme-btn{width:40px;height:40px}.hero{padding:54px 0 40px}h1{font-size:clamp(39px,11vw,54px)}.hero-copy{font-size:15px}.hero-actions{display:grid;grid-template-columns:1fr}.hero-actions .btn{width:100%;min-height:52px}.visual{min-height:325px}.preview{padding:16px;border-radius:21px}.floating{right:0;bottom:16px}.section{padding:50px 0}.feature-grid{grid-template-columns:1fr}.feature{padding:21px}.cta{padding:25px;align-items:flex-start;flex-direction:column}.cta .btn{width:100%;min-height:52px}.footer-inner{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}}
+@media(max-width:620px){.container{width:min(100% - 28px,1160px)}.nav-inner{min-height:68px;gap:10px;flex-wrap:wrap;padding:10px 0}.nav-inner>.brand{flex:1 1 auto}.nav-actions{width:100%;justify-content:flex-end}.brand-mark{width:38px;height:38px}.brand-name{font-size:13px}.brand-name small{font-size:9px}.nav-links{display:none}.nav-actions{gap:7px}.nav-actions .btn{min-height:42px;padding:0 12px;font-size:12px}.theme-btn{width:40px;height:40px}.hero{padding:54px 0 40px}h1{font-size:clamp(39px,11vw,54px)}.hero-copy{font-size:15px}.hero-actions{display:grid;grid-template-columns:1fr}.hero-actions .btn{width:100%;min-height:52px}.visual{min-height:325px}.preview{padding:16px;border-radius:21px}.floating{right:0;bottom:16px}.section{padding:50px 0}.feature-grid{grid-template-columns:1fr}.feature{padding:21px}.cta{padding:25px;align-items:flex-start;flex-direction:column}.cta .btn{width:100%;min-height:52px}.footer-inner{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
