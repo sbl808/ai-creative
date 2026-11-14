@@ -90,6 +90,44 @@ function testPublicHomeLocalizationBootstrap() {
   assert.ok(!PRELOGIN_HOME_HTML.includes("localStorage.setItem('aics-language'"), 'public home does not store language in localStorage');
 }
 
+
+function testPublicHomeTranslationCoverage() {
+  const publicHomeKeys = [
+    'publicHome.language.label', 'publicHome.nav.studios', 'publicHome.nav.features',
+    'publicHome.nav.about', 'publicHome.auth.login', 'publicHome.auth.start',
+    'publicHome.hero.eyebrow', 'publicHome.hero.title.prefix',
+    'publicHome.hero.title.highlight', 'publicHome.hero.title.suffix',
+    'publicHome.hero.description', 'publicHome.hero.cta.start',
+    'publicHome.hero.cta.studios', 'publicHome.hero.trust',
+    'publicHome.preview.label', 'publicHome.preview.status',
+    'publicHome.preview.prompt.title', 'publicHome.preview.prompt.description',
+    'publicHome.preview.story', 'publicHome.preview.image',
+    'publicHome.preview.voice', 'publicHome.preview.content',
+    'publicHome.preview.floating', 'publicHome.studios.kicker',
+    'publicHome.studios.title', 'publicHome.studios.description',
+    'publicHome.studio.story', 'publicHome.studio.content',
+    'publicHome.studio.short', 'publicHome.studio.image',
+    'publicHome.studio.voice', 'publicHome.studio.shop',
+    'publicHome.cta.title', 'publicHome.cta.description',
+    'publicHome.cta.button', 'publicHome.footer.tagline',
+    'publicHome.theme.toggle', 'publicHome.aria.home',
+    'publicHome.aria.preview'
+  ];
+  for (const locale of SUPPORTED_LOCALES) {
+    for (const key of publicHomeKeys) {
+      assert.ok(LOCALE_DICTIONARIES[locale][key], locale + ': missing ' + key);
+    }
+  }
+  assert.ok(PRELOGIN_HOME_HTML.includes('id="publicLanguage"'), 'public home exposes a language selector');
+  assert.ok(PRELOGIN_HOME_HTML.includes('preferences.setLanguage(nextLocale)'), 'language selector saves to browser app preferences');
+  assert.ok(PRELOGIN_HOME_HTML.includes('AICS_I18N.setLocale(savedLocale)'), 'language selector applies the saved locale');
+  assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n="publicHome.hero.description"'), 'hero description uses an explicit translation marker');
+  assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n="publicHome.studio.shop"'), 'all six studio descriptions use translation markers');
+  assert.ok(PRELOGIN_HOME_HTML.includes('data-i18n="publicHome.footer.tagline"'), 'footer uses an explicit translation marker');
+  assert.ok(PRELOGIN_HOME_HTML.includes('href="/login"'), 'login navigation destination remains unchanged');
+  assert.ok(PRELOGIN_HOME_HTML.includes('id="themeToggle"'), 'theme toggle remains available');
+}
+
 function testBrowserRuntime() {
   const window = {};
   const label = {
@@ -121,6 +159,7 @@ testDictionaryParity();
 testTranslatorFallbackAndInterpolation();
 testLoginLocalizationContract();
 testPublicHomeLocalizationBootstrap();
+testPublicHomeTranslationCoverage();
 testBrowserRuntime();
 
 console.log('App i18n Core tests passed.');
