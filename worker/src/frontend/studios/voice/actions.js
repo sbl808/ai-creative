@@ -23,7 +23,7 @@ function renderStepper(items,current){var c=vEl('voiceStepper'),h='';if(!c)retur
 function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');var id=el.getAttribute('aria-describedby');if(id){var note=vEl(id);if(note&&note.classList.contains('field-error'))note.remove();el.removeAttribute('aria-describedby');}}
 function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
 
-// TTS = aiModelSel (Action bar) · အသံ→စာ / ဘာသာပြန် = aiModelSel2 (Format screen ထဲ) — တစ်ကြိမ်တွင် တစ်ခုသာ ပြသည်
+// TTS Model ကို Action Bar ရှိ aiModelSel မှ ရွေးချယ်သည်။
 
 
 function resetVoiceBranch(source){var previous=VOICE_STATE||{},next=newVoiceState('text-to-voice',source||'');['voiceResult','srtResult','translationDirection','translationResult','mediaOutput','srtSource','transSource'].forEach(function(key){if(Object.prototype.hasOwnProperty.call(previous,key))next[key]=previous[key];});VOICE_STATE=next;LAST_AUDIO={base64:'',mime:'audio/wav',url:''};}
