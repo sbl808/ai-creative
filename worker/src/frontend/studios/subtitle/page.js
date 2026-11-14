@@ -1,5 +1,5 @@
 // AI Creative Studio — Subtitle Studio / page.js
-// Task 1: standalone Studio shell only. Feature actions are added in later tasks.
+// Task 3: responsive Subtitle Studio UI. API integration is intentionally deferred to Task 4.
 import { renderSidebar, sidebarScript } from '../../shared.js';
 
 export const SUBTITLE_HTML = `<!DOCTYPE html>
@@ -7,25 +7,67 @@ export const SUBTITLE_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
 <title>Subtitle Studio — AI Creative Studio</title>
 <style>
-:root{--subtitle-bg:#080c18;--subtitle-card:#0d1424;--subtitle-border:#26324a;--subtitle-text:#e8ecf4;--subtitle-muted:#94a3b8;--subtitle-accent:#00d5ed}
+:root{--sub-bg:var(--aics-bg,#0b1020);--sub-card:var(--aics-surface,#111827);--sub-soft:var(--aics-surface-subtle,#182235);--sub-border:var(--aics-border,#263247);--sub-border-strong:var(--aics-border-strong,#344158);--sub-text:var(--aics-text,#edf2fa);--sub-muted:var(--aics-text-muted,#a1aec2);--sub-primary:var(--aics-primary,#8b8cff);--sub-danger:var(--aics-danger,#fca5a5)}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;width:100%}
-body{background:var(--subtitle-bg);color:var(--subtitle-text);font-family:'Noto Sans Myanmar','Roboto','Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.65}
-.aics-subtitle-main{width:100%;max-width:1040px;margin:0 auto;min-width:0}
-.aics-subtitle-hero{padding:20px 0 22px}
-.aics-subtitle-hero h1{font-size:clamp(21px,3vw,28px);line-height:1.3;margin:0 0 8px;color:var(--subtitle-text)}
-.aics-subtitle-hero p{margin:0;color:var(--subtitle-muted);max-width:680px}
-.aics-subtitle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.aics-subtitle-card{min-width:0;padding:20px;background:var(--subtitle-card);border:1px solid var(--subtitle-border);border-radius:14px}
-.aics-subtitle-card-icon{font-size:25px;line-height:1.3;margin-bottom:12px}
-.aics-subtitle-card h2{font-size:15px;margin:0 0 7px;color:var(--subtitle-text)}
-.aics-subtitle-card p{font-size:13px;line-height:1.6;color:var(--subtitle-muted);margin:0}
-.aics-subtitle-status{display:inline-flex;align-items:center;margin-top:16px;padding:5px 10px;border:1px solid var(--subtitle-border);border-radius:999px;color:var(--subtitle-accent);font-size:11px;font-weight:600}
-.aics-subtitle-note{margin-top:16px;padding:13px 15px;border:1px dashed var(--subtitle-border);border-radius:12px;color:var(--subtitle-muted);font-size:12px;line-height:1.6}
-@media(min-width:768px) and (max-width:1199px){.aics-subtitle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.aics-subtitle-card:last-child{grid-column:1/-1}}
-@media(max-width:767px){.aics-subtitle-main{padding:0}.aics-subtitle-hero{padding:12px 0 18px}.aics-subtitle-grid{grid-template-columns:1fr;gap:10px}.aics-subtitle-card{padding:16px}.aics-subtitle-card-icon{margin-bottom:8px}}
+html,body{margin:0;min-height:100%;width:100%;background:var(--sub-bg);color:var(--sub-text)}
+body{font-family:'Noto Sans Myanmar','Roboto','Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.65}
+button,input,textarea{font:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--sub-primary);outline-offset:3px}
+.aics-subtitle-main{width:100%;max-width:1040px;min-width:0;margin:0 auto}
+.sub-hero{padding:20px 0 18px}
+.sub-hero h1{font-size:clamp(22px,3vw,28px);line-height:1.3;margin:0 0 7px;color:var(--sub-text)}
+.sub-hero p{max-width:700px;margin:0;color:var(--sub-muted)}
+.sub-mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.sub-mode{min-width:0;display:flex;align-items:flex-start;gap:12px;text-align:left;padding:15px;border:1px solid var(--sub-border);border-radius:12px;background:var(--sub-card);color:var(--sub-text);cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.sub-mode:hover{border-color:var(--sub-border-strong)}
+.sub-mode[aria-pressed=true]{border-color:var(--sub-primary);background:var(--sub-soft);box-shadow:inset 0 0 0 1px var(--sub-primary)}
+.sub-mode-icon{font-size:23px;line-height:1.3;flex:none}
+.sub-mode strong{display:block;font-size:14px;margin:0 0 3px}
+.sub-mode small{display:block;color:var(--sub-muted);font-size:12px;line-height:1.5}
+.sub-panel{min-width:0;padding:18px;background:var(--sub-card);border:1px solid var(--sub-border);border-radius:14px}
+.sub-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.sub-panel-head h2{font-size:17px;line-height:1.4;margin:0 0 4px}
+.sub-panel-head p{margin:0;color:var(--sub-muted);font-size:12px}
+.sub-step{font-size:11px;color:var(--sub-muted);border:1px solid var(--sub-border);border-radius:999px;padding:5px 9px;white-space:nowrap}
+.sub-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.sub-section{min-width:0;border:1px solid var(--sub-border);border-radius:11px;padding:15px;background:var(--sub-soft)}
+.sub-section h3{font-size:14px;margin:0 0 5px}
+.sub-help{font-size:12px;color:var(--sub-muted);margin:0 0 13px}
+.sub-upload{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;min-height:145px;padding:18px;border:1px dashed var(--sub-border-strong);border-radius:10px;background:var(--sub-card);text-align:center;cursor:pointer}
+.sub-upload:hover{border-color:var(--sub-primary)}
+.sub-upload-icon{font-size:28px}
+.sub-upload strong{font-size:13px}
+.sub-upload span{font-size:11px;color:var(--sub-muted)}
+.sub-file-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.sub-file-info{display:none;margin-top:12px;padding:11px;border:1px solid var(--sub-border);border-radius:9px;background:var(--sub-card)}
+.sub-file-info.show{display:block}
+.sub-file-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.sub-file-name{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.sub-file-meta{font-size:11px;color:var(--sub-muted);margin-top:3px}
+.sub-remove{flex:none;border:1px solid var(--sub-border);background:transparent;color:var(--sub-muted);border-radius:7px;padding:6px 9px;min-height:36px;cursor:pointer}
+.sub-audio{display:none;width:100%;margin-top:12px}
+.sub-audio.show{display:block}
+.sub-audio audio{width:100%;max-width:100%}
+.sub-output{width:100%;min-height:170px;resize:vertical;padding:12px;border:1px solid var(--sub-border-strong);border-radius:9px;background:var(--sub-bg);color:var(--sub-text);line-height:1.7}
+.sub-output::placeholder{color:var(--sub-muted)}
+.sub-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.sub-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:9px 15px;border:1px solid var(--sub-border-strong);border-radius:8px;background:var(--sub-soft);color:var(--sub-text);font-size:13px;font-weight:600;cursor:pointer}
+.sub-btn.primary{background:var(--sub-primary);border-color:var(--sub-primary);color:#101323}
+.sub-btn:disabled{opacity:.48;cursor:not-allowed}
+.sub-inline-note{font-size:11px;color:var(--sub-muted);margin:10px 0 0}
+.sub-status{display:none;margin-top:12px;padding:10px 12px;border:1px solid var(--sub-border);border-radius:8px;color:var(--sub-muted);font-size:12px}
+.sub-status.show{display:block}
+.sub-coming{padding:28px 18px;text-align:center}
+.sub-coming .icon{font-size:32px;margin-bottom:8px}
+.sub-coming h2{font-size:17px;margin:0 0 6px}
+.sub-coming p{max-width:520px;margin:0 auto;color:var(--sub-muted);font-size:13px}
+.sub-note{margin-top:14px;padding:12px 14px;border:1px dashed var(--sub-border);border-radius:10px;color:var(--sub-muted);font-size:11px}
+@media(min-width:768px) and (max-width:1024px){.sub-mode-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.sub-mode{padding:13px;gap:9px}.sub-panel{padding:16px}}
+@media(max-width:767px){.aics-subtitle-main{padding:0}.sub-hero{padding:12px 0 16px}.sub-mode-grid{grid-template-columns:1fr;gap:8px;margin-bottom:12px}.sub-mode{align-items:center;padding:12px}.sub-mode-icon{font-size:21px}.sub-panel{padding:13px}.sub-panel-head{gap:8px}.sub-columns{grid-template-columns:1fr;gap:10px}.sub-section{padding:12px}.sub-upload{min-height:125px}.sub-actions{display:grid;grid-template-columns:1fr}.sub-btn{width:100%}.sub-step{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -39,36 +81,119 @@ body{background:var(--subtitle-bg);color:var(--subtitle-text);font-family:'Noto 
 ${renderSidebar('subtitle', { variant: 'studio' })}
 <main class="main aics-main">
 <section class="aics-work aics-subtitle-main" aria-labelledby="subtitle-title">
-<div class="aics-subtitle-hero">
+<div class="sub-hero">
 <h1 id="subtitle-title">Subtitle Studio</h1>
-<p>အသံနှင့် ဗီဒီယိုအတွက် စာသား၊ စာတန်းထိုးနှင့် ဘာသာပြန်မှုများကို သီးခြားစီ စီမံနိုင်မည့် Studio ဖြစ်သည်။</p>
+<p>အသံမှ စာသားထုတ်ယူခြင်း၊ SRT စာတန်းထိုးဖန်တီးခြင်းနှင့် ဘာသာပြန်ခြင်းတို့ကို တစ်နေရာတည်းမှာ စီမံပါ။</p>
 </div>
-<div class="aics-subtitle-grid">
-<article class="aics-subtitle-card">
-<div class="aics-subtitle-card-icon" aria-hidden="true">🎧</div>
-<h2>Audio → Text</h2>
-<p>အသံဖိုင်မှ ပြောဆိုထားသော စာသားကို ထုတ်ယူရန်။</p>
-<span class="aics-subtitle-status">နောက်အဆင့်တွင် ချိတ်ဆက်မည်</span>
-</article>
-<article class="aics-subtitle-card">
-<div class="aics-subtitle-card-icon" aria-hidden="true">📝</div>
-<h2>Audio → SRT</h2>
-<p>အသံမှ အချိန်အမှတ်ပါသော SRT စာတန်းထိုး ဖန်တီးရန်။</p>
-<span class="aics-subtitle-status">နောက်အဆင့်တွင် ချိတ်ဆက်မည်</span>
-</article>
-<article class="aics-subtitle-card">
-<div class="aics-subtitle-card-icon" aria-hidden="true">🌐</div>
-<h2>SRT Translation</h2>
-<p>ရှိပြီးသား SRT စာတန်းထိုးကို ရွေးချယ်ထားသော ဘာသာစကားသို့ ဘာသာပြန်ရန်။</p>
-<span class="aics-subtitle-status">နောက်အဆင့်တွင် ချိတ်ဆက်မည်</span>
-</article>
+<div class="sub-mode-grid" role="group" aria-label="Subtitle လုပ်ဆောင်ချက် ရွေးချယ်ရန်">
+<button class="sub-mode" type="button" data-sub-mode="text" aria-pressed="true">
+<span class="sub-mode-icon" aria-hidden="true">🎧</span><span><strong>Audio → Text</strong><small>အသံမှ စာသားထုတ်ယူရန်</small></span>
+</button>
+<button class="sub-mode" type="button" data-sub-mode="srt" aria-pressed="false">
+<span class="sub-mode-icon" aria-hidden="true">📝</span><span><strong>Audio → SRT</strong><small>အချိန်အမှတ်ပါ စာတန်းထိုး</small></span>
+</button>
+<button class="sub-mode" type="button" data-sub-mode="translate" aria-pressed="false">
+<span class="sub-mode-icon" aria-hidden="true">🌐</span><span><strong>SRT Translation</strong><small>SRT ဘာသာပြန်ရန်</small></span>
+</button>
 </div>
-<div class="aics-subtitle-note">ယခုအဆင့်တွင် Studio ၏ မျက်နှာပြင်နှင့် Navigation ကိုသာ တည်ဆောက်ထားသည်။ AI လုပ်ဆောင်ချက်များ၊ API ချိတ်ဆက်မှုနှင့် သိမ်းဆည်းမှုများ မပါဝင်သေးပါ။</div>
+
+<section class="sub-panel" id="subTextPanel" aria-labelledby="sub-text-heading">
+<div class="sub-panel-head">
+<div><h2 id="sub-text-heading">Audio → Text</h2><p>အသံဖိုင်ကို ရွေးချယ်ပြီး နောက်ပိုင်းတွင် စာသားအဖြစ် ပြောင်းနိုင်ပါမည်။</p></div>
+<span class="sub-step">အဆင့် ၁ / ၂</span>
+</div>
+<div class="sub-columns">
+<section class="sub-section" aria-labelledby="sub-upload-heading">
+<h3 id="sub-upload-heading">၁။ အသံဖိုင် ထည့်ပါ</h3>
+<p class="sub-help">သင့်စက်ထဲရှိ အသံဖိုင်ကို ရွေးချယ်ပါ။ ဖိုင်ကို ယခုအဆင့်တွင် Server သို့ မပို့ပါ။</p>
+<label class="sub-upload" for="subtitleAudioFile">
+<span class="sub-upload-icon" aria-hidden="true">☁️</span>
+<strong>အသံဖိုင် ရွေးချယ်ရန်</strong>
+<span>သင့်စက်ထဲမှ Audio File ကို ရွေးပါ</span>
+</label>
+<input class="sub-file-input" id="subtitleAudioFile" type="file" accept="audio/*">
+<div class="sub-file-info" id="subtitleFileInfo" aria-live="polite">
+<div class="sub-file-row"><div style="min-width:0"><div class="sub-file-name" id="subtitleFileName"></div><div class="sub-file-meta" id="subtitleFileMeta"></div></div><button class="sub-remove" id="subtitleRemoveFile" type="button">ဖယ်ရှားရန်</button></div>
+</div>
+<div class="sub-audio" id="subtitleAudioPreview"><audio id="subtitleAudioPlayer" controls preload="metadata"></audio></div>
+<div class="sub-status" id="subtitleFileStatus" role="status" aria-live="polite"></div>
+</section>
+<section class="sub-section" aria-labelledby="sub-result-heading">
+<h3 id="sub-result-heading">၂။ ထွက်လာမည့် စာသား</h3>
+<p class="sub-help">Transcription ရလဒ်ကို ဒီနေရာမှာ ပြသပါမည်။</p>
+<textarea class="sub-output" id="subtitleTranscript" placeholder="အသံမှ ထုတ်ယူထားသော စာသားကို ဒီနေရာတွင် ပြသပါမည်..." readonly aria-label="Transcription ရလဒ်"></textarea>
+<div class="sub-actions">
+<button class="sub-btn primary" type="button" disabled title="Task 4 တွင် API ချိတ်ဆက်ပြီးမှ အသုံးပြုနိုင်ပါမည်">စာသားထုတ်ယူရန်</button>
+<button class="sub-btn" id="subtitleClear" type="button">ရှင်းလင်းရန်</button>
+</div>
+<p class="sub-inline-note">AI API ချိတ်ဆက်မှုကို နောက် Task တွင် ထည့်သွင်းပါမည်။</p>
+</section>
+</div>
+</section>
+
+<section class="sub-panel sub-coming" id="subSrtPanel" hidden aria-labelledby="sub-srt-heading">
+<div class="icon" aria-hidden="true">📝</div><h2 id="sub-srt-heading">Audio → SRT</h2>
+<p>အသံမှ အချိန်အမှတ်ပါ SRT စာတန်းထိုး ဖန်တီးနိုင်မည့် မျက်နှာပြင်ကို နောက်အဆင့်တွင် တည်ဆောက်ပါမည်။</p>
+</section>
+<section class="sub-panel sub-coming" id="subTranslatePanel" hidden aria-labelledby="sub-translate-heading">
+<div class="icon" aria-hidden="true">🌐</div><h2 id="sub-translate-heading">SRT Translation</h2>
+<p>ရှိပြီးသား SRT ဖိုင်ကို ရွေးချယ်ထားသော ဘာသာစကားသို့ ပြောင်းလဲနိုင်မည့် မျက်နှာပြင်ကို နောက်အဆင့်တွင် တည်ဆောက်ပါမည်။</p>
+</section>
+<div class="sub-note">လက်ရှိ Task တွင် UI နှင့် Browser အတွင်း ဖိုင်ရွေးချယ်/အသံကြိုနားထောင်မှုသာ ပါဝင်သည်။ AI API မခေါ်ပါ၊ User Data ကို Server သို့ မပို့ပါ၊ IndexedDB ထဲသို့လည်း မသိမ်းပါ။</div>
 </section>
 </main>
 </div>
 </div>
 ${sidebarScript()}
+<script>
+(function(){
+  var input=document.getElementById('subtitleAudioFile');
+  var info=document.getElementById('subtitleFileInfo');
+  var name=document.getElementById('subtitleFileName');
+  var meta=document.getElementById('subtitleFileMeta');
+  var preview=document.getElementById('subtitleAudioPreview');
+  var player=document.getElementById('subtitleAudioPlayer');
+  var status=document.getElementById('subtitleFileStatus');
+  var objectUrl='';
+  function showStatus(message){status.textContent=message;status.classList.add('show');}
+  function clearFile(){
+    if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl='';}
+    input.value='';
+    player.pause();player.removeAttribute('src');player.load();
+    info.classList.remove('show');preview.classList.remove('show');
+    name.textContent='';meta.textContent='';status.classList.remove('show');status.textContent='';
+  }
+  input.addEventListener('change',function(){
+    var file=input.files&&input.files[0];
+    if(!file){clearFile();return;}
+    if(!file.type||file.type.indexOf('audio/')!==0){
+      clearFile();showStatus('Audio ဖိုင်အမျိုးအစားကိုသာ ရွေးချယ်ပါ။');return;
+    }
+    if(objectUrl)URL.revokeObjectURL(objectUrl);
+    objectUrl=URL.createObjectURL(file);
+    name.textContent=file.name;
+    meta.textContent=file.type+' · '+(file.size/1024/1024).toFixed(2)+' MB';
+    player.src=objectUrl;
+    info.classList.add('show');preview.classList.add('show');
+    showStatus('ဖိုင်ကို Browser ထဲမှာသာ ရွေးချယ်ထားပါတယ်။ Server သို့ မပို့ရသေးပါ။');
+  });
+  document.getElementById('subtitleRemoveFile').addEventListener('click',clearFile);
+  document.getElementById('subtitleClear').addEventListener('click',function(){
+    clearFile();
+    document.getElementById('subtitleTranscript').value='';
+  });
+  var modes=document.querySelectorAll('[data-sub-mode]');
+  var panels={text:document.getElementById('subTextPanel'),srt:document.getElementById('subSrtPanel'),translate:document.getElementById('subTranslatePanel')};
+  modes.forEach(function(button){
+    button.addEventListener('click',function(){
+      var selected=button.getAttribute('data-sub-mode');
+      modes.forEach(function(item){item.setAttribute('aria-pressed',String(item===button));});
+      Object.keys(panels).forEach(function(key){panels[key].hidden=key!==selected;});
+    });
+  });
+  window.addEventListener('pagehide',function(){if(objectUrl)URL.revokeObjectURL(objectUrl);});
+})();
+</script>
 </body>
 </html>`;
 

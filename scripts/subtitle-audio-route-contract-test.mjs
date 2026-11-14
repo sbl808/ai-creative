@@ -90,10 +90,6 @@ function makeDeps(overrides = {}) {
   assert.equal(calls[0][1].studioId, 'subtitle');
   assert.equal(calls[0][1].operation, 'transcribe');
   assert.equal(JSON.stringify(calls[0][1]).includes(PRIVATE_KEY), false);
-  await assert.rejects(
-    () => adapter.tts({}, { text: 'not supported', apiKey: PRIVATE_KEY }),
-    (error) => error.message === 'unsupported_audio_adapter_operation',
-  );
 }
 
 // Authentication and feature gates run before rate limiting or transcription.

@@ -26,9 +26,6 @@ export function createAudioStudioAdapter(studioId, engine = generateSharedAudio)
 
   return {
     async tts(env, { text, voiceName, apiKey, model, plan } = {}) {
-      if (studioId === 'subtitle') {
-        throw new Error('unsupported_audio_adapter_operation');
-      }
       const response = await execute('tts', {
         text,
         ...(voiceName ? { voiceName } : {}),

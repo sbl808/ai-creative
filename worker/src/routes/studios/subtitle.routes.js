@@ -29,7 +29,6 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
 
   // Fail closed: do not process audio when the Cloudflare binding is absent
   // or unavailable. The key is the verified session subject, never the IP.
-  // Cloudflare counters are approximate and local to each Cloudflare location.
   const limiter = env?.SUBTITLE_RATE_LIMITER;
   if (!limiter || typeof limiter.limit !== 'function') {
     return json({ error: 'rate_limit_unavailable' }, 503, cors);
@@ -37,7 +36,10 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   try {
     const decision = await limiter.limit({ key: userId });
     if (!decision?.success) {
-      return json({ error: 'rate_limited', limit: 10, window_seconds: 60 }, 429, cors);
+      return json({ error: 'rate_limited', limit: 10, window_seconds: 60 }, 429, {
+        ...cors,
+        'Retry-After': '60',
+      });
     }
   } catch (_) {
     return json({ error: 'rate_limit_unavailable' }, 503, cors);
