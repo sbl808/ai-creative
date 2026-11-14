@@ -1,4 +1,4 @@
-const SCRIPT = String.raw\`(function () {
+const SCRIPT = String.raw`(function () {
   var DEFAULT_LANGUAGE = 'zh-CN';
   var SUPPORTED_LANGUAGES = ['my', 'zh-CN', 'en'];
   function normalizeLanguage(value) {
@@ -51,5 +51,5 @@ const SCRIPT = String.raw\`(function () {
     getDefaultLanguage: function () { return DEFAULT_LANGUAGE; },
     getSupportedLanguages: function () { return SUPPORTED_LANGUAGES.slice(); }
   });
-})();\`;
+})();`;
 export function appPreferencesRepositoryScript() { return SCRIPT; }
