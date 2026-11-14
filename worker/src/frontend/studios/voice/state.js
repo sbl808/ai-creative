@@ -1,14 +1,11 @@
-// AI Creative Studio — Voice Studio / state.js (V2.1 Unified Workflow)
-// Browser-side state. V2.1: mode chips (စာမျက်နှာတစ်ခုတည်း) + 4-step flow (Input/Format/Generate/Result).
-// VOICE_INPUTS = Input/Format ဖောင်တန်ဖိုးများ (Step/Mode ပြောင်းလည်း မပျောက်စေရန် သီးသန့်သိမ်းသည်)
+// AI Creative Studio — Voice Studio / state.js (TTS-only workflow)
+// Active Voice state is Text-to-Voice only. Restored legacy Subtitle fields are kept for migration.
 export const STATE_SCRIPT = `var TOKEN=localStorage.getItem('aics_token')||'';
 var USER_PLAN='FREE';
 function newVoiceState(mode,source){
   return {
-    voiceMode:mode||'text-to-voice', voiceStep:1, view:'input', resultKind:null,
-    voiceInput:null, voiceResult:null, audioResult:null,
-    srtResult:null, translationDirection:'MY_TO_CN', translationResult:null,
-    mediaOutput:'text', srtSource:null, transSource:null,
+    voiceMode:'text-to-voice', voiceStep:1, view:'input', resultKind:null,
+    voiceInput:null, audioResult:null,
     processingState:null, errorState:null, source:source||''
   };
 }
