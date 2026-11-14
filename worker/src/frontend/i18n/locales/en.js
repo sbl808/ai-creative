@@ -132,6 +132,8 @@ const dictionary = Object.freeze({
   "publicHome.theme.toggle": "Switch color theme",
   "publicHome.aria.home": "AI Creative Studio Home",
   "publicHome.aria.preview": "AI Creative Studio preview",
+  "publicHome.meta.title": "AI Creative Studio — Create more with AI",
+  "publicHome.meta.description": "Create stories, social content, short videos, images, voice, and shop content in one AI creative workspace.",
 });
 
 export default dictionary;
