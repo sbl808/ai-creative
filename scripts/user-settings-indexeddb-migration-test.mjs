@@ -89,10 +89,16 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
 
 const settingsSource = await readFile(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
 const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
+const loginSource = await readFile(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{profile:/);
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
+assert.doesNotMatch(authSource, /INSERT INTO users \\(email, name/);
+assert.doesNotMatch(authSource, /UPDATE users SET name/);
+assert.match(loginSource, /userSettingsRepositoryScript/);
+assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
 
 console.log('User Settings IndexedDB migration contract tests passed.');
