@@ -97,8 +97,10 @@ assert.doesNotMatch(settingsSource, /pref_studio|pref_voice|default_studio\s*:|d
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
-assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
-assert.doesNotMatch(authSource, /UPDATE users SET name/);
+assert.doesNotMatch(authSource, /missing_name|body\.name/, 'Signup API must not require or read a Profile Name');
+assert.match(authSource, /INSERT INTO users \(email, password_hash, plan, created_at, updated_at\)/, 'Signup must store account email and password hash without Profile Name');
+assert.doesNotMatch(authSource, /INSERT INTO users \([^)]*\bname\b/i, 'Signup must not write Profile Name to D1');
+assert.doesNotMatch(authSource, /UPDATE users SET name/i, 'Auth must not update Profile Name in D1');
 assert.doesNotMatch(loginSource, /suName|autocomplete="name"/, 'Signup UI must not collect a Profile Name');
 assert.doesNotMatch(loginSource, /userSettingsRepositoryScript|AICS_USER_SETTINGS\.save\(\{\s*profile:/, 'Signup must not persist a Profile Name');
 assert.match(loginSource, /JSON\.stringify\(\{\s*email:\s*email,\s*password:\s*pass\s*\}\)/, 'Signup must submit only Email and Password');
