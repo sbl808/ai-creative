@@ -123,10 +123,10 @@ ${renderSidebar('subtitle', { variant: 'studio' })}
 <p class="sub-help">Transcription ရလဒ်ကို ဒီနေရာမှာ ပြသပါမည်။</p>
 <textarea class="sub-output" id="subtitleTranscript" placeholder="အသံမှ ထုတ်ယူထားသော စာသားကို ဒီနေရာတွင် ပြသပါမည်..." readonly aria-label="Transcription ရလဒ်"></textarea>
 <div class="sub-actions">
-<button class="sub-btn primary" type="button" disabled title="Task 4 တွင် API ချိတ်ဆက်ပြီးမှ အသုံးပြုနိုင်ပါမည်">စာသားထုတ်ယူရန်</button>
+<button class="sub-btn primary" id="subtitleTranscribe" type="button" disabled>စာသားထုတ်ယူရန်</button>
 <button class="sub-btn" id="subtitleClear" type="button">ရှင်းလင်းရန်</button>
 </div>
-<p class="sub-inline-note">AI API ချိတ်ဆက်မှုကို နောက် Task တွင် ထည့်သွင်းပါမည်။</p>
+<p class="sub-inline-note">API Key ကို Settings ထဲတွင် ထည့်ထားရန် လိုအပ်ပါသည်။ Key ကို Browser IndexedDB မှ စာဝှက်ဖွင့်ပြီး Request တစ်ကြိမ်အတွက်သာ အသုံးပြုပါမည်။</p>
 </section>
 </div>
 </section>
@@ -139,7 +139,7 @@ ${renderSidebar('subtitle', { variant: 'studio' })}
 <div class="icon" aria-hidden="true">🌐</div><h2 id="sub-translate-heading">SRT Translation</h2>
 <p>ရှိပြီးသား SRT ဖိုင်ကို ရွေးချယ်ထားသော ဘာသာစကားသို့ ပြောင်းလဲနိုင်မည့် မျက်နှာပြင်ကို နောက်အဆင့်တွင် တည်ဆောက်ပါမည်။</p>
 </section>
-<div class="sub-note">လက်ရှိ Task တွင် UI နှင့် Browser အတွင်း ဖိုင်ရွေးချယ်/အသံကြိုနားထောင်မှုသာ ပါဝင်သည်။ AI API မခေါ်ပါ၊ User Data ကို Server သို့ မပို့ပါ၊ IndexedDB ထဲသို့လည်း မသိမ်းပါ။</div>
+<div class="sub-note">အသံဖိုင်ကို “စာသားထုတ်ယူရန်” နှိပ်မှသာ API သို့ ယာယီပို့ပါမည်။ Worker က User Data ကို မသိမ်းပါ။ ရလဒ်ကို Browser မျက်နှာပြင်တွင်သာ ပြသပြီး IndexedDB ထဲသို့ အလိုအလျောက် မသိမ်းပါ။</div>
 </section>
 </main>
 </div>
@@ -154,14 +154,102 @@ ${sidebarScript()}
   var preview=document.getElementById('subtitleAudioPreview');
   var player=document.getElementById('subtitleAudioPlayer');
   var status=document.getElementById('subtitleFileStatus');
+  var transcribeButton=document.getElementById('subtitleTranscribe');
+  var transcript=document.getElementById('subtitleTranscript');
   var objectUrl='';
+  var activeRequest=0;
+  var maxAudioBytes=5*1024*1024;
   function showStatus(message){status.textContent=message;status.classList.add('show');}
   function clearFile(){
+    activeRequest++;
     if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl='';}
     input.value='';
     player.pause();player.removeAttribute('src');player.load();
     info.classList.remove('show');preview.classList.remove('show');
     name.textContent='';meta.textContent='';status.classList.remove('show');status.textContent='';
+    transcribeButton.disabled=true;
+    transcript.value='';
+  }
+  function readAudioBase64(file){
+    return new Promise(function(resolve,reject){
+      var reader=new FileReader();
+      reader.onload=function(){
+        var value=String(reader.result||'');
+        var comma=value.indexOf(',');
+        if(comma<0){reject(new Error('file_read_error'));return;}
+        resolve(value.slice(comma+1));
+      };
+      reader.onerror=function(){reject(new Error('file_read_error'));};
+      reader.readAsDataURL(file);
+    });
+  }
+  function safeErrorMessage(code){
+    var messages={
+      unauthorized:'Login သက်တမ်းကုန်သွားနိုင်ပါသည်။ ပြန်လည် Login ဝင်ပါ။',
+      invalid_token:'Login သက်တမ်းကုန်သွားနိုင်ပါသည်။ ပြန်လည် Login ဝင်ပါ။',
+      missing_api_key:'Settings ထဲတွင် Gemini API Key ထည့်ပြီးမှ အသုံးပြုနိုင်ပါသည်။',
+      credentials_unavailable:'Browser ထဲရှိ API Key Storage ကို ဖွင့်မရပါ။ Settings ကို စစ်ဆေးပါ။',
+      credentials_not_found:'Gemini API Key မရှိသေးပါ။ Settings ထဲတွင် ထည့်ပါ။',
+      rate_limited:'တစ်မိနစ်အတွင်း အသုံးပြုခွင့် ၁၀ ကြိမ် ပြည့်သွားပါပြီ။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။',
+      rate_limit_unavailable:'ဝန်ဆောင်မှုကို ယာယီအသုံးပြုမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။',
+      feature_disabled:'ဤ Feature ကို ယာယီပိတ်ထားပါသည်။',
+      feature_settings_unavailable:'Feature အခြေအနေကို ယခု စစ်ဆေးမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။',
+      pro_only:'ဤ Feature ကို လက်ရှိ Plan ဖြင့် အသုံးပြုခွင့်မရှိပါ။',
+      request_body_too_large:'အသံဖိုင်အရွယ်အစား ကြီးလွန်းနေပါသည်။ 5 MB အောက် ဖိုင်ကို ရွေးပါ။',
+      missing_audio:'အသံဖိုင်ကို ပြန်ရွေးချယ်ပါ။',
+      transcribe_error:'စာသားထုတ်ယူရာတွင် အခက်အခဲရှိနေပါသည်။ နောက်မှ ပြန်ကြိုးစားပါ။'
+    };
+    return messages[code]||'စာသားထုတ်ယူ၍ မရပါ။ API Key၊ Internet နှင့် Login အခြေအနေကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။';
+  }
+  async function runTranscription(){
+    var file=input.files&&input.files[0];
+    if(!file){showStatus('အသံဖိုင်ကို အရင်ရွေးချယ်ပါ။');return;}
+    if(file.size>maxAudioBytes){showStatus('အသံဖိုင်သည် 5 MB ထက် မကျော်ရပါ။');return;}
+    var requestId=++activeRequest;
+    transcribeButton.disabled=true;
+    showStatus('အသံဖိုင်ကို ဖတ်ပြီး စာသားထုတ်ယူနေပါသည်။ ခဏစောင့်ပါ...');
+    var audioBase64='';
+    try{
+      var token='';
+      try{token=String(localStorage.getItem('aics_token')||'');}catch(_){}
+      if(!token)throw new Error('unauthorized');
+      if(!window.aicsApiFetch)throw new Error('credentials_unavailable');
+      audioBase64=await readAudioBase64(file);
+      if(requestId!==activeRequest)return;
+      var response=await window.aicsApiFetch('/api/studio/subtitle/transcribe',{
+        audioBase64:audioBase64,
+        mimeType:file.type||'audio/mpeg',
+        type:'1'
+      },{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token
+        }
+      });
+      audioBase64='';
+      var data=await response.json().catch(function(){return {error:'request_error'};});
+      if(requestId!==activeRequest)return;
+      if(!response.ok||data.error)throw new Error(data.error||'request_error');
+      var result=String(data.text||'').trim();
+      if(!result)throw new Error('empty_transcription');
+      transcript.value=result;
+      showStatus('စာသားထုတ်ယူပြီးပါပြီ။ ရလဒ်ကို Browser ထဲတွင်သာ ပြသထားပါသည်။');
+    }catch(error){
+      audioBase64='';
+      if(requestId===activeRequest){
+        var code=String(error&&error.message||'').split('|')[0];
+        if(code==='credentials_passphrase_cancelled'||code==='credentials_passphrase_required'||code==='credentials_passphrase_mismatch') {
+          showStatus('API Key ဖွင့်ရန် Passphrase လိုအပ်ပါသည်။ ထပ်မံကြိုးစားပါ။');
+        } else if(code==='empty_transcription') {
+          showStatus('အသံထဲမှ စာသား မရရှိပါ။ ပိုမိုရှင်းလင်းသော အသံဖိုင်ဖြင့် ပြန်ကြိုးစားပါ။');
+        } else {
+          showStatus(safeErrorMessage(code));
+        }
+      }
+    }finally{
+      if(requestId===activeRequest)transcribeButton.disabled=!(input.files&&input.files[0]);
+    }
   }
   input.addEventListener('change',function(){
     var file=input.files&&input.files[0];
@@ -169,18 +257,23 @@ ${sidebarScript()}
     if(!file.type||file.type.indexOf('audio/')!==0){
       clearFile();showStatus('Audio ဖိုင်အမျိုးအစားကိုသာ ရွေးချယ်ပါ။');return;
     }
+    if(file.size>maxAudioBytes){
+      clearFile();showStatus('အသံဖိုင်သည် 5 MB ထက် မကျော်ရပါ။');return;
+    }
     if(objectUrl)URL.revokeObjectURL(objectUrl);
     objectUrl=URL.createObjectURL(file);
     name.textContent=file.name;
     meta.textContent=file.type+' · '+(file.size/1024/1024).toFixed(2)+' MB';
     player.src=objectUrl;
     info.classList.add('show');preview.classList.add('show');
-    showStatus('ဖိုင်ကို Browser ထဲမှာသာ ရွေးချယ်ထားပါတယ်။ Server သို့ မပို့ရသေးပါ။');
+    transcribeButton.disabled=false;
+    showStatus('ဖိုင်ကို Browser ထဲတွင် ရွေးချယ်ထားပါသည်။ “စာသားထုတ်ယူရန်” နှိပ်မှသာ API သို့ ယာယီပို့ပါမည်။');
   });
+  transcribeButton.addEventListener('click',runTranscription);
   document.getElementById('subtitleRemoveFile').addEventListener('click',clearFile);
   document.getElementById('subtitleClear').addEventListener('click',function(){
     clearFile();
-    document.getElementById('subtitleTranscript').value='';
+    transcript.value='';
   });
   var modes=document.querySelectorAll('[data-sub-mode]');
   var panels={text:document.getElementById('subTextPanel'),srt:document.getElementById('subSrtPanel'),translate:document.getElementById('subTranslatePanel')};
