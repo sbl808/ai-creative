@@ -24,8 +24,9 @@ const ideas = [1, 2, 3].map((n) => ({
   outline: 'Outline ' + n,
   suggestedStudio: 'story',
 }));
+const fence = String.fromCharCode(96).repeat(3);
 assert.equal(parseIdeasOutput(JSON.stringify({ ideas })).length, 3);
-assert.equal(parseIdeasOutput('```json\\n' + JSON.stringify({ ideas }) + '\\n```').length, 3);
+assert.equal(parseIdeasOutput(fence + 'json\n' + JSON.stringify({ ideas }) + '\n' + fence).length, 3);
 assert.throws(() => parseIdeasOutput('not json'), /invalid_ai_output/);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.slice(0, 2) })), /invalid_ideas_count/);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.map((x) => ({ ...x, suggestedStudio: 'unknown' })) })), /invalid_suggested_studio/);
@@ -36,13 +37,13 @@ const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/
 for (const studio of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
   assert.ok(ideaUi.includes("id:'" + studio + "'"), 'missing handoff target: ' + studio);
 }
-assert.match(ideaUi, /if\\(\\(existing&&existing\\.data\\)\\|\\|hasLegacy\\)\\{/, 'handoff must detect an existing IndexedDB or legacy draft');
-assert.match(ideaUi, /if\\(!confirm\\(/, 'handoff must ask before replacing an existing draft');
+assert.match(ideaUi, /if\(\(existing&&existing\.data\)\|\|hasLegacy\)\{/, 'handoff must detect an existing IndexedDB or legacy draft');
+assert.match(ideaUi, /if\(!confirm\(/, 'handoff must ask before replacing an existing draft');
 assert.match(ideaUi, /Cancel လုပ်လျှင် မူလ Draft ကို မပြောင်းပါ/, 'handoff cancellation must preserve the existing draft');
 assert.match(ideaUi, /return false;/, 'handoff cancellation must stop the replacement');
 assert.match(
   ideaUi,
-  /AICS_HANDOFFS\\.create\\(\\{contractVersion:1,source:'ideas',target:'story',payload:fullPayload\\}\\)/,
+  /AICS_HANDOFFS\.create\(\{contractVersion:1,source:'ideas',target:'story',payload:fullPayload\}\)/,
   'Story handoff must send the complete Idea Result through the IndexedDB handoff contract'
 );
 assert.match(ideaUi, /aics_draft_content/, 'Content handoff draft key missing');
@@ -51,16 +52,16 @@ assert.match(ideaUi, /aics_draft_image/, 'Image handoff draft key missing');
 assert.match(ideaUi, /aics_draft_shop/, 'Shop handoff draft key missing');
 assert.match(ideaUi, /aics_voice_transfer.*source:'ideas'/s, 'Voice handoff must use the Voice transfer contract');
 
-const ideaVoiceBranch = voiceActions.match(/if\\(d\\.source==='ideas'\\)\\{([\\s\\S]*?)\\n    \\}else\\{/);
+const ideaVoiceBranch = voiceActions.match(/if\(d\.source==='ideas'\)\{([\s\S]*?)\n    \}else\{/);
 assert.ok(ideaVoiceBranch, 'Voice Idea handoff branch must exist');
 assert.match(
   ideaVoiceBranch[1],
-  /VOICE_INPUTS=Object\\.assign\\(\\{\\},VOICE_INPUTS,\\{tts:d\\.text/,
+  /VOICE_INPUTS=Object\.assign\(\{\},VOICE_INPUTS,\{tts:d\.text/,
   'Voice Idea handoff must initialize Text-to-Voice inputs'
 );
 assert.doesNotMatch(
   ideaVoiceBranch[1],
-  /MEDIA_AUDIO\\s*=/,
+  /MEDIA_AUDIO\s*=/,
   'Voice Idea handoff must preserve legacy Subtitle audio until the approved migration task'
 );
 
