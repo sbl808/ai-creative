@@ -14,7 +14,7 @@ import { checkFeature } from '../worker/src/core/featureSettings.js';
 import { listEnabledModels, resolveModel, getAiModelById, resolveAiModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
-import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
+import { STUDIO_REGISTRY, API_CAPABILITY_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 
@@ -282,6 +282,11 @@ await check('GET /app/story → 302 to /login (no session)', async () => {
   return { ok: r.status === 302 && r.headers.get('Location').endsWith('/login'), msg: `status=${r.status}` };
 });
 
+await check('GET /app/subtitle → 302 to /login (no session)', async () => {
+  const r = await get('/app/subtitle');
+  return { ok: r.status === 302 && r.headers.get('Location').endsWith('/login'), msg: `status=${r.status}` };
+});
+
 console.log('— Studio pages (with session) —');
 for (const slug of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
   await check(`GET /app/${slug} → 200 (lazy-loaded page)`, async () => {
@@ -293,6 +298,38 @@ for (const slug of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
     };
   });
 }
+await check('GET /app/subtitle → 200 (API-only page, not Dashboard Studio)', async () => {
+  const r = await get('/app/subtitle', await withToken());
+  const html = await r.text();
+  return {
+    ok: r.status === 200 &&
+      html.includes('Subtitle Studio') &&
+      html.includes('data-subtitle-mode="transcribe"') &&
+      !html.includes('data-studio="subtitle"'),
+    msg: `status=${r.status} len=${html.length}`,
+  };
+});
+await check('Subtitle remains outside the six Dashboard Studio registry entries', async () => ({
+  ok: !STUDIO_REGISTRY.subtitle && !!API_CAPABILITY_REGISTRY.subtitle,
+  msg: `dashboardEntry=${!!STUDIO_REGISTRY.subtitle} capabilityEntry=${!!API_CAPABILITY_REGISTRY.subtitle}`,
+}));
+{
+  const wasEnabled = API_CAPABILITY_REGISTRY.subtitle.enabled;
+  API_CAPABILITY_REGISTRY.subtitle.enabled = false;
+  try {
+    await check('GET /app/subtitle is blocked when API capability is disabled', async () => {
+      const r = await get('/app/subtitle', await withToken());
+      const html = await r.text();
+      return {
+        ok: r.status === 200 && html.includes('ကို ယခု ပိတ်ထားပါသည်') && !html.includes('subtitleWorkspace'),
+        msg: `status=${r.status} disabledPage=${html.includes('ကို ယခု ပိတ်ထားပါသည်')}`,
+      };
+    });
+  } finally {
+    API_CAPABILITY_REGISTRY.subtitle.enabled = wasEnabled;
+  }
+}
+
 await check('GET /app/bogus → 404 STUDIO_NOT_FOUND (unknown studio)', async () => {
   const r = await get('/app/bogus', await withToken());
   const body = await r.text();
