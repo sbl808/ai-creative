@@ -3,6 +3,7 @@ import { SRT_CONTRACT_VERSION } from '../worker/src/media-production/contracts/s
 import { createContentSrtAdapter } from '../worker/src/media-adapters/content/srt.adapter.js';
 import { createVoiceSrtAdapter } from '../worker/src/media-adapters/voice/srt.adapter.js';
 import { createShopSrtAdapter } from '../worker/src/media-adapters/shop/srt.adapter.js';
+import { createSubtitleSrtAdapter } from '../worker/src/media-adapters/subtitle/srt.adapter.js';
 import { createSrtStudioAdapter } from '../worker/src/media-adapters/srt/index.js';
 
 const env = { TEST_ENV: true };
@@ -121,3 +122,34 @@ for (const studioId of ['story', 'short', 'image']) {
 }
 
 console.log('Shared SRT Studio Adapters: PASS');
+
+
+// Subtitle uses a dedicated adapter identity while preserving the shared SRT contract.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createSubtitleSrtAdapter(engine);
+  const result = await adapter.generate(env, {
+    audioBase64: AUDIO,
+    mimeType: 'audio/webm',
+    apiKey: API_KEY,
+    model: 'subtitle-srt-model',
+    plan: 'FREE',
+    prompt: 'SUBTITLE_SRT_INSTRUCTION',
+  });
+
+  assert.deepEqual(result, { srt: SRT });
+  assert.deepEqual(calls[0][1], {
+    contractVersion: SRT_CONTRACT_VERSION,
+    studioId: 'subtitle',
+    operation: 'audio-to-srt',
+    input: { audioBase64: AUDIO, mimeType: 'audio/webm' },
+  });
+  assert.deepEqual(calls[0][2], {
+    apiKey: API_KEY,
+    model: 'subtitle-srt-model',
+    plan: 'FREE',
+    prompt: 'SUBTITLE_SRT_INSTRUCTION',
+  });
+  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+  assert.equal(JSON.stringify(calls[0][1]).includes('SUBTITLE_SRT_INSTRUCTION'), false);
+}
