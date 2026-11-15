@@ -933,11 +933,11 @@ console.log('\\n--- Projects CSP markup contract ---');
 {
   const projects = readFileSync(new URL('../worker/src/frontend/projects.js', import.meta.url), 'utf8');
   check('Projects page contains no inline style attributes',
-    !/\\sstyle\\s*=/i.test(projects));
+    !/\sstyle\s*=/i.test(projects));
   check('Projects page contains no direct DOM style property access',
-    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(projects));
+    !/\.style(?:\.|\s*\[|\s*=)/.test(projects));
   check('Projects page contains no inline event-handler attributes',
-    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown)\\s*=/i.test(projects));
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown)\s*=/i.test(projects));
   check('Projects loading and empty states use the shared hidden CSS class',
     projects.includes('id="loadingState" class="loading-state"') &&
     projects.includes('id="emptyState" class="empty-state is-hidden"') &&
