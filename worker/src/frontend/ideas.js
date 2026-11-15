@@ -115,11 +115,11 @@ el('saveEditBtn').addEventListener('click',function(){
  window.AICS_IDEAS.update(editingIdeaId,{fields:fields,result:result}).then(function(){closeEditor();showStatus('Idea ပြင်ဆင်ချက် သိမ်းပြီးပါပြီ။');renderSaved()}).catch(function(){showStatus('ပြင်ဆင်ချက် သိမ်းမရပါ။',true)}).finally(function(){btn.disabled=false})
 });
 el('cancelEditBtn').addEventListener('click',closeEditor);
-var TARGET_STUDIOS=[{id:'story',label:'Story'},{id:'content',label:'Content'},{id:'short',label:'Short'},{id:'image',label:'Image'},{id:'voice',label:'Voice'},{id:'shop',label:'Shop'}];
+var TARGET_STUDIOS=[{id:'story',label:'Story'},{id:'content',label:'Content'},{id:'short',label:'Short'},{id:'image',label:'Image'},{id:'shop',label:'Shop'}];
 function ideaHandoffPayload(idea){return {kind:'idea-workspace',schemaVersion:1,category:generatedBrief&&generatedBrief.category||'story',fields:generatedBrief&&generatedBrief.formData||{},idea:makeResult(idea)}}
 function ideaPayload(idea){return 'Idea: '+idea.title+'\\n\\nConcept: '+idea.concept+'\\n\\nHook: '+idea.hook+'\\n\\nOutline: '+idea.outline;}
 function targetLegacyDraftExists(studio){
- var keys={content:['aics_draft_content'],short:['aics_draft_short'],image:['aics_draft_image'],voice:['aics_voice_workflow_v3','aics_voice_workflow_v2','aics_draft_voice','aics_voice_transfer'],shop:['aics_draft_shop']};
+ var keys={content:['aics_draft_content'],short:['aics_draft_short'],image:['aics_draft_image'],shop:['aics_draft_shop']};
  try{return (keys[studio]||[]).some(function(key){return !!localStorage.getItem(key);});}catch(e){return true;}
 }
 function makeTargetDraft(studio,idea,payload,fullPayload){
@@ -128,7 +128,7 @@ function makeTargetDraft(studio,idea,payload,fullPayload){
  if(studio==='image')return {step:1,savedAt:now,data:{stepNow:1,mode:'main',imageType:'1',aud:'',idea:payload,ideaText:payload,refCount:0,latestPrompt:'',prepPrompt:'',resultText:'',map:{subject:'',style:'',environment:'',lighting:'',camera:'',finalPrompt:''},finalPromptManual:false,hasFinalImage:false,finalImage:null,ideaHandoff:fullPayload}};
  if(studio==='content')return {step:1,savedAt:now,data:{mode:'content',csCur:1,idea:payload,generationLevel:'1',aud:'လူတိုင်း',contentType:'Social Media Post',tone:'',lang:'Burmese',platform:'Facebook',product:'',goal:'',cta:'',keyPoints:'',mainMessage:'',length:'',additionalInstr:'',videoContent:'',videoGenerationLevel:'1',videoTypeSel:'',videoDuration:'',videoAspect:'',videoVisualStyle:'',videoCameraStyle:'',videoMotion:'',videoLanguage:'',videoSceneSettings:'',videoVisualSettings:'',videoReference:'',videoAdditionalInstructions:'',ttsText:'',srt:'',srtTranslated:'',direction:'MY_TO_CN',lastResult:null,videoPlan:null,audio:null,ideaHandoff:fullPayload}};
  if(studio==='shop')return {step:1,savedAt:now,data:{shopState:{mainStep:1,view:'content',content:{input:{idea:payload,type:'1',images:[]},result:''},video:{step:1,input:{text:'',type:'1',images:[],purpose:'Product Promotion'},result:{product:null,characters:[],scenes:[]}},audio:{step:1,input:{text:'',voiceName:'Puck',voiceGender:'male',purpose:'Product Description',settings:''},result:{data:'',mimeType:'audio/wav',url:'',voiceName:''},srt:{text:''},translation:{dir:'MY_TO_CN',srt:'',text:''}},image:{step:1,input:{text:'',images:[],purpose:'Product Image'},result:{data:'',mimeType:'image/png',url:'',prompt:''}}},contentType:'1',videoType:'1',fields:{prodDesc:payload},purpose:'1',ideaHandoff:fullPayload}};
- if(studio==='voice')return {step:1,savedAt:now,data:{state:{voiceMode:'text-to-voice',voiceStep:1,view:'input',resultKind:null,voiceInput:null,voiceResult:null,audioResult:null,srtResult:null,translationDirection:'MY_TO_CN',translationResult:null,mediaOutput:'text',srtSource:null,transSource:null,processingState:null,errorState:null,source:'ideas'},inputs:{tts:payload,speaking:'',voice:'Kore',instruction:'',audience:'လူတိုင်း',srt:''},mediaAudio:{base64:'',mime:'',fileName:''},translation:'',ideaHandoff:fullPayload}};
+
  return null;
 }
 function handoffIdea(index,studio){
