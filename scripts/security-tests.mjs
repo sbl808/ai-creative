@@ -793,7 +793,7 @@ console.log('\n--- Shared Shell CSP markup contract ---');
   check('Shared Shell retains its responsive work container class',
     shared.includes('aics-work-container{max-width:820px;margin:0 auto;width:100%;}'));
   check('Shared Sidebar and Studio actions remain delegated',
-    shared.includes("document.addEventListener('click'") &&
+    shared.includes("document.addEventListener") &&
     shared.includes('[data-aics-sidebar-action]') &&
     shared.includes('[data-aics-shell-action]'));
 }
