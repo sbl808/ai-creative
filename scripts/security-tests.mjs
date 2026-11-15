@@ -189,12 +189,12 @@ console.log('\\n--- B) Creations stored-XSS regression ---');
 {
   const creations = readFileSync(new URL('../worker/src/frontend/creations.js', import.meta.url), 'utf8');
   const renderStart = creations.indexOf('function renderList()');
-  const renderEnd = renderStart >= 0 ? creations.indexOf('\\nfunction fmtDate', renderStart) : -1;
+  const renderEnd = renderStart >= 0 ? creations.indexOf('function fmtDate', renderStart) : -1;
   const renderBlock = renderStart >= 0 && renderEnd > renderStart
     ? creations.slice(renderStart, renderEnd)
     : '';
   const escapeStart = creations.indexOf('function escapeHtml(value)');
-  const escapeEnd = escapeStart >= 0 ? creations.indexOf('\\nfunction safeMediaMime', escapeStart) : -1;
+  const escapeEnd = escapeStart >= 0 ? creations.indexOf('function safeMediaMime', escapeStart) : -1;
   const escapeBlock = escapeStart >= 0 && escapeEnd > escapeStart
     ? creations.slice(escapeStart, escapeEnd)
     : '';
@@ -202,7 +202,7 @@ console.log('\\n--- B) Creations stored-XSS regression ---');
   check('studio and type values are escaped before HTML insertion',
     renderBlock.includes('escapeHtml(c.studio)') && renderBlock.includes("escapeHtml(c.type||'1')"));
   check('creation IDs are escaped before DOM ID and action attribute insertion',
-    (renderBlock.match(/escapeHtml\\(c\\.id\\)/g) || []).length >= 5);
+    (renderBlock.split('escapeHtml(c.id)').length - 1) >= 5);
   check('image/audio MIME types are allowlisted and media URLs are escaped',
     creations.includes('function safeMediaMime') &&
     renderBlock.includes("safeMediaMime('image',c.media_mime)") &&
