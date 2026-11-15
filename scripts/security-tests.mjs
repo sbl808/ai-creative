@@ -1205,7 +1205,7 @@ console.log('\n--- Image Studio CSP contract ---');
   const imageSources = [imageActions, imageApi, imagePage];
   check('Image Studio fragments contain no inline style attributes, direct height/display style writes, or property event handlers',
     imageSources.every((source) =>
-      !/\sstyle\s*=/i.test(source) &&
+      !/\bstyle\s*=\s*["']/i.test(source) &&
       !/\b[A-Za-z_$][\w$]*\.style\.(?:height|display)\b/.test(source) &&
       !/\b[A-Za-z_$][\w$]*\.style\s*\[/.test(source) &&
       !/\.(?:onclick|onchange)\s*=/.test(source)));
