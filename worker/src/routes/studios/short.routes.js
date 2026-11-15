@@ -3,7 +3,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleShortStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
 
       // ===== Short Studio — Tab 1: Generate =====
       if (path === '/api/studio/short/generate' && request.method === 'POST') {
@@ -24,14 +24,12 @@ export async function handleShortStudioRoutes(request, env, cors, deps) {
               model: body.model, idea: body.idea, type: reqType, plan, apiKey,
               onChunk: (t) => send({ type: 'chunk', text: t }),
             });
-            await trackUsageSafe(env, payload.sub, 'ai');
             send({ type: 'done', result: out });
           }, cors);
         }
         try {
           const apiKey = body.apiKey;
           const out = await generateShort(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'short_error', detail: friendlyError(e) }, 500, cors);
@@ -106,7 +104,6 @@ export async function handleShortStudioRoutes(request, env, cors, deps) {
               additionalInstructions: body.additionalInstructions || '',
             }),
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
