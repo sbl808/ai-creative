@@ -31,7 +31,7 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
             let html = await response.text();
             for (const rule of rules) {
               const tag = rule.selector;
-              const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
+              const pattern = new RegExp('<' + tag + '\b([^>]*)>', 'gi');
               html = html.replace(pattern, (match, attributes) => {
                 const element = {
                   attributes,
@@ -273,16 +273,16 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
     return { path, response, html: await response.clone().text() };
   }));
   check('Worker-generated HTML pages contain no inline event-handler attributes',
-    htmlPageResults.every(({ html }) => !/\\son[a-z]+\\s*=/i.test(html)));
+    htmlPageResults.every(({ html }) => !/\son[a-z]+\s*=/i.test(html)));
   check('Worker-generated HTML pages contain no inline style attributes',
-    htmlPageResults.every(({ html }) => !/\\sstyle\\s*=/i.test(html)));
+    htmlPageResults.every(({ html }) => !/\sstyle\s*=/i.test(html)));
   check('Worker-generated HTML pages contain no javascript URLs',
-    htmlPageResults.every(({ html }) => !/javascript\\s*:/i.test(html)));
+    htmlPageResults.every(({ html }) => !/javascript\s*:/i.test(html)));
   check('Worker-generated HTML pages nonce every inline script and style element',
     htmlPageResults.every(({ html, response }) => {
       const policyHeader = response.headers.get('content-security-policy-report-only') || '';
       const match = policyHeader.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
-      const elements = [...html.matchAll(/<(script|style)\\b([^>]*)>/gi)];
+      const elements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
       return !!match && elements.every((element) => element[2].includes('nonce="' + match[1] + '"'));
     }));
   const api = await worker.fetch(
@@ -505,7 +505,7 @@ console.log('\n--- D) API test rate-limit migration contract ---');
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
   const prod = toml.split('[env.prod]')[1] || '';
   const readTomlValue = (section, key) =>
-    section.match(new RegExp('^\\s*' + key + '\\s*=\\s*"([^"]+)"', 'm'))?.[1] || '';
+    section.match(new RegExp('^\s*' + key + '\s*=\s*"([^"]+)"', 'm'))?.[1] || '';
   const devName = readTomlValue(dev, 'database_name');
   const devId = readTomlValue(dev, 'database_id');
   const stagingId = readTomlValue(staging, 'database_id');
