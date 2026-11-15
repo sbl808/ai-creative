@@ -70,8 +70,8 @@ function check(name, ok, extra) {
 function getScriptStyleAttributes(html) {
   const found = [];
   for (const [tag, pattern] of [
-    ['script', /<script\\b([^>]*)>[\\s\\S]*?<\\/script\\s*>/gi],
-    ['style', /<style\\b([^>]*)>[\\s\\S]*?<\\/style\\s*>/gi],
+    ['script', /<script\b([^>]*)>[\s\S]*?<\/script\s*>/gi],
+    ['style', /<style\b([^>]*)>[\s\S]*?<\/style\s*>/gi],
   ]) {
     for (const match of html.matchAll(pattern)) found.push({ tag, attributes: match[1] });
   }
@@ -273,11 +273,11 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('separate HTML responses receive different CSP nonces',
     !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
   const html = await page.clone().text();
-  const inlineElements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
+  const inlineElements = getScriptStyleAttributes(html);
   check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
   check('every script/style element receives the CSP response nonce',
     !!nonceMatch && inlineElements.length >= 2 &&
-    inlineElements.every((match) => match[2].includes('nonce="' + nonceMatch[1] + '"')));
+    inlineElements.every((element) => element.attributes.includes('nonce="' + nonceMatch[1] + '"')));
   const htmlPagePaths = ['/auth/result', '/ai-test', '/cms-test', '/studio-test', '/creations-test'];
   const htmlPageResults = await Promise.all(htmlPagePaths.map(async (path) => {
     const response = await worker.fetch(new Request('https://w.dev' + path), envFor(DEV_ORIGIN), {});
@@ -289,13 +289,14 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
     htmlPageResults.every(({ html }) => !/\sstyle\s*=/i.test(html)));
   check('Worker-generated HTML pages contain no javascript URLs',
     htmlPageResults.every(({ html }) => !/javascript\s*:/i.test(html)));
-  check('Worker-generated HTML pages nonce every inline script and style element',
-    htmlPageResults.every(({ html, response }) => {
-      const policyHeader = response.headers.get('content-security-policy-report-only') || '';
-      const match = policyHeader.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
-      const elements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
-      return !!match && elements.every((element) => element[2].includes('nonce="' + match[1] + '"'));
-    }));
+  for (const { path, html, response } of htmlPageResults) {
+    const policyHeader = response.headers.get('content-security-policy-report-only') || '';
+    const match = policyHeader.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+    const elements = getScriptStyleAttributes(html);
+    check(path + ' response has CSP and nonces every inline script/style element',
+      !!match && elements.length > 0 &&
+      elements.every((element) => element.attributes.includes('nonce="' + match[1] + '"')));
+  }
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
