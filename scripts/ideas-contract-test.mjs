@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseIdeasOutput, validateIdeasBrief } from '../worker/src/core/ideas.js';
+import { parseIdeasOutput, parseIdeaRevisionOutput, validateIdeaRevision, validateIdeasBrief } from '../worker/src/core/ideas.js';
 
 const brief = {
   idea: 'A local education channel',
@@ -30,11 +30,16 @@ assert.equal(parseIdeasOutput(fence + 'json\n' + JSON.stringify({ ideas }) + '\n
 assert.throws(() => parseIdeasOutput('not json'), /invalid_ai_output/);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.slice(0, 2) })), /invalid_ideas_count/);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.map((x) => ({ ...x, suggestedStudio: 'unknown' })) })), /invalid_suggested_studio/);
+assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.map((x) => ({ ...x, suggestedStudio: 'voice' })) })), /invalid_suggested_studio/);
+const revisionBody = { category: 'story', idea: { ...ideas[0] }, instruction: 'Improve the idea' };
+assert.equal(validateIdeaRevision(revisionBody).ok, true);
+assert.equal(validateIdeaRevision({ ...revisionBody, idea: { ...ideas[0], suggestedStudio: 'voice' } }).error, 'invalid_suggested_studio');
+assert.throws(() => parseIdeaRevisionOutput(JSON.stringify({ idea: { ...ideas[0], suggestedStudio: 'voice' } })), /invalid_suggested_studio/);
 assert.throws(() => parseIdeasOutput(JSON.stringify({ ideas: ideas.map((x) => ({ ...x, title: '' })) })), /invalid_idea/);
 
 const ideaUi = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
 const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/actions.js', import.meta.url), 'utf8');
-for (const studio of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
+for (const studio of ['story', 'content', 'short', 'image', 'shop']) {
   assert.ok(ideaUi.includes("id:'" + studio + "'"), 'missing handoff target: ' + studio);
 }
 assert.match(ideaUi, /if\(\(existing&&existing\.data\)\|\|hasLegacy\)\{/, 'handoff must detect an existing IndexedDB or legacy draft');
@@ -50,7 +55,8 @@ assert.match(ideaUi, /aics_draft_content/, 'Content handoff draft key missing');
 assert.match(ideaUi, /aics_draft_short/, 'Short handoff draft key missing');
 assert.match(ideaUi, /aics_draft_image/, 'Image handoff draft key missing');
 assert.match(ideaUi, /aics_draft_shop/, 'Shop handoff draft key missing');
-assert.match(ideaUi, /aics_voice_transfer.*source:'ideas'/s, 'Voice handoff must use the Voice transfer contract');
+assert.doesNotMatch(ideaUi, /id:'voice'/, 'Voice must not be an Ideas handoff target');
+assert.doesNotMatch(ideaUi, /aics_voice_transfer.*source:'ideas'/s, 'Ideas must not create a Voice transfer');
 
 const ideaVoiceBranch = voiceActions.match(/if\(d\.source==='ideas'\)\{([\s\S]*?)\n    \}else\{/);
 assert.ok(ideaVoiceBranch, 'Voice Idea handoff branch must exist');
