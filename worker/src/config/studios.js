@@ -64,6 +64,21 @@ export const STUDIO_REGISTRY = {
   },
 };
 
+// API-only capabilities are deliberately separate from the six Dashboard Studios.
+// These capabilities have their own code-level enable switch and do not appear in
+// the Dashboard, Studio navigation, or Studio Settings registry.
+export const API_CAPABILITY_REGISTRY = {
+  subtitle: {
+    id: 'subtitle',
+    enabled: true,
+  },
+};
+
+export function isApiCapabilityEnabled(id) {
+  const capability = API_CAPABILITY_REGISTRY[id];
+  return !!(capability && capability.enabled);
+}
+
 // Sidebar တွင် ပြသမည့် Studio အစဉ်
 export const STUDIO_ORDER = ['story', 'content', 'short', 'image', 'voice', 'shop'];
 

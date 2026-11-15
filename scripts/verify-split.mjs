@@ -27,6 +27,14 @@ const STUDIOS = [
   { slug: 'shop', exp: 'SHOP_HTML' },
 ];
 
+ // API-only pages are loaded independently and are not Dashboard Studio entries.
+const API_ONLY_PAGES = [
+  { slug: 'subtitle', exp: 'SUBTITLE_HTML' },
+];
+const ALL_PAGE_SLUGS = STUDIOS.map(studio => studio.slug).concat(
+  API_ONLY_PAGES.map(page => page.slug),
+);
+
 const failures = [];
 const checks = [];
 function pass(message) {
@@ -191,6 +199,36 @@ if (loader !== null) {
     if (mapping.test(stripComments(loader))) pass('loader: ' + slug + ' maps to studios/' + slug + '/page.js');
     else fail('loader: missing or incorrect lazy-loader mapping for ' + slug);
   }
+  for (const page of API_ONLY_PAGES) {
+    const pagePath = path.join(FRONTEND, 'studios', page.slug, 'page.js');
+    const source = readSource(pagePath, page.slug + ' API-only page module');
+    if (source !== null) {
+      const code = stripComments(source);
+      const namedExport = new RegExp('\\bexport\\s+const\\s+' + page.exp + '\\b');
+      const defaultExport = new RegExp('\\bexport\\s+default\\s+' + page.exp + '\\s*;');
+      if (namedExport.test(code)) pass(page.slug + ': API-only page declares named export ' + page.exp);
+      else fail(page.slug + ': API-only page is missing named export ' + page.exp);
+      if (defaultExport.test(code)) pass(page.slug + ': API-only page default export points to ' + page.exp);
+      else fail(page.slug + ': API-only page default export does not point to ' + page.exp);
+    }
+    const mapping = new RegExp(
+      "\\b" + page.slug + "\\s*:\\s*\\(\\s*\\)\\s*=>\\s*import\\s*\\(\\s*['\"]\\./studios/" + page.slug + "/page\\.js['\"]\\s*\\)",
+    );
+    if (mapping.test(stripComments(loader))) pass('loader: API-only ' + page.slug + ' maps to studios/' + page.slug + '/page.js');
+    else fail('loader: missing or incorrect API-only page mapping for ' + page.slug);
+  }
+}
+
+// Verify the API-only Subtitle page uses the existing IndexedDB draft path,
+// without reading a Subtitle content draft from localStorage.
+const sharedShell = readSource(path.join(FRONTEND, 'shared.js'), 'shared Studio shell');
+if (sharedShell !== null) {
+  const subtitleDraftAllowlist = '["content", "short", "image", "shop", "subtitle"]';
+  const allowlistCount = sharedShell.split(subtitleDraftAllowlist).length - 1;
+  if (allowlistCount === 4) pass('Subtitle: shared shell uses IndexedDB for save, reset, persist, and restore');
+  else fail('Subtitle: expected four shared-shell IndexedDB allowlists, found ' + allowlistCount);
+  if (sharedShell.includes('if (SHELL_ID !== "subtitle")')) pass('Subtitle: shared shell skips legacy localStorage draft reads');
+  else fail('Subtitle: shared shell may read content drafts from localStorage');
 }
 
 // Check relative module dependencies across the frontend JavaScript source.
@@ -248,10 +286,31 @@ for (const file of uniqueFiles.filter(file => file.includes(path.sep + 'studios'
       }
     }
 
-    if (targetSlug && targetSlug !== ownSlug && STUDIOS.some(studio => studio.slug === targetSlug)) {
+    if (targetSlug && targetSlug !== ownSlug && ALL_PAGE_SLUGS.includes(targetSlug)) {
       fail(path.relative(ROOT, file) + ': cross-Studio dependency on ' + targetSlug + ' via ' + specifier);
     }
   }
+}
+
+
+ // Voice frontend boundary: the Voice page must expose TTS only. Existing legacy
+ // Subtitle draft payloads remain preserved until the dedicated migration task.
+const voiceActions = readSource(path.join(FRONTEND, 'studios', 'voice', 'actions.js'), 'Voice TTS-only actions');
+const voiceHelpers = readSource(path.join(FRONTEND, 'studios', 'voice', 'helpers.js'), 'Voice draft compatibility');
+const voiceState = readSource(path.join(FRONTEND, 'studios', 'voice', 'state.js'), 'Voice TTS-only state');
+if (voiceActions !== null) {
+  const forbidden = ['/api/studio/subtitle/', 'vRunTranscribe', 'vRunSrt', 'vRunTranslation', 'media-to-text', 'srtEditor', 'translatedEditor', 'aiModelSel2'];
+  const found = forbidden.filter(token => voiceActions.includes(token));
+  if (found.length === 0 && voiceActions.includes("api('/api/studio/voice/tts'")) pass('Voice frontend exposes TTS only; Subtitle actions and controls are separated');
+  else fail('Voice frontend still contains Subtitle runtime references: ' + found.join(', '));
+}
+if (voiceHelpers !== null && voiceState !== null) {
+  const preservesLegacy = voiceHelpers.includes('mediaAudio:MEDIA_AUDIO') &&
+    voiceHelpers.includes('translation:translatedSrt') &&
+    voiceHelpers.includes('voiceApplyDraftData') &&
+    voiceState.includes('Legacy Subtitle payload containers');
+  if (preservesLegacy) pass('Voice draft restore/save preserves legacy Subtitle payloads for Task 5D migration');
+  else fail('Voice legacy Subtitle draft compatibility is not preserved');
 }
 
 console.log('\nStudio architecture verification: ' + checks.length + ' checks passed, ' + failures.length + ' failure(s).');

@@ -81,10 +81,10 @@ assert.equal(frontend.includes('/api/studio/voice/tts'), false);
 assert.equal(frontend.includes('/api/studio/voice/srt'), false);
 assert.equal(frontend.includes('/api/studio/voice/translate-srt'), false);
 
-const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
 const shopAudio = await readFile(new URL('../worker/src/studios/shop/audio.js', import.meta.url), 'utf8');
-assert.ok(voice.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')"));
-assert.ok(voice.includes('export async function buildVoiceSrtPrompt(env, knownText)'));
+assert.ok(subtitle.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')"));
+assert.ok(subtitle.includes('export async function buildVoiceSrtPrompt(env, knownText)'));
 assert.ok(shopAudio.includes('buildVoiceSrtPrompt(env, input.knownText)'));
 assert.ok(shopAudio.includes('generateShopSrtShared'));
 assert.ok(shopAudio.includes('translateShopSrtShared'));

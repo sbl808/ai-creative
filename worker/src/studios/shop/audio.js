@@ -1,7 +1,7 @@
 import { generateShopAudioShared } from '../../media-adapters/shop/audio.adapter.js';
 import { generateShopSrtShared } from '../../media-adapters/shop/srt.adapter.js';
 import { translateShopSrtShared } from '../../media-adapters/shop/translation.adapter.js';
-import { buildVoiceSrtPrompt } from '../voice.js';
+import { buildVoiceSrtPrompt } from '../subtitle.js';
 
 export async function generateShopAudio(env, input = {}) {
   if (!input.text || !String(input.text).trim()) throw new Error('missing_text');

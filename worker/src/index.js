@@ -13,6 +13,7 @@ import { handleStoryVideoPlanRoutes } from './routes/studios/story-video-plan.ro
 import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
+import { handleSubtitleStudioRoutes } from './routes/studios/subtitle.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
 import { buildHtmlSecurityHeaders, createCspNonce } from './middleware/securityHeaders.js';
@@ -36,6 +37,7 @@ import { verifyToken } from './platform/auth/index.js';
 import { trackUsage } from './core/usage.js';
 
 import { isStudioEnabled } from './configuration/studio-config/index.js';
+import { isApiCapabilityEnabled } from './config/studios.js';
 import { checkFeature } from './configuration/feature-config/index.js';
 import { getStudio } from './catalog/studios/index.js';
 import { APP_HTML } from './frontend/index.js';
@@ -361,9 +363,13 @@ export default {
         if (studioHtml) {
           const g = await appSessionGuard(request, env, url.origin);
           if (g) return new Response(null, { status: 302, headers: { Location: g.redirect, ...(g.clear ? { 'Set-Cookie': clearSessionCookie() } : {}) } });
-          const studioConfigId = studioSlug === 'story-video-plan' ? 'story' : studioSlug;
-          const enabled = await isStudioEnabled(env, studioConfigId);
-          if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
+          if (studioSlug === 'subtitle') {
+            if (!isApiCapabilityEnabled('subtitle')) return htmlPage(studioDisabledPage(studioSlug));
+          } else {
+            const studioConfigId = studioSlug === 'story-video-plan' ? 'story' : studioSlug;
+            const enabled = await isStudioEnabled(env, studioConfigId);
+            if (!enabled) return htmlPage(studioDisabledPage(studioSlug));
+          }
           return htmlPage(studioHtml);
         }
       }
@@ -449,8 +455,13 @@ export default {
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
-        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop)\//) || [])[1];
-        if (studioApiId) {
+        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop|subtitle)\//) || [])[1];
+        if (studioApiId === 'subtitle') {
+          // Subtitle is an API capability, not a seventh Dashboard Studio.
+          if (!isApiCapabilityEnabled(studioApiId)) {
+            return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
+          }
+        } else if (studioApiId) {
           const enabled = await isStudioEnabled(env, studioApiId);
           if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
         }
@@ -470,6 +481,11 @@ export default {
 
       const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (imageStudioResponse) return imageStudioResponse;
+
+      const subtitleStudioResponse = await handleSubtitleStudioRoutes(request, env, cors, {
+        bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError,
+      });
+      if (subtitleStudioResponse) return subtitleStudioResponse;
 
       const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (voiceStudioResponse) return voiceStudioResponse;

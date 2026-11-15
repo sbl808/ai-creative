@@ -4,6 +4,7 @@ import { createTranslationStudioAdapter } from '../worker/src/media-adapters/tra
 import { createContentTranslationAdapter } from '../worker/src/media-adapters/content/translation.adapter.js';
 import { createVoiceTranslationAdapter } from '../worker/src/media-adapters/voice/translation.adapter.js';
 import { createShopTranslationAdapter } from '../worker/src/media-adapters/shop/translation.adapter.js';
+import { createSubtitleTranslationAdapter } from '../worker/src/media-adapters/subtitle/translation.adapter.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-translation-test-key';
@@ -183,3 +184,50 @@ assert.throws(
 }
 
 console.log('Shared Translation Studio Adapters: PASS');
+
+
+// Subtitle has an independent translation prompt and default direction.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createSubtitleTranslationAdapter(engine);
+  const result = await adapter.translate(env, {
+    srtText: SOURCE_SRT,
+    apiKey: API_KEY,
+    model: 'subtitle-translation-model',
+    plan: 'FREE',
+  });
+
+  assert.deepEqual(result, { srt: RESULT_SRT });
+  assert.deepEqual(calls[0][1], {
+    contractVersion: TRANSLATION_CONTRACT_VERSION,
+    studioId: 'subtitle',
+    operation: 'translate-srt',
+    input: {
+      srtText: SOURCE_SRT,
+      direction: 'MY_TO_CN',
+      model: 'subtitle-translation-model',
+    },
+  });
+  assert.equal(calls[0][2].apiKey, API_KEY);
+  assert.equal(calls[0][2].model, 'subtitle-translation-model');
+  assert.equal(calls[0][2].plan, 'FREE');
+  assert.ok(calls[0][2].prompt.includes('SRT:\n' + SOURCE_SRT));
+  assert.ok(calls[0][2].prompt.includes('မြန်မာဘာသာ'));
+  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+}
+
+// Subtitle maps the reverse direction and keeps the Subtitle-specific wrapping rule.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createSubtitleTranslationAdapter(engine);
+  await adapter.translate(env, {
+    srtText: SOURCE_SRT,
+    direction: 'CN_TO_MY',
+    apiKey: API_KEY,
+    plan: 'PRO',
+  });
+
+  assert.equal(calls[0][1].input.direction, 'CN_TO_MY');
+  assert.ok(calls[0][2].prompt.includes('စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ'));
+  assert.ok(calls[0][2].prompt.includes('Number/Timestamp'));
+}

@@ -9,6 +9,7 @@ import {
   createVoiceAudioAdapter,
 } from '../worker/src/media-adapters/voice/audio.adapter.js';
 import { createShopAudioAdapter } from '../worker/src/media-adapters/shop/audio.adapter.js';
+import { createSubtitleAudioAdapter } from '../worker/src/media-adapters/subtitle/audio.adapter.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-test-key';
@@ -141,4 +142,36 @@ console.log('Shared Audio Studio Adapters: PASS');
   assert.equal(calls[0][1].operation, 'tts');
   assert.equal(calls[0][2].apiKey, API_KEY);
   assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+}
+
+
+// Subtitle exposes transcription only and uses its own Studio contract identity.
+{
+  const { calls, engine } = createEngine({ text: 'Subtitle မှတ်တမ်းတင်ထားသော စာသား' });
+  const adapter = createSubtitleAudioAdapter(engine);
+  assert.equal(typeof adapter.transcribe, 'function');
+  assert.equal('tts' in adapter, false);
+
+  const result = await adapter.transcribe(env, {
+    audioBase64: PRIVATE_AUDIO,
+    mimeType: 'audio/webm',
+    apiKey: API_KEY,
+    model: 'subtitle-transcribe-model',
+    plan: 'FREE',
+    prompt: 'SUBTITLE_TRANSCRIPTION_PROMPT',
+  });
+
+  assert.deepEqual(result, { text: 'Subtitle မှတ်တမ်းတင်ထားသော စာသား' });
+  assert.deepEqual(calls[0][1], {
+    contractVersion: AUDIO_CONTRACT_VERSION,
+    studioId: 'subtitle',
+    operation: 'transcribe',
+    input: { audioBase64: PRIVATE_AUDIO, mimeType: 'audio/webm' },
+  });
+  assert.equal(calls[0][2].apiKey, API_KEY);
+  assert.equal(calls[0][2].model, 'subtitle-transcribe-model');
+  assert.equal(calls[0][2].plan, 'FREE');
+  assert.equal(calls[0][2].prompt, 'SUBTITLE_TRANSCRIPTION_PROMPT');
+  assert.equal(JSON.stringify(calls[0][1]).includes(API_KEY), false);
+  assert.equal(JSON.stringify(calls[0][1]).includes(PRIVATE_AUDIO), true);
 }

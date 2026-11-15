@@ -14,7 +14,7 @@ import { checkFeature } from '../worker/src/core/featureSettings.js';
 import { listEnabledModels, resolveModel, getAiModelById, resolveAiModel } from '../worker/src/core/aiModels.js';
 import { isStudioEnabled } from '../worker/src/core/studioSettings.js';
 import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain.js';
-import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
+import { STUDIO_REGISTRY, API_CAPABILITY_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 
@@ -282,6 +282,11 @@ await check('GET /app/story → 302 to /login (no session)', async () => {
   return { ok: r.status === 302 && r.headers.get('Location').endsWith('/login'), msg: `status=${r.status}` };
 });
 
+await check('GET /app/subtitle → 302 to /login (no session)', async () => {
+  const r = await get('/app/subtitle');
+  return { ok: r.status === 302 && r.headers.get('Location').endsWith('/login'), msg: `status=${r.status}` };
+});
+
 console.log('— Studio pages (with session) —');
 for (const slug of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
   await check(`GET /app/${slug} → 200 (lazy-loaded page)`, async () => {
@@ -293,6 +298,38 @@ for (const slug of ['story', 'content', 'short', 'image', 'voice', 'shop']) {
     };
   });
 }
+await check('GET /app/subtitle → 200 (API-only page, not Dashboard Studio)', async () => {
+  const r = await get('/app/subtitle', await withToken());
+  const html = await r.text();
+  return {
+    ok: r.status === 200 &&
+      html.includes('Subtitle Studio') &&
+      html.includes('data-subtitle-mode="transcribe"') &&
+      !html.includes('data-studio="subtitle"'),
+    msg: `status=${r.status} len=${html.length}`,
+  };
+});
+await check('Subtitle remains outside the six Dashboard Studio registry entries', async () => ({
+  ok: !STUDIO_REGISTRY.subtitle && !!API_CAPABILITY_REGISTRY.subtitle,
+  msg: `dashboardEntry=${!!STUDIO_REGISTRY.subtitle} capabilityEntry=${!!API_CAPABILITY_REGISTRY.subtitle}`,
+}));
+{
+  const wasEnabled = API_CAPABILITY_REGISTRY.subtitle.enabled;
+  API_CAPABILITY_REGISTRY.subtitle.enabled = false;
+  try {
+    await check('GET /app/subtitle is blocked when API capability is disabled', async () => {
+      const r = await get('/app/subtitle', await withToken());
+      const html = await r.text();
+      return {
+        ok: r.status === 200 && html.includes('ကို ယခု ပိတ်ထားပါသည်') && !html.includes('subtitleWorkspace'),
+        msg: `status=${r.status} disabledPage=${html.includes('ကို ယခု ပိတ်ထားပါသည်')}`,
+      };
+    });
+  } finally {
+    API_CAPABILITY_REGISTRY.subtitle.enabled = wasEnabled;
+  }
+}
+
 await check('GET /app/bogus → 404 STUDIO_NOT_FOUND (unknown studio)', async () => {
   const r = await get('/app/bogus', await withToken());
   const body = await r.text();
@@ -974,18 +1011,18 @@ await check('Content Studio routes Audio → SRT through the shared Content SRT 
   };
 });
 
-await check('Voice Studio routes Audio → SRT through the shared Voice SRT adapter', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Subtitle Studio routes Audio → SRT through its shared Subtitle SRT adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
+    ok: source.includes("from '../media-adapters/subtitle/srt.adapter.js'") &&
       source.includes('export async function buildVoiceSrtPrompt(env, knownText)') &&
       source.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')") &&
       source.includes('return buildVoiceSrtInstruction(lineRule, knownText);') &&
       source.includes('const instruction = await buildVoiceSrtPrompt(env, knownText);') &&
-      source.includes('return generateVoiceSrtShared(env, {') &&
+      source.includes('return generateSubtitleSrtShared(env, {') &&
       source.includes('prompt: instruction,') &&
       !source.includes('generateMultimodal'),
-    msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',
+    msg: 'Subtitle SRT preserves its CMS/knownText instruction and uses the shared adapter',
   };
 });
 
@@ -999,26 +1036,36 @@ await check('Content Studio routes TTS through the shared Content audio adapter'
     msg: 'Content TTS uses the shared adapter while preserving its public function signature',
   };
 });
-await check('Voice Studio routes TTS and transcription through shared Voice adapters', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Voice Studio is TTS-only and Subtitle owns transcription/SRT workflows', async () => {
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
+  const routes = await readFile(new URL('../worker/src/routes/studios/voice.routes.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/audio.adapter.js'") &&
-      source.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
-      source.includes('return transcribeVoiceAudio(env, {') &&
-      source.includes('audioBase64, mimeType, plan, apiKey, model, prompt,') &&
-      !source.includes('generateSpeech(env,'),
-    msg: 'Voice TTS/transcription use shared adapters and retain the CMS prompt',
+    ok: voice.includes("from '../media-adapters/voice/audio.adapter.js'") &&
+      voice.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
+      !voice.includes('transcribeAudio') &&
+      !voice.includes('generateVoiceSrt') &&
+      !voice.includes('translateVoiceSrt') &&
+      subtitle.includes('export async function transcribeAudio(') &&
+      subtitle.includes('export async function generateVoiceSrt(') &&
+      subtitle.includes('export async function translateVoiceSrt(') &&
+      routes.includes("path === '/api/studio/voice/tts'") &&
+      !routes.includes('/api/studio/voice/transcribe') &&
+      !routes.includes('/api/studio/voice/srt') &&
+      !routes.includes('/api/studio/voice/translate-srt'),
+    msg: 'Voice API/service is TTS-only; Subtitle owns transcription, SRT and translation',
   };
 });
-await check('Voice and Content SRT workflows remain Studio-owned', async () => {
+
+await check('Content and Subtitle SRT workflows remain Studio-owned', async () => {
   const content = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
-  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
     ok: content.includes('export async function generateContentSrt(') &&
       content.includes('export async function translateContentSrt(') &&
-      voice.includes('export async function generateVoiceSrt(') &&
-      voice.includes('export async function translateVoiceSrt('),
-    msg: 'Existing SRT generation and translation exports remain present',
+      subtitle.includes('export async function generateVoiceSrt(') &&
+      subtitle.includes('export async function translateVoiceSrt('),
+    msg: 'Content and Subtitle retain their own SRT generation and translation exports',
   };
 });
 
@@ -1032,13 +1079,13 @@ await check('Content Studio routes SRT translation through the shared Content tr
     msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
   };
 });
-await check('Voice Studio routes SRT translation through the shared Voice translation adapter', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Subtitle Studio routes SRT translation through its shared Subtitle translation adapter', async () => {
+  const source = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/translation.adapter.js'") &&
-      source.includes('return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
+    ok: source.includes("from '../media-adapters/subtitle/translation.adapter.js'") &&
+      source.includes('return translateSubtitleSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
       !source.includes("task: 'voice.transcribe', prompt: instruction"),
-    msg: 'Voice SRT translation uses the shared adapter and preserves plan/type arguments',
+    msg: 'Subtitle SRT translation uses the shared adapter and preserves plan/type arguments',
   };
 });
 
