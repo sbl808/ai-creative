@@ -888,7 +888,7 @@ console.log('\\n--- Story Video Plan UI CSP markup contract ---');
   const storyVideoUi = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/ui.js', import.meta.url), 'utf8');
   const storyVideoPage = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/page.js', import.meta.url), 'utf8');
   check('Story Video Plan UI contains no inline style attributes',
-    !/\\sstyle\\s*=/i.test(storyVideoUi));
+    !/\sstyle\s*=/i.test(storyVideoUi));
   check('Story Video Plan UI retains all three replacement CSS class hooks',
     storyVideoUi.includes('aics-video-adv-panel') &&
     storyVideoUi.includes('aics-video-audio-direction') &&
