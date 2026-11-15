@@ -12,6 +12,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
+import { validateBackupEnvelope } from '../worker/src/frontend/storage/backup/validate.js';
 
 // Node-only HTMLRewriter shim for this source-level test suite.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -669,5 +670,51 @@ console.log('\n--- CMS prompt authorization contracts ---');
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
   check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
+
+console.log('\\n--- H) Backward-compatible backup Studio identifier validation ---');
+{
+  const ownerId = 'backup-owner';
+  function envelopeWith(storeName, record) {
+    const stores = {
+      creations: [], projects: [], studio_sessions: [], studio_handoffs: [],
+      session_results: [], ideas: [], drafts: [], media_assets: [],
+    };
+    stores[storeName].push(record);
+    return {
+      format: 'aics-browser-backup',
+      exportVersion: 1,
+      schemaVersion: 7,
+      exportedAt: '2026-11-15T00:00:00.000Z',
+      stores,
+    };
+  }
+  function accepts(storeName, record) {
+    try { return validateBackupEnvelope(envelopeWith(storeName, record), ownerId).valid; }
+    catch (error) { return false; }
+  }
+  function rejects(storeName, record) {
+    return !accepts(storeName, record);
+  }
+
+  check('legacy Creation Studio identifiers remain importable',
+    accepts('creations', { id: 'creation-1', user_id: ownerId, studio: 'LEGACY_STORY_STUDIO_V1' }));
+  check('legacy Session Studio identifiers remain importable',
+    accepts('studio_sessions', { id: 'session-1', ownerId, studio: 'LEGACY_CREATIVE_SUITE' }));
+  check('legacy Handoff source identifiers remain importable',
+    accepts('studio_handoffs', {
+      id: 'handoff-1', ownerId, contractVersion: 1,
+      source: 'LEGACY_VIDEO_DIRECTOR_V2', target: 'story', payload: {},
+    }));
+  check('Studio identifiers containing HTML markup are rejected',
+    rejects('creations', { id: 'creation-2', user_id: ownerId, studio: '<img src=x onerror=alert(1)>' }));
+  check('Studio identifiers containing whitespace/control separators are rejected',
+    rejects('studio_sessions', { id: 'session-2', ownerId, studio: 'LEGACY STUDIO' }));
+  check('Handoff target continues to use the existing Studio allowlist',
+    rejects('studio_handoffs', {
+      id: 'handoff-2', ownerId, contractVersion: 1,
+      source: 'LEGACY_VIDEO_DIRECTOR_V2', target: 'UNKNOWN_TARGET', payload: {},
+    }));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
