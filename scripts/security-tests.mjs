@@ -997,13 +997,13 @@ console.log('\n--- Story Actions CSP markup contract ---');
   const storyUi = readFileSync(new URL('../worker/src/frontend/studios/story/ui.js', import.meta.url), 'utf8');
   const storyPage = readFileSync(new URL('../worker/src/frontend/studios/story/page.js', import.meta.url), 'utf8');
   check('Story Actions contain no direct DOM style properties or property event handlers',
-    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(storyActions) &&
-    !/\\.(?:onclick|onchange)\\s*=/.test(storyActions));
+    !/\.style(?:\.|\s*\[|\s*=)/.test(storyActions) &&
+    !/\.(?:onclick|onchange)\s*=/.test(storyActions));
   check('Story result body visibility uses the hidden property',
     storyActions.includes("sb.hidden=false") && storyActions.includes("sb3.hidden=false"));
   check('Story Idea Handoff visibility uses the existing hidden CSS class',
     storyActions.includes("panel.classList.remove('is-hidden')") &&
-    (storyActions.match(/panel\\.classList\\.add\\('is-hidden'\\)/g)||[]).length===2 &&
+    (storyActions.match(/panel\.classList\.add\('is-hidden'\)/g)||[]).length===2 &&
     storyPage.includes('.aics-work .story-handoff-panel.is-hidden{display:none!important}'));
   check('Story Idea Handoff buttons use delegated data attributes in the UI',
     storyUi.includes('data-aics-action="accept-story-idea-handoff"') &&
