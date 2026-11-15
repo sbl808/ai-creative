@@ -8,6 +8,62 @@ function subtitleSetStatus(message, isError) {
   status.setAttribute('data-state', isError ? 'error' : 'normal');
 }
 
+function subtitlePersistDraft() {
+  if (typeof window.studioPersistDraft === 'function') {
+    window.studioPersistDraft(false);
+  }
+}
+
+function subtitleDraftValue(id) {
+  var element = document.getElementById(id);
+  return element ? String(element.value || '') : '';
+}
+
+window.studioCollectDraft = function () {
+  // File objects and media bytes are deliberately excluded from persisted drafts.
+  return {
+    data: {
+      schemaVersion: 1,
+      mode: String(SUBTITLE_STATE.mode || 'media-to-srt'),
+      knownText: subtitleDraftValue('subtitleKnownText'),
+      outputMode: subtitleDraftValue('subtitleAudioOutput') || 'srt',
+      transcriptText: subtitleDraftValue('subtitleTranscriptOutput'),
+      sourceSrt: String(SUBTITLE_STATE.sourceSrt || ''),
+      editedSrt: subtitleDraftValue('subtitleSrtInput'),
+      translationInput: subtitleDraftValue('subtitleTranslationInput'),
+      translationDirection: subtitleDraftValue('subtitleTranslationDirection') || 'MY_TO_CN',
+      translatedSrt: subtitleDraftValue('subtitleTranslatedOutput')
+    }
+  };
+};
+
+window.studioRestoreDraft = function (draft) {
+  if (!draft || typeof draft !== 'object' || Array.isArray(draft)) return;
+  var data = draft.data && typeof draft.data === 'object' && !Array.isArray(draft.data) ? draft.data : draft;
+  function setValue(id, value) {
+    var element = document.getElementById(id);
+    if (element && typeof value === 'string') element.value = value;
+  }
+  setValue('subtitleKnownText', data.knownText);
+  setValue('subtitleAudioOutput', data.outputMode === 'text' ? 'text' : 'srt');
+  setValue('subtitleTranscriptOutput', data.transcriptText);
+  setValue('subtitleSrtInput', data.editedSrt);
+  setValue('subtitleTranslationInput', data.translationInput);
+  setValue('subtitleTranslationDirection', data.translationDirection === 'CN_TO_MY' ? 'CN_TO_MY' : 'MY_TO_CN');
+  setValue('subtitleTranslatedOutput', data.translatedSrt);
+
+  SUBTITLE_STATE.mode = typeof data.mode === 'string' ? data.mode : 'media-to-srt';
+  SUBTITLE_STATE.sourceSrt = typeof data.sourceSrt === 'string' ? data.sourceSrt : '';
+  SUBTITLE_STATE.editedSrt = typeof data.editedSrt === 'string' ? data.editedSrt : '';
+  SUBTITLE_STATE.transcribedText = typeof data.transcriptText === 'string' ? data.transcriptText : '';
+  SUBTITLE_STATE.translatedSrt = typeof data.translatedSrt === 'string' ? data.translatedSrt : '';
+  SUBTITLE_STATE.translationDirection = data.translationDirection === 'CN_TO_MY' ? 'CN_TO_MY' : 'MY_TO_CN';
+  SUBTITLE_STATE.processingState = 'idle';
+  SUBTITLE_STATE.errorState = null;
+  SUBTITLE_STATE.mediaInput = null;
+  subtitleSetStatus('ယခင် Draft ကို Browser IndexedDB မှ ပြန်ဖော်ပြီးပါပြီ။ Media ဖိုင်ကို ထပ်မံရွေးရန် လိုအပ်ပါသည်။', false);
+};
+
 function subtitleGetToken() {
   try { return localStorage.getItem('aics_token') || ''; } catch (error) { return ''; }
 }
@@ -78,6 +134,7 @@ function subtitleGenerateSrt() {
         subtitleSetStatus('SRT ဖန်တီးပြီးပါပြီ။ ပြင်ဆင်၊ စစ်ဆေး၊ Download သို့မဟုတ် IndexedDB ထဲ သိမ်းနိုင်ပါသည်။', false);
       }
       SUBTITLE_STATE.processingState = 'done';
+      subtitlePersistDraft();
     }).catch(function (error) {
       SUBTITLE_STATE.processingState = 'error';
       SUBTITLE_STATE.errorState = String(error && error.message || 'request_failed');
@@ -178,6 +235,7 @@ function subtitleSendEditedSrtToTranslation() {
   translationInput.value = editedSrt;
   translationInput.focus();
   subtitleSetStatus('ပြင်ထားသော SRT ကို ဘာသာပြန်ရန်နေရာသို့ ပို့ပြီးပါပြီ။ ဦးတည်ချက်ကို စစ်ဆေးပြီး ဘာသာပြန်နိုင်ပါသည်။', false);
+  subtitlePersistDraft();
 }
 
 function subtitleTranslateSrt() {
@@ -211,6 +269,7 @@ function subtitleTranslateSrt() {
     if (output) output.value = translated;
     SUBTITLE_STATE.processingState = 'done';
     subtitleSetStatus('SRT ဘာသာပြန်ပြီးပါပြီ။ ရလဒ်ကို စစ်ဆေးပြီး .srt ဖိုင်အဖြစ် သိမ်းနိုင်ပါသည်။', false);
+    subtitlePersistDraft();
   }).catch(function (error) {
     SUBTITLE_STATE.processingState = 'error';
     SUBTITLE_STATE.errorState = String(error && error.message || 'translate_error');
@@ -243,6 +302,7 @@ function subtitleSendTranslatedSrtToEditor() {
   SUBTITLE_STATE.editedSrt = translatedSrt;
   editor.focus();
   subtitleSetStatus('ဘာသာပြန်ရလဒ်ကို SRT Editor သို့ ပြန်ပို့ပြီးပါပြီ။ လိုအပ်သလို ပြင်ဆင်ပြီး စစ်ဆေးနိုင်ပါသည်။', false);
+  subtitlePersistDraft();
 }
 
 (function initSubtitleActions() {
