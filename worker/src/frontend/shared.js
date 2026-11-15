@@ -149,8 +149,8 @@ function responsiveStyles() {
     '.aics-app .nav-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
     '.aics-app .sidebar-nav{flex:1 1 auto;overflow-y:auto;min-height:0;}\n' +
     '.aics-app .aics-session-history{margin:14px 0 8px;padding-top:8px;border-top:1px solid var(--aics-border);}\n' +
-    '.aics-admin-link.is-hidden,.aics-studio-link.is-hidden,.aics-session-more.is-hidden,.aics-result-loading-hint.is-hidden{display:none!important;}\\n' +
-    '.aics-work-container{max-width:820px;margin:0 auto;width:100%;}\\n' +
+    '.aics-admin-link.is-hidden,.aics-studio-link.is-hidden,.aics-session-more.is-hidden,.aics-result-loading-hint.is-hidden{display:none!important;}\n' +
+    '.aics-work-container{max-width:820px;margin:0 auto;width:100%;}\n' +
     '.aics-app .aics-session-history .nav-label{margin-top:8px;}\n' +
     '.aics-app .aics-session-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:8px 10px;margin:2px 0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--aics-text);text-align:left;cursor:pointer;font:inherit;min-width:0;}\n' +
     '.aics-app .aics-session-item:hover,.aics-app .aics-session-item:focus-visible{background:var(--aics-surface-subtle);border-color:var(--aics-border);outline:none;}\n' +
