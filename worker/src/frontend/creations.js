@@ -163,7 +163,8 @@ document.addEventListener('change', function (event) {
 var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 // (toggleSidebar / logout / setApiKey / TG-FB link များကို Shared Sidebar Script သို့ ရွှေ့ပြီးပါပြီ — Phase 2)
-function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
+function escapeHtml(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function safeMediaMime(type,mime){var value=String(mime||'').toLowerCase().split(';')[0].trim();var allowed=type==='image'?{'image/png':1,'image/jpeg':1,'image/gif':1,'image/webp':1,'image/avif':1}:{'audio/wav':1,'audio/x-wav':1,'audio/mpeg':1,'audio/ogg':1,'audio/mp4':1,'audio/webm':1};return Object.prototype.hasOwnProperty.call(allowed,value)?value:(type==='image'?'image/png':'audio/wav');}
 var allItems=[];
 if(!TOKEN){
   document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="text-decoration:underline;">Login / Sign Up သို့ သွားရန်</a></p></div>';
@@ -197,7 +198,7 @@ function filteredItems(){
     if(filter==='FAV' && !c.is_favorite) return false;
     if(filter!=='ALL' && filter!=='FAV' && c.studio!==filter) return false;
     if(q){
-      var hay=(escapeHtml(c.title||'')+' '+escapeHtml((c.ai_output||'').substring(0,600))).toLowerCase();
+      var hay=(String(c.title||'')+' '+String(c.ai_output||'').substring(0,600)).toLowerCase();
       if(hay.indexOf(q)===-1) return false;
     }
     return true;
@@ -217,26 +218,28 @@ function renderList(){
   document.getElementById('countInfo').textContent='✏️ စုစုပေါင်း '+items.length+' ခု';
   noMatch.style.display=(items.length===0)?'block':'none';
   items.forEach(function(c){
-    var icon=STUDIO_ICONS[c.studio]||'📄';
+    var icon=Object.prototype.hasOwnProperty.call(STUDIO_ICONS,c.studio)?STUDIO_ICONS[c.studio]:'📄';
     var dateStr=c.created_at?fmtDate(c.created_at):'';
     var mediaHtml='';
     if(c.media_type==='image'&&c.media_data){
-      var uri='data:'+(c.media_mime||'image/png')+';base64,'+c.media_data;
-      mediaHtml='<div class="creation-media"><img src="'+uri+'" alt="'+escapeHtml(c.title||'Image')+'" data-creation-action="open-image"></div>';
+      var imageMime=safeMediaMime('image',c.media_mime);
+      var uri='data:'+imageMime+';base64,'+String(c.media_data);
+      mediaHtml='<div class="creation-media"><img src="'+escapeHtml(uri)+'" alt="'+escapeHtml(c.title||'Image')+'" data-creation-action="open-image"></div>';
     }else if(c.media_type==='audio'&&c.media_data){
-      var auri='data:'+(c.media_mime||'audio/wav')+';base64,'+c.media_data;
-      mediaHtml='<div class="creation-media"><audio controls preload="none" src="'+auri+'"></audio></div>';
+      var audioMime=safeMediaMime('audio',c.media_mime);
+      var auri='data:'+audioMime+';base64,'+String(c.media_data);
+      mediaHtml='<div class="creation-media"><audio controls preload="none" src="'+escapeHtml(auri)+'"></audio></div>';
     }
     var card=document.createElement('div');
     card.className='creation-card';
     card.innerHTML=
       '<div class="creation-header"><div>'+
       '<div class="creation-title">'+icon+' '+escapeHtml(c.title||'(Untitled)')+'</div>'+
-      '<div class="creation-meta">'+c.studio+' • Type '+(c.type||'1')+' • '+dateStr+'</div>'+
+      '<div class="creation-meta">'+escapeHtml(c.studio)+' • Type '+escapeHtml(c.type||'1')+' • '+escapeHtml(dateStr)+'</div>'+
       '</div></div>'+
       mediaHtml+
-      '<div class="creation-preview" id="preview-'+c.id+'">'+escapeHtml((c.ai_output||'').substring(0,120))+((c.ai_output||'').length>120?'...':'')+'</div>'+
-      '<div class="creation-full" id="full-'+c.id+'">'+escapeHtml(c.ai_output||'')+'</div>'+
+      '<div class="creation-preview" id="preview-'+escapeHtml(c.id)+'">'+escapeHtml((c.ai_output||'').substring(0,120))+((c.ai_output||'').length>120?'...':'')+'</div>'+
+      '<div class="creation-full" id="full-'+escapeHtml(c.id)+'">'+escapeHtml(c.ai_output||'')+'</div>'+
       '<div class="btn-row">'+
       '<button class="btn btn-fav'+(c.is_favorite?' on':'')+'" data-creation-action="favorite" data-creation-id="'+escapeHtml(c.id)+'">'+(c.is_favorite?'⭐':'☆')+'</button>'+
       '<button class="btn btn-primary" data-creation-action="toggle-full" data-creation-id="'+escapeHtml(c.id)+'">👁 View Full</button>'+
