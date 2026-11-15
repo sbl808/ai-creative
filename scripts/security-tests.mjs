@@ -858,5 +858,29 @@ console.log('\n--- Content Studio CSP markup contract ---');
   check('Content Studio audio download uses delegated click handling', contentSources[5].includes('data-aics-action="download-audio"') && !contentSources[5].includes('onclick='));
 }
 
+
+console.log('\n--- Story Video Plan CSP markup contract ---');
+{
+  const storyActions = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/actions.js', import.meta.url), 'utf8');
+  check('Story Video Plan contains no inline event-handler attributes',
+    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\\s*=/i.test(storyActions));
+  check('Story Video Plan actions use delegated data attributes',
+    storyActions.includes('data-svp-action="copy-char-prompt"') &&
+    storyActions.includes('data-svp-action="generate-char-image"') &&
+    storyActions.includes('data-svp-action="generate-env-image"') &&
+    storyActions.includes('data-svp-action="copy-env-prompt"') &&
+    storyActions.includes('data-svp-action="copy-video-prompt"'));
+  check('Story Video Plan delegated click handler covers all five actions',
+    storyActions.includes("document.addEventListener('click'") &&
+    storyActions.includes("case 'copy-char-prompt':") &&
+    storyActions.includes("case 'generate-char-image':") &&
+    storyActions.includes("case 'generate-env-image':") &&
+    storyActions.includes("case 'copy-env-prompt':") &&
+    storyActions.includes("case 'copy-video-prompt':"));
+  check('Story Video Plan actions carry numeric item indexes',
+    (storyActions.match(/data-svp-index=/g) || []).length >= 5 &&
+    storyActions.includes("Number(target.getAttribute('data-svp-index'))"));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
