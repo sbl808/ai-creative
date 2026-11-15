@@ -229,7 +229,7 @@ function saveContent(){
   .then(function(){showToast('💾 Save ပြီးပါပြီ','success');})
   .catch(function(){showToast('Browser Storage မအောင်မြင်','error');});
 }
-function toggleChat(){var s=document.getElementById('chatSection');if(!s)return;s.style.display=s.style.display==='block'?'none':'block';}
+function toggleChat(){var s=document.getElementById('chatSection');if(!s)return;s.classList.toggle('shop-chat-visible');}
 function sendRevision(){
   var instr=document.getElementById('chatInput').value.trim();
   if(!instr){showToast('ညွှန်ကြားချက် ထည့်ပါ','error');return;}

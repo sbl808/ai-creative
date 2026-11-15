@@ -1266,5 +1266,27 @@ console.log('\n--- Shop Actions CSP event contract ---');
     shopActions.includes("['click','input','change','keydown'].forEach"));
 }
 
+
+console.log('\\n--- Shop Visibility CSP contract ---');
+{
+  const shopPage = readFileSync(new URL('../worker/src/frontend/studios/shop/page.js', import.meta.url), 'utf8');
+  const shopAudio = readFileSync(new URL('../worker/src/frontend/studios/shop/audio.js', import.meta.url), 'utf8');
+  const shopVideo = readFileSync(new URL('../worker/src/frontend/studios/shop/video.js', import.meta.url), 'utf8');
+  const shopImage = readFileSync(new URL('../worker/src/frontend/studios/shop/image.js', import.meta.url), 'utf8');
+  const shopActions = readFileSync(new URL('../worker/src/frontend/studios/shop/actions.js', import.meta.url), 'utf8');
+  check('Shop audio, video, and image setup visibility use the shared CSS hidden class',
+    shopAudio.includes("audioSetupCard').classList.toggle('shop-hidden',shopState.audio.step!==1)") &&
+    shopVideo.includes("videoSetupCard').classList.toggle('shop-hidden',shopState.video.step!==1)") &&
+    shopImage.includes("imageSetupCard').classList.toggle('shop-hidden',shopState.image.step!==1)") &&
+    !/\\.style\\.display/.test(shopAudio + shopVideo + shopImage));
+  check('Shop page defines the shared hidden class used by setup cards',
+    shopPage.includes('.aics-work .shop-hidden{display:none}'));
+  check('Shop chat visibility uses a dedicated CSS class with a hidden default',
+    shopPage.includes('.aics-work .chat-section:not(.shop-chat-visible){display:none}') &&
+    shopPage.includes('.aics-work .chat-section.shop-chat-visible{display:block}') &&
+    shopActions.includes("s.classList.toggle('shop-chat-visible')") &&
+    !shopActions.includes('s.style.display'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
