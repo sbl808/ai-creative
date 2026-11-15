@@ -8,7 +8,7 @@ function voiceReset(){
   if(!confirm('ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?'))return;
   var removeDraft=window.AICS_STUDIO_DRAFTS?window.AICS_STUDIO_DRAFTS.remove('voice'):Promise.resolve();
   removeDraft.then(function(){
-    try{localStorage.removeItem(voiceDraftKey);localStorage.removeItem('aics_voice_workflow_v2');localStorage.removeItem('aics_draft_voice');localStorage.removeItem('aics_voice_transfer');}catch(e){}
+    try{localStorage.removeItem(voiceDraftKey);localStorage.removeItem('aics_voice_workflow_v2');localStorage.removeItem('aics_draft_voice');}catch(e){}
     location.reload();
   }).catch(function(){toast('IndexedDB ထဲမှ Voice Draft ဖျက်မအောင်မြင်ပါ','error');});
 }
@@ -136,17 +136,14 @@ function applyContentTransfer(){
   try{
     var raw=localStorage.getItem('aics_voice_transfer');if(!raw)return;
     var d=JSON.parse(raw);if(!d||!d.text)return;
+    // Ideas-originated legacy transfers are intentionally ignored and retained.
+    if(d.source==='ideas')return;
     resetVoiceBranch(d.source||'content');
-    if(d.source==='ideas'){
-      // Replace active TTS inputs but preserve legacy Subtitle draft fields until Task 5D migrates them.
-       VOICE_INPUTS=Object.assign({},VOICE_INPUTS,{tts:d.text,speaking:'',voice:'Kore',instruction:'',audience:d.audience||'လူတိုင်း'});
-    }else{
-      VOICE_INPUTS.tts=d.text;
-      if(d.speakingStyle)VOICE_INPUTS.speaking=d.speakingStyle;
-      if(d.voiceStyle)VOICE_INPUTS.voice=d.voiceStyle;
-      if(d.instruction)VOICE_INPUTS.instruction=d.instruction;
-      if(d.audience)VOICE_INPUTS.audience=d.audience;
-    }
+    VOICE_INPUTS.tts=d.text;
+    if(d.speakingStyle)VOICE_INPUTS.speaking=d.speakingStyle;
+    if(d.voiceStyle)VOICE_INPUTS.voice=d.voiceStyle;
+    if(d.instruction)VOICE_INPUTS.instruction=d.instruction;
+    if(d.audience)VOICE_INPUTS.audience=d.audience;
     localStorage.removeItem('aics_voice_transfer');
     vRenderInput();saveDraft();
   }catch(e){}
