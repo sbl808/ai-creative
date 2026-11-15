@@ -132,7 +132,7 @@ ${renderSidebar('settings',{variant:'studio'})}
   <div id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-profile" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
-  <div id="tab-prefs" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0>
+  <div id="tab-prefs" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0">
     <form id="prefsForm">
       <div class="form-row">
         <label for="pref_studio">ပုံမှန် Studio (Default Studio)</label>
@@ -167,10 +167,10 @@ ${renderSidebar('settings',{variant:'studio'})}
       <button type="submit" class="btn btn-primary" id="saveBtn">💾 သိမ်းပါ</button>
     </form>
   </div>
-  <div id="tab-apikey" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0>
+  <div id="tab-apikey" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-apikey" tabindex="0">
     <div class="loading-state">Loading...</div>
   </div>
-  <div id="tab-backup" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-backup" tabindex="0>
+  <div id="tab-backup" class="tab-panel is-hidden" role="tabpanel" aria-labelledby="tab-btn-backup" tabindex="0">
     ${backupRecoveryPanelHtml()}
   </div>
 </main>
