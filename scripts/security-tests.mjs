@@ -819,5 +819,28 @@ console.log('\n--- Settings CSP markup contract ---');
     settings.includes('plan-catalog-card'));
 }
 
+console.log('\n--- Backup Recovery CSP markup contract ---');
+{
+  const recovery = readFileSync(new URL('../worker/src/frontend/storage/backup/recovery-ui.js', import.meta.url), 'utf8');
+  check('Backup Recovery contains no inline style attributes',
+    !/\sstyle\s*=/i.test(recovery));
+  check('Backup Recovery contains no direct DOM style property assignments',
+    !/\.style(?:\.|\s*\[)/.test(recovery));
+  check('Backup Recovery contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(recovery));
+  check('Backup Recovery visual styles are defined in a nonce-compatible style block',
+    recovery.includes('<style>') &&
+    recovery.includes('#backup-recovery-panel .backup-actions') &&
+    recovery.includes('#backup-recovery-panel .backup-preview') &&
+    recovery.includes('#backup-recovery-panel .backup-message.is-error'));
+  check('Backup Recovery message status uses CSS classes',
+    recovery.includes("node.classList.toggle('is-error', !!isError)") &&
+    recovery.includes("node.classList.toggle('is-success', !isError)") &&
+    !recovery.includes('node.style.'));
+  check('Backup Recovery retains mobile action layout rules',
+    recovery.includes('@media(max-width:600px)') &&
+    recovery.includes('#backup-recovery-panel .backup-actions .btn{flex:1 1 100%;}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
