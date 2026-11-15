@@ -935,7 +935,7 @@ console.log('\n--- Content Studio CSP markup contract ---');
 {
   const contentPaths = ['../worker/src/frontend/studios/content/ui.js','../worker/src/frontend/studios/content/page.js','../worker/src/frontend/studios/content/fragments.js','../worker/src/frontend/studios/content/api.js','../worker/src/frontend/studios/content/helpers.js','../worker/src/frontend/studios/content/audio.js','../worker/src/frontend/studios/content/shell.js'];
   const contentSources = contentPaths.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'));
-  check('Content Studio fragments contain no inline style attributes', contentSources.every((source) => !/\sstyle\s*=/i.test(source)));
+  check('Content Studio fragments contain no inline style attributes', contentSources.every((source) => !/\bstyle\s*=\s*["']/i.test(source)));
   check('Content Studio fragments contain no inline event-handler attributes', contentSources.every((source) => !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(source)));
   check('Content Studio scripts contain no DOM onclick property assignments', contentSources.every((source) => !/\.onclick\s*=/.test(source)));
   check('Content Studio scripts contain no direct DOM style property access', contentSources.every((source) => !/\.style(?:\.|\s*\[)/.test(source)));
