@@ -10,7 +10,7 @@ const STEP22_HTML = `
 <div class="card">
 <div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg> Audio ပြင်ဆင်ရန် (Audio Setup)</div>
 <div class="aics-transfer-note">&#10003; Content Result ကို အလိုအလျောက် ထည့်ထားသည်</div>
-<div class="aics-transfer-box" id="audioContentPreview" style="display:none;"></div>
+<div class="aics-transfer-box cs-hidden" id="audioContentPreview"></div>
 <div class="form-group">
 <label for="ttsText">အသံပြောင်းရန် Text (Text for Voice)</label>
 <textarea id="ttsText" class="auto-expand" placeholder="Voice ပြောင်းလိုသော Text ကို အလိုအလျောက် ထည့်ပေးပါမည် — ကိုယ်တိုင်လည်း ပြင်နိုင်ပါသည်" data-aics-input="auto-grow"></textarea>
@@ -59,7 +59,7 @@ const STEP22_HTML = `
 <input id="audioPitch" type="number" min="-10" max="10" step="1" value="0" placeholder="0" />
 </div>
 </div>
-<div class="form-group" style="margin-top:2px;">
+<div class="form-group cs-inline-style-11">
 <label>လက်ရှိရွေးထားသော အသံ (Selected Voice)</label>
 <div class="selected-voice-chip" id="effectiveVoiceLabel">Kore</div>
 </div>
@@ -81,7 +81,7 @@ const STEP22_HTML = `
 <option value="Warm">Warm</option>
 </select>
 </div>
-<div class="form-group" style="grid-column:1/-1;">
+<div class="form-group cs-inline-style-12">
 <label for="audioPronunciation">Pronunciation (အသံထွက်)</label>
 <textarea id="audioPronunciation" placeholder="အထူးထွက်ရမည့် စကားလုံးများ / အသံထွက်မှတ်စုများ..."></textarea>
 </div>
@@ -99,7 +99,7 @@ const STEP24_HTML = `
 ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အသံကို ပြင်ဆင်နေသည်...')}
 <div class="audio-container" id="audioContainer"></div>
 <div class="error-box" id="voiceError2" role="alert" aria-live="assertive"></div>
-<div class="btn-row" id="voiceRetryRow" style="display:none;justify-content:center;">
+<div class="btn-row cs-hidden cs-inline-style-13" id="voiceRetryRow">
 <button class="btn btn-secondary" data-aics-action="content-nav-audio">&#8592; ပြန်ပြင်ရန်</button>
 <button class="btn btn-primary" data-aics-action="generate-voice">&#128260; ပြန်လည်ကြိုးစားရန်</button>
 </div>

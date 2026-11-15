@@ -31,10 +31,7 @@ function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');v
 function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
 function renderChips(){ /* Voice Studio now has one workflow: Text → Voice. */ }
 // TTS = aiModelSel (Action bar) · အသံ→စာ / ဘာသာပြန် = aiModelSel2 (Format screen ထဲ) — တစ်ကြိမ်တွင် တစ်ခုသာ ပြသည်
-function vSyncModelBar(){
-  var m=document.querySelector('.aics-actions-model');
-  if(m)m.style.display='';
-}
+function vSyncModelBar(){ /* Shared shell keeps the model bar visible by default. */ }
 function vHasResult(){
   return !!(VOICE_STATE.audioResult&&VOICE_STATE.audioResult.data);
 }
@@ -389,7 +386,7 @@ function downloadVoiceAudio(){
   if(!LAST_AUDIO.url){toast('Download လုပ်ဖို့ Audio မရှိပါ','error');return;}
   var a=document.createElement('a');a.href=LAST_AUDIO.url;a.download='voice_output.wav';document.body.appendChild(a);a.click();a.remove();
 }
-function autoGrow(x){if(!x)return;x.style.height='auto';x.style.height=Math.min(Math.max(x.scrollHeight,100),520)+'px';}
+function autoGrow(x){if(!x)return;x.rows=1;var style=window.getComputedStyle?window.getComputedStyle(x):null;var lineHeight=style?parseFloat(style.lineHeight):20;if(!isFinite(lineHeight)||lineHeight<=0)lineHeight=20;var padding=style?(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0):0;var minRows=Math.max(1,Math.ceil((120-padding)/lineHeight));var maxRows=Math.max(minRows,Math.floor((520-padding)/lineHeight));var desiredRows=Math.ceil((x.scrollHeight-padding)/lineHeight);x.rows=Math.min(maxRows,Math.max(minRows,desiredRows));}
 function copyValue(id){var x=document.getElementById(id),t=x?(x.value!==undefined?x.value:x.textContent):'';if(!t.trim()){toast('Copy လုပ်ဖို့ Result မရှိပါ','error');return;}if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){toast('✓ Copy ပြီးပါပြီ','success');});}
 function downloadValue(id,name){var x=document.getElementById(id),t=x?x.value:'';if(!t.trim()){toast('Save လုပ်ဖို့ Result မရှိပါ','error');return;}var u=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},500);}
 function saveVoiceCreation(){
@@ -477,7 +474,7 @@ function vHandleDelegatedChange(event){
 
 }
 (function initVoice(){
-  if(!TOKEN){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
+  if(!TOKEN){document.getElementById('loginView').classList.remove('is-hidden');document.getElementById('aicsApp').classList.add('voice-auth-hidden');return;}
   hydratePlan();
   document.addEventListener('click',vHandleDelegatedAction);
   document.addEventListener('input',vHandleDelegatedInput);

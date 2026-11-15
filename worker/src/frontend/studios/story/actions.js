@@ -14,7 +14,7 @@ function generateStory(){
   currentStory='';
   studioMarkDone(1);
   // GLOBAL RESULT UI — Result Box ကို ချက်ချင်းပြပြီး AI chunks များကို progressive ပြသည်
-  var sb=document.getElementById('storyResultBody');if(sb)sb.style.display='';
+  var sb=document.getElementById('storyResultBody');if(sb)sb.hidden=false;
   var rbox=storyResultBox();
   rbox.start('AI ရေးသားနေသည်...');
   var gb=document.getElementById('genStoryBtn');
@@ -48,7 +48,7 @@ function generateStory(){
       storyBusy=false;
       if(f0)f0.disabled=false;
       if(gb){gb.disabled=false;gb.innerHTML='&#10024; ဇာတ်လမ်းရေးသားရန်';}
-      var sb3=document.getElementById('storyResultBody');if(sb3)sb3.style.display='';
+      var sb3=document.getElementById('storyResultBody');if(sb3)sb3.hidden=false;
       showStepError('genError2','genRetry2',friendlyMsg(err,'story'));
       // Error → Result section အတွင်းတွင် error + retry ပြသည်
       if(window.studioUnmarkDone)window.studioUnmarkDone(2);
@@ -118,7 +118,7 @@ function goToVideoForm(){
   window.__storyVideoHandoffBusy=true;
   var previousVideoStarted=videoStarted;
   videoStarted=true;
-  var button=document.querySelector('button[onclick="goToVideoForm()"]');
+  var button=document.querySelector('[data-aics-action="go-to-video-plan"]');
   if(button){button.disabled=true;button.setAttribute('aria-busy','true');}
   autoSave().then(function(session){
     if(!session||!session.id){
@@ -409,10 +409,9 @@ function studioReceiveIdeaHandoff(){
     if(pendingIdeaResult.category)lines.push('အမျိုးအစား: '+String(pendingIdeaResult.category));
     summary.textContent=lines.join('\\n\\n')||'Idea Result ကို ရရှိပါပြီ။';
     panel.classList.remove('is-hidden');
-    panel.style.display='block';
+    panel.classList.remove('is-hidden');
     accept.disabled=false;
-    accept.onclick=studioAcceptIdeaHandoff;
-    dismiss.onclick=studioDismissIdeaHandoff;
+    // Clicks are handled by the Story page's delegated data-aics-action listener.
   }).catch(function(){showToastMsg('Idea Result ကို ဖတ်မရပါ။ မူရင်း Idea ကို မဖျက်ထားပါ။');});
 }
 
@@ -441,7 +440,7 @@ function studioAcceptIdeaHandoff(){
     pendingIdeaHandoffId=null;
     pendingIdeaResult=null;
     var panel=document.getElementById('ideaHandoffPanel');
-    if(panel)panel.style.display='none';
+    if(panel)panel.classList.add('is-hidden');
     studioClearIdeaHandoffUrl();
     showToastMsg('Idea ကို လက်ခံပြီး Story Draft အသစ် ဖန်တီးပြီးပါပြီ။');
     if(window.aicsRefreshStorySessions)window.aicsRefreshStorySessions();
@@ -455,7 +454,7 @@ function studioAcceptIdeaHandoff(){
 function studioDismissIdeaHandoff(){
   var handoffId=pendingIdeaHandoffId;
   var panel=document.getElementById('ideaHandoffPanel');
-  if(panel)panel.style.display='none';
+  if(panel)panel.classList.add('is-hidden');
   pendingIdeaHandoffId=null;
   pendingIdeaResult=null;
   studioClearIdeaHandoffUrl();

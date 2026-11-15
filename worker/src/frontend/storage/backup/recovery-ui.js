@@ -1,34 +1,56 @@
 const PANEL_HTML = `
+<style>
+#backup-recovery-panel .backup-title{font-size:17px;margin-bottom:8px;}
+#backup-recovery-panel .backup-intro{margin:0 0 18px;}
+#backup-recovery-panel .backup-actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 24px;}
+#backup-recovery-panel .backup-section-title{font-size:15px;margin:18px 0 6px;}
+#backup-recovery-panel .backup-export{margin-top:10px;}
+#backup-recovery-panel .backup-divider{height:1px;background:var(--border);margin:24px 0;border:0;}
+#backup-recovery-panel .backup-restore-title{font-size:15px;margin-bottom:6px;}
+#backup-recovery-panel .backup-file-row{margin-top:12px;}
+#backup-recovery-panel .backup-preview{padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--card2);margin-top:12px;}
+#backup-recovery-panel .backup-preview-summary{margin-top:8px;}
+#backup-recovery-panel .backup-warning{color:var(--warning);}
+#backup-recovery-panel .backup-restore{margin-top:10px;}
+#backup-recovery-panel .backup-message{margin-top:14px;}
+#backup-recovery-panel .backup-message.is-error{color:var(--error);}
+#backup-recovery-panel .backup-message.is-success{color:var(--success);}
+#backup-recovery-panel .backup-note{margin-top:18px;}
+@media(max-width:600px){
+  #backup-recovery-panel .backup-actions{gap:8px;}
+  #backup-recovery-panel .backup-actions .btn{flex:1 1 100%;}
+}
+</style>
 <section class="tab-panel" id="backup-recovery-panel" aria-labelledby="tab-btn-backup">
-  <h2 style="font-size:17px;margin-bottom:8px;">Browser Data Backup & Recovery</h2>
-  <p class="hint" style="margin:0 0 18px;">သင့်ဖန်တီးမှုဒေတာများသည် ဤ Browser ၏ IndexedDB ထဲတွင်သာ သိမ်းထားပါသည်။ Backup ဖိုင်ကို လုံခြုံသောနေရာတွင် ကိုယ်တိုင်သိမ်းထားပါ။</p>
+  <h2 class="backup-title">Browser Data Backup & Recovery</h2>
+  <p class="hint backup-intro">သင့်ဖန်တီးမှုဒေတာများသည် ဤ Browser ၏ IndexedDB ထဲတွင်သာ သိမ်းထားပါသည်။ Backup ဖိုင်ကို လုံခြုံသောနေရာတွင် ကိုယ်တိုင်သိမ်းထားပါ။</p>
   <div class="profile-row"><span class="profile-label">Storage အခြေအနေ</span><span class="profile-value" id="backup-persist-status">စစ်ဆေးနေသည်…</span></div>
   <div class="profile-row"><span class="profile-label">အသုံးပြုထားသော Storage</span><span class="profile-value" id="backup-usage">—</span></div>
   <div class="profile-row"><span class="profile-label">ခွင့်ပြုထားသော Quota</span><span class="profile-value" id="backup-quota">—</span></div>
   <p class="hint" id="backup-storage-note">Storage အခြေအနေကို ဖတ်ရှုနေပါသည်။</p>
-  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 24px;">
+  <div class="backup-actions">
     <button type="button" class="btn btn-secondary" id="backup-refresh">အခြေအနေ ပြန်စစ်ရန်</button>
     <button type="button" class="btn btn-secondary" id="backup-persist">ဒေတာထိန်းသိမ်းခွင့် တောင်းရန်</button>
   </div>
-  <h3 style="font-size:15px;margin:18px 0 6px;">Backup ထုတ်ယူရန်</h3>
+  <h3 class="backup-section-title">Backup ထုတ်ယူရန်</h3>
   <p class="hint">လက်ရှိ User ၏ ဒေတာများကို JSON ဖိုင်အဖြစ် ဤစက်ထဲသို့ Download လုပ်ပါမည်။</p>
-  <button type="button" class="btn btn-primary" id="backup-export" style="margin-top:10px;">Backup ဖိုင် ထုတ်ယူရန်</button>
-  <div style="height:1px;background:var(--border);margin:24px 0;"></div>
-  <h3 style="font-size:15px;margin-bottom:6px;">Backup ပြန်လည်ထည့်သွင်းရန်</h3>
+  <button type="button" class="btn btn-primary backup-export" id="backup-export">Backup ဖိုင် ထုတ်ယူရန်</button>
+  <hr class="backup-divider">
+  <h3 class="backup-restore-title">Backup ပြန်လည်ထည့်သွင်းရန်</h3>
   <p class="hint">သင့် Backup JSON ဖိုင်ကို ရွေးပါ။ စစ်ဆေးပြီးမှသာ Restore လုပ်နိုင်ပါမည်။</p>
-  <div class="form-row" style="margin-top:12px;">
+  <div class="form-row backup-file-row">
     <label for="backup-file">Backup JSON ဖိုင်</label>
     <input class="form-input" id="backup-file" type="file" accept=".json,application/json">
   </div>
-  <div id="backup-preview" hidden style="padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--card2);margin-top:12px;">
+  <div id="backup-preview" class="backup-preview" hidden>
     <strong>Restore မလုပ်မီ စစ်ဆေးချက်</strong>
-    <p class="hint" id="backup-preview-summary" style="margin-top:8px;"></p>
+    <p class="hint backup-preview-summary" id="backup-preview-summary"></p>
     <p class="hint" id="backup-preview-counts"></p>
-    <p class="hint" style="color:var(--warning);">Restore လုပ်ပါက ဤ User ၏ လက်ရှိဒေတာများကို Backup ထဲရှိဒေတာများဖြင့် အစားထိုးပါမည်။ အခြား User များ၏ဒေတာကို မထိခိုက်စေပါ။</p>
-    <button type="button" class="btn btn-primary" id="backup-restore" disabled style="margin-top:10px;">စစ်ဆေးပြီး Restore လုပ်ရန်</button>
+    <p class="hint backup-warning">Restore လုပ်ပါက ဤ User ၏ လက်ရှိဒေတာများကို Backup ထဲရှိဒေတာများဖြင့် အစားထိုးပါမည်။ အခြား User များ၏ဒေတာကို မထိခိုက်စေပါ။</p>
+    <button type="button" class="btn btn-primary backup-restore" id="backup-restore" disabled>စစ်ဆေးပြီး Restore လုပ်ရန်</button>
   </div>
-  <p class="hint" id="backup-recovery-message" role="status" aria-live="polite" style="margin-top:14px;"></p>
-  <p class="hint" style="margin-top:18px;">သတိပြုရန် — Persistence ခွင့်ပြုချက်သည် ဒေတာမပျောက်ရန် အာမခံချက်မဟုတ်ပါ။ Safari အပါအဝင် Browser အချို့တွင် Storage ဖယ်ရှားခံရနိုင်သည်။ ဤဒေတာများသည် စက်တစ်ခုနှင့်တစ်ခု အလိုအလျောက် Sync မလုပ်ပါ။</p>
+  <p class="hint backup-message" id="backup-recovery-message" role="status" aria-live="polite"></p>
+  <p class="hint backup-note">သတိပြုရန် — Persistence ခွင့်ပြုချက်သည် ဒေတာမပျောက်ရန် အာမခံချက်မဟုတ်ပါ။ Safari အပါအဝင် Browser အချို့တွင် Storage ဖယ်ရှားခံရနိုင်သည်။ ဤဒေတာများသည် စက်တစ်ခုနှင့်တစ်ခု အလိုအလျောက် Sync မလုပ်ပါ။</p>
 </section>`;
 
 const SCRIPT = String.raw`(function () {
@@ -39,7 +61,8 @@ const SCRIPT = String.raw`(function () {
     var node = byId('backup-recovery-message');
     if (!node) return;
     node.textContent = text;
-    node.style.color = isError ? 'var(--error)' : 'var(--success)';
+    node.classList.toggle('is-error', !!isError);
+    node.classList.toggle('is-success', !isError);
   }
   function bytes(value) {
     if (typeof value !== 'number' || !isFinite(value) || value < 0) return 'မရရှိနိုင်ပါ';

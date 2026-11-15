@@ -120,10 +120,26 @@ select option{background:var(--bg-card);color:var(--text)}
 /* Conditional fields (Section 8 — Content Type ပေါ်မူတည်၍ ပြသည်) */
 .aics-work .conditional-fields{background:rgba(123,92,255,.05);border:1px solid rgba(123,92,255,.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
 @media(max-width:767px){.aics-work .revise-input-row{flex-direction:column;align-items:stretch}.aics-work .aics-out-cards{grid-template-columns:1fr}.aics-work .aics-out-card{padding:16px}}
+/* Content Studio CSP visibility and migrated presentation classes */
+.cs-hidden{display:none!important}.cs-display-flex{display:flex!important}.cs-display-grid{display:grid!important}.cs-display-block{display:block!important}
+.aics-work button.type-chip{background:transparent;font-family:inherit}
+.cs-inline-style-1{margin-bottom:14px}
+.cs-inline-style-2{min-height:130px}
+.cs-inline-style-3{grid-column:1/-1}
+.cs-inline-style-4{margin-top:4px}
+.cs-inline-style-5{margin-top:14px}
+.cs-inline-style-6{justify-content:center}
+.cs-inline-style-7{margin-bottom:12px}
+.cs-inline-style-8{border-top:none;padding-top:0}
+.cs-inline-style-9{margin-top:16px}
+.cs-inline-style-10{justify-content:center}
+.cs-inline-style-11{margin-top:2px}
+.cs-inline-style-12{grid-column:1/-1}
+.cs-inline-style-13{justify-content:center}
 </style>
 </head>
 <body>
-<div id="loginView" class="aics-login-overlay" style="display:none;"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Content Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/content" class="btn btn-primary">Google နဲ့ Login</a></div></div>
+<div id="loginView" class="aics-login-overlay cs-hidden"><div class="aics-login-box"><h2>Login လုပ်ရန် လိုအပ်ပါသည်</h2><p>Content Studio ကို အသုံးပြုရန် Google နဲ့ Login ဝင်ပါ။</p><a href="/api/auth/login?next=/app/content" class="btn btn-primary">Google နဲ့ Login</a></div></div>
 ${renderStudioShell({
   id: 'content',
   activeId: 'content',
@@ -197,6 +213,7 @@ ${sidebarScript()}
       case 'revise-content':window.reviseContent();break;
       case 'generate-video':window.generateVideo();break;
       case 'content-nav':window.csNav(Number(button.dataset.aicsStep));break;
+      case 'quick-action':window.quickAction(button.dataset.aicsKind);break;
       case 'toggle-audio-advanced':window.studioToggleAdvanced('audioAdvToggle','audioAdvFields');break;
       case 'generate-voice':window.generateVoice();break;
       case 'content-nav-audio':window.csNav(22);break;

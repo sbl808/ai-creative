@@ -83,7 +83,7 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
         if(ch.age||ch.role||ch.description)html+='<div class="final-char-meta">'+escapeHtml([ch.age,ch.role,ch.description].filter(Boolean).join(' · '))+'</div>';
         html+='<div class="final-prompt-text">'+escapeHtml(ch.characterPrompt||ch.prompt||'(မရှိပါ)')+'</div>';
         html+='<div class="final-char-img" id="charImg_'+index+'">'+(image?'<img class="aics-pv-img" src="'+image+'" alt="Character reference">':'<div class="empty-note">ရုပ်ပုံ မရှိသေးပါ</div>')+'</div>';
-        html+='<div class="btn-row"><button type="button" class="btn-ghost" onclick="copyCharPrompt('+index+')">Copy Prompt</button><button type="button" class="btn-ghost" onclick="generateCharImage('+index+')">Character Image ဖန်တီးရန်</button></div></div>';
+        html+='<div class="btn-row"><button type="button" class="btn-ghost" data-svp-action="copy-char-prompt" data-svp-index="'+index+'">Copy Prompt</button><button type="button" class="btn-ghost" data-svp-action="generate-char-image" data-svp-index="'+index+'">Character Image ဖန်တီးရန်</button></div></div>';
       });
       html+='</div>';
     }
@@ -93,8 +93,8 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
         var image=safeImage(images['env_'+index]);
         html+='<div class="smap-card"><div class="smap-head"><span class="smap-num">SCENE '+escapeHtml(scene.number||index+1)+'</span><span class="smap-title">'+escapeHtml(scene.title||'')+'</span></div>';
         html+='<div class="smap-row"><div class="smap-label">Environment</div><div class="smap-text">'+escapeHtml(scene.environmentPrompt||'(မရှိပါ)')+'</div>';
-        html+='<div class="env-action-grid"><div class="scene-image-area" id="envImg_'+index+'">'+(image?'<img src="'+image+'" alt="Environment reference">':'<button type="button" class="btn btn-orange env-img-btn" onclick="generateEnvImage('+index+')">Environment Image ဖန်တီးပါ</button>')+'</div><button type="button" class="btn btn-ghost env-copy-btn" onclick="copyEnvPrompt('+index+')">Copy Environment Prompt</button></div></div>';
-        html+='<div class="smap-row"><div class="smap-label">Video Prompt</div><div class="smap-text">'+escapeHtml(scene.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button type="button" class="btn-ghost" onclick="copyVideoPrompt('+index+')">Copy Video Prompt</button></div></div>';
+        html+='<div class="env-action-grid"><div class="scene-image-area" id="envImg_'+index+'">'+(image?'<img src="'+image+'" alt="Environment reference">':'<button type="button" class="btn btn-orange env-img-btn" data-svp-action="generate-env-image" data-svp-index="'+index+'">Environment Image ဖန်တီးပါ</button>')+'</div><button type="button" class="btn btn-ghost env-copy-btn" data-svp-action="copy-env-prompt" data-svp-index="'+index+'">Copy Environment Prompt</button></div></div>';
+        html+='<div class="smap-row"><div class="smap-label">Video Prompt</div><div class="smap-text">'+escapeHtml(scene.videoPrompt||'(မရှိပါ)')+'</div><div class="btn-row"><button type="button" class="btn-ghost" data-svp-action="copy-video-prompt" data-svp-index="'+index+'">Copy Video Prompt</button></div></div>';
         html+='<div class="smap-meta"><span>Characters: '+escapeHtml(resolveSceneCharacters(index))+'</span><span>'+escapeHtml(durationText(scene.duration))+'</span></div></div>';
       });
       html+='</div>';
@@ -234,6 +234,20 @@ export const STORY_VIDEO_PLAN_ACTIONS_SCRIPT = String.raw`
     if(button)button.addEventListener('click',generateStoryVideoPlan);
     var retry=byId('planRetryBtn');
     if(retry)retry.addEventListener('click',generateStoryVideoPlan);
+    document.addEventListener('click',function(event){
+      var target=event.target&&event.target.closest?event.target.closest('[data-svp-action]'):null;
+      if(!target)return;
+      var index=Number(target.getAttribute('data-svp-index'));
+      if(!Number.isInteger(index)||index<0)return;
+      switch(target.getAttribute('data-svp-action')){
+        case 'copy-char-prompt':copyCharPrompt(index);break;
+        case 'generate-char-image':generateImage('character',index);break;
+        case 'generate-env-image':generateImage('environment',index);break;
+        case 'copy-env-prompt':copyEnvPrompt(index);break;
+        case 'copy-video-prompt':copyVideoPrompt(index);break;
+        default:break;
+      }
+    });
     var form=byId('videoStoryInput');
     document.addEventListener('input',function(event){
       if(event.target&&event.target.closest&&event.target.closest('.aics-work'))scheduleSave();

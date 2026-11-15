@@ -12,6 +12,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
+import { validateBackupEnvelope } from '../worker/src/frontend/storage/backup/validate.js';
+import { ACTIONS_SCRIPT as shortActionsScript } from '../worker/src/frontend/studios/short/actions.js';
 
 // Node-only HTMLRewriter shim for this source-level test suite.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -64,6 +66,17 @@ let passed = 0, failed = 0;
 function check(name, ok, extra) {
   if (ok) { passed++; console.log('  ✔ ' + name); }
   else { failed++; console.log('  ✘ ' + name + (extra ? ' — ' + extra : '')); }
+}
+
+function getScriptStyleAttributes(html) {
+  const found = [];
+  for (const [tag, pattern] of [
+    ['script', /<script\b([^>]*)>[\s\S]*?<\/script\s*>/gi],
+    ['style', /<style\b([^>]*)>[\s\S]*?<\/style\s*>/gi],
+  ]) {
+    for (const match of html.matchAll(pattern)) found.push({ tag, attributes: match[1] });
+  }
+  return found;
 }
 
 const worker = (await import('../worker/src/index.js?sec=' + Date.now() + Math.random())).default;
@@ -155,8 +168,13 @@ console.log('\\n--- B) Shared error message XSS regression ---');
   check('shared error dialog script is present', !!errorScript);
 
   if (errorScript) {
+    const errorClasses = new Set();
     const errorElement = {
-      style: {},
+      classList: {
+        add(name) { errorClasses.add(name); },
+        remove(name) { errorClasses.delete(name); },
+        contains(name) { return errorClasses.has(name); },
+      },
       children: [],
       textContent: '',
       appendChild(node) { this.children.push(node); },
@@ -182,7 +200,45 @@ console.log('\\n--- B) Shared error message XSS regression ---');
       errorElement.children[2].textContent === hostileMessage);
     check('error rendering does not assign attacker-controlled innerHTML',
       !errorScript.includes('el.innerHTML'));
+    check('error visibility and prefix opacity are controlled by CSS classes',
+      errorElement.classList.contains('aics-shared-error-visible') &&
+      errorElement.children[0].className === 'aics-shared-error-prefix');
+    vm.runInNewContext(errorScript + '\naicsHideError();', { document });
+    check('hide error removes the visibility class',
+      !errorElement.classList.contains('aics-shared-error-visible'));
   }
+}
+
+console.log('\\n--- B) Creations stored-XSS regression ---');
+{
+  const creations = readFileSync(new URL('../worker/src/frontend/creations.js', import.meta.url), 'utf8');
+  const renderStart = creations.indexOf('function renderList()');
+  const renderEnd = renderStart >= 0 ? creations.indexOf('function fmtDate', renderStart) : -1;
+  const renderBlock = renderStart >= 0 && renderEnd > renderStart
+    ? creations.slice(renderStart, renderEnd)
+    : '';
+  const escapeStart = creations.indexOf('function escapeHtml(value)');
+  const escapeEnd = escapeStart >= 0 ? creations.indexOf('function safeMediaMime', escapeStart) : -1;
+  const escapeBlock = escapeStart >= 0 && escapeEnd > escapeStart
+    ? creations.slice(escapeStart, escapeEnd)
+    : '';
+  check('Creations renderer is present', !!renderBlock);
+  check('studio and type values are escaped before HTML insertion',
+    renderBlock.includes('escapeHtml(c.studio)') && renderBlock.includes("escapeHtml(c.type||'1')"));
+  check('creation IDs are escaped before DOM ID and action attribute insertion',
+    (renderBlock.split('escapeHtml(c.id)').length - 1) >= 5);
+  check('image/audio MIME types are allowlisted and media URLs are escaped',
+    creations.includes('function safeMediaMime') &&
+    renderBlock.includes("safeMediaMime('image',c.media_mime)") &&
+    renderBlock.includes("safeMediaMime('audio',c.media_mime)") &&
+    renderBlock.includes('escapeHtml(uri)') && renderBlock.includes('escapeHtml(auri)'));
+  check('HTML escaping covers HTML delimiters and quote characters',
+    escapeBlock.includes('&amp;') && escapeBlock.includes('&lt;') &&
+    escapeBlock.includes('&gt;') && escapeBlock.includes('&quot;') &&
+    escapeBlock.includes('&#39;'));
+  check('studio/type fields are not interpolated raw into the creation card',
+    !renderBlock.includes("'+c.studio+'") &&
+    !renderBlock.includes("'+(c.type||'1')+'"));
 }
 
 console.log('\\n--- B) Worker log data minimization contract ---');
@@ -202,6 +258,83 @@ console.log('\\n--- B) Worker log data minimization contract ---');
     !!friendlyBlock && !friendlyBlock.includes('.stack') && !friendlyBlock.includes('.message') && !friendlyBlock.includes('JSON.stringify') && !friendlyBlock.includes('String(e)'));
   check('studio load error logging excludes slug and exception details',
     !!studioLogBlock && !studioLogBlock.includes('slug:') && !studioLogBlock.includes('message:') && !studioLogBlock.includes('.stack') && !studioLogBlock.includes('.message') && !studioLogBlock.includes('JSON.stringify') && !studioLogBlock.includes('String(e)'));
+}
+
+
+
+console.log('\\n--- B) Shared UI inline-style migration contract ---');
+{
+  const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
+  const tick = String.fromCharCode(96);
+  const scriptBody = (name) => {
+    const marker = 'export const ' + name + ' = ' + tick;
+    const start = sharedUi.indexOf(marker);
+    const bodyStart = start >= 0 ? sharedUi.indexOf('\n', start) + 1 : -1;
+    const bodyEnd = bodyStart > 0 ? sharedUi.indexOf('\n' + tick + ';', bodyStart) : -1;
+    return bodyStart > 0 && bodyEnd > bodyStart ? sharedUi.slice(bodyStart, bodyEnd) : '';
+  };
+  const errorScript = scriptBody('AICS_ERROR_SCRIPT');
+  const modalScript = scriptBody('AICS_MODAL_SCRIPT');
+  const commonScript = scriptBody('AICS_COMMON_UTILS_SCRIPT');
+  const resultScript = scriptBody('AICS_RESULT_BOX_SCRIPT');
+  check('shared-ui module has no direct style property access',
+    !/\.style\b/.test(sharedUi));
+  check('error and modal helpers use CSS state classes',
+    errorScript.includes("classList.add('aics-shared-error-visible')") &&
+    errorScript.includes("classList.remove('aics-shared-error-visible')") &&
+    modalScript.includes("classList.add('aics-shared-modal-visible')") &&
+    modalScript.includes("classList.remove('aics-shared-modal-visible')"));
+  check('shared CSS defines error, modal, and result preview states',
+    sharedUi.includes('.aics-shared-error-visible{display:block!important;}') &&
+    sharedUi.includes('.aics-shared-error-prefix{opacity:.85;}') &&
+    sharedUi.includes('.aics-shared-modal-visible{display:flex!important;}') &&
+    sharedUi.includes('.aics-rbox-target-text.aics-rbox-collapsed{max-height:260px;overflow:hidden;}'));
+  check('textarea auto-expand uses rows instead of inline height styles',
+    commonScript.includes('function aicsAutoExpand(el)') &&
+    commonScript.includes('el.rows = Math.max(1, Math.ceil') &&
+    !/\.style\b/.test(commonScript));
+  const textarea = {
+    tagName: 'TEXTAREA',
+    rows: 2,
+    scrollHeight: 84,
+    ownerDocument: {
+      defaultView: {
+        getComputedStyle() {
+          return { lineHeight: '20px', paddingTop: '2px', paddingBottom: '2px' };
+        },
+      },
+    },
+  };
+  vm.runInNewContext(commonScript + '\naicsAutoExpand(target);', {
+    target: textarea, parseFloat, Math, isFinite,
+  });
+  check('textarea auto-expand calculates row count from measured content',
+    textarea.rows === 4, 'rows=' + textarea.rows);
+  check('result box uses class-based expand/collapse and preserves configurable preview limits',
+    resultScript.includes("target.classList.add('aics-rbox-collapsed')") &&
+    resultScript.includes("target.classList.remove('aics-rbox-collapsed')") &&
+    resultScript.includes('aicsRboxSetPreviewLimit(target, previewMax)') &&
+    resultScript.includes("style.setAttribute('nonce', __aicsRboxScriptNonce)") &&
+    !/\.style\b/.test(resultScript));
+  check('result box reset restores the original textarea row count',
+    resultScript.includes('target.rows = originalRows || 2') &&
+    !resultScript.includes('target.style.'));
+  const modalClasses = new Set();
+  const modalElement = {
+    classList: {
+      add(name) { modalClasses.add(name); },
+      remove(name) { modalClasses.delete(name); },
+      contains(name) { return modalClasses.has(name); },
+    },
+  };
+  const modalDocument = { getElementById(id) { return id === 'test-modal' ? modalElement : null; } };
+  vm.runInNewContext(modalScript + '\naicsShowModal("test-modal");', { document: modalDocument });
+  const modalShown = modalElement.classList.contains('aics-shared-modal-visible');
+  vm.runInNewContext(modalScript + '\naicsHideModal("test-modal");', { document: modalDocument });
+  check('modal helpers add and remove the visible state class',
+    modalShown && !modalElement.classList.contains('aics-shared-modal-visible'));
+  check('shared CSS remains mobile-responsive for result continuation cards',
+    sharedUi.includes('@media(max-width:700px){.aics-work .aics-hub-next-grid{grid-template-columns:1fr}}'));
 }
 
 console.log('\n--- B) HTML Content Security Policy rollout ---');
@@ -229,11 +362,33 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('separate HTML responses receive different CSP nonces',
     !!nonceMatch && !!nonceMatch2 && nonceMatch[1] !== nonceMatch2[1]);
   const html = await page.clone().text();
-  const inlineElements = [...html.matchAll(/<(script|style)\b([^>]*)>/gi)];
+  const inlineElements = getScriptStyleAttributes(html);
   check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
   check('every script/style element receives the CSP response nonce',
     !!nonceMatch && inlineElements.length >= 2 &&
-    inlineElements.every((match) => match[2].includes('nonce="' + nonceMatch[1] + '"')));
+    inlineElements.every((element) => element.attributes.includes('nonce="' + nonceMatch[1] + '"')),
+    'elements=' + JSON.stringify(inlineElements));
+  const htmlPagePaths = ['/auth/result', '/ai-test', '/cms-test', '/studio-test', '/creations-test'];
+  const htmlPageResults = await Promise.all(htmlPagePaths.map(async (path) => {
+    const response = await worker.fetch(new Request('https://w.dev' + path), envFor(DEV_ORIGIN), {});
+    return { path, response, html: await response.clone().text() };
+  }));
+  check('Worker-generated HTML pages contain no inline event-handler attributes',
+    htmlPageResults.every(({ html }) => !/\son[a-z]+\s*=/i.test(html)));
+  check('Worker-generated HTML pages contain no inline style attributes',
+    htmlPageResults.every(({ html }) => !/\sstyle\s*=/i.test(html)));
+  check('Worker-generated HTML pages contain no javascript URLs',
+    htmlPageResults.every(({ html }) => !/javascript\s*:/i.test(html)));
+  for (const { path, html, response } of htmlPageResults) {
+    const policyHeader = response.headers.get('content-security-policy-report-only') || '';
+    const match = policyHeader.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+    const elements = getScriptStyleAttributes(html);
+    check(path + ' response has CSP and nonces every inline script/style element',
+      !!match && elements.length > 0 &&
+      elements.every((element) => element.attributes.includes('nonce="' + match[1] + '"')),
+      'status=' + response.status + ', content-type=' + response.headers.get('content-type') +
+      ', csp=' + !!policyHeader + ', elements=' + elements.length);
+  }
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
@@ -637,5 +792,453 @@ console.log('\n--- CMS prompt authorization contracts ---');
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
   check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
+
+console.log('\\n--- H) Backward-compatible backup Studio identifier validation ---');
+{
+  const ownerId = 'backup-owner';
+  function envelopeWith(storeName, record) {
+    const stores = {
+      creations: [], projects: [], studio_sessions: [], studio_handoffs: [],
+      session_results: [], ideas: [], drafts: [], media_assets: [],
+    };
+    stores[storeName].push(record);
+    return {
+      format: 'aics-browser-backup',
+      exportVersion: 1,
+      schemaVersion: 7,
+      exportedAt: '2026-11-15T00:00:00.000Z',
+      stores,
+    };
+  }
+  function accepts(storeName, record) {
+    try { return validateBackupEnvelope(envelopeWith(storeName, record), ownerId).valid; }
+    catch (error) { return false; }
+  }
+  function rejects(storeName, record) {
+    return !accepts(storeName, record);
+  }
+
+  check('legacy Creation Studio identifiers remain importable',
+    accepts('creations', { id: 'creation-1', user_id: ownerId, studio: 'LEGACY_STORY_STUDIO_V1' }));
+  check('legacy Session Studio identifiers remain importable',
+    accepts('studio_sessions', { id: 'session-1', ownerId, studio: 'LEGACY_CREATIVE_SUITE' }));
+  check('legacy Handoff source identifiers remain importable',
+    accepts('studio_handoffs', {
+      id: 'handoff-1', ownerId, contractVersion: 1,
+      source: 'LEGACY_VIDEO_DIRECTOR_V2', target: 'story', payload: {},
+    }));
+  check('Studio identifiers containing HTML markup are rejected',
+    rejects('creations', { id: 'creation-2', user_id: ownerId, studio: '<img src=x onerror=alert(1)>' }));
+  check('legacy Studio identifiers containing spaces remain importable',
+    accepts('studio_sessions', { id: 'session-2', ownerId, studio: 'LEGACY CREATIVE SUITE' }));
+  check('Studio identifiers containing control characters are rejected',
+    rejects('studio_sessions', { id: 'session-3', ownerId, studio: 'LEGACY\nSTUDIO' }));
+  check('Handoff target continues to use the existing Studio allowlist',
+    rejects('studio_handoffs', {
+      id: 'handoff-2', ownerId, contractVersion: 1,
+      source: 'LEGACY_VIDEO_DIRECTOR_V2', target: 'UNKNOWN_TARGET', payload: {},
+    }));
+}
+
+
+console.log('\\n--- Admin UI CSP markup contract ---');
+{
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  check('Admin UI contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit)\s*=/i.test(adminUi));
+  check('Admin UI contains no inline style attributes',
+    !/\sstyle\s*=/i.test(adminUi));
+  const actions = Array.from(adminUi.matchAll(/data-admin-action="([^"]+)"/g), (match) => match[1]);
+  const handlers = Array.from(adminUi.matchAll(/case '([^']+)'/g), (match) => match[1]);
+  check('every declared Admin UI action has a delegated handler',
+    actions.length > 0 && actions.every((action) => handlers.includes(action)));
+  check('Admin UI change controls use delegated change handlers',
+    adminUi.includes("document.addEventListener('change'") &&
+    adminUi.includes('data-admin-change="mfCat"') &&
+    adminUi.includes('data-admin-change="syncSubtitleType"'));
+  check('Plan Catalog toggle has a distinct handler from user plan changes',
+    adminUi.includes('function togglePlanCatalog(key,enabled){') &&
+    adminUi.includes("case 'togglePlanCatalog':togglePlanCatalog("));
+}
+
+console.log('\n--- Shared Shell CSP markup contract ---');
+{
+  const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  check('Shared Shell contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(shared));
+  check('Shared Shell contains no inline style attributes',
+    !/\sstyle\s*=/i.test(shared));
+  check('Shared Shell does not assign DOM onclick properties',
+    !/\.onclick\s*=/.test(shared));
+  check('Shared Shell uses CSS classes instead of direct style properties',
+    !/\.style\./.test(shared));
+  check('Theme toggle uses an event listener',
+    shared.includes('b.addEventListener("click"'));
+  check('Shared Shell visibility states have matching CSS classes',
+    shared.includes('.aics-admin-link.is-hidden') &&
+    shared.includes('.aics-studio-link.is-hidden') &&
+    shared.includes('.aics-session-more.is-hidden') &&
+    shared.includes('.aics-result-loading-hint.is-hidden'));
+  check('Shared Shell retains its responsive work container class',
+    shared.includes('aics-work-container{max-width:820px;margin:0 auto;width:100%;}'));
+  check('Shared Sidebar and Studio actions remain delegated',
+    shared.includes("document.addEventListener") &&
+    shared.includes('[data-aics-sidebar-action]') &&
+    shared.includes('[data-aics-shell-action]'));
+}
+
+
+console.log('\n--- Settings CSP markup contract ---');
+{
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  check('Settings contains no inline style attributes',
+    !/\sstyle\s*=/i.test(settings));
+  check('Settings contains no direct DOM style property assignments',
+    !/\.style(?:\.|\s*\[)/.test(settings));
+  check('Settings contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(settings));
+  check('Settings tab panels use CSS visibility classes',
+    (settings.match(/class="tab-panel is-hidden"/g) || []).length === 3 &&
+    settings.includes("p.classList.add('is-hidden')") &&
+    settings.includes("classList.remove('is-hidden')"));
+  check('Settings dynamic profile and plan markup uses CSS classes',
+    settings.includes('settings-profile-name') &&
+    settings.includes('settings-api-actions') &&
+    settings.includes('plan-catalog-grid') &&
+    settings.includes('plan-catalog-card'));
+}
+
+console.log('\n--- Backup Recovery CSP markup contract ---');
+{
+  const recovery = readFileSync(new URL('../worker/src/frontend/storage/backup/recovery-ui.js', import.meta.url), 'utf8');
+  check('Backup Recovery contains no inline style attributes',
+    !/\sstyle\s*=/i.test(recovery));
+  check('Backup Recovery contains no direct DOM style property assignments',
+    !/\.style(?:\.|\s*\[)/.test(recovery));
+  check('Backup Recovery contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(recovery));
+  check('Backup Recovery visual styles are defined in a nonce-compatible style block',
+    recovery.includes('<style>') &&
+    recovery.includes('#backup-recovery-panel .backup-actions') &&
+    recovery.includes('#backup-recovery-panel .backup-preview') &&
+    recovery.includes('#backup-recovery-panel .backup-message.is-error'));
+  check('Backup Recovery message status uses CSS classes',
+    recovery.includes("node.classList.toggle('is-error', !!isError)") &&
+    recovery.includes("node.classList.toggle('is-success', !isError)") &&
+    !recovery.includes('node.style.'));
+  check('Backup Recovery retains mobile action layout rules',
+    recovery.includes('@media(max-width:600px)') &&
+    recovery.includes('#backup-recovery-panel .backup-actions .btn{flex:1 1 100%;}'));
+}
+
+console.log('\n--- Content Studio CSP markup contract ---');
+{
+  const contentPaths = ['../worker/src/frontend/studios/content/ui.js','../worker/src/frontend/studios/content/page.js','../worker/src/frontend/studios/content/fragments.js','../worker/src/frontend/studios/content/api.js','../worker/src/frontend/studios/content/helpers.js','../worker/src/frontend/studios/content/audio.js','../worker/src/frontend/studios/content/shell.js'];
+  const contentSources = contentPaths.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'));
+  check('Content Studio fragments contain no inline style attributes', contentSources.every((source) => !/\bstyle\s*=\s*["']/i.test(source)));
+  check('Content Studio fragments contain no inline event-handler attributes', contentSources.every((source) => !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(source)));
+  check('Content Studio scripts contain no DOM onclick property assignments', contentSources.every((source) => !/\.onclick\s*=/.test(source)));
+  check('Content Studio scripts contain no direct DOM style property access', contentSources.every((source) => !/\.style(?:\.|\s*\[)/.test(source)));
+  const helpers = contentSources[4]; const page = contentSources[1];
+  check('Content Studio visibility is controlled with CSS classes', helpers.includes('function setContentVisible') && page.includes('.cs-hidden{display:none!important}'));
+  check('Content Studio auto-grow avoids inline style properties', helpers.includes('el.rows=2') && helpers.includes('el.rows=Math.max(2,'));
+  check('Content Studio stepper actions use delegated event attributes', helpers.includes('data-aics-action="content-nav"') && page.includes("case 'content-nav':"));
+  check('Content Studio quick actions use delegated click handling', helpers.includes("chip.dataset.aicsAction='quick-action'") && page.includes("case 'quick-action':"));
+  check('Content Studio audio download uses delegated click handling', contentSources[5].includes('data-aics-action="download-audio"') && !contentSources[5].includes('onclick='));
+}
+
+
+console.log('\n--- Story Video Plan CSP markup contract ---');
+{
+  const storyActions = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/actions.js', import.meta.url), 'utf8');
+  check('Story Video Plan contains no inline event-handler attributes',
+    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\\s*=/i.test(storyActions));
+  check('Story Video Plan actions use delegated data attributes',
+    storyActions.includes('data-svp-action="copy-char-prompt"') &&
+    storyActions.includes('data-svp-action="generate-char-image"') &&
+    storyActions.includes('data-svp-action="generate-env-image"') &&
+    storyActions.includes('data-svp-action="copy-env-prompt"') &&
+    storyActions.includes('data-svp-action="copy-video-prompt"'));
+  check('Story Video Plan delegated click handler covers all five actions',
+    storyActions.includes("document.addEventListener('click'") &&
+    storyActions.includes("case 'copy-char-prompt':") &&
+    storyActions.includes("case 'generate-char-image':") &&
+    storyActions.includes("case 'generate-env-image':") &&
+    storyActions.includes("case 'copy-env-prompt':") &&
+    storyActions.includes("case 'copy-video-prompt':"));
+  check('Story Video Plan actions carry numeric item indexes',
+    (storyActions.match(/data-svp-index=/g) || []).length >= 5 &&
+    storyActions.includes("Number(target.getAttribute('data-svp-index'))"));
+}
+
+
+console.log('\\n--- Story Video Plan UI CSP markup contract ---');
+{
+  const storyVideoUi = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/ui.js', import.meta.url), 'utf8');
+  const storyVideoPage = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/page.js', import.meta.url), 'utf8');
+  check('Story Video Plan UI contains no inline style attributes',
+    !/\sstyle\s*=/i.test(storyVideoUi));
+  check('Story Video Plan UI retains all three replacement CSS class hooks',
+    storyVideoUi.includes('aics-video-adv-panel') &&
+    storyVideoUi.includes('aics-video-audio-direction') &&
+    storyVideoUi.includes('aics-video-additional-instructions'));
+  check('Story Video Plan page defines all three replacement CSS rules',
+    storyVideoPage.includes('.aics-video-adv-panel{margin-top:2px}') &&
+    storyVideoPage.includes('.aics-video-audio-direction{min-height:64px}') &&
+    storyVideoPage.includes('.aics-video-additional-instructions{min-height:70px}'));
+  check('Story Video Plan page retains its mobile responsive rule',
+    storyVideoPage.includes('@media(max-width:767px){.aics-video-card{padding:15px}}'));
+}
+
+
+
+
+console.log('\n--- Short Actions CSP contract ---');
+{
+  const shortActionsFile = readFileSync(new URL('../worker/src/frontend/studios/short/actions.js', import.meta.url), 'utf8');
+  check('Short Actions contain no direct DOM style properties or property event handlers',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(shortActionsFile) &&
+    !/\.(?:onclick|onchange)\s*=/.test(shortActionsFile));
+  check('Short result and error visibility use the hidden property',
+    shortActionsScript.includes("sb.hidden=false") &&
+    shortActionsScript.includes("sb3.hidden=false"));
+  check('Short textarea auto-expand uses rows and computed content height',
+    shortActionsScript.includes('ta.rows=1') &&
+    shortActionsScript.includes('window.getComputedStyle') &&
+    shortActionsScript.includes('ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight))') &&
+    !/\.style(?:\.|\s*\[|\s*=)/.test(shortActionsFile));
+  check('Short edit and Video Script fill flows retain auto-expand calls',
+    shortActionsScript.includes('if(ta){currentShort=ta.value;autoExpand(ta);}') &&
+    shortActionsScript.includes("ta.value=currentShort||'';\n  autoExpand(ta);"));
+  const autoExpandSource = shortActionsScript.match(/function autoExpand\(ta\)\{[^}]*\}/)?.[0];
+  let rowsAfterExpand = 0;
+  if (autoExpandSource) {
+    const autoExpand = vm.runInNewContext('(' + autoExpandSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+    });
+    const textarea = { value: 'one\ntwo\nthree', rows: 8, scrollHeight: 100 };
+    autoExpand(textarea);
+    rowsAfterExpand = textarea.rows;
+  }
+  check('Short auto-expand computes textarea rows without inline styles',
+    rowsAfterExpand === 4);
+}
+console.log('\n--- Story Actions CSP markup contract ---');
+{
+  const storyActions = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
+  const storyUi = readFileSync(new URL('../worker/src/frontend/studios/story/ui.js', import.meta.url), 'utf8');
+  const storyPage = readFileSync(new URL('../worker/src/frontend/studios/story/page.js', import.meta.url), 'utf8');
+  check('Story Actions contain no direct DOM style properties or property event handlers',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(storyActions) &&
+    !/\.(?:onclick|onchange)\s*=/.test(storyActions));
+  check('Story result body visibility uses the hidden property',
+    storyActions.includes("sb.hidden=false") && storyActions.includes("sb3.hidden=false"));
+  check('Story Idea Handoff visibility uses the existing hidden CSS class',
+    storyActions.includes("panel.classList.remove('is-hidden')") &&
+    (storyActions.match(/panel\.classList\.add\('is-hidden'\)/g)||[]).length===2 &&
+    storyPage.includes('.aics-work .story-handoff-panel.is-hidden{display:none!important}'));
+  check('Story Idea Handoff buttons use delegated data attributes in the UI',
+    storyUi.includes('data-aics-action="accept-story-idea-handoff"') &&
+    storyUi.includes('data-aics-action="dismiss-story-idea-handoff"'));
+  check('Story page delegated click handler invokes both Idea Handoff actions',
+    storyPage.includes("case 'accept-story-idea-handoff':window.studioAcceptIdeaHandoff();break;") &&
+    storyPage.includes("case 'dismiss-story-idea-handoff':window.studioDismissIdeaHandoff();break;"));
+  check('Story Video button lookup matches its delegated action attribute',
+    storyActions.includes('[data-aics-action="go-to-video-plan"]') &&
+    storyUi.includes('data-aics-action="go-to-video-plan"'));
+}
+
+console.log('\n--- Login CSP markup contract ---');
+{
+  const login = readFileSync(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
+  check('Login page contains no inline style attributes',
+    !/\sstyle\s*=/i.test(login));
+  check('Login page contains no direct DOM style property access',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(login));
+  check('Login name and confirm-password fields use the hidden CSS class',
+    login.includes('class="field is-hidden" id="suNameField"') &&
+    login.includes('class="field is-hidden" id="suCfField"'));
+  check('Login hidden and Google loading states have matching CSS rules',
+    login.includes('.is-hidden{display:none!important}') &&
+    login.includes('.btn-google.is-loading{pointer-events:none;opacity:.6}'));
+  check('Login loading state toggles the Google button CSS class',
+    login.includes("googleBtn.classList.toggle('is-loading', on)") &&
+    !login.includes('googleBtn.style.'));
+  check('Login Sign Up mode toggles field visibility with CSS classes',
+    login.includes("nameField.classList.remove('is-hidden')") &&
+    login.includes("cfField.classList.remove('is-hidden')") &&
+    login.includes("nameField.classList.add('is-hidden')") &&
+    login.includes("cfField.classList.add('is-hidden')"));
+  check('Login Forgot Password visibility uses a CSS class',
+    login.includes("document.getElementById('forgotBtn').classList.add('is-hidden')") &&
+    login.includes("document.getElementById('forgotBtn').classList.remove('is-hidden')"));
+}
+
+
+console.log('\\n--- Projects CSP markup contract ---');
+{
+  const projects = readFileSync(new URL('../worker/src/frontend/projects.js', import.meta.url), 'utf8');
+  check('Projects page contains no inline style attributes',
+    !/\sstyle\s*=/i.test(projects));
+  check('Projects page contains no direct DOM style property access',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(projects));
+  check('Projects page contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown)\s*=/i.test(projects));
+  check('Projects loading and empty states use the shared hidden CSS class',
+    projects.includes('id="loadingState" class="loading-state"') &&
+    projects.includes('id="emptyState" class="empty-state is-hidden"') &&
+    projects.includes('.is-hidden{display:none!important;}'));
+  check('Projects loading and empty-state visibility is controlled with classList',
+    projects.includes("loading.classList.remove('is-hidden')") &&
+    projects.includes("loading.classList.add('is-hidden')") &&
+    projects.includes("empty.classList.add('is-hidden')") &&
+    projects.includes("empty.classList.remove('is-hidden')") &&
+    projects.includes("document.getElementById('emptyState').classList.add('is-hidden')") &&
+    projects.includes("document.getElementById('emptyState').classList.remove('is-hidden')"));
+  check('Projects login-required markup uses matching CSS classes',
+    projects.includes('class="login-required"') &&
+    projects.includes('class="login-required-message"') &&
+    projects.includes('class="login-required-link"') &&
+    projects.includes('.login-required{text-align:center;padding:40px 20px;}') &&
+    projects.includes('.login-required-message{margin:16px 0;}') &&
+    projects.includes('.login-required-link{text-decoration:underline;}'));
+  check('Projects create action remains delegated and calls the browser project API',
+    projects.includes('data-project-action="create"') &&
+    projects.includes("target.closest('[data-project-action=\"create\"]')") &&
+    projects.includes("window.AICS_PROJECTS.create({title:title,description:''})"));
+  check('Projects list and delete flows continue to use the browser project API',
+    projects.includes('window.AICS_PROJECTS.list()') &&
+    projects.includes('window.AICS_PROJECTS.remove(id)') &&
+    projects.includes("if(!confirm('ဒီ Project ကို ဖျက်မှာ သေချာပါသလား?'))return;"));
+  check('Projects page retains mobile-friendly viewport and wrapping layout',
+    projects.includes('<meta name="viewport" content="width=device-width, initial-scale=1.0">') &&
+    projects.includes('.create-box{display:flex;gap:10px;flex-wrap:wrap;') &&
+    projects.includes('.project-card{') &&
+    projects.includes('gap:12px;flex-wrap:wrap;') &&
+    projects.includes('min-width:0;') &&
+    projects.includes('min-height:42px;'));
+}
+
+console.log('\\n--- Home CSP markup contract ---');
+{
+  const home = readFileSync(new URL('../worker/src/frontend/home.js', import.meta.url), 'utf8');
+  check('Home page contains no inline style attributes',
+    !/\sstyle\s*=/i.test(home));
+  check('Home page contains no direct DOM style property access',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(home));
+  check('Home loading and login-required markup use CSS classes',
+    home.includes('class="home-loading"') &&
+    home.includes('class="home-login-required"') &&
+    home.includes('class="home-login-required-message"') &&
+    home.includes('class="home-login-link"'));
+  check('Home page defines matching loading and login CSS rules',
+    home.includes('.home-loading{color:var(--text3);}') &&
+    home.includes('.home-login-required{padding:40px;text-align:center;}') &&
+    home.includes('.home-login-required-message{margin:16px 0;}') &&
+    home.includes('.home-login-link{color:var(--cyan);text-decoration:underline;}'));
+  check('Home banner animation uses CSS classes and retains opacity transition',
+    home.includes('.home-fade-out{opacity:0;}') &&
+    home.includes("el.classList.add('home-fade-out')") &&
+    home.includes("el.classList.remove('home-fade-out')") &&
+    home.includes('transition:opacity 0.6s ease;'));
+  check('Home studio card animation uses CSS classes and retains transition rules',
+    home.includes('.home-card-shift-out{opacity:0;transform:translateY(6px);}') &&
+    home.includes('.home-card-shift-in{opacity:1;transform:translateY(0);}') &&
+    home.includes("el.classList.add('home-card-shift-out')") &&
+    home.includes("el.classList.add('home-card-shift-in')") &&
+    home.includes('transition:opacity 0.5s,transform 0.5s;'));
+  check('Home recent creations continue to load from browser IndexedDB',
+    home.includes('AICS_CREATIONS.list()') &&
+    home.includes('items.slice(0,3)'));
+  check('Home page retains viewport and responsive layout rules',
+    home.includes('<meta name="viewport" content="width=device-width, initial-scale=1.0">') &&
+    home.includes('@media(max-width:767px)') &&
+    home.includes('.quick-grid,.recent-grid{grid-template-columns:repeat(2,1fr);gap:10px;}'));
+}
+
+console.log('\n--- Voice Actions CSP contract ---');
+{
+  const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/actions.js', import.meta.url), 'utf8');
+  const voicePage = readFileSync(new URL('../worker/src/frontend/studios/voice/page.js', import.meta.url), 'utf8');
+  check('Voice Actions contain no direct DOM style properties or property event handlers',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(voiceActions) &&
+    !/\.(?:onclick|onchange)\s*=/.test(voiceActions));
+  check('Voice model bar keeps the shared shell default visibility without inline styles',
+    voiceActions.includes('function vSyncModelBar(){ /* Shared shell keeps the model bar visible by default. */ }') &&
+    voicePage.includes('.aics-login-overlay.is-hidden{display:none}'));
+  check('Voice login and app visibility use class state and matching CSS',
+    voiceActions.includes("loginView').classList.remove('is-hidden')") &&
+    voiceActions.includes("aicsApp').classList.add('voice-auth-hidden')") &&
+    voicePage.includes('.aics-app.voice-auth-hidden{display:none!important}'));
+  check('Voice textarea auto-grow uses rows and computed dimensions without inline styles',
+    voiceActions.includes('x.rows=1') &&
+    voiceActions.includes('window.getComputedStyle') &&
+    voiceActions.includes('var minRows=Math.max(1,Math.ceil((120-padding)/lineHeight))') &&
+    voiceActions.includes('var maxRows=Math.max(minRows,Math.floor((520-padding)/lineHeight))') &&
+    !/\.style(?:\.|\s*\[|\s*=)/.test(voiceActions));
+  const autoGrowSource = voiceActions.match(/function autoGrow\(x\)\{[^}]*\}/)?.[0];
+  let rowsAtMinimum = 0;
+  let rowsAtMaximum = 0;
+  if (autoGrowSource) {
+    const autoGrow = vm.runInNewContext('(' + autoGrowSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+      isFinite,
+      Math,
+    });
+    const smallTextarea = { rows: 8, scrollHeight: 60 };
+    autoGrow(smallTextarea);
+    rowsAtMinimum = smallTextarea.rows;
+    const largeTextarea = { rows: 1, scrollHeight: 1200 };
+    autoGrow(largeTextarea);
+    rowsAtMaximum = largeTextarea.rows;
+  }
+  check('Voice textarea auto-grow preserves 120px minimum and 520px maximum',
+    rowsAtMinimum === 5 && rowsAtMaximum === 25);
+}
+
+
+console.log('\n--- Image Studio CSP contract ---');
+{
+  const imageActions = readFileSync(new URL('../worker/src/frontend/studios/image/actions.js', import.meta.url), 'utf8');
+  const imageApi = readFileSync(new URL('../worker/src/frontend/studios/image/api.js', import.meta.url), 'utf8');
+  const imagePage = readFileSync(new URL('../worker/src/frontend/studios/image/page.js', import.meta.url), 'utf8');
+  const imageSources = [imageActions, imageApi, imagePage];
+  check('Image Studio fragments contain no inline style attributes, direct height/display style writes, or property event handlers',
+    imageSources.every((source) =>
+      !/\bstyle\s*=\s*["']/i.test(source) &&
+      !/\b[A-Za-z_$][\w$]*\.style\.(?:height|display)\b/.test(source) &&
+      !/\b[A-Za-z_$][\w$]*\.style\s*\[/.test(source) &&
+      !/\.(?:onclick|onchange)\s*=/.test(source)));
+  check('Image login and app visibility use CSS classes with matching rules',
+    imageApi.includes("loginView.classList.remove('is-hidden')") &&
+    imageApi.includes("app.classList.add('image-auth-hidden')") &&
+    imagePage.includes('.aics-login-overlay.is-hidden{display:none}') &&
+    imagePage.includes('.aics-app.image-auth-hidden{display:none!important}'));
+  check('Image reference removal uses the existing delegated action handler',
+    imageApi.includes("removeBtn.dataset.imageAction='removeReference'") &&
+    imageApi.includes("removeBtn.dataset.imageIndex=String(idx)") &&
+    imagePage.includes("case 'removeReference':window.removeRef(Number(button.dataset.imageIndex));break;"));
+  check('Image textarea auto-expand uses rows and computed dimensions without inline styles',
+    imageActions.includes('ta.rows=1') &&
+    imageActions.includes('window.getComputedStyle') &&
+    imageActions.includes('ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight))') &&
+    !/\bta\.style\.(?:height|display)\b/.test(imageActions));
+  const autoExpandSource = imageActions.match(/function autoExpand\(ta\)\{[^}]*\}/)?.[0];
+  let rowsAfterExpand = 0;
+  if (autoExpandSource) {
+    const autoExpand = vm.runInNewContext('(' + autoExpandSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+      parseFloat,
+      isFinite,
+      Math,
+    });
+    const textarea = { rows: 8, scrollHeight: 100 };
+    autoExpand(textarea);
+    rowsAfterExpand = textarea.rows;
+  }
+  check('Image textarea auto-expand calculates row count from measured content',
+    rowsAfterExpand === 4, 'rows=' + rowsAfterExpand);
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);

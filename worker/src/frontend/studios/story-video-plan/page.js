@@ -13,6 +13,9 @@ const PAGE_STYLES = `
 .aics-video-card{background:var(--aics-surface,#111827);border:1px solid var(--aics-border,#263247);border-radius:14px;padding:20px;margin-bottom:16px}
 #vidAdvFields{display:none}
 #vidAdvFields.open{display:grid}
+.aics-video-adv-panel{margin-top:2px}
+.aics-video-audio-direction{min-height:64px}
+.aics-video-additional-instructions{min-height:70px}
 @media(max-width:767px){.aics-video-card{padding:15px}}
 </style>`;
 
