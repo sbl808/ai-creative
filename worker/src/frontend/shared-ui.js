@@ -65,10 +65,11 @@ export const AICS_ERROR_SCRIPT = `
 function aicsShowError(prefix, e) {
   var el = document.getElementById('errorMsg');
   if (!el) return;
-  el.style.display = 'block';
+  el.classList.add('aics-shared-error-visible');
 
   var label = document.createElement('span');
   label.style.opacity = '.85';
+  label.className = 'aics-shared-error-prefix';
   label.textContent = prefix || '';
 
   el.textContent = '';
@@ -83,7 +84,7 @@ function aicsShowError(prefix, e) {
 function aicsHideError() {
   var el = document.getElementById('errorMsg');
   if (!el) return;
-  el.style.display = 'none';
+  el.classList.remove('aics-shared-error-visible');
 }
 `;
 
@@ -101,8 +102,8 @@ function aicsConfirm(message, onYes) {
 // Modal — generic overlay helpers (login overlay pattern)
 // ---------------------------------------------------------------------------
 export const AICS_MODAL_SCRIPT = `
-function aicsShowModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'flex'; }
-function aicsHideModal(id) { var m = document.getElementById(id); if (m) m.style.display = 'none'; }
+function aicsShowModal(id) { var m = document.getElementById(id); if (m) m.classList.add('aics-shared-modal-visible'); }
+function aicsHideModal(id) { var m = document.getElementById(id); if (m) m.classList.remove('aics-shared-modal-visible'); }
 `;
 
 // ---------------------------------------------------------------------------
@@ -135,9 +136,16 @@ function aicsFillSelect(el, arr, valKey, labelKey) {
   });
 }
 function aicsAutoExpand(el) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = (el.scrollHeight + 2) + 'px';
+  if (!el || el.tagName !== 'TEXTAREA') return;
+  var view = el.ownerDocument && el.ownerDocument.defaultView;
+  var computed = view && view.getComputedStyle ? view.getComputedStyle(el) : null;
+  var lineHeight = computed ? parseFloat(computed.lineHeight) : 20;
+  if (!isFinite(lineHeight) || lineHeight <= 0) lineHeight = 20;
+  var padding = computed
+    ? (parseFloat(computed.paddingTop) || 0) + (parseFloat(computed.paddingBottom) || 0)
+    : 0;
+  el.rows = 1;
+  el.rows = Math.max(1, Math.ceil(Math.max(lineHeight, el.scrollHeight - padding) / lineHeight));
 }
 `;
 
@@ -268,6 +276,10 @@ export const AICS_RESULT_BOX_CSS = `
 .aics-rbox-toggle:hover{background:rgba(124,92,255,.08);}
 .aics-rbox-toggle.show{display:block;}
 .aics-rbox-target-text{transition:max-height .18s ease;}
+.aics-rbox-target-text.aics-rbox-collapsed{max-height:260px;overflow:hidden;}
+.aics-shared-error-visible{display:block!important;}
+.aics-shared-error-prefix{opacity:.85;}
+.aics-shared-modal-visible{display:flex!important;}
 `;
 
 // Browser-side Global Result Box (injected into every studio page via shared.js)
@@ -277,10 +289,42 @@ export const AICS_RESULT_BOX_SCRIPT = `
   function aicsRboxEsc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  var __aicsRboxPreviewRuleCount = 0;
+  var __aicsRboxScriptNonce = document.currentScript && document.currentScript.nonce;
+  function aicsRboxMetrics(ta) {
+    var view = ta.ownerDocument && ta.ownerDocument.defaultView;
+    var computed = view && view.getComputedStyle ? view.getComputedStyle(ta) : null;
+    var lineHeight = computed ? parseFloat(computed.lineHeight) : 20;
+    if (!isFinite(lineHeight) || lineHeight <= 0) lineHeight = 20;
+    var padding = computed
+      ? (parseFloat(computed.paddingTop) || 0) + (parseFloat(computed.paddingBottom) || 0)
+      : 0;
+    return { lineHeight: lineHeight, padding: padding };
+  }
   function aicsRboxAutoGrow(ta) {
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = (ta.scrollHeight + 2) + 'px';
+    if (!ta || ta.tagName !== 'TEXTAREA') return;
+    var metrics = aicsRboxMetrics(ta);
+    ta.rows = 1;
+    ta.rows = Math.max(1, Math.ceil(Math.max(metrics.lineHeight, ta.scrollHeight - metrics.padding) / metrics.lineHeight));
+  }
+  function aicsRboxSetPreviewLimit(target, previewMax) {
+    if (previewMax === 260) return;
+    var host = document.head || document.documentElement;
+    if (!host || !__aicsRboxScriptNonce) return;
+    var style = document.getElementById('aics-rbox-dynamic-styles');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'aics-rbox-dynamic-styles';
+      style.setAttribute('nonce', __aicsRboxScriptNonce);
+      host.appendChild(style);
+    }
+    if (!style.sheet || typeof style.sheet.insertRule !== 'function') return;
+    var ruleId = 'aics-rbox-preview-' + (++__aicsRboxPreviewRuleCount);
+    target.setAttribute('data-aics-rbox-preview', ruleId);
+    style.sheet.insertRule(
+      '[data-aics-rbox-preview="' + ruleId + '"].aics-rbox-collapsed{max-height:' + previewMax + 'px;overflow:hidden;}',
+      style.sheet.cssRules.length
+    );
   }
   function aicsRboxMake(o) {
     var target = document.getElementById(o.id);
@@ -308,7 +352,12 @@ export const AICS_RESULT_BOX_SCRIPT = `
     var isTextarea = target.tagName === 'TEXTAREA';
     var type = o.type || 'text';
     var collapsible = o.collapsible !== false;
-    var previewMax = o.previewMax || 260;
+    var previewMax = Number(o.previewMax) || 260;
+    if (!isFinite(previewMax)) previewMax = 260;
+    previewMax = Math.max(1, Math.min(5000, Math.round(previewMax)));
+    var originalRows = isTextarea ? target.rows : null;
+    target.classList.add('aics-rbox-target-text');
+    aicsRboxSetPreviewLimit(target, previewMax);
     var generatingText = o.generatingText || 'AI ရေးသားနေသည်...';
     var fullText = '';
     var state = 'IDLE';
@@ -341,30 +390,23 @@ export const AICS_RESULT_BOX_SCRIPT = `
       fullText = '';
     }
     function applyCollapsed() {
-      if (!isTextarea) { target.style.maxHeight = previewMax + 'px'; target.style.overflow = 'hidden'; return; }
-      target.style.height = '';
-      target.style.maxHeight = previewMax + 'px';
-      target.style.overflow = 'hidden';
+      target.classList.add('aics-rbox-collapsed');
+      if (isTextarea) {
+        var metrics = aicsRboxMetrics(target);
+        target.rows = Math.max(1, Math.floor(previewMax / metrics.lineHeight));
+      }
     }
     function applyExpanded() {
-      if (isTextarea) {
-        target.style.maxHeight = 'none';
-        target.style.overflow = 'hidden';
-        aicsRboxAutoGrow(target);
-      } else {
-        target.style.maxHeight = 'none';
-        target.style.overflow = 'visible';
-      }
+      target.classList.remove('aics-rbox-collapsed');
+      if (isTextarea) aicsRboxAutoGrow(target);
     }
     function fitPreview() {
       // Short content — compact preview is the full content (no toggle needed)
       if (!isTextarea) return true;
-      target.style.height = '';
-      target.style.maxHeight = previewMax + 'px';
-      target.style.overflow = 'hidden';
+      var savedRows = target.rows;
+      target.rows = 1;
       var over = target.scrollHeight > previewMax;
-      target.style.maxHeight = '';
-      target.style.overflow = '';
+      target.rows = savedRows;
       return !over;
     }
 
@@ -455,14 +497,10 @@ export const AICS_RESULT_BOX_SCRIPT = `
         errBox.classList.remove('show');
         toggle.classList.remove('show');
         toggle.textContent = 'Show More';
+        target.classList.remove('aics-rbox-collapsed');
         if (isTextarea) {
           target.readOnly = readOnlySaved;
-          target.style.height = '';
-          target.style.maxHeight = '';
-          target.style.overflow = '';
-        } else {
-          target.style.maxHeight = '';
-          target.style.overflow = '';
+          target.rows = originalRows || 2;
         }
         setState('IDLE');
         return inst;

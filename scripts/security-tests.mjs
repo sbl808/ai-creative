@@ -167,8 +167,13 @@ console.log('\\n--- B) Shared error message XSS regression ---');
   check('shared error dialog script is present', !!errorScript);
 
   if (errorScript) {
+    const errorClasses = new Set();
     const errorElement = {
-      style: {},
+      classList: {
+        add(name) { errorClasses.add(name); },
+        remove(name) { errorClasses.delete(name); },
+        contains(name) { return errorClasses.has(name); },
+      },
       children: [],
       textContent: '',
       appendChild(node) { this.children.push(node); },
@@ -194,6 +199,12 @@ console.log('\\n--- B) Shared error message XSS regression ---');
       errorElement.children[2].textContent === hostileMessage);
     check('error rendering does not assign attacker-controlled innerHTML',
       !errorScript.includes('el.innerHTML'));
+    check('error visibility and prefix opacity are controlled by CSS classes',
+      errorElement.classList.contains('aics-shared-error-visible') &&
+      errorElement.children[0].className === 'aics-shared-error-prefix');
+    vm.runInNewContext(errorScript + '\\naicsHideError();', { document });
+    check('hide error removes the visibility class',
+      !errorElement.classList.contains('aics-shared-error-visible'));
   }
 }
 
@@ -246,6 +257,51 @@ console.log('\\n--- B) Worker log data minimization contract ---');
     !!friendlyBlock && !friendlyBlock.includes('.stack') && !friendlyBlock.includes('.message') && !friendlyBlock.includes('JSON.stringify') && !friendlyBlock.includes('String(e)'));
   check('studio load error logging excludes slug and exception details',
     !!studioLogBlock && !studioLogBlock.includes('slug:') && !studioLogBlock.includes('message:') && !studioLogBlock.includes('.stack') && !studioLogBlock.includes('.message') && !studioLogBlock.includes('JSON.stringify') && !studioLogBlock.includes('String(e)'));
+}
+
+
+console.log('\\n--- B) Shared UI inline-style migration contract ---');
+{
+  const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
+  const tick = String.fromCharCode(96);
+  const scriptBody = (name) => {
+    const marker = 'export const ' + name + ' = ' + tick;
+    const start = sharedUi.indexOf(marker);
+    const bodyStart = start >= 0 ? sharedUi.indexOf('\\n', start) + 1 : -1;
+    const bodyEnd = bodyStart > 0 ? sharedUi.indexOf('\\n' + tick + ';', bodyStart) : -1;
+    return bodyStart > 0 && bodyEnd > bodyStart ? sharedUi.slice(bodyStart, bodyEnd) : '';
+  };
+  const errorScript = scriptBody('AICS_ERROR_SCRIPT');
+  const modalScript = scriptBody('AICS_MODAL_SCRIPT');
+  const commonScript = scriptBody('AICS_COMMON_UTILS_SCRIPT');
+  const resultScript = scriptBody('AICS_RESULT_BOX_SCRIPT');
+  check('shared-ui module has no direct style property access or style attributes',
+    !/\\.style\\b/.test(sharedUi) && !/\\sstyle\\s*=/.test(sharedUi));
+  check('error and modal helpers use CSS state classes',
+    errorScript.includes("classList.add('aics-shared-error-visible')") &&
+    errorScript.includes("classList.remove('aics-shared-error-visible')") &&
+    modalScript.includes("classList.add('aics-shared-modal-visible')") &&
+    modalScript.includes("classList.remove('aics-shared-modal-visible')"));
+  check('shared CSS defines error, modal, and result preview states',
+    sharedUi.includes('.aics-shared-error-visible{display:block!important;}') &&
+    sharedUi.includes('.aics-shared-error-prefix{opacity:.85;}') &&
+    sharedUi.includes('.aics-shared-modal-visible{display:flex!important;}') &&
+    sharedUi.includes('.aics-rbox-target-text.aics-rbox-collapsed{max-height:260px;overflow:hidden;}'));
+  check('textarea auto-expand uses rows instead of inline height styles',
+    commonScript.includes('function aicsAutoExpand(el)') &&
+    commonScript.includes('el.rows = Math.max(1, Math.ceil') &&
+    !/\\.style\\b/.test(commonScript));
+  check('result box uses class-based expand/collapse and preserves configurable preview limits',
+    resultScript.includes("target.classList.add('aics-rbox-collapsed')") &&
+    resultScript.includes("target.classList.remove('aics-rbox-collapsed')") &&
+    resultScript.includes('aicsRboxSetPreviewLimit(target, previewMax)') &&
+    resultScript.includes("style.setAttribute('nonce', __aicsRboxScriptNonce)") &&
+    !/\\.style\\b/.test(resultScript));
+  check('result box reset restores the original textarea row count',
+    resultScript.includes('target.rows = originalRows || 2') &&
+    !resultScript.includes('target.style.'));
+  check('shared CSS remains mobile-responsive for result continuation cards',
+    sharedUi.includes('@media(max-width:700px){.aics-work .aics-hub-next-grid{grid-template-columns:1fr}}'));
 }
 
 console.log('\n--- B) HTML Content Security Policy rollout ---');
