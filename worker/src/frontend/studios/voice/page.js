@@ -70,6 +70,7 @@ html[data-aics-theme] .aics-app .aics-work :is(button,a,input,textarea,select,[t
 html[data-aics-theme] .aics-app .aics-work :is(.success,.btn-success){background:var(--aics-success,var(--aics-surface-subtle))!important;border-color:var(--aics-success,var(--aics-border))!important;color:#fff!important}
 
 .aics-login-overlay.is-hidden{display:none}
+.aics-app.voice-auth-hidden{display:none!important}
 </style>
 </head>
 <body>

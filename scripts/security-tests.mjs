@@ -1158,3 +1158,44 @@ console.log('\\n--- Home CSP markup contract ---');
 
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
+
+console.log('\n--- Voice Actions CSP contract ---');
+{
+  const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/actions.js', import.meta.url), 'utf8');
+  const voicePage = readFileSync(new URL('../worker/src/frontend/studios/voice/page.js', import.meta.url), 'utf8');
+  check('Voice Actions contain no direct DOM style properties or property event handlers',
+    !/\.style(?:\.|\s*\[|\s*=)/.test(voiceActions) &&
+    !/\.(?:onclick|onchange)\s*=/.test(voiceActions));
+  check('Voice model bar keeps the shared shell default visibility without inline styles',
+    voiceActions.includes('function vSyncModelBar(){ /* Shared shell keeps the model bar visible by default. */ }') &&
+    voicePage.includes('.aics-login-overlay.is-hidden{display:none}'));
+  check('Voice login and app visibility use class state and matching CSS',
+    voiceActions.includes("loginView').classList.remove('is-hidden')") &&
+    voiceActions.includes("aicsApp').classList.add('voice-auth-hidden')") &&
+    voicePage.includes('.aics-app.voice-auth-hidden{display:none!important}'));
+  check('Voice textarea auto-grow uses rows and computed dimensions without inline styles',
+    voiceActions.includes('x.rows=1') &&
+    voiceActions.includes('window.getComputedStyle') &&
+    voiceActions.includes('var minRows=Math.max(1,Math.ceil((120-padding)/lineHeight))') &&
+    voiceActions.includes('var maxRows=Math.max(minRows,Math.floor((520-padding)/lineHeight))') &&
+    !/\.style(?:\.|\s*\[|\s*=)/.test(voiceActions));
+  const autoGrowSource = voiceActions.match(/function autoGrow\(x\)\{[^}]*\}/)?.[0];
+  let rowsAtMinimum = 0;
+  let rowsAtMaximum = 0;
+  if (autoGrowSource) {
+    const autoGrow = vm.runInNewContext('(' + autoGrowSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+      isFinite,
+      Math,
+    });
+    const smallTextarea = { rows: 8, scrollHeight: 60 };
+    autoGrow(smallTextarea);
+    rowsAtMinimum = smallTextarea.rows;
+    const largeTextarea = { rows: 1, scrollHeight: 1200 };
+    autoGrow(largeTextarea);
+    rowsAtMaximum = largeTextarea.rows;
+  }
+  check('Voice textarea auto-grow preserves 120px minimum and 520px maximum',
+    rowsAtMinimum === 5 && rowsAtMaximum === 25);
+}
+
