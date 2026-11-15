@@ -17,7 +17,7 @@ const trackingFiles = [
 
 for (const path of trackingFiles) {
   const source = await readFile(path, 'utf8');
-  assert.doesNotMatch(source, /\btrackUsage(?:Safe)?\b/, \`Server-side usage tracking reference remains in \${path}\`);
+  assert.doesNotMatch(source, /\btrackUsage(?:Safe)?\b/, 'Server-side usage tracking reference remains in ' + path);
 }
 
 const workerEntry = await readFile('worker/src/index.js', 'utf8');
