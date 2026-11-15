@@ -710,7 +710,7 @@ console.log('\\n--- H) Backward-compatible backup Studio identifier validation -
   check('legacy Studio identifiers containing spaces remain importable',
     accepts('studio_sessions', { id: 'session-2', ownerId, studio: 'LEGACY CREATIVE SUITE' }));
   check('Studio identifiers containing control characters are rejected',
-    rejects('studio_sessions', { id: 'session-3', ownerId, studio: 'LEGACY\\nSTUDIO' }));
+    rejects('studio_sessions', { id: 'session-3', ownerId, studio: 'LEGACY\nSTUDIO' }));
   check('Handoff target continues to use the existing Studio allowlist',
     rejects('studio_handoffs', {
       id: 'handoff-2', ownerId, contractVersion: 1,
