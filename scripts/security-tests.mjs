@@ -305,7 +305,7 @@ console.log('\\n--- B) Shared UI inline-style migration contract ---');
     },
   };
   vm.runInNewContext(commonScript + '\naicsAutoExpand(target);', {
-    target, parseFloat, Math, isFinite,
+    target: textarea, parseFloat, Math, isFinite,
   });
   check('textarea auto-expand calculates row count from measured content',
     textarea.rows === 4, 'rows=' + textarea.rows);
