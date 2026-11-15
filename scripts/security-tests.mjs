@@ -772,5 +772,32 @@ console.log('\\n--- Admin UI CSP markup contract ---');
     adminUi.includes("case 'togglePlanCatalog':togglePlanCatalog("));
 }
 
+console.log('\n--- Shared Shell CSP markup contract ---');
+{
+  const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  check('Shared Shell contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(shared));
+  check('Shared Shell contains no inline style attributes',
+    !/\sstyle\s*=/i.test(shared));
+  check('Shared Shell does not assign DOM onclick properties',
+    !/\.onclick\s*=/.test(shared));
+  check('Shared Shell uses CSS classes instead of direct style properties',
+    !/\.style\./.test(shared));
+  check('Theme toggle uses an event listener',
+    shared.includes('b.addEventListener("click"'));
+  check('Shared Shell visibility states have matching CSS classes',
+    shared.includes('.aics-admin-link.is-hidden') &&
+    shared.includes('.aics-studio-link.is-hidden') &&
+    shared.includes('.aics-session-more.is-hidden') &&
+    shared.includes('.aics-result-loading-hint.is-hidden'));
+  check('Shared Shell retains its responsive work container class',
+    shared.includes('aics-work-container{max-width:820px;margin:0 auto;width:100%;}'));
+  check('Shared Sidebar and Studio actions remain delegated',
+    shared.includes("document.addEventListener('click'") &&
+    shared.includes('[data-aics-sidebar-action]') &&
+    shared.includes('[data-aics-shell-action]'));
+}
+
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
