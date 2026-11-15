@@ -928,5 +928,42 @@ console.log('\n--- Login CSP markup contract ---');
     login.includes("document.getElementById('forgotBtn').classList.remove('is-hidden')"));
 }
 
+console.log('\\n--- Home CSP markup contract ---');
+{
+  const home = readFileSync(new URL('../worker/src/frontend/home.js', import.meta.url), 'utf8');
+  check('Home page contains no inline style attributes',
+    !/\\sstyle\\s*=/i.test(home));
+  check('Home page contains no direct DOM style property access',
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(home));
+  check('Home loading and login-required markup use CSS classes',
+    home.includes('class="home-loading"') &&
+    home.includes('class="home-login-required"') &&
+    home.includes('class="home-login-required-message"') &&
+    home.includes('class="home-login-link"'));
+  check('Home page defines matching loading and login CSS rules',
+    home.includes('.home-loading{color:var(--text3);}') &&
+    home.includes('.home-login-required{padding:40px;text-align:center;}') &&
+    home.includes('.home-login-required-message{margin:16px 0;}') &&
+    home.includes('.home-login-link{color:var(--cyan);text-decoration:underline;}'));
+  check('Home banner animation uses CSS classes and retains opacity transition',
+    home.includes('.home-fade-out{opacity:0;}') &&
+    home.includes("el.classList.add('home-fade-out')") &&
+    home.includes("el.classList.remove('home-fade-out')") &&
+    home.includes('transition:opacity 0.6s ease;'));
+  check('Home studio card animation uses CSS classes and retains transition rules',
+    home.includes('.home-card-shift-out{opacity:0;transform:translateY(6px);}') &&
+    home.includes('.home-card-shift-in{opacity:1;transform:translateY(0);}') &&
+    home.includes("el.classList.add('home-card-shift-out')") &&
+    home.includes("el.classList.add('home-card-shift-in')") &&
+    home.includes('transition:opacity 0.5s,transform 0.5s;'));
+  check('Home recent creations continue to load from browser IndexedDB',
+    home.includes('AICS_CREATIONS.list()') &&
+    home.includes('items.slice(0,3)'));
+  check('Home page retains viewport and responsive layout rules',
+    home.includes('<meta name="viewport" content="width=device-width, initial-scale=1.0">') &&
+    home.includes('@media(max-width:767px)') &&
+    home.includes('.quick-grid,.recent-grid{grid-template-columns:repeat(2,1fr);gap:10px;}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
