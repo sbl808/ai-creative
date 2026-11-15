@@ -902,13 +902,13 @@ console.log('\\n--- Story Video Plan UI CSP markup contract ---');
 }
 
 
-console.log('\\n--- Login CSP markup contract ---');
+console.log('\n--- Login CSP markup contract ---');
 {
   const login = readFileSync(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
   check('Login page contains no inline style attributes',
-    !/\\sstyle\\s*=/i.test(login));
+    !/\sstyle\s*=/i.test(login));
   check('Login page contains no direct DOM style property access',
-    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(login));
+    !/\.style(?:\.|\s*\[|\s*=)/.test(login));
   check('Login name and confirm-password fields use the hidden CSS class',
     login.includes('class="field is-hidden" id="suNameField"') &&
     login.includes('class="field is-hidden" id="suCfField"'));
