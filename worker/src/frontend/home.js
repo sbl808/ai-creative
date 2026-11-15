@@ -100,6 +100,13 @@ a{color:var(--cyan);text-decoration:none;}
 .toast.show{display:block;}
 .toast.success{border-color:var(--success);}
 .toast.error{border-color:var(--error);}
+.home-loading{color:var(--text3);}
+.home-login-required{padding:40px;text-align:center;}
+.home-login-required-message{margin:16px 0;}
+.home-login-link{color:var(--cyan);text-decoration:underline;}
+.home-fade-out{opacity:0;}
+.home-card-shift-out{opacity:0;transform:translateY(6px);}
+.home-card-shift-in{opacity:1;transform:translateY(0);}
 @media(max-width:767px){
     .topbar h1{font-size:21px;}
       .aics-title{font-size:15px;}
@@ -180,7 +187,7 @@ ${renderSidebar('home',{variant:'studio'})}
     နောက်ဆုံးဖန်တီးထားသော Project များ
     <span class="view-all" role="link" tabindex="0" aria-label="ဖန်တီးမှုအားလုံးကြည့်ရန်" data-home-action="navigate-creations">အားလုံးကြည့်ရန် →</span>
   </div>
-  <div id="recentProjectsArea"><p style="color:var(--text3);">Loading...</p></div>
+  <div id="recentProjectsArea"><p class="home-loading">Loading...</p></div>
 </main>
 </div>
 </div>
@@ -234,8 +241,8 @@ var bannerIndex = 0;
 function rotateBanner(){
   var el=document.getElementById('heroBannerText');
   if(!el||BANNER_MESSAGES.length<2)return;
-  el.style.opacity=0;
-  setTimeout(function(){bannerIndex=(bannerIndex+1)%BANNER_MESSAGES.length;el.innerText=BANNER_MESSAGES[bannerIndex];el.style.opacity=1;},600);
+  el.classList.add('home-fade-out');
+  setTimeout(function(){bannerIndex=(bannerIndex+1)%BANNER_MESSAGES.length;el.innerText=BANNER_MESSAGES[bannerIndex];el.classList.remove('home-fade-out');},600);
 }
 setInterval(rotateBanner,4000);
 var CARD_MESSAGES={
@@ -250,8 +257,9 @@ var CARD_MESSAGES={
 function rotateCard(key,index){
   var el=document.getElementById('desc-'+key);var list=CARD_MESSAGES[key];
   if(!el||!list||list.length<2)return;
-  el.style.opacity=0;el.style.transform='translateY(6px)';
-  setTimeout(function(){index=(index+1)%list.length;el.innerText=list[index];el.style.opacity=1;el.style.transform='translateY(0)';setTimeout(function(){rotateCard(key,index);},3200);},500);
+  el.classList.remove('home-card-shift-in');
+  el.classList.add('home-card-shift-out');
+  setTimeout(function(){index=(index+1)%list.length;el.innerText=list[index];el.classList.remove('home-card-shift-out');el.classList.add('home-card-shift-in');setTimeout(function(){rotateCard(key,index);},3200);},500);
 }
 Object.keys(CARD_MESSAGES).forEach(function(key,i){setTimeout(function(){rotateCard(key,0);},3200+(i*250));});
 var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
@@ -267,7 +275,7 @@ function closeFreeKeyGuide(){var m=document.getElementById('freeKeyModal');if(m)
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 // (toggleSidebar / logout / setApiKey / TG-FB link များကို Shared Sidebar Script သို့ ရွှေ့ပြီးပါပြီ — Phase 2)
 if(!TOKEN){
-  document.querySelector('.main-content').innerHTML='<div style="padding:40px;text-align:center;"><h2>🔒 Login လိုအပ်ပါသည်</h2><p style="margin:16px 0;"><a href="/login" style="color:var(--cyan);text-decoration:underline;">Login / Sign Up စာမျက်နှာသို့ သွားရန်</a></p></div>';
+  document.querySelector('.main-content').innerHTML='<div class="home-login-required"><h2>🔒 Login လိုအပ်ပါသည်</h2><p class="home-login-required-message"><a href="/login" class="home-login-link">Login / Sign Up စာမျက်နှာသို့ သွားရန်</a></p></div>';
 }else{
   // Phase 13 — Option 2: Recent များကို Browser IndexedDB မှ ဖတ်သည်
   AICS_CREATIONS.list().then(function(items){
