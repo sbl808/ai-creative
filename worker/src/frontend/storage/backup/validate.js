@@ -130,6 +130,34 @@ function installBackupValidator(target, config) {
     optionalDate(record, 'createdAt');
   }
 
+  function validateUserSettings(record, ownerId) {
+    if (!isObject(record) || record.id !== ownerId || record.ownerId !== ownerId) {
+      throw fail('backup_owner_mismatch');
+    }
+    var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'updatedAt'];
+    if (Object.keys(record).some(function (key) { return allowedTop.indexOf(key) === -1; })) {
+      throw fail('backup_invalid_record');
+    }
+    var profile = record.profile === undefined ? {} : record.profile;
+    var settings = record.settings === undefined ? {} : record.settings;
+    var preferences = record.preferences === undefined ? {} : record.preferences;
+    if (!isObject(profile) || !isObject(settings) || !isObject(preferences)) {
+      throw fail('backup_invalid_record');
+    }
+    if (Object.keys(profile).some(function (key) { return key !== 'name'; }) ||
+        (hasOwn(profile, 'name') && (typeof profile.name !== 'string' || profile.name.length > 60))) {
+      throw fail('backup_invalid_record');
+    }
+    var allowedSettings = ['default_studio', 'default_voice', 'default_model', 'language', 'theme'];
+    if (Object.keys(settings).some(function (key) {
+      return allowedSettings.indexOf(key) === -1 || typeof settings[key] !== 'string' || settings[key].length > 100;
+    })) throw fail('backup_invalid_record');
+    if (Object.keys(preferences).some(function (key) {
+      return !/^[a-zA-Z0-9_]{1,32}$/.test(key) || typeof preferences[key] !== 'string' || preferences[key].length > 500;
+    })) throw fail('backup_invalid_record');
+    optionalDate(record, 'updatedAt');
+  }
+
   function validateIdea(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'ownerId');
     if (record.recordVersion !== 1 ||
@@ -162,16 +190,18 @@ function installBackupValidator(target, config) {
     }
     if (envelope.format !== formatId) throw fail('backup_format_unsupported');
     if (envelope.exportVersion !== exportVersion) throw fail('backup_export_version_unsupported');
-    if (envelope.schemaVersion !== schemaVersion && envelope.schemaVersion !== 6 && envelope.schemaVersion !== 5) {
+    if (![schemaVersion, 7, 6, 5].includes(envelope.schemaVersion)) {
       throw fail('backup_schema_version_unsupported');
     }
     if (!validDate(envelope.exportedAt)) throw fail('backup_invalid_exported_at');
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
-    var requiredStoreNames = envelope.schemaVersion < 7
-      ? storeNames.filter(function (name) { return name !== 'media_assets'; })
-      : storeNames;
+    var requiredStoreNames = storeNames.filter(function (name) {
+      if (envelope.schemaVersion < 7 && name === 'media_assets') return false;
+      if (envelope.schemaVersion < 8 && name === 'user_settings') return false;
+      return true;
+    });
     for (var s = 0; s < requiredStoreNames.length; s++) {
       if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
           !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
@@ -218,6 +248,7 @@ function installBackupValidator(target, config) {
           throw fail('backup_invalid_record');
         }
       },
+      user_settings: function (record) { validateUserSettings(record, expectedOwnerId); },
       drafts: function (record) {
         validateOwnerRecord(record, expectedOwnerId, 'ownerId');
         if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {

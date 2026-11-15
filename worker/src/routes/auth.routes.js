@@ -145,16 +145,10 @@ export async function handleAuthRoutes(request, env, cors, deps) {
           let userId;
           if (existing) {
             userId = existing.id;
-            // Phase 12 — Google မှ Name ပါလာပါက User နာမည် ဖြည့်ပေးသည် (Name ရှိပြီးသားဆိုလျှင် မပြောင်း)
-            if (user.name) {
-              try {
-                await env.DB.prepare('UPDATE users SET name = CASE WHEN name = \'\' THEN ? ELSE name END, updated_at = datetime(\'now\') WHERE id = ?').bind(String(user.name).slice(0, 60), userId).run();
-              } catch (e) { console.error('[AICS] update google name failed', String(e)); }
-            } else {
-              await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run();
-            }
+            // Profile Name is browser-local; only account metadata is updated in D1.
+            await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run();
           } else {
-            const ins = await env.DB.prepare('INSERT INTO users (email, name, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(user.email, String(user.name || '').slice(0, 60)).run();
+            const ins = await env.DB.prepare('INSERT INTO users (email, plan, created_at, updated_at) VALUES (?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(user.email).run();
             userId = ins.meta.last_row_id;
           }
 
@@ -204,12 +198,12 @@ export async function handleAuthRoutes(request, env, cors, deps) {
         const dup = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
         if (dup) return json({ error: 'email_taken', detail: 'ဒီ Email နဲ့ Account ရှိပြီးသားပါ။ Google Login သုံးပါ သို့မဟုတ် Sign in လုပ်ပါ။' }, 409, cors);
         const hash = await hashPassword(password);
-        const ins = await env.DB.prepare('INSERT INTO users (email, name, password_hash, plan, created_at, updated_at) VALUES (?, ?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, name, hash).run();
+        const ins = await env.DB.prepare('INSERT INTO users (email, password_hash, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, hash).run();
         const userId = ins.meta.last_row_id;
         const token = await signToken(env, { sub: String(userId), email, plan: 'FREE' });
         // Phase 12-fix — /app သို့ Browser Navigation မှာပါ Session ရှိစေရန် Cookie ကိုပါ ထည့်ပေးသည်
         const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, name, plan: 'FREE', user_id: String(userId) }, 201, { ...cors, 'Set-Cookie': sessionCookie });
+        return json({ ok: true, token, email, plan: 'FREE', user_id: String(userId) }, 201, { ...cors, 'Set-Cookie': sessionCookie });
       }
 
       // ===== Phase 12 — Email/Password Sign In =====
@@ -218,14 +212,14 @@ export async function handleAuthRoutes(request, env, cors, deps) {
         const email = String((body && body.email) || '').trim().toLowerCase();
         const password = String((body && body.password) || '');
         if (!email || !password || !env.DB) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const row = await env.DB.prepare('SELECT id, name, plan, expiry, password_hash FROM users WHERE email = ?').bind(email).first();
+        const row = await env.DB.prepare('SELECT id, plan, expiry, password_hash FROM users WHERE email = ?').bind(email).first();
         if (!row || !row.password_hash) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
         const okPass = await verifyPassword(password, row.password_hash);
         if (!okPass) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
         const token = await signToken(env, { sub: String(row.id), email, plan: row.plan || 'FREE' });
         // Phase 12-fix — Sign In ပြီးနောက် /app သို့ Browser Navigation အတွက် Cookie ပါ ထည့်ပေးသည်
         const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, name: row.name || '', plan: row.plan || 'FREE', user_id: String(row.id) }, 200, { ...cors, 'Set-Cookie': sessionCookie });
+        return json({ ok: true, token, email, plan: row.plan || 'FREE', user_id: String(row.id) }, 200, { ...cors, 'Set-Cookie': sessionCookie });
       }
 
   return null;
