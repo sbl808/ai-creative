@@ -932,9 +932,9 @@ console.log('\\n--- Home CSP markup contract ---');
 {
   const home = readFileSync(new URL('../worker/src/frontend/home.js', import.meta.url), 'utf8');
   check('Home page contains no inline style attributes',
-    !/\\sstyle\\s*=/i.test(home));
+    !/\sstyle\s*=/i.test(home));
   check('Home page contains no direct DOM style property access',
-    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(home));
+    !/\.style(?:\.|\s*\[|\s*=)/.test(home));
   check('Home loading and login-required markup use CSS classes',
     home.includes('class="home-loading"') &&
     home.includes('class="home-login-required"') &&
