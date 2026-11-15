@@ -58,17 +58,12 @@ assert.match(ideaUi, /aics_draft_shop/, 'Shop handoff draft key missing');
 assert.doesNotMatch(ideaUi, /id:'voice'/, 'Voice must not be an Ideas handoff target');
 assert.doesNotMatch(ideaUi, /aics_voice_transfer.*source:'ideas'/s, 'Ideas must not create a Voice transfer');
 
-const ideaVoiceBranch = voiceActions.match(/if\(d\.source==='ideas'\)\{([\s\S]*?)\n    \}else\{/);
-assert.ok(ideaVoiceBranch, 'Voice Idea handoff branch must exist');
-assert.match(
-  ideaVoiceBranch[1],
-  /VOICE_INPUTS=Object\.assign\(\{\},VOICE_INPUTS,\{tts:d\.text/,
-  'Voice Idea handoff must initialize Text-to-Voice inputs'
-);
-assert.doesNotMatch(
-  ideaVoiceBranch[1],
-  /MEDIA_AUDIO\s*=/,
-  'Voice Idea handoff must preserve legacy Subtitle audio until the approved migration task'
-);
+const ignoredIdeasTransfer = voiceActions.match(/function applyContentTransfer\(\)\{([\s\S]*?)\n\}/);
+assert.ok(ignoredIdeasTransfer, 'Voice transfer consumer must exist for Content/Shop');
+assert.match(ignoredIdeasTransfer[1], /if\(d\.source==='ideas'\)return;/, 'Voice must ignore Ideas-originated legacy transfer');
+assert.match(ignoredIdeasTransfer[1], /localStorage\.removeItem\('aics_voice_transfer'\)/, 'Voice must still consume unrelated Content/Shop transfers');
+const resetBlock = voiceActions.match(/function voiceReset\(\)\{([\s\S]*?)\n\}/);
+assert.ok(resetBlock, 'Voice reset handler must exist');
+assert.doesNotMatch(resetBlock[1], /aics_voice_transfer/, 'Voice reset must preserve legacy transfer data');
 
 console.log('Idea Workspace contract tests passed.');
