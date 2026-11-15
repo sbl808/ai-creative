@@ -751,5 +751,26 @@ console.log('\\n--- H) Backward-compatible backup Studio identifier validation -
     }));
 }
 
+
+console.log('\\n--- Admin UI CSP markup contract ---');
+{
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  check('Admin UI contains no inline event-handler attributes',
+    !/\s(onclick|onchange|oninput|onsubmit)\s*=/i.test(adminUi));
+  check('Admin UI contains no inline style attributes',
+    !/\sstyle\s*=/i.test(adminUi));
+  const actions = Array.from(adminUi.matchAll(/data-admin-action="([^"]+)"/g), (match) => match[1]);
+  const handlers = Array.from(adminUi.matchAll(/case '([^']+)'/g), (match) => match[1]);
+  check('every declared Admin UI action has a delegated handler',
+    actions.length > 0 && actions.every((action) => handlers.includes(action)));
+  check('Admin UI change controls use delegated change handlers',
+    adminUi.includes("document.addEventListener('change'") &&
+    adminUi.includes('data-admin-change="mfCat"') &&
+    adminUi.includes('data-admin-change="syncSubtitleType"'));
+  check('Plan Catalog toggle has a distinct handler from user plan changes',
+    adminUi.includes('function togglePlanCatalog(key,enabled){') &&
+    adminUi.includes("case 'togglePlanCatalog':togglePlanCatalog("));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
