@@ -13,6 +13,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { handleAuthRoutes, safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue } from '../worker/src/routes/auth.routes.js';
 import { validateBackupEnvelope } from '../worker/src/frontend/storage/backup/validate.js';
+import { ACTIONS_SCRIPT as shortActionsScript } from '../worker/src/frontend/studios/short/actions.js';
 
 // Node-only HTMLRewriter shim for this source-level test suite.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -991,6 +992,37 @@ console.log('\\n--- Story Video Plan UI CSP markup contract ---');
 
 
 
+
+console.log('\n--- Short Actions CSP contract ---');
+{
+  const shortActionsFile = readFileSync(new URL('../worker/src/frontend/studios/short/actions.js', import.meta.url), 'utf8');
+  check('Short Actions contain no direct DOM style properties or property event handlers',
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(shortActionsFile) &&
+    !/\\.(?:onclick|onchange)\\s*=/.test(shortActionsFile));
+  check('Short result and error visibility use the hidden property',
+    shortActionsScript.includes("sb.hidden=false") &&
+    shortActionsScript.includes("sb3.hidden=false"));
+  check('Short textarea auto-expand uses rows and computed content height',
+    shortActionsScript.includes('ta.rows=1') &&
+    shortActionsScript.includes('window.getComputedStyle') &&
+    shortActionsScript.includes('ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight))') &&
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(shortActionsFile));
+  check('Short edit and Video Script fill flows retain auto-expand calls',
+    shortActionsScript.includes('if(ta){currentShort=ta.value;autoExpand(ta);}') &&
+    shortActionsScript.includes("ta.value=currentShort||'';\\n  autoExpand(ta);"));
+  const autoExpandSource = shortActionsScript.match(/function autoExpand\\(ta\\)\\{[^}]*\\}/)?.[0];
+  let rowsAfterExpand = 0;
+  if (autoExpandSource) {
+    const autoExpand = vm.runInNewContext('(' + autoExpandSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+    });
+    const textarea = { value: 'one\\ntwo\\nthree', rows: 8, scrollHeight: 100 };
+    autoExpand(textarea);
+    rowsAfterExpand = textarea.rows;
+  }
+  check('Short auto-expand computes textarea rows without inline styles',
+    rowsAfterExpand === 4);
+}
 console.log('\n--- Story Actions CSP markup contract ---');
 {
   const storyActions = readFileSync(new URL('../worker/src/frontend/studios/story/actions.js', import.meta.url), 'utf8');
