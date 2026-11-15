@@ -20,10 +20,22 @@ for (const path of trackingFiles) {
   assert.doesNotMatch(source, /\btrackUsage(?:Safe)?\b/, 'Server-side usage tracking reference remains in ' + path);
 }
 
+const usersRoute = await readFile('worker/src/routes/users.routes.js', 'utf8');
+assert.doesNotMatch(usersRoute, /FROM\s+usage\b|\busage\s*,/, 'User API must not read or return D1 usage summaries');
+
+const adminApi = await readFile('worker/src/admin/api.js', 'utf8');
+assert.doesNotMatch(adminApi, /FROM\s+usage\b|JOIN\s+users\s+u\s+ON\s+u\.id=us\.user_id|\/api\/admin\/usage/, 'Admin API must not expose server-side usage analytics');
+
+const adminUi = await readFile('worker/src/admin/ui.js', 'utf8');
+assert.doesNotMatch(adminUi, /tabUsage|usageView|loadUsage|ai_today|voice_today|image_today|\/api\/admin\/usage/, 'Admin UI must not show server-side usage analytics');
+
+const settingsUi = await readFile('worker/src/frontend/settings.js', 'utf8');
+assert.doesNotMatch(settingsUi, /d\.usage|ai_requests|image_generations|voice_generations/, 'User settings must not display server-side usage counts');
+
 const workerEntry = await readFile('worker/src/index.js', 'utf8');
 assert.match(workerEntry, /enforceSharedAiRateLimit/, 'Shared AI rate limiting must remain enabled');
 
 const rateLimitSource = await readFile('worker/src/middleware/requestGuards.js', 'utf8');
 assert.match(rateLimitSource, /INSERT INTO api_generation_limits/, 'Generation rate-limit storage must remain intact');
 
-console.log('Server-side usage tracking is disabled; shared AI rate limiting remains enabled.');
+console.log('Server-side usage tracking and summaries are disabled; rate limiting remains enabled.');
