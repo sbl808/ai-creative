@@ -259,3 +259,4 @@ jobs:
           fi
 
           node scripts/story-video-plan-browser-e2e.mjs
+          node --experimental-default-type=module scripts/subtitle-studio-browser-e2e.mjs

@@ -7,12 +7,14 @@ import { resolveModel } from '../../core/aiModels.js';
 import { generateMultimodal } from '../../core/ai/aiService.js';
 
 // Only route-backed Studio integrations are enabled here.
-// Other Studio IDs remain reserved in the contract until their routes are verified.
+// Subtitle reuses the existing transcribe model task until model-task
+// configuration is migrated independently; no D1 model data is changed.
 const SRT_TASK_BY_STUDIO = Object.freeze({
   content: 'content.transcribe',
   voice: 'voice.transcribe',
   // Shop previously used Voice SRT; retain its provider task mapping during API isolation.
   shop: 'voice.transcribe',
+  subtitle: 'voice.transcribe',
 });
 
 function createSafeError(code) {

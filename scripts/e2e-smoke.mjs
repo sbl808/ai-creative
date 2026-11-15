@@ -188,6 +188,100 @@ async function checkStudio(browser, base, token, spec) {
   await ctx.close();
 }
 
+
+async function checkSubtitleStudio(browser, base, token) {
+  console.log('\n  [SUBTITLE] /app/subtitle');
+
+  // Verify the Home Dashboard card navigates to Subtitle Studio.
+  const homeCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await homeCtx.addCookies([{ name: 'aics_token', value: token, domain: '127.0.0.1', path: '/' }]);
+  await homeCtx.addInitScript((t) => {
+    localStorage.setItem('aics_token', t);
+    localStorage.setItem('aics_email', 'e2e@test.local');
+    localStorage.setItem('aics_plan', 'FREE');
+  }, token);
+  const homePage = await homeCtx.newPage();
+  const homeResp = await homePage.goto(base + '/app', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  record('Home Dashboard loads (HTTP 200)', !!homeResp && homeResp.status() === 200, 'status=' + (homeResp && homeResp.status()));
+  const subtitleCard = homePage.locator('[data-studio="subtitle"][data-home-action="navigate-studio"]');
+  record('Subtitle Studio card exists', await subtitleCard.count() === 1);
+  if (await subtitleCard.count() === 1) {
+    await subtitleCard.click();
+    await homePage.waitForURL('**/app/subtitle', { timeout: 8000 }).catch(() => {});
+  }
+  record('Home card navigates to Subtitle Studio', homePage.url().includes('/app/subtitle'), homePage.url());
+  await homeCtx.close();
+
+  // Test the actual page at desktop and mobile widths without uploading files
+  // or invoking any Subtitle processing/API action.
+  const viewports = [
+    { name: 'desktop', width: 1280, height: 900, expectColumns: 2 },
+    { name: 'mobile', width: 390, height: 844, expectColumns: 1 },
+  ];
+
+  for (const viewport of viewports) {
+    const ctx = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } });
+    await ctx.addCookies([{ name: 'aics_token', value: token, domain: '127.0.0.1', path: '/' }]);
+    await ctx.addInitScript((t) => {
+      localStorage.setItem('aics_token', t);
+      localStorage.setItem('aics_email', 'e2e@test.local');
+      localStorage.setItem('aics_plan', 'FREE');
+    }, token);
+    const page = await ctx.newPage();
+    console.log('    [' + viewport.name.toUpperCase() + ']');
+
+    const resp = await page.goto(base + '/app/subtitle', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    record(viewport.name + ': page loads (HTTP 200)', !!resp && resp.status() === 200, 'status=' + (resp && resp.status()));
+    await page.waitForSelector('#subtitleWorkflow', { state: 'visible', timeout: 8000 }).catch(() => {});
+    record(viewport.name + ': Subtitle Studio title', (await page.title()).includes('Subtitle Studio'));
+    record(viewport.name + ': main UI renders', await page.isVisible('#subtitleWorkflow'));
+    record(viewport.name + ': media input exists', await page.locator('#subtitleMediaFile').count() === 1);
+    record(viewport.name + ': SRT editor exists', await page.locator('#subtitleSrtInput').count() === 1);
+    record(viewport.name + ': status region exists', await page.locator('#subtitleStatus[aria-live="polite"]').count() === 1);
+
+    const layout = await page.evaluate(() => {
+      const grid = document.querySelector('.subtitle-grid');
+      const cards = document.querySelectorAll('.subtitle-card');
+      return {
+        viewportWidth: window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        columns: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0,
+        cards: cards.length,
+        mediaWithinViewport: (() => {
+          const input = document.querySelector('#subtitleMediaFile');
+          if (!input) return false;
+          const rect = input.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= window.innerWidth;
+        })(),
+        editorWithinViewport: (() => {
+          const editor = document.querySelector('#subtitleSrtInput');
+          if (!editor) return false;
+          const rect = editor.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= window.innerWidth;
+        })(),
+      };
+    });
+    record(viewport.name + ': no horizontal page overflow', layout.documentWidth <= layout.viewportWidth, JSON.stringify(layout));
+    record(viewport.name + ': expected card columns', layout.columns === viewport.expectColumns, JSON.stringify(layout));
+    record(viewport.name + ': media input fits viewport', layout.mediaWithinViewport);
+    record(viewport.name + ': SRT editor fits viewport', layout.editorWithinViewport);
+
+    const homeLink = page.locator('#sidebar a[href="/app"], .sidebar a[href="/app"], .nav-item[href="/app"]').first();
+    if (await homeLink.count() > 0) {
+      await homeLink.click().catch(() => {});
+      await page.waitForTimeout(300);
+      record(viewport.name + ': sidebar navigation returns Home', page.url().includes('/app') && !page.url().includes('/app/subtitle'));
+    } else {
+      record(viewport.name + ': sidebar navigation returns Home', false, 'no Home link found');
+    }
+
+    await page.goto(base + '/app/subtitle', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(300);
+    record(viewport.name + ': refresh keeps Subtitle UI available', await page.isVisible('#subtitleWorkflow'));
+    await ctx.close();
+  }
+}
+
 const { chromium } = await loadPlaywright();
 const { server, url, token } = await startE2EServer(0);
 

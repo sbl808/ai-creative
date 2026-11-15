@@ -1,6 +1,6 @@
 // AI Creative Studio — Home Page Frontend (Phase 9 — Dark Theme)
 // Replaces old generic light-theme frontend.js
-// Features: Sidebar nav, Hero banner, 6 Studio cards, Recent Projects, BYOK API Key setting
+// Features: Sidebar nav, Hero banner, 7 Studio cards, Recent Projects, BYOK API Key setting
 // Phase 2 — Sidebar + Helper Script များကို Shared Component (frontend/shared.js) မှ ယူသည်
 
 import { renderSidebar, sidebarScript } from './shared.js';
@@ -86,6 +86,7 @@ a{color:var(--cyan);text-decoration:none;}
 .card-short{background:linear-gradient(135deg,#3a2410,#2a1a0d);border-color:#ff9f2b;}
 .card-image{background:linear-gradient(135deg,#0f3320,#0b2418);border-color:var(--success);}
 .card-voice{background:linear-gradient(135deg,#3a1030,#2a0c24);border-color:#ff2ba0;}
+.card-subtitle{background:linear-gradient(135deg,#102d3a,#0b1d2c);border-color:#00e5ff;}
 .card-shop{background:linear-gradient(135deg,#3a2f0a,#2a2207);border-color:#ffcf2b;}
 .recent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
 .project-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
@@ -164,6 +165,11 @@ ${renderSidebar('home',{variant:'studio'})}
       <div class="title">အသံ Studio</div>
       <div class="desc" id="desc-voice">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
+    <div class="studio-card card-subtitle" data-studio="subtitle" role="link" tabindex="0" aria-label="Open subtitle studio" data-home-action="navigate-studio">
+      <div class="sparkle">✨</div><div class="bg-icon">💬</div>
+      <div class="title">Subtitle Studio</div>
+      <div class="desc" id="desc-subtitle">SRT ဖန်တီး၊ ပြင်ဆင်၊ ဘာသာပြန်ပါ</div>
+    </div>
     <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
       <div class="title">ရောင်းချရေး Studio</div>
@@ -208,7 +214,7 @@ document.addEventListener('click', function (event) {
   else if (type === 'navigate-creations') location.href = '/app/creations';
   else if (type === 'navigate-studio') {
     var studio = action.getAttribute('data-studio');
-    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
+    if (['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
   }
 });
 document.addEventListener('keydown', function (event) {
@@ -237,7 +243,8 @@ var CARD_MESSAGES={
   content:["AI ဖြင့် Content ရေးပါ","Facebook Content လွယ်ကူစွာ ဖန်တီးပါ"],
   short:["TikTok/Reels Script ဖန်တီးပါ","Short Video Idea ဖန်တီးပါ"],
   image:["AI Image Prompt ဖန်တီးပါ","ပုံလှလှလေးတွေ ဖန်တီးပါ"],
-  voice:["Voice နဲ့ Text ပြောင်းပါ","အသံဖိုင်ကို Subtitle ပြောင်းပါ"],
+  voice:["Text မှ အသံဖန်တီးပါ","Voice Audio ဖန်တီးပါ"],
+  subtitle:["SRT ဖန်တီး၊ ပြင်ဆင်၊ ဘာသာပြန်ပါ","Audio / Video မှ Subtitle ထုတ်ယူပါ"],
   shop:["Marketing Content ဖန်တီးပါ","ရောင်းအား တက်အောင် ကူညီပါ"]
 };
 function rotateCard(key,index){

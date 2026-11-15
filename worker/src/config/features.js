@@ -34,12 +34,15 @@ export const FEATURE_REGISTRY = {
 
   'image.prompt': { name: 'Image Prompt', nameMy: 'Image Prompt ရေးခြင်း', access: 'FREE', desc: 'Image Studio — Tab 1' },
   'image.ad_prompt': { name: 'Ad Image Prompt', nameMy: 'ကြော်ငြာပုံ Prompt', access: 'FREE', desc: 'Image Studio — Tab 2' },
-  'image.generate': { name: 'Image Generate', nameMy: 'ပုံထုတ်ခြင်း', access: 'FREE', desc: 'Image Studio — Generate' },
+  'image.generate': { name: 'Image Generate', nameMy: 'ပုံဖန်တီးခြင်း', access: 'FREE', desc: 'Image Studio — Generate' },
 
-  'voice.tts': { name: 'Voice TTS', nameMy: 'စာကို အသံပြောင်းခြင်း', access: 'FREE', desc: 'Voice Studio — Tab 1 (Text → Voice)' },
-  'voice.transcribe': { name: 'Voice Transcribe', nameMy: 'အသံကို စာပြောင်းခြင်း', access: 'FREE', desc: 'Voice Studio — Tab 2' },
-  'voice.srt': { name: 'Voice SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Voice Studio — SRT (PRO)' },
-  'voice.translate_srt': { name: 'Voice Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Voice Studio — Translate SRT (PRO)' },
+  'voice.tts': { name: 'Voice TTS', nameMy: 'စာကို အသံပြောင်းခြင်း', access: 'FREE', desc: 'Voice Studio — Text → Voice' },
+  'voice.transcribe': { name: 'Voice Transcribe', nameMy: 'အသံကို စာပြောင်းခြင်း', access: 'FREE', desc: 'Voice Studio — Legacy Transcribe' },
+  'voice.srt': { name: 'Voice SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Voice Studio — Legacy SRT (PRO)' },
+  'voice.translate_srt': { name: 'Voice Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Voice Studio — Legacy Translate SRT (PRO)' },
+
+  'subtitle.srt': { name: 'Subtitle SRT', nameMy: 'စာတန်းထိုး SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT generation (PRO)' },
+  'subtitle.translate_srt': { name: 'Subtitle Translate SRT', nameMy: 'စာတန်းထိုး ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT translation (PRO)' },
 
   'shop.content_generate': { name: 'Shop Content Generate', nameMy: 'ဈေး Content ရေးခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 1' },
   'shop.content_revise': { name: 'Shop Content Revise', nameMy: 'ဈေး Content ပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 2' },

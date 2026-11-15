@@ -17,6 +17,7 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { isAiGenerationRoute } from '../worker/src/middleware/requestGuards.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -532,6 +533,14 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
     msg: `statuses=${statuses.join(',')}` };
 });
 
+console.log('— Subtitle shared AI rate-limit route matching —');
+await check('Subtitle SRT and translation POST endpoints are included; non-POST is excluded', async () => {
+  const srt = isAiGenerationRoute('/api/studio/subtitle/srt', 'POST');
+  const translation = isAiGenerationRoute('/api/studio/subtitle/translate-srt', 'POST');
+  const get = isAiGenerationRoute('/api/studio/subtitle/srt', 'GET');
+  return { ok: srt && translation && !get, msg: 'srt=' + srt + ' translation=' + translation + ' get=' + get };
+});
+
 console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
 await check('Six Studios share one 30-request bucket; request 31 is blocked', async () => {
   const rateEnv = { ...env, DB: new MockD1({}) };
@@ -543,6 +552,8 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     '/api/studio/image/prompt',
     '/api/studio/voice/tts',
     '/api/studio/shop/content/generate',
+    '/api/studio/subtitle/srt',
+    '/api/studio/subtitle/translate-srt',
   ];
   const statuses = [];
   // Empty but valid JSON reaches each route's input validation after rate limiting.
@@ -554,7 +565,7 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/tts', {
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/translate-srt', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
   const blockedBody = await blocked.json();
@@ -831,17 +842,31 @@ const stage13Cases = [
   { path: '/api/studio/content/video-image', feature: 'content.video_image', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/content/srt', feature: 'content.srt', body: { audioBase64: 'YWJj' } },
   { path: '/api/studio/content/translate-srt', feature: 'content.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello' } },
+  { path: '/api/studio/subtitle/srt', feature: 'subtitle.srt', body: { audioBase64: 'YWJj', type: '2' } },
+  { path: '/api/studio/subtitle/translate-srt', feature: 'subtitle.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello', type: '2' } },
   { path: '/api/studio/short/video-image', feature: 'short.video_image', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/image/generate', feature: 'image.generate', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/shop/video-image', feature: 'shop.video_image', body: { prompt: 'test prompt', type: '1' } },
 ];
-await check('all six Stage 13 routes reject requests without a valid token', async () => {
+await check('all eight Stage 13 routes reject requests without a valid token', async () => {
   const statuses = [];
   for (const item of stage13Cases) {
     const r = await send(item.path, 'POST', {}, item.body);
     statuses.push(r.status);
   }
   return { ok: statuses.every(status => status === 401), msg: `statuses=${statuses.join(',')}` };
+});
+await check('Subtitle SRT endpoints validate required payloads without invoking AI', async () => {
+  const headers = await withToken();
+  const srt = await send('/api/studio/subtitle/srt', 'POST', headers, {});
+  const translation = await send('/api/studio/subtitle/translate-srt', 'POST', headers, {});
+  const srtBody = await srt.json();
+  const translationBody = await translation.json();
+  return {
+    ok: srt.status === 400 && srtBody.error === 'missing_audio' &&
+      translation.status === 400 && translationBody.error === 'missing_srt',
+    msg: `srt=${srt.status}/${srtBody.error} translate=${translation.status}/${translationBody.error}`,
+  };
 });
 await check('Admin-disabled Stage 13 features are blocked before any AI/provider call', async () => {
   env.DB.rows.users['user-1'] = { plan: 'FREE', expiry: null };

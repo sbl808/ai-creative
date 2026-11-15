@@ -8,7 +8,7 @@ const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
 export function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
   if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
-  return /^\/api\/studio\/(?:content|story|short|image|voice|shop)(?:\/.*)?$/.test(path) &&
+  return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(path) &&
     /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
 
