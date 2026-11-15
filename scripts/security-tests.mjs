@@ -1240,5 +1240,31 @@ console.log('\n--- Image Studio CSP contract ---');
     rowsAfterExpand === 4, 'rows=' + rowsAfterExpand);
 }
 
+
+console.log('\n--- Shop Actions CSP event contract ---');
+{
+  const shopActions = readFileSync(new URL('../worker/src/frontend/studios/shop/actions.js', import.meta.url), 'utf8');
+  check('Shop Actions use delegated events instead of onclick/onchange property handlers',
+    !/\.(?:onclick|onchange)\s*=/.test(shopActions) &&
+    shopActions.includes("data-shop-action','removeShopReference") &&
+    shopActions.includes("data-shop-action','shopSelectType"));
+  check('Shop reference removal is delegated and remains scoped to its preview list',
+    shopActions.includes("data-shop-arg1',id") &&
+    shopActions.includes("data-shop-arg2',String(idx)") &&
+    shopActions.includes('refPreviewContent:refImagesContent') &&
+    shopActions.includes('refPreviewVideo:refImagesVideo') &&
+    shopActions.includes('refPreviewImage:refImagesImage') &&
+    shopActions.includes('list.splice(index,1)'));
+  check('Shop type selection keeps the PRO gate and persists the selected video type',
+    shopActions.includes("el.getAttribute('data-shop-pro')==='true'&&USER_PLAN!=='PRO'") &&
+    shopActions.includes("containerId==='videoTypes'") &&
+    shopActions.includes('shopState.video.input.type=videoType') &&
+    shopActions.includes('scheduleSave()'));
+  check('Shop delegated dispatcher allows both dynamically rendered actions',
+    shopActions.includes("'removeShopReference'") &&
+    shopActions.includes("'shopSelectType'") &&
+    shopActions.includes("['click','input','change','keydown'].forEach"));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);

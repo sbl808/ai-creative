@@ -93,7 +93,11 @@ function renderRefPreview(id,arr){
     var d=document.createElement('div');d.className='ref-thumb';
     var im=document.createElement('img');im.src='data:'+img.mimeType+';base64,'+img.base64;
     var x=document.createElement('button');x.className='remove-x';x.textContent='✕';
-    x.onclick=function(){arr.splice(idx,1);renderRefPreview(id,arr);scheduleSave();};
+    x.type='button';
+    x.setAttribute('data-shop-event','click');
+    x.setAttribute('data-shop-action','removeShopReference');
+    x.setAttribute('data-shop-arg1',id);
+    x.setAttribute('data-shop-arg2',String(idx));
     d.appendChild(im);d.appendChild(x);c.appendChild(d);
   });
 }
@@ -107,15 +111,43 @@ function buildTypes(containerId,types,varName){
     var d=document.createElement('div');
     d.className='type-chip'+(t.pro?' pro':'')+(t.val==='1'?' active':'');
     d.setAttribute('data-val',t.val);
+    d.setAttribute('data-shop-event','click');
+    d.setAttribute('data-shop-action','shopSelectType');
+    d.setAttribute('data-shop-pass','element');
+    d.setAttribute('data-shop-container',containerId);
+    d.setAttribute('data-shop-pro',t.pro?'true':'false');
     d.textContent=t.label;
-    d.onclick=function(){
-      if(t.pro&&USER_PLAN!=='PRO'){showToast('ဒီ Type ကို Pro User သာ သုံးနိုင်ပါတယ်','error');return;}
-      c.querySelectorAll('.type-chip').forEach(function(x){x.classList.remove('active');});
-      d.classList.add('active');
-      if(varName==='video'){videoType=t.val;shopState.video.input.type=t.val;scheduleSave();}
-    };
     c.appendChild(d);
   });
+}
+function removeShopReference(previewId,index){
+  var lists={
+    refPreviewContent:refImagesContent,
+    refPreviewVideo:refImagesVideo,
+    refPreviewImage:refImagesImage
+  };
+  var list=lists[previewId];
+  if(!list||!Number.isInteger(index)||index<0||index>=list.length)return;
+  list.splice(index,1);
+  renderRefPreview(previewId,list);
+  scheduleSave();
+}
+function shopSelectType(el){
+  if(!el)return;
+  if(el.getAttribute('data-shop-pro')==='true'&&USER_PLAN!=='PRO'){
+    showToast('ဒီ Type ကို Pro User သာ သုံးနိုင်ပါတယ်','error');
+    return;
+  }
+  var containerId=el.getAttribute('data-shop-container');
+  var container=document.getElementById(containerId);
+  if(!container)return;
+  container.querySelectorAll('.type-chip').forEach(function(chip){chip.classList.remove('active');});
+  el.classList.add('active');
+  if(containerId==='videoTypes'){
+    videoType=el.getAttribute('data-val')||'1';
+    shopState.video.input.type=videoType;
+    scheduleSave();
+  }
 }
 function setTypeChip(containerId,val){
   var c=document.getElementById(containerId);
@@ -377,7 +409,7 @@ function goImageBranch(){
 /* CSP-safe Shop event delegation. */
 (function installShopDelegatedEvents(){
  if(window.__aicsShopDelegationInstalled)return;window.__aicsShopDelegationInstalled=true;
- var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','handoffShopAudioToSubtitle','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav']);
+ var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','handoffShopAudioToSubtitle','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav','removeShopReference','shopSelectType']);
  function dispatch(event){var el=event.target&&event.target.closest?event.target.closest('[data-shop-action]'):null;if(!el||!el.closest('.aics-work'))return;var expected=el.getAttribute('data-shop-event');if(expected&&expected!==event.type)return;if(event.type==='keydown'&&(event.key!=='Enter'||el.getAttribute('data-shop-key')!=='Enter'))return;var action=el.getAttribute('data-shop-action');if(action==='set-content-type'){contentType=el.value;return;}if(!allowed.has(action)||typeof window[action]!=='function')return;var args=[],pass=el.getAttribute('data-shop-pass');if(pass==='element')args=[el];else if(pass==='index')args=[Number(el.getAttribute('data-shop-index')||0)];else if(pass==='step')args=[Number(el.getAttribute('data-step')||1)];else{var a=el.getAttribute('data-shop-arg1'),b=el.getAttribute('data-shop-arg2');if(a!==null)args.push(a);if(b!==null)args.push(b);}window[action].apply(window,args);}
  ['click','input','change','keydown'].forEach(function(type){document.addEventListener(type,dispatch);});
 })();
