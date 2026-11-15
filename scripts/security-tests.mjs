@@ -1203,11 +1203,12 @@ console.log('\n--- Image Studio CSP contract ---');
   const imageApi = readFileSync(new URL('../worker/src/frontend/studios/image/api.js', import.meta.url), 'utf8');
   const imagePage = readFileSync(new URL('../worker/src/frontend/studios/image/page.js', import.meta.url), 'utf8');
   const imageSources = [imageActions, imageApi, imagePage];
-  check('Image Studio fragments contain no inline style attributes, direct style properties, or property event handlers',
+  check('Image Studio fragments contain no inline style attributes, direct height/display style writes, or property event handlers',
     imageSources.every((source) =>
-      !/\\sstyle\\s*=/i.test(source) &&
-      !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(source) &&
-      !/\\.(?:onclick|onchange)\\s*=/.test(source)));
+      !/\sstyle\s*=/i.test(source) &&
+      !/\b[A-Za-z_$][\w$]*\.style\.(?:height|display)\b/.test(source) &&
+      !/\b[A-Za-z_$][\w$]*\.style\s*\[/.test(source) &&
+      !/\.(?:onclick|onchange)\s*=/.test(source)));
   check('Image login and app visibility use CSS classes with matching rules',
     imageApi.includes("loginView.classList.remove('is-hidden')") &&
     imageApi.includes("app.classList.add('image-auth-hidden')") &&
@@ -1221,8 +1222,8 @@ console.log('\n--- Image Studio CSP contract ---');
     imageActions.includes('ta.rows=1') &&
     imageActions.includes('window.getComputedStyle') &&
     imageActions.includes('ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight))') &&
-    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(imageActions));
-  const autoExpandSource = imageActions.match(/function autoExpand\\(ta\\)\\{[^}]*\\}/)?.[0];
+    !/\bta\.style\.(?:height|display)\b/.test(imageActions));
+  const autoExpandSource = imageActions.match(/function autoExpand\(ta\)\{[^}]*\}/)?.[0];
   let rowsAfterExpand = 0;
   if (autoExpandSource) {
     const autoExpand = vm.runInNewContext('(' + autoExpandSource + ')', {
