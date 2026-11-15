@@ -21,6 +21,10 @@ function normalizeCMSPrompt(input) {
   values[2] = values[2].trim();
   if (!values[0] || !values[1] || !values[2]) throw new Error('missing_cms_prompt_fields');
   if (!['FREE', 'PRO'].includes(values[1])) throw new Error('invalid_cms_plan');
+  // Canonical Subtitle operations are PRO-only; enforce this server-side too.
+  if (values[0] === 'SUBTITLE' && ['SRT_GENERATE', 'SRT_TRANSLATE'].includes(values[2])) {
+    values[1] = 'PRO';
+  }
   if (values[0].length > 64 || values[2].length > 64) throw new Error('invalid_cms_prompt_scope');
   return values;
 }

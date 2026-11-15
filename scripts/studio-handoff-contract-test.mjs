@@ -13,7 +13,7 @@ assert.equal(getStudioDefinition('story').route, '/app/story');
 assert.equal(getStudioDefinition('unknown'), null);
 assert.deepEqual(
   STUDIO_HANDOFF_TARGETS.map((studio) => studio.id),
-  ['story', 'content', 'short', 'image', 'voice', 'shop'],
+  ['story', 'content', 'short', 'image', 'voice', 'shop', 'subtitle'],
 );
 assert.ok(Object.isFrozen(STUDIO_REGISTRY));
 assert.ok(Object.isFrozen(STUDIO_HANDOFF_TARGETS));
@@ -28,6 +28,14 @@ assert.equal(handoff.contractVersion, 1);
 assert.equal(handoff.source, 'ideas');
 assert.equal(handoff.target, 'story');
 assert.equal(validateStudioHandoff(handoff).ok, true);
+
+const subtitleHandoff = createStudioHandoff({
+  source: 'shop',
+  target: 'subtitle',
+  payload: { kind: 'shop-audio-reference', audioId: 'audio-123' },
+});
+assert.equal(subtitleHandoff.target, 'subtitle');
+assert.equal(validateStudioHandoff(subtitleHandoff).ok, true);
 
 assert.throws(() => createStudioHandoff({
   source: 'unknown',

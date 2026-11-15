@@ -61,7 +61,6 @@ var audioState = { content: '', input: {}, result: null, status: 'idle' };
 var lastResult = null;
 var videoPlan = null;
 var currentAudioBase64 = null;
-var currentDirection = 'my-to-cn';
 var imgCache = {};
 var csBusy = false;
 var effectiveVoiceName = 'Kore'; // Audio Branch — Male/Female select မှ နောက်ဆုံး ရွေးထားသော အသံ

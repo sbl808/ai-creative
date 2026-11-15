@@ -840,15 +840,13 @@ await check('Feature Gate denies access when the settings database query throws'
 console.log('— Stage 13: feature-gate coverage for image and SRT routes —');
 const stage13Cases = [
   { path: '/api/studio/content/video-image', feature: 'content.video_image', body: { prompt: 'test prompt', type: '1' } },
-  { path: '/api/studio/content/srt', feature: 'content.srt', body: { audioBase64: 'YWJj' } },
-  { path: '/api/studio/content/translate-srt', feature: 'content.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello' } },
   { path: '/api/studio/subtitle/srt', feature: 'subtitle.srt', body: { audioBase64: 'YWJj', type: '2' } },
   { path: '/api/studio/subtitle/translate-srt', feature: 'subtitle.translate_srt', body: { srtText: '1\\n00:00:00,000 --> 00:00:01,000\\nHello', type: '2' } },
   { path: '/api/studio/short/video-image', feature: 'short.video_image', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/image/generate', feature: 'image.generate', body: { prompt: 'test prompt', type: '1' } },
   { path: '/api/studio/shop/video-image', feature: 'shop.video_image', body: { prompt: 'test prompt', type: '1' } },
 ];
-await check('all eight Stage 13 routes reject requests without a valid token', async () => {
+await check('all six remaining Stage 13 routes reject requests without a valid token', async () => {
   const statuses = [];
   for (const item of stage13Cases) {
     const r = await send(item.path, 'POST', {}, item.body);
@@ -880,7 +878,7 @@ await check('Admin-disabled Stage 13 features are blocked before any AI/provider
       failures.push(item.path + ': status=' + r.status + ' error=' + body.error);
     }
   }
-  return { ok: failures.length === 0, msg: failures.join('; ') || 'all six returned 403 feature_disabled' };
+  return { ok: failures.length === 0, msg: failures.join('; ') || 'all remaining routes returned 403 feature_disabled' };
 });
 
 console.log('— Admin page —');
@@ -989,13 +987,23 @@ await check('Shared Audio Engine maps Content and Voice audio task IDs', async (
   };
 });
 
-await check('Content Studio routes Audio → SRT through the shared Content SRT adapter', async () => {
+await check('Content Studio no longer exposes SRT routes or backend exports', async () => {
+  const routes = await readFile(new URL('../worker/src/routes/studios/content.routes.js', import.meta.url), 'utf8');
+  const entry = await readFile(new URL('../worker/src/studios/content/index.js', import.meta.url), 'utf8');
   const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  const removed = [
+    !routes.includes('/api/studio/content/srt'),
+    !routes.includes('/api/studio/content/translate-srt'),
+    !entry.includes('generateContentSrt'),
+    !entry.includes('translateContentSrt'),
+    !source.includes('generateContentSrt'),
+    !source.includes('translateContentSrt'),
+    !source.includes("media-adapters/content/srt.adapter.js"),
+    !source.includes("media-adapters/content/translation.adapter.js"),
+  ];
   return {
-    ok: source.includes("from '../media-adapters/content/srt.adapter.js'") &&
-      source.includes('generateContentSrtShared(env, {') &&
-      !source.includes('generateMultimodal(env,'),
-    msg: 'Content SRT uses the shared adapter; direct multimodal execution is removed from the Studio',
+    ok: removed.every(Boolean),
+    msg: 'Content SRT routes, public exports, implementations and adapter imports are absent',
   };
 });
 
@@ -1035,28 +1043,16 @@ await check('Voice Studio routes TTS and transcription through shared Voice adap
     msg: 'Voice TTS/transcription use shared adapters and retain the CMS prompt',
   };
 });
-await check('Voice and Content SRT workflows remain Studio-owned', async () => {
-  const content = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+await check('Voice SRT workflows remain Voice-owned', async () => {
   const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
   return {
-    ok: content.includes('export async function generateContentSrt(') &&
-      content.includes('export async function translateContentSrt(') &&
-      voice.includes('export async function generateVoiceSrt(') &&
+    ok: voice.includes('export async function generateVoiceSrt(') &&
       voice.includes('export async function translateVoiceSrt('),
-    msg: 'Existing SRT generation and translation exports remain present',
+    msg: 'Voice SRT generation and translation exports remain present',
   };
 });
 
 console.log('— Shared Translation Studio integration contracts —');
-await check('Content Studio routes SRT translation through the shared Content translation adapter', async () => {
-  const source = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
-  return {
-    ok: source.includes("from '../media-adapters/content/translation.adapter.js'") &&
-      source.includes('return translateContentSrtShared(env, { srtText, direction, apiKey, model });') &&
-      !source.includes("task: 'content.transcribe'"),
-    msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
-  };
-});
 await check('Voice Studio routes SRT translation through the shared Voice translation adapter', async () => {
   const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
   return {

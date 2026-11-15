@@ -7,6 +7,7 @@ export const SUBTITLE_HOME_HTML = `
       <h2 id="subtitleCreateTitle">🎧 Audio / Video မှ SRT ဖန်တီးရန်</h2>
       <p>ဖိုင်ကို ရွေးပြီး SRT ဖန်တီးပါ။ ဖိုင်အရွယ်အစား 5MB အထိသာ လက်ခံပါသည်။</p>
       <label for="subtitleMediaFile">Media ဖိုင်</label><input id="subtitleMediaFile" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv">
+      <p class="subtitle-note" id="subtitleHandoffStatus" role="status" aria-live="polite">Shop Studio မှ Audio ပို့ထားပါက ဒီနေရာတွင် အလိုအလျောက် ချိတ်ဆက်ပေးပါမည်။</p>
       <label for="subtitleKnownText">ရှိပြီးသား စာသား (ရွေးချယ်နိုင်သည်)</label><textarea id="subtitleKnownText" rows="3" placeholder="ရှိပြီးသား စာသားရှိပါက ထည့်ပါ"></textarea>
       <div class="subtitle-actions"><button type="button" class="subtitle-button" id="subtitleGenerateBtn">SRT ဖန်တီးရန်</button></div>
     </section>

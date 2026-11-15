@@ -14,6 +14,7 @@ const definitions = [
   { id: 'image', label: 'Image', route: '/app/image', canReceiveHandoff: true },
   { id: 'voice', label: 'Voice', route: '/app/voice', canReceiveHandoff: true },
   { id: 'shop', label: 'Shop', route: '/app/shop', canReceiveHandoff: true },
+  { id: 'subtitle', label: 'Subtitle', route: '/app/subtitle', canReceiveHandoff: true },
 ];
 
 export const STUDIO_REGISTRY = Object.freeze(

@@ -107,35 +107,6 @@ ${aicsResultLoadingHtml('audioLoading','AI က သင့်အတွက် အ�
 <button class="btn-ghost" data-aics-action="download-audio">&#128190; Save Audio</button>
 </div>
 </div>
-<div class="card">
-<div class="card-title"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg> SRT &amp; ဘာသာပြန်</div>
-<p class="voice-hint">Generate Voice နှိပ်ပြီးပြီးရင် SRT ကို အလိုအလျောက် ထုတ်နိုင်ပါတယ်။ Box ထဲမှာ တိုက်ရိုက် ပြင်ဆင်နိုင်ပါတယ်။</p>
-<div class="btn-row" style="margin-top:12px;">
-<button class="btn btn-secondary" id="srtBtn" data-aics-action="generate-srt">&#128221; Generate SRT (မူရင်း)</button>
-</div>
-<div class="loading" id="srtLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> SRT ထုတ်နေပါသည်...</div>
-<div class="error-box" id="srtError" role="alert" aria-live="assertive"></div>
-<textarea class="srt-box" id="resultSrt" placeholder="Generate Voice ပြီးရင် (သို့) ဒီခလုတ်ကို နှိပ်ရင် SRT ဒီနေရာမှာ ပေါ်ပါမယ်"></textarea>
-<div class="btn-row">
-<button class="btn-ghost" data-aics-action="copy-result-srt">&#128203; Copy SRT</button>
-<button class="btn-ghost" data-aics-action="download-result-srt">&#128190; Save .srt</button>
-</div>
-<hr class="divider">
-<p class="voice-hint">ဘာသာပြန်လိုသော ဘက်ကို ရွေးပြီး "ဘာသာပြန်ရန်" နှိပ်ပါ —</p>
-<div class="direction-row">
-<button class="btn btn-secondary" id="translateBtn" data-aics-action="translate-srt">&#127760; ဘာသာပြန်ရန်</button>
-<button type="button" class="direction-chip selected" data-dir="my-to-cn" aria-pressed="true" data-aics-action="select-direction">မြန်မာ → တရုတ်</button>
-<button type="button" class="direction-chip" data-dir="cn-to-my" aria-pressed="false" data-aics-action="select-direction">တရုတ် → မြန်မာ</button>
-</div>
-<div class="loading" id="translateLoading" role="status" aria-live="polite" aria-atomic="true"><div class="spinner"></div> ဘာသာပြန်နေပါသည်...</div>
-<div class="error-box" id="translateError" role="alert" aria-live="assertive"></div>
-<div class="result-label" id="translatedLabel" style="display:none;">&#9989; ဘာသာပြန်ထားသော SRT</div>
-<textarea class="srt-box" id="resultSrtTranslated" placeholder="('ဘာသာပြန်ရန်' ခလုတ်ကို နှိပ်ပါက ဒီနေရာတွင် ပေါ်ပါမည်)"></textarea>
-<div class="btn-row">
-<button class="btn-ghost" data-aics-action="copy-translated-srt">&#128203; Copy SRT</button>
-<button class="btn-ghost" data-aics-action="download-translated-srt">&#128190; Save .srt</button>
-</div>
-</div>
 <div class="btn-row">
 <button class="btn btn-secondary" data-aics-action="back-to-content-result">&#8592; Content ရလဒ်သို့ ပြန်ရန်</button>
 <button class="btn btn-purple" data-aics-action="save-content-result">&#128190; ဖန်တီးမှုသိမ်းပါ</button>

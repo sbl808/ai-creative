@@ -105,7 +105,7 @@ ${TASK_INSTRUCTIONS_NAV}
         </div>
         <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" onclick="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
       </section>
-      <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
+      <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Type (e.g. SRT_GENERATE)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
       <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
 ${TASK_INSTRUCTIONS_VIEW}
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
@@ -118,7 +118,7 @@ ${TASK_INSTRUCTIONS_VIEW}
     </main>
   </section>
 </div>
-<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" onclick="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" style="width:100%"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" onclick="closeForm()">Cancel</button><button class="btn primary" onclick="save()">Save Changes</button></div></div></div></div>
+<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" onclick="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%" onchange="syncSubtitleType()"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" placeholder="Sub-Type" style="width:100%"><select id="iSubtitleType" class="hidden" style="width:100%" aria-label="Subtitle prompt type" onchange="syncSubtitleType(this.value)"><option value="SRT_GENERATE">SRT_GENERATE · Generate</option><option value="SRT_TRANSLATE">SRT_TRANSLATE · Translate</option></select></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" onclick="closeForm()">Cancel</button><button class="btn primary" onclick="save()">Save Changes</button></div></div></div></div>
 </div>
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
@@ -140,6 +140,7 @@ var STUDIO_GROUPS=[
   {g:'Short', v:[['SHORT','စာသား'],['SHORTVIDEO','ဗီဒီယို']]},
   {g:'Image', v:[['IMAGE','ပုံ']]},
   {g:'Voice', v:[['VOICE','အသံ']]},
+  {g:'Subtitle', v:[['SUBTITLE','စာတန်းထိုး']]},
   {g:'Shop', v:[['SHOPCONTENT','စာသား'],['SHOPVIDEO','ဗီဒီယို']]},
   {g:'Ideas', v:[['IDEAS','အကြံဉာဏ်']]}
 ];
@@ -474,12 +475,31 @@ function renderList(){
     var c=document.createElement('div');
     c.className='card';
     c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
-      '<div><b>'+esc(studioLabel(it.studio))+'</b> <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · Sub-Type '+esc(it.type)+'</div>'+
+      '<div><b>'+esc(studioLabel(it.studio))+'</b> <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · Type '+esc(it.type)+'</div>'+
       '<span><button class="btn sm" onclick="copyRow('+it.id+')">📋</button> <button class="btn sm" onclick="addEdit('+it.id+')">✏️</button> <button class="btn sm red" onclick="del('+it.id+')">🗑️</button></span></div>'+
       '<div style="font-size:12px;color:#6B7280;margin-top:6px;"><b>core:</b> '+esc((it.core||'').slice(0,80))+'</div>'+
       '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><b>prompt:</b> '+esc((it.prompt||'').slice(0,80))+'</div>';
     list.appendChild(c);
   });
+}
+
+function syncSubtitleType(type){
+  var isSubtitle=$('iStudio').value==='SUBTITLE';
+  $('iType').classList.toggle('hidden',isSubtitle);
+  $('iSubtitleType').classList.toggle('hidden',!isSubtitle);
+  if(isSubtitle){
+    var value=type||$('iSubtitleType').value||'SRT_GENERATE';
+    var known=value==='SRT_GENERATE'||value==='SRT_TRANSLATE';
+    var legacy=$('iSubtitleType').querySelector('option[data-legacy="1"]');
+    if(legacy)legacy.remove();
+    if(!known){var option=document.createElement('option');option.value=value;option.textContent='Legacy: '+value;option.setAttribute('data-legacy','1');$('iSubtitleType').appendChild(option);}
+    $('iSubtitleType').value=value;
+    $('iPlan').disabled=known;
+    if(known)$('iPlan').value='PRO';
+  }else{
+    $('iPlan').disabled=false;
+    if(type)$('iType').value=type;
+  }
 }
 
 function addEdit(id){
@@ -490,6 +510,7 @@ function addEdit(id){
   $('iStudio').value=it?it.studio:'STORY';
   $('iPlan').value=it?it.plan:'FREE';
   $('iType').value=it?it.type:'1';
+  syncSubtitleType(it?it.type:'1');
   FIELDS.forEach(function(f){$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value=it?(it[f]||''):'';});
   $('formWrap').classList.remove('hidden');
   window.scrollTo(0,0);
@@ -503,13 +524,15 @@ function copyRow(id){
   $('iStudio').value=it.studio||'STORY';
   $('iPlan').value=it.plan||'FREE';
   $('iType').value=it.type||'1';
+  syncSubtitleType(it.type||'SRT_GENERATE');
   FIELDS.forEach(function(f){$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value=it[f]||'';});
 }
 
 function closeForm(){$('formWrap').classList.add('hidden');}
 
 function save(){
-  var data={studio:$('iStudio').value,plan:$('iPlan').value,type:$('iType').value};
+  var studio=$('iStudio').value;
+  var data={studio:studio,plan:$('iPlan').value,type:studio==='SUBTITLE'?$('iSubtitleType').value:$('iType').value};
   FIELDS.forEach(function(f){data[f]=$('i'+f.charAt(0).toUpperCase()+f.slice(1)).value;});
   var url='/api/cms'+(editingId?'/'+editingId:'');
   api(url,editingId?'PUT':'POST',data).then(function(d){

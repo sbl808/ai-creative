@@ -104,69 +104,6 @@ function downloadAudio(){
   URL.revokeObjectURL(url);
 }
 
-// ===== SRT & Translate (Existing — Audio Result တွင် ဆက်သုံးသည်) =====
-function generateSrt(){
-  if(csBusy)return;
-  if(!currentAudioBase64){showError('srtError','အရင် Generate Voice ကို နှိပ်ပါ — Audio မရှိသေးပါ။');return;}
-  var byok=(document.getElementById('byokInput')||{value:''}).value.trim();
-  hideError('srtError');
-  csBusy=true;
-  setGenButtonsDisabled(true);
-  setLoading('srtLoading',true);
-  document.getElementById('srtBtn').disabled=true;
-  var body={audioBase64:currentAudioBase64,mimeType:'audio/wav'};
-  if(byok)body.apiKey=byok;
-  apiCall('/api/studio/content/srt',body)
-    .then(function(data){
-      document.getElementById('resultSrt').value=data.srt||'';
-    })
-    .catch(function(err){
-      console.error(err);
-      showError('srtError','SRT ထုတ်ရာတွင် အခက်အခဲရှိနေပါသည်။ ပြန်ကြိုးစားပါ။');
-    })
-    .finally(function(){setLoading('srtLoading',false);setGenButtonsDisabled(false);document.getElementById('srtBtn').disabled=false;csBusy=false;});
-}
-function selectDirection(chip){
-  var chips=document.querySelectorAll('.direction-chip');
-  for(var i=0;i<chips.length;i++)chips[i].classList.remove('selected');
-  chip.classList.add('selected');
-  currentDirection=chip.getAttribute('data-dir');
-}
-function translateSrt(){
-  if(csBusy)return;
-  var srtText=(document.getElementById('resultSrt').value||'').trim();
-  if(!srtText){showError('translateError','မူရင်း SRT မရှိသေးပါ — Generate SRT ကို အရင်နှိပ်ပါ။');return;}
-  var byok=(document.getElementById('byokInput')||{value:''}).value.trim();
-  hideError('translateError');
-  csBusy=true;
-  setGenButtonsDisabled(true);
-  setLoading('translateLoading',true);
-  document.getElementById('translateBtn').disabled=true;
-  var body={srtText:srtText,direction:currentDirection};
-  if(byok)body.apiKey=byok;
-  apiCall('/api/studio/content/translate-srt',body)
-    .then(function(data){
-      document.getElementById('resultSrtTranslated').value=data.srt||'';
-      document.getElementById('translatedLabel').style.display='block';
-    })
-    .catch(function(err){
-      console.error(err);
-      showError('translateError','ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ပြန်ကြိုးစားပါ။');
-    })
-    .finally(function(){setLoading('translateLoading',false);setGenButtonsDisabled(false);document.getElementById('translateBtn').disabled=false;csBusy=false;});
-}
-function downloadSrt(elementId,filename){
-  var text=document.getElementById(elementId).value;
-  if(!text||!text.trim()){showToastMsg('SRT မရှိသေးပါ');return;}
-  var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download=filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // ===== Result — Save / Copy / Export (Existing ကို မဖျက်ပါ) =====
 function buildResultText(){
   var parts=[];

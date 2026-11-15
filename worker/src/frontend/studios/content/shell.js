@@ -66,9 +66,6 @@ function studioCollectDraft(){
     audioDirection:val('audioDirection'),
     audioEmotion:val('audioEmotion'),
     audioPronunciation:val('audioPronunciation'),
-    srt:val('resultSrt'),
-    srtTranslated:val('resultSrtTranslated'),
-    direction:currentDirection,
     lastResult:lastResult,
     videoPlan:videoPlan,
     audio:currentAudioBase64
@@ -127,9 +124,6 @@ function studioRestoreDraft(d){
   setVal('audioEmotion',d.audioEmotion);
   setVal('audioPronunciation',d.audioPronunciation);
   updateConditionalFields();
-  setVal('resultSrt',d.srt);
-  setVal('resultSrtTranslated',d.srtTranslated);
-  if(d.direction)currentDirection=d.direction;
   lastResult=d.lastResult||null;
   videoPlan=d.videoPlan||null;
   currentAudioBase64=d.audio||null;

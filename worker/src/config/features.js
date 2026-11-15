@@ -19,8 +19,6 @@ export const FEATURE_REGISTRY = {
   'content.tts': { name: 'Content TTS', nameMy: 'အသံပြောင်းခြင်း (TTS)', access: 'FREE', desc: 'Content Studio — Tab 3' },
   'content.video': { name: 'Content Video Plan', nameMy: 'Video Plan ရေးခြင်း', access: 'FREE', desc: 'Content Studio — Tab 4' },
   'content.video_image': { name: 'Content Video Image', nameMy: 'Video ပုံဖန်တီးခြင်း', access: 'FREE', desc: 'Content Studio — Video Image' },
-  'content.srt': { name: 'Content SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'FREE', desc: 'Content Studio — SRT' },
-  'content.translate_srt': { name: 'Content Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'FREE', desc: 'Content Studio — Translate SRT' },
 
   'story.generate': { name: 'Story Generate', nameMy: 'ဇာတ်လမ်းရေးခြင်း', access: 'FREE', desc: 'Story Studio — Tab 1' },
   'story.revise': { name: 'Story Revise', nameMy: 'ဇာတ်လမ်းပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Story Studio — Tab 2' },

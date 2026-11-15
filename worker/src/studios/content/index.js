@@ -5,6 +5,4 @@ export {
   generateContentVoice,
   generateContentVideo,
   generateContentVideoImage,
-  generateContentSrt,
-  translateContentSrt,
 } from '../content.js';

@@ -159,7 +159,7 @@ function scrollToRevise(){
 function setGenButtonsDisabled(off){
   var acts=document.querySelectorAll('.aics-actions .aics-act');
   for(var i=0;i<acts.length;i++)acts[i].disabled=off;
-  var ids=['genBtn','videoGenBtn','voiceBtn','reviseBtn','srtBtn','translateBtn'];
+  var ids=['genBtn','videoGenBtn','voiceBtn','reviseBtn'];
   for(var j=0;j<ids.length;j++){var el=document.getElementById(ids[j]);if(el)el.disabled=off;}
 }
 function setLoading(id,show){

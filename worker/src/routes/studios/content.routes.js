@@ -1,4 +1,4 @@
-import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage, generateContentSrt, translateContentSrt } from '../../studios/content/index.js';
+import { generateContent, reviseContent, generateContentVoice, generateContentVideo, generateContentVideoImage } from '../../studios/content/index.js';
 import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
@@ -174,52 +174,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
           return json({ error: 'image_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Content Studio — Tab 3: SRT from Audio =====
-      if (path === '/api/studio/content/srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'content.srt', plan, '1', cors); if (denied) return denied; }
-        try {
-          const apiKey = body.apiKey;
-          const out = await generateContentSrt(env, { model: body.model, 
-            audioBase64: body.audioBase64,
-            mimeType: body.mimeType || 'audio/mpeg',
-            apiKey,
-          });
-          return json({ ok: true, srt: out.srt }, 200, cors);
-        } catch (e) {
-          return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
-        }
-      }
-
-      // ===== Content Studio — Tab 3: Translate SRT =====
-      if (path === '/api/studio/content/translate-srt' && request.method === 'POST') {
-        const token = bearer(request);
-        if (!token) return json({ error: 'unauthorized' }, 401, cors);
-        const payload = await verifyTokenSafe(env, token);
-        if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-        const body = await request.json().catch(() => null);
-        if (!body || !body.srtText) return json({ error: 'missing_srt' }, 400, cors);
-        const plan = await resolvePlan(env, payload);
-        { const denied = await requireFeature(env, 'content.translate_srt', plan, '1', cors); if (denied) return denied; }
-        try {
-          const apiKey = body.apiKey;
-          const out = await translateContentSrt(env, { model: body.model, 
-            srtText: body.srtText,
-            direction: body.direction || 'my-to-cn',
-            apiKey,
-          });
-          return json({ ok: true, srt: out.srt }, 200, cors);
-        } catch (e) {
-          return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
         }
       }
 
