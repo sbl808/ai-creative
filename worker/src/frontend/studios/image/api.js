@@ -2,7 +2,7 @@
 // Browser-side api — extracted VERBATIM from frontend/image.js (v1, byte-identical slice).
 // The whole <script> is reassembled in page.js in the original source order.
 export const API_SCRIPT = `(function init(){
-  if(!token){document.getElementById('loginView').style.display='flex';document.getElementById('aicsApp').style.display='none';return;}
+  if(!token){var loginView=document.getElementById('loginView');var app=document.getElementById('aicsApp');if(loginView)loginView.classList.remove('is-hidden');if(app)app.classList.add('image-auth-hidden');return;}
 })();
 
 // ===================== API =====================
@@ -44,7 +44,8 @@ function renderRefPreviews(){
     var removeBtn=document.createElement('button');
     removeBtn.className='remove-x';
     removeBtn.textContent='✕';
-    removeBtn.onclick=function(){removeRef(idx);};
+    removeBtn.dataset.imageAction='removeReference';
+    removeBtn.dataset.imageIndex=String(idx);
     thumb.appendChild(imgEl);
     thumb.appendChild(removeBtn);
     container.appendChild(thumb);

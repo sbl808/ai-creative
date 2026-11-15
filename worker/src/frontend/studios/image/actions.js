@@ -44,7 +44,7 @@ function downloadImage(){
 }
 
 // ===================== Auto Expand (Global Result Box handles streaming display) =====================
-function autoExpand(ta){if(!ta)return;ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px';}
+function autoExpand(ta){if(!ta)return;ta.rows=1;var style=window.getComputedStyle?window.getComputedStyle(ta):null;var lineHeight=style?parseFloat(style.lineHeight):20;if(!isFinite(lineHeight)||lineHeight<=0)lineHeight=20;var padding=style?(parseFloat(style.paddingTop)||0)+(parseFloat(style.paddingBottom)||0):0;ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight));}
 function onPromptEdit(ta){
   if(ta){latestPrompt=ta.value;autoExpand(ta);}
 }

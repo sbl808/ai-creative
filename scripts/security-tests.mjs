@@ -1156,9 +1156,6 @@ console.log('\\n--- Home CSP markup contract ---');
     home.includes('.quick-grid,.recent-grid{grid-template-columns:repeat(2,1fr);gap:10px;}'));
 }
 
-console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
-process.exit(failed ? 1 : 0);
-
 console.log('\n--- Voice Actions CSP contract ---');
 {
   const voiceActions = readFileSync(new URL('../worker/src/frontend/studios/voice/actions.js', import.meta.url), 'utf8');
@@ -1199,3 +1196,48 @@ console.log('\n--- Voice Actions CSP contract ---');
     rowsAtMinimum === 5 && rowsAtMaximum === 25);
 }
 
+
+console.log('\n--- Image Studio CSP contract ---');
+{
+  const imageActions = readFileSync(new URL('../worker/src/frontend/studios/image/actions.js', import.meta.url), 'utf8');
+  const imageApi = readFileSync(new URL('../worker/src/frontend/studios/image/api.js', import.meta.url), 'utf8');
+  const imagePage = readFileSync(new URL('../worker/src/frontend/studios/image/page.js', import.meta.url), 'utf8');
+  const imageSources = [imageActions, imageApi, imagePage];
+  check('Image Studio fragments contain no inline style attributes, direct style properties, or property event handlers',
+    imageSources.every((source) =>
+      !/\\sstyle\\s*=/i.test(source) &&
+      !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(source) &&
+      !/\\.(?:onclick|onchange)\\s*=/.test(source)));
+  check('Image login and app visibility use CSS classes with matching rules',
+    imageApi.includes("loginView.classList.remove('is-hidden')") &&
+    imageApi.includes("app.classList.add('image-auth-hidden')") &&
+    imagePage.includes('.aics-login-overlay.is-hidden{display:none}') &&
+    imagePage.includes('.aics-app.image-auth-hidden{display:none!important}'));
+  check('Image reference removal uses the existing delegated action handler',
+    imageApi.includes("removeBtn.dataset.imageAction='removeReference'") &&
+    imageApi.includes("removeBtn.dataset.imageIndex=String(idx)") &&
+    imagePage.includes("case 'removeReference':window.removeRef(Number(button.dataset.imageIndex));break;"));
+  check('Image textarea auto-expand uses rows and computed dimensions without inline styles',
+    imageActions.includes('ta.rows=1') &&
+    imageActions.includes('window.getComputedStyle') &&
+    imageActions.includes('ta.rows=Math.max(1,Math.ceil((ta.scrollHeight-padding)/lineHeight))') &&
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(imageActions));
+  const autoExpandSource = imageActions.match(/function autoExpand\\(ta\\)\\{[^}]*\\}/)?.[0];
+  let rowsAfterExpand = 0;
+  if (autoExpandSource) {
+    const autoExpand = vm.runInNewContext('(' + autoExpandSource + ')', {
+      window: { getComputedStyle: () => ({ lineHeight: '20px', paddingTop: '10px', paddingBottom: '10px' }) },
+      parseFloat,
+      isFinite,
+      Math,
+    });
+    const textarea = { rows: 8, scrollHeight: 100 };
+    autoExpand(textarea);
+    rowsAfterExpand = textarea.rows;
+  }
+  check('Image textarea auto-expand calculates row count from measured content',
+    rowsAfterExpand === 4, 'rows=' + rowsAfterExpand);
+}
+
+console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
+process.exit(failed ? 1 : 0);
