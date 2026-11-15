@@ -701,7 +701,7 @@ function tokenFromHash(){
   }
 }
 
-\${TASK_INSTRUCTIONS_SCRIPT}
+${TASK_INSTRUCTIONS_SCRIPT}
 function dispatchAdminAction(element){
  var action=element.getAttribute('data-admin-action'),value=element.getAttribute('data-admin-value'),id=element.getAttribute('data-admin-id'),key=element.getAttribute('data-admin-key');
  switch(action){
