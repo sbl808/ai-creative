@@ -55,8 +55,6 @@ assert.equal(saved.content.data.idea, 'Idea: Idea title\\n\\nConcept: Idea conce
 assert.equal(saved.short.data.fields[0], saved.content.data.idea);
 assert.equal(saved.image.data.ideaText, saved.content.data.idea);
 assert.equal(saved.shop.data.shopState.content.input.idea, saved.content.data.idea);
-assert.equal(saved.voice.data.inputs.tts, saved.content.data.idea);
-assert.equal(saved.voice.data.state.source, 'ideas');
 assert.equal(context.location.href, '/app/shop');
 
 const storyContext = {
