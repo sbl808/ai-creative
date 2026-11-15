@@ -799,15 +799,15 @@ console.log('\n--- Shared Shell CSP markup contract ---');
 }
 
 
-console.log('\\n--- Settings CSP markup contract ---');
+console.log('\n--- Settings CSP markup contract ---');
 {
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
   check('Settings contains no inline style attributes',
-    !/\\sstyle\\s*=/i.test(settings));
+    !/\sstyle\s*=/i.test(settings));
   check('Settings contains no direct DOM style property assignments',
-    !/\\.style(?:\\.|\\s*\\[)/.test(settings));
+    !/\.style(?:\.|\s*\[)/.test(settings));
   check('Settings contains no inline event-handler attributes',
-    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\\s*=/i.test(settings));
+    !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(settings));
   check('Settings tab panels use CSS visibility classes',
     (settings.match(/class="tab-panel is-hidden"/g) || []).length === 3 &&
     settings.includes("p.classList.add('is-hidden')") &&
