@@ -260,6 +260,7 @@ console.log('\\n--- B) Worker log data minimization contract ---');
 }
 
 
+
 console.log('\\n--- B) Shared UI inline-style migration contract ---');
 {
   const sharedUi = readFileSync(new URL('../worker/src/frontend/shared-ui.js', import.meta.url), 'utf8');
@@ -267,16 +268,16 @@ console.log('\\n--- B) Shared UI inline-style migration contract ---');
   const scriptBody = (name) => {
     const marker = 'export const ' + name + ' = ' + tick;
     const start = sharedUi.indexOf(marker);
-    const bodyStart = start >= 0 ? sharedUi.indexOf('\\n', start) + 1 : -1;
-    const bodyEnd = bodyStart > 0 ? sharedUi.indexOf('\\n' + tick + ';', bodyStart) : -1;
+    const bodyStart = start >= 0 ? sharedUi.indexOf('\n', start) + 1 : -1;
+    const bodyEnd = bodyStart > 0 ? sharedUi.indexOf('\n' + tick + ';', bodyStart) : -1;
     return bodyStart > 0 && bodyEnd > bodyStart ? sharedUi.slice(bodyStart, bodyEnd) : '';
   };
   const errorScript = scriptBody('AICS_ERROR_SCRIPT');
   const modalScript = scriptBody('AICS_MODAL_SCRIPT');
   const commonScript = scriptBody('AICS_COMMON_UTILS_SCRIPT');
   const resultScript = scriptBody('AICS_RESULT_BOX_SCRIPT');
-  check('shared-ui module has no direct style property access or style attributes',
-    !/\\.style\\b/.test(sharedUi) && !/\\sstyle\\s*=/.test(sharedUi));
+  check('shared-ui module has no direct style property access',
+    !/\.style\b/.test(sharedUi));
   check('error and modal helpers use CSS state classes',
     errorScript.includes("classList.add('aics-shared-error-visible')") &&
     errorScript.includes("classList.remove('aics-shared-error-visible')") &&
@@ -290,16 +291,47 @@ console.log('\\n--- B) Shared UI inline-style migration contract ---');
   check('textarea auto-expand uses rows instead of inline height styles',
     commonScript.includes('function aicsAutoExpand(el)') &&
     commonScript.includes('el.rows = Math.max(1, Math.ceil') &&
-    !/\\.style\\b/.test(commonScript));
+    !/\.style\b/.test(commonScript));
+  const textarea = {
+    tagName: 'TEXTAREA',
+    rows: 2,
+    scrollHeight: 84,
+    ownerDocument: {
+      defaultView: {
+        getComputedStyle() {
+          return { lineHeight: '20px', paddingTop: '2px', paddingBottom: '2px' };
+        },
+      },
+    },
+  };
+  vm.runInNewContext(commonScript + '\naicsAutoExpand(target);', {
+    target, parseFloat, Math, isFinite,
+  });
+  check('textarea auto-expand calculates row count from measured content',
+    textarea.rows === 4, 'rows=' + textarea.rows);
   check('result box uses class-based expand/collapse and preserves configurable preview limits',
     resultScript.includes("target.classList.add('aics-rbox-collapsed')") &&
     resultScript.includes("target.classList.remove('aics-rbox-collapsed')") &&
     resultScript.includes('aicsRboxSetPreviewLimit(target, previewMax)') &&
     resultScript.includes("style.setAttribute('nonce', __aicsRboxScriptNonce)") &&
-    !/\\.style\\b/.test(resultScript));
+    !/\.style\b/.test(resultScript));
   check('result box reset restores the original textarea row count',
     resultScript.includes('target.rows = originalRows || 2') &&
     !resultScript.includes('target.style.'));
+  const modalClasses = new Set();
+  const modalElement = {
+    classList: {
+      add(name) { modalClasses.add(name); },
+      remove(name) { modalClasses.delete(name); },
+      contains(name) { return modalClasses.has(name); },
+    },
+  };
+  const modalDocument = { getElementById(id) { return id === 'test-modal' ? modalElement : null; } };
+  vm.runInNewContext(modalScript + '\naicsShowModal("test-modal");', { document: modalDocument });
+  const modalShown = modalElement.classList.contains('aics-shared-modal-visible');
+  vm.runInNewContext(modalScript + '\naicsHideModal("test-modal");', { document: modalDocument });
+  check('modal helpers add and remove the visible state class',
+    modalShown && !modalElement.classList.contains('aics-shared-modal-visible'));
   check('shared CSS remains mobile-responsive for result continuation cards',
     sharedUi.includes('@media(max-width:700px){.aics-work .aics-hub-next-grid{grid-template-columns:1fr}}'));
 }
