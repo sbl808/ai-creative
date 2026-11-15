@@ -928,6 +928,51 @@ console.log('\n--- Login CSP markup contract ---');
     login.includes("document.getElementById('forgotBtn').classList.remove('is-hidden')"));
 }
 
+
+console.log('\\n--- Projects CSP markup contract ---');
+{
+  const projects = readFileSync(new URL('../worker/src/frontend/projects.js', import.meta.url), 'utf8');
+  check('Projects page contains no inline style attributes',
+    !/\\sstyle\\s*=/i.test(projects));
+  check('Projects page contains no direct DOM style property access',
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(projects));
+  check('Projects page contains no inline event-handler attributes',
+    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown)\\s*=/i.test(projects));
+  check('Projects loading and empty states use the shared hidden CSS class',
+    projects.includes('id="loadingState" class="loading-state"') &&
+    projects.includes('id="emptyState" class="empty-state is-hidden"') &&
+    projects.includes('.is-hidden{display:none!important;}'));
+  check('Projects loading and empty-state visibility is controlled with classList',
+    projects.includes("loading.classList.remove('is-hidden')") &&
+    projects.includes("loading.classList.add('is-hidden')") &&
+    projects.includes("empty.classList.add('is-hidden')") &&
+    projects.includes("empty.classList.remove('is-hidden')") &&
+    projects.includes("document.getElementById('emptyState').classList.add('is-hidden')") &&
+    projects.includes("document.getElementById('emptyState').classList.remove('is-hidden')"));
+  check('Projects login-required markup uses matching CSS classes',
+    projects.includes('class="login-required"') &&
+    projects.includes('class="login-required-message"') &&
+    projects.includes('class="login-required-link"') &&
+    projects.includes('.login-required{text-align:center;padding:40px 20px;}') &&
+    projects.includes('.login-required-message{margin:16px 0;}') &&
+    projects.includes('.login-required-link{text-decoration:underline;}'));
+  check('Projects create action remains delegated and calls the browser project API',
+    projects.includes('data-project-action="create"') &&
+    projects.includes("target.closest('[data-project-action=\"create\"]')") &&
+    projects.includes("window.AICS_PROJECTS.create({title:title,description:''})"));
+  check('Projects list and delete flows continue to use the browser project API',
+    projects.includes('window.AICS_PROJECTS.list()') &&
+    projects.includes('window.AICS_PROJECTS.remove(id)') &&
+    projects.includes("if(!confirm('ဒီ Project ကို ဖျက်မှာ သေချာပါသလား?'))return;"));
+  check('Projects page retains mobile-friendly viewport and wrapping layout',
+    projects.includes('<meta name="viewport" content="width=device-width, initial-scale=1.0">') &&
+    projects.includes('.create-box{display:flex;gap:10px;flex-wrap:wrap;') &&
+    projects.includes('.project-card{') &&
+    projects.includes('gap:12px;flex-wrap:wrap;') &&
+    projects.includes('min-width:0;') &&
+    projects.includes('min-height:42px;'));
+}
+
 console.log('\\n--- Home CSP markup contract ---');
 {
   const home = readFileSync(new URL('../worker/src/frontend/home.js', import.meta.url), 'utf8');
