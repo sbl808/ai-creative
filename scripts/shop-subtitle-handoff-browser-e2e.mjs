@@ -38,9 +38,17 @@ try {
   const shopResponse = await page.goto(url + '/app/shop', { waitUntil: 'domcontentloaded' });
   assert.equal(shopResponse?.status(), 200, 'Shop Studio should load');
   await page.locator('#viewAudio').waitFor({ state: 'attached' });
+  // Wait until the asynchronous IndexedDB draft restore has completed before seeding the fixture.
+  await page.waitForFunction(async () =>
+    typeof window.studioPersistDraft === 'function' && await window.studioPersistDraft(false) === true,
+    null,
+    { timeout: 10000 },
+  );
   await page.evaluate((data) => {
     // Seed a synthetic completed Shop Audio result; the test focuses on persistence and handoff.
     shopState.content.result = 'E2E product content fixture';
+    var resultContent = document.getElementById('resultContent');
+    if (resultContent) resultContent.value = shopState.content.result;
     // This test starts after the user approval step; keep the fixture consistent with the Shop approval gate.
     shopState.content.approvedContent = shopState.content.result;
     shopState.mainStep = 2;
