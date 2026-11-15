@@ -67,6 +67,17 @@ function check(name, ok, extra) {
   else { failed++; console.log('  ✘ ' + name + (extra ? ' — ' + extra : '')); }
 }
 
+function getScriptStyleAttributes(html) {
+  const found = [];
+  for (const [tag, pattern] of [
+    ['script', /<script\\b([^>]*)>[\\s\\S]*?<\\/script\\s*>/gi],
+    ['style', /<style\\b([^>]*)>[\\s\\S]*?<\\/style\\s*>/gi],
+  ]) {
+    for (const match of html.matchAll(pattern)) found.push({ tag, attributes: match[1] });
+  }
+  return found;
+}
+
 const worker = (await import('../worker/src/index.js?sec=' + Date.now() + Math.random())).default;
 
 const DEV_ORIGIN = 'https://aics-frontend-dev.pages.dev';
