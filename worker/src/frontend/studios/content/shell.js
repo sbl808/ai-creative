@@ -129,7 +129,7 @@ function studioRestoreDraft(d){
   videoPlan=d.videoPlan||null;
   currentAudioBase64=d.audio||null;
   contentState.result=lastResult;
-  contentState.approvedContent=(lastResult&&typeof d.approvedContent==='string'&&d.approvedContent===String(lastResult.content||''))?d.approvedContent:'';
+  contentState.approvedContent=(typeof d.approvedContent==='string')?d.approvedContent:'';
   if(lastResult){
     renderContentResult(true);
     csMarkDone(1);
@@ -202,7 +202,7 @@ function renderApprovalState(){
 function syncContentApproval(){
   var current=getEditedContent();
   if(contentState.approvedContent&&contentState.approvedContent!==current){
-    contentState.approvedContent='';
+    // မူလ Approved Snapshot ကို IndexedDB ထဲမှာ ထိန်းထားပြီး လက်ရှိ Version ကို Pending အဖြစ်သာ သတ်မှတ်သည်။
     csDone[12]=false;csDone[14]=false;csDone[22]=false;csDone[24]=false;
   }
   renderApprovalState();
