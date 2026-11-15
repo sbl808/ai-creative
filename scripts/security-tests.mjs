@@ -185,6 +185,38 @@ console.log('\\n--- B) Shared error message XSS regression ---');
   }
 }
 
+console.log('\\n--- B) Creations stored-XSS regression ---');
+{
+  const creations = readFileSync(new URL('../worker/src/frontend/creations.js', import.meta.url), 'utf8');
+  const renderStart = creations.indexOf('function renderList()');
+  const renderEnd = renderStart >= 0 ? creations.indexOf('\\nfunction fmtDate', renderStart) : -1;
+  const renderBlock = renderStart >= 0 && renderEnd > renderStart
+    ? creations.slice(renderStart, renderEnd)
+    : '';
+  const escapeStart = creations.indexOf('function escapeHtml(value)');
+  const escapeEnd = escapeStart >= 0 ? creations.indexOf('\\nfunction safeMediaMime', escapeStart) : -1;
+  const escapeBlock = escapeStart >= 0 && escapeEnd > escapeStart
+    ? creations.slice(escapeStart, escapeEnd)
+    : '';
+  check('Creations renderer is present', !!renderBlock);
+  check('studio and type values are escaped before HTML insertion',
+    renderBlock.includes('escapeHtml(c.studio)') && renderBlock.includes("escapeHtml(c.type||'1')"));
+  check('creation IDs are escaped before DOM ID and action attribute insertion',
+    (renderBlock.match(/escapeHtml\\(c\\.id\\)/g) || []).length >= 5);
+  check('image/audio MIME types are allowlisted and media URLs are escaped',
+    creations.includes('function safeMediaMime') &&
+    renderBlock.includes("safeMediaMime('image',c.media_mime)") &&
+    renderBlock.includes("safeMediaMime('audio',c.media_mime)") &&
+    renderBlock.includes('escapeHtml(uri)') && renderBlock.includes('escapeHtml(auri)'));
+  check('HTML escaping covers HTML delimiters and quote characters',
+    escapeBlock.includes('&amp;') && escapeBlock.includes('&lt;') &&
+    escapeBlock.includes('&gt;') && escapeBlock.includes('&quot;') &&
+    escapeBlock.includes('&#39;'));
+  check('studio/type fields are not interpolated raw into the creation card',
+    !renderBlock.includes("'+c.studio+'") &&
+    !renderBlock.includes("'+(c.type||'1')+'"));
+}
+
 console.log('\\n--- B) Worker log data minimization contract ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
