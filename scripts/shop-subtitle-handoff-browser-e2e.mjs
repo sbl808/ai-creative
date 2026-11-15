@@ -41,6 +41,8 @@ try {
   await page.evaluate((data) => {
     // Seed a synthetic completed Shop Audio result; the test focuses on persistence and handoff.
     shopState.content.result = 'E2E product content fixture';
+    // This test starts after the user approval step; keep the fixture consistent with the Shop approval gate.
+    shopState.content.approvedContent = shopState.content.result;
     shopState.mainStep = 2;
     shopState.view = 'audio';
     shopState.audio.step = 2;
