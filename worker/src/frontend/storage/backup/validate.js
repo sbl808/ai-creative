@@ -49,8 +49,14 @@ function installBackupValidator(target, config) {
   // Studio identifiers are retained as supplied for backward-compatible backups.
   // Restrict them to a compact identifier alphabet; do not impose a current-Studio allowlist.
   function validStudioIdentifier(value, maxLength) {
-    return typeof value === 'string' && value.trim().length > 0 && value.length <= maxLength &&
-      !/[<>"'`\\u0000-\\u001f\\u007f-\\u009f]/.test(value);
+    if (typeof value !== 'string' || !value.trim() || value.length > maxLength) return false;
+    for (var i = 0; i < value.length; i++) {
+      var code = value.charCodeAt(i);
+      if (code < 32 || (code >= 127 && code <= 159)) return false;
+    }
+    return value.indexOf('<') === -1 && value.indexOf('>') === -1 &&
+      value.indexOf('"') === -1 && value.indexOf("'") === -1 &&
+      value.indexOf('`') === -1;
   }
 
   function optionalStudioIdentifier(record, key, maxLength) {
