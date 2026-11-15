@@ -842,5 +842,21 @@ console.log('\n--- Backup Recovery CSP markup contract ---');
     recovery.includes('#backup-recovery-panel .backup-actions .btn{flex:1 1 100%;}'));
 }
 
+console.log('\n--- Content Studio CSP markup contract ---');
+{
+  const contentPaths = ['../worker/src/frontend/studios/content/ui.js','../worker/src/frontend/studios/content/page.js','../worker/src/frontend/studios/content/fragments.js','../worker/src/frontend/studios/content/api.js','../worker/src/frontend/studios/content/helpers.js','../worker/src/frontend/studios/content/audio.js','../worker/src/frontend/studios/content/shell.js'];
+  const contentSources = contentPaths.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'));
+  check('Content Studio fragments contain no inline style attributes', contentSources.every((source) => !/\sstyle\s*=/i.test(source)));
+  check('Content Studio fragments contain no inline event-handler attributes', contentSources.every((source) => !/\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\s*=/i.test(source)));
+  check('Content Studio scripts contain no DOM onclick property assignments', contentSources.every((source) => !/\.onclick\s*=/.test(source)));
+  check('Content Studio scripts contain no direct DOM style property access', contentSources.every((source) => !/\.style(?:\.|\s*\[)/.test(source)));
+  const helpers = contentSources[4]; const page = contentSources[1];
+  check('Content Studio visibility is controlled with CSS classes', helpers.includes('function setContentVisible') && page.includes('.cs-hidden{display:none!important}'));
+  check('Content Studio auto-grow avoids inline style properties', helpers.includes('el.rows=2') && helpers.includes('el.rows=Math.max(2,'));
+  check('Content Studio stepper actions use delegated event attributes', helpers.includes('data-aics-action="content-nav"') && page.includes("case 'content-nav':"));
+  check('Content Studio quick actions use delegated click handling', helpers.includes("chip.dataset.aicsAction='quick-action'") && page.includes("case 'quick-action':"));
+  check('Content Studio audio download uses delegated click handling', contentSources[5].includes('data-aics-action="download-audio"') && !contentSources[5].includes('onclick='));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
