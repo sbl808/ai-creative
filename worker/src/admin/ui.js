@@ -140,6 +140,7 @@ var STUDIO_GROUPS=[
   {g:'Short', v:[['SHORT','စာသား'],['SHORTVIDEO','ဗီဒီယို']]},
   {g:'Image', v:[['IMAGE','ပုံ']]},
   {g:'Voice', v:[['VOICE','အသံ']]},
+  {g:'Subtitle', v:[['SUBTITLE','စာတန်းထိုး']]},
   {g:'Shop', v:[['SHOPCONTENT','စာသား'],['SHOPVIDEO','ဗီဒီယို']]},
   {g:'Ideas', v:[['IDEAS','အကြံဉာဏ်']]}
 ];
