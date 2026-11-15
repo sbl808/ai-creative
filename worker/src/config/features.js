@@ -39,6 +39,7 @@ export const FEATURE_REGISTRY = {
   'voice.srt': { name: 'Voice SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Voice Studio — Legacy SRT (PRO)' },
   'voice.translate_srt': { name: 'Voice Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Voice Studio — Legacy Translate SRT (PRO)' },
 
+  'subtitle.transcribe': { name: 'Subtitle Transcribe', nameMy: 'အသံကို စာပြောင်းခြင်း', access: 'FREE', desc: 'Subtitle Studio — Audio to Text transcription' },
   'subtitle.srt': { name: 'Subtitle SRT', nameMy: 'စာတန်းထိုး SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT generation (PRO)' },
   'subtitle.translate_srt': { name: 'Subtitle Translate SRT', nameMy: 'စာတန်းထိုး ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT translation (PRO)' },
 

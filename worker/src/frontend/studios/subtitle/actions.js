@@ -45,6 +45,10 @@ function subtitleFriendlyRequestError(code, fallback) {
     credentials_passphrase_cancelled: 'API Key ဖွင့်ရန် Passphrase မထည့်ရသေးပါ။',
     credentials_passphrase_required: 'API Key ဖွင့်ရန် Passphrase ထည့်ပေးပါ။',
     credentials_decrypt_failed: 'Passphrase မမှန်ပါ သို့မဟုတ် API Key ကို ဖွင့်မရပါ။',
+    empty_result: 'AI မှ စာသားရလဒ် မရရှိပါ။ ထပ်မံကြိုးစားပါ။',
+    empty_srt_result: 'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
+    empty_srt_translation_result: 'SRT ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။',
+    transcribe_error: 'Audio မှ စာသားထုတ်ယူရာတွင် အခက်အခဲရှိနေပါသည်။',
     missing_api_key: 'Gemini API Key မရရှိပါ။ Settings မှာ API Key ကို စစ်ဆေးပါ။',
     unauthorized: 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
     invalid_token: 'Login သက်တမ်းကုန်ဆုံးသွားပါသည်။ ပြန်လည် Login ဝင်ပါ။',
@@ -52,6 +56,114 @@ function subtitleFriendlyRequestError(code, fallback) {
     feature_disabled: 'ဒီ Feature ကို လောလောဆယ် ပိတ်ထားပါသည်။'
   };
   return messages[String(code || '')] || fallback;
+}
+
+function subtitleGetTranscriptionMedia() {
+  var input = document.getElementById('subtitleMediaFile');
+  var file = input && input.files && input.files[0];
+  if (file) return { file: file, mimeType: file.type || 'application/octet-stream' };
+  var handoff = SUBTITLE_STATE.mediaInput;
+  if (handoff && handoff.audioBase64) {
+    return { audioBase64: String(handoff.audioBase64), mimeType: handoff.mimeType || 'audio/mpeg' };
+  }
+  return null;
+}
+
+function subtitleUpdateTranscribeAvailability() {
+  var button = document.getElementById('subtitleTranscribeBtn');
+  var status = document.getElementById('subtitleTranscribeStatus');
+  if (!button) return;
+  var media = subtitleGetTranscriptionMedia();
+  var size = media && media.file ? media.file.size : 0;
+  var tooLarge = size > 5 * 1024 * 1024;
+  button.disabled = !media || tooLarge || SUBTITLE_STATE.processingState === 'processing';
+  if (status && tooLarge) status.textContent = 'ဖိုင်သည် 5MB ထက် မကျော်ရပါ။';
+  else if (status && media && button.disabled === false) status.textContent = 'Audio ဖိုင် အသင့်ဖြစ်ပါပြီ။ စာသားထုတ်ရန် နှိပ်ပါ။';
+  else if (status && !media) status.textContent = 'Audio ဖိုင် ရွေးပါ သို့မဟုတ် Shop မှ Audio ပို့ပါ။';
+}
+
+function subtitleRequestTranscription(audioBase64, mimeType, button) {
+  subtitleApiPost('/api/studio/subtitle/transcribe', {
+    audioBase64: audioBase64,
+    mimeType: mimeType || 'application/octet-stream',
+    type: '1'
+  }).then(function (result) {
+    var output = document.getElementById('subtitleTranscriptOutput');
+    var transcript = String(result.text || '');
+    if (!transcript.trim()) throw new Error('empty_result');
+    if (output) {
+      output.value = transcript;
+      output.focus();
+    }
+    SUBTITLE_STATE.processingState = 'done';
+    subtitleSetStatus('Audio မှ စာသား ထုတ်ယူပြီးပါပြီ။ လိုအပ်သလို ပြင်ဆင်နိုင်ပါသည်။', false);
+    var status = document.getElementById('subtitleTranscribeStatus');
+    if (status) status.textContent = 'စာသားထုတ်ယူပြီးပါပြီ။ ရလဒ်ကို အောက်ပါနေရာတွင် ပြင်ဆင်နိုင်ပါသည်။';
+  }).catch(function (error) {
+    SUBTITLE_STATE.processingState = 'error';
+    SUBTITLE_STATE.errorState = String(error && error.message || 'transcribe_error');
+    var code = SUBTITLE_STATE.errorState;
+    var message = subtitleFriendlyRequestError(code, 'Audio မှ စာသားထုတ်ယူရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။');
+    subtitleSetStatus(message, true);
+    var status = document.getElementById('subtitleTranscribeStatus');
+    if (status) status.textContent = message;
+  }).finally(function () {
+    if (button) button.disabled = false;
+    subtitleUpdateTranscribeAvailability();
+  });
+}
+
+function subtitleTranscribeAudio() {
+  if (SUBTITLE_STATE.processingState === 'processing') return;
+  var media = subtitleGetTranscriptionMedia();
+  if (!media) {
+    subtitleSetStatus('Audio ဖိုင် ရွေးပေးပါ သို့မဟုတ် Shop မှ Audio ပို့ပါ။', true);
+    return;
+  }
+  if (media.file && media.file.size > 5 * 1024 * 1024) {
+    subtitleSetStatus('ဖိုင်သည် 5MB ထက် မကျော်ရပါ။', true);
+    subtitleUpdateTranscribeAvailability();
+    return;
+  }
+  var button = document.getElementById('subtitleTranscribeBtn');
+  SUBTITLE_STATE.processingState = 'processing';
+  SUBTITLE_STATE.errorState = null;
+  if (button) button.disabled = true;
+  var status = document.getElementById('subtitleTranscribeStatus');
+  if (status) status.textContent = 'Audio မှ စာသား ထုတ်ယူနေပါသည်…';
+  subtitleSetStatus('Audio မှ စာသား ထုတ်ယူနေပါသည်…', false);
+
+  if (media.audioBase64) {
+    var importedBytes = Math.max(0, Math.floor(media.audioBase64.length * 3 / 4) -
+      (media.audioBase64.slice(-2) === '==' ? 2 : (media.audioBase64.slice(-1) === '=' ? 1 : 0)));
+    if (!media.audioBase64 || importedBytes > 5 * 1024 * 1024) {
+      SUBTITLE_STATE.processingState = 'error';
+      subtitleSetStatus('Shop မှ ပို့ထားသော Audio သည် 5MB ထက် ကျော်နေပါသည် သို့မဟုတ် ဖိုင်မမှန်ပါ။', true);
+      subtitleUpdateTranscribeAvailability();
+      return;
+    }
+    subtitleRequestTranscription(media.audioBase64, media.mimeType, button);
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onerror = function () {
+    SUBTITLE_STATE.processingState = 'error';
+    subtitleSetStatus('ဖိုင်ဖတ်ရာတွင် အခက်အခဲရှိနေပါသည်။', true);
+    subtitleUpdateTranscribeAvailability();
+  };
+  reader.onload = function () {
+    var dataUrl = String(reader.result || '');
+    var audioBase64 = dataUrl.indexOf(',') >= 0 ? dataUrl.slice(dataUrl.indexOf(',') + 1) : '';
+    if (!audioBase64) {
+      SUBTITLE_STATE.processingState = 'error';
+      subtitleSetStatus('ဖိုင်အချက်အလက်ကို ဖတ်မရပါ။', true);
+      subtitleUpdateTranscribeAvailability();
+      return;
+    }
+    subtitleRequestTranscription(audioBase64, media.mimeType, button);
+  };
+  reader.readAsDataURL(media.file);
 }
 
 function subtitleRequestSrt(audioBase64, mimeType, known, button) {
@@ -63,7 +175,7 @@ function subtitleRequestSrt(audioBase64, mimeType, known, button) {
   }).then(function (result) {
     var editor = document.getElementById('subtitleSrtInput');
     var srt = String(result.srt || '');
-    if (!srt) throw new Error('empty_result');
+    if (!srt) throw new Error('empty_srt_result');
     SUBTITLE_STATE.sourceSrt = srt;
     SUBTITLE_STATE.editedSrt = srt;
     if (editor) { editor.value = srt; editor.focus(); }
@@ -152,27 +264,93 @@ function subtitleLoadShopAudioHandoff() {
   if (!handoffId) return;
 
   var handoffStatus = document.getElementById('subtitleHandoffStatus');
+  var voiceConnectButton = document.getElementById('subtitleConnectVoiceHandoffBtn');
   function setHandoffStatus(message, isError) {
     if (!handoffStatus) return;
     handoffStatus.textContent = message;
     handoffStatus.setAttribute('data-state', isError ? 'error' : 'success');
   }
+  function setVoiceButtonVisible(visible) {
+    if (voiceConnectButton) {
+      voiceConnectButton.hidden = !visible;
+      voiceConnectButton.disabled = false;
+    }
+  }
 
+  setVoiceButtonVisible(false);
   if (!window.AICS_HANDOFFS || !window.AICS_STUDIO_DRAFTS ||
       typeof window.AICS_HANDOFFS.get !== 'function' ||
       typeof window.AICS_STUDIO_DRAFTS.load !== 'function') {
-    setHandoffStatus('IndexedDB Handoff ကို ဖွင့်မရပါ။ Shop Draft ကို မပြောင်းလဲထားပါ။', true);
+    setHandoffStatus('IndexedDB Handoff ကို ဖွင့်မရပါ။ မူရင်း Draft ကို မပြောင်းလဲထားပါ။', true);
     return;
   }
 
-  setHandoffStatus('Shop မှ ပို့ထားသော Audio ကို စစ်ဆေးနေပါသည်…', false);
+  setHandoffStatus('Studio Handoff ကို စစ်ဆေးနေပါသည်…', false);
   window.AICS_HANDOFFS.get(handoffId).then(function (record) {
-    if (!record || record.contractVersion !== 1 || record.source !== 'shop' ||
-        record.target !== 'subtitle' || !record.payload ||
-        record.payload.kind !== 'shop-audio-reference' ||
-        typeof record.payload.audioFingerprint !== 'string') {
+    if (!record || record.contractVersion !== 1 || record.target !== 'subtitle' ||
+        !record.payload || typeof record.payload.audioFingerprint !== 'string' ||
+        !record.payload.audioFingerprint) {
       throw new Error('invalid_handoff');
     }
+
+    if (record.source === 'voice' && record.payload.kind === 'voice-audio-reference') {
+      // Voice Draft ကို အလိုအလျောက် မဖတ်ပါ။ User က ချိတ်ဆက်ရန် နှိပ်မှသာ IndexedDB မှ ဖွင့်ပါမည်။
+      if (!voiceConnectButton) throw new Error('voice_handoff_ui_unavailable');
+      setHandoffStatus('Voice မှ ပို့ထားသော Audio ရှိပါသည်။ Audio ကို ချိတ်ဆက်ရန် အောက်ပါခလုတ်ကို နှိပ်ပါ။', false);
+      setVoiceButtonVisible(true);
+      voiceConnectButton.onclick = function () {
+        if (voiceConnectButton.disabled) return;
+        voiceConnectButton.disabled = true;
+        setHandoffStatus('Voice Draft မှ Audio ကို စစ်ဆေးနေပါသည်…', false);
+        window.AICS_STUDIO_DRAFTS.load('voice').then(function (draft) {
+          var data = draft && draft.data && draft.data.data;
+          var audio = data && data.state && data.state.audioResult;
+          if (!audio || typeof audio.data !== 'string' || !audio.data) {
+            throw new Error('voice_audio_missing');
+          }
+          var mimeType = String(audio.mimeType || 'audio/wav');
+          if (mimeType !== String(record.payload.mimeType || 'audio/wav')) {
+            throw new Error('voice_audio_mismatch');
+          }
+          var importedBytes = Math.max(0, Math.floor(audio.data.length * 3 / 4) -
+            (audio.data.slice(-2) === '==' ? 2 : (audio.data.slice(-1) === '=' ? 1 : 0)));
+          if (importedBytes > 5 * 1024 * 1024) throw new Error('voice_audio_too_large');
+          return subtitleFingerprint(audio.data).then(function (fingerprint) {
+            if (fingerprint !== record.payload.audioFingerprint) {
+              throw new Error('voice_audio_mismatch');
+            }
+            SUBTITLE_STATE.mediaInput = {
+              audioBase64: audio.data,
+              mimeType: mimeType,
+              voiceName: String(record.payload.voiceName || (data.inputs && data.inputs.voice) || 'Voice'),
+              source: 'voice'
+            };
+            subtitleUpdateTranscribeAvailability();
+            setHandoffStatus('✓ Voice မှ Audio ကို ချိတ်ဆက်ပြီးပါပြီ။ Audio → Text သို့မဟုတ် SRT ကို ဆက်လုပ်နိုင်ပါသည်။', false);
+            voiceConnectButton.hidden = true;
+          });
+        }).catch(function (error) {
+          var code = String(error && error.message || '');
+          var message = code === 'voice_audio_missing'
+            ? 'Voice Draft ထဲတွင် Audio မတွေ့ပါ။ Voice Studio သို့ ပြန်သွားပြီး ထပ်ပို့ပါ။'
+            : code === 'voice_audio_too_large'
+              ? 'Voice Audio သည် 5MB ထက် ကျော်နေပါသည်။'
+              : code === 'voice_audio_mismatch'
+                ? 'Voice Audio ပြောင်းလဲသွားပါသည်။ လက်ရှိ Audio ကို မသုံးပါ။ Voice Studio မှ ပြန်ပို့ပါ။'
+                : 'Voice Audio ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။';
+          SUBTITLE_STATE.mediaInput = null;
+          subtitleUpdateTranscribeAvailability();
+          setHandoffStatus(message, true);
+          voiceConnectButton.disabled = false;
+        });
+      };
+      return;
+    }
+
+    if (record.source !== 'shop' || record.payload.kind !== 'shop-audio-reference') {
+      throw new Error('invalid_handoff');
+    }
+    setHandoffStatus('Shop မှ ပို့ထားသော Audio ကို စစ်ဆေးနေပါသည်…', false);
     return window.AICS_STUDIO_DRAFTS.load('shop').then(function (draft) {
       var audio = draft && draft.data && draft.data.data && draft.data.data.shopState &&
         draft.data.data.shopState.audio && draft.data.data.shopState.audio.result;
@@ -190,7 +368,8 @@ function subtitleLoadShopAudioHandoff() {
           voiceName: String(audio.voiceName || record.payload.voiceName || 'Voice'),
           source: 'shop'
         };
-        setHandoffStatus('✓ Shop မှ Audio ကို ချိတ်ဆက်ပြီးပါပြီ။ SRT ဖန်တီးရန် ခလုတ်ကို နှိပ်ပါ။', false);
+        subtitleUpdateTranscribeAvailability();
+        setHandoffStatus('✓ Shop မှ Audio ကို ချိတ်ဆက်ပြီးပါပြီ။ Audio → Text သို့မဟုတ် SRT ကို ဆက်လုပ်နိုင်ပါသည်။', false);
       });
     });
   }).catch(function (error) {
@@ -199,8 +378,9 @@ function subtitleLoadShopAudioHandoff() {
       ? 'Shop Draft ထဲတွင် Audio မတွေ့ပါ။ Shop Studio သို့ ပြန်သွားပြီး ထပ်ပို့ပါ။'
       : code === 'shop_audio_mismatch'
         ? 'Shop Audio ပြောင်းလဲသွားပါသည်။ လက်ရှိ Audio ကို မသုံးပါ။ Shop မှ ပြန်ပို့ပါ။'
-        : 'Shop Audio Handoff ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။';
+        : 'Studio Handoff ကို အတည်မပြုနိုင်ပါ။ Audio ကို အသုံးမပြုပါ။';
     SUBTITLE_STATE.mediaInput = null;
+    subtitleUpdateTranscribeAvailability();
     setHandoffStatus(message, true);
   });
 }
@@ -282,7 +462,7 @@ function subtitleTranslateSrt() {
     type: '2'
   }).then(function (result) {
     var translated = String(result.srt || '');
-    if (!translated.trim()) throw new Error('empty_result');
+    if (!translated.trim()) throw new Error('empty_srt_translation_result');
     SUBTITLE_STATE.translatedSrt = translated;
     var output = document.getElementById('subtitleTranslatedOutput');
     if (output) output.value = translated;
@@ -322,6 +502,8 @@ function subtitleSendTranslatedSrtToEditor() {
 
 (function initSubtitleActions() {
   var generate = document.getElementById('subtitleGenerateBtn');
+  var transcribe = document.getElementById('subtitleTranscribeBtn');
+  var mediaInput = document.getElementById('subtitleMediaFile');
   var download = document.getElementById('subtitleDownloadBtn');
   var editor = document.getElementById('subtitleSrtInput');
   var translate = document.getElementById('subtitleTranslateBtn');
@@ -330,6 +512,8 @@ function subtitleSendTranslatedSrtToEditor() {
   var sendToTranslation = document.getElementById('subtitleSendToTranslationBtn');
   var sendTranslatedToEditor = document.getElementById('subtitleSendTranslatedToEditorBtn');
   if (generate) generate.addEventListener('click', subtitleGenerateSrt);
+  if (transcribe) transcribe.addEventListener('click', subtitleTranscribeAudio);
+  if (mediaInput) mediaInput.addEventListener('change', subtitleUpdateTranscribeAvailability);
   if (download) download.addEventListener('click', subtitleDownloadSrt);
   if (editor) editor.addEventListener('input', function () { SUBTITLE_STATE.editedSrt = editor.value; });
   if (translate) translate.addEventListener('click', subtitleTranslateSrt);
@@ -337,6 +521,7 @@ function subtitleSendTranslatedSrtToEditor() {
   if (validate) validate.addEventListener('click', subtitleValidateEditorSrt);
   if (sendToTranslation) sendToTranslation.addEventListener('click', subtitleSendEditedSrtToTranslation);
   if (sendTranslatedToEditor) sendTranslatedToEditor.addEventListener('click', subtitleSendTranslatedSrtToEditor);
+  subtitleUpdateTranscribeAvailability();
   subtitleLoadShopAudioHandoff();
 })();
 `;

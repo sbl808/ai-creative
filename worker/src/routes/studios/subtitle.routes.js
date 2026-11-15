@@ -1,3 +1,4 @@
+import { transcribeSubtitleAudio } from '../../media-adapters/subtitle/audio.adapter.js';
 import {
   generateSubtitleSrt,
   translateSubtitleSrt,
@@ -14,6 +15,39 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
     trackUsageSafe,
     friendlyError,
   } = deps;
+
+  // Subtitle Studio — Audio → Text (transcription only; SRT remains a separate feature).
+  if (path === '/api/studio/subtitle/transcribe' && request.method === 'POST') {
+    const token = bearer(request);
+    if (!token) return json({ error: 'unauthorized' }, 401, cors);
+
+    const payload = await verifyTokenSafe(env, token);
+    if (!payload) return json({ error: 'invalid_token' }, 401, cors);
+
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.audioBase64 !== 'string' || !body.audioBase64.trim()) {
+      return json({ error: 'missing_audio' }, 400, cors);
+    }
+
+    const plan = await resolvePlan(env, payload);
+    const type = String(body.type || '1');
+    const denied = await requireFeature(env, 'subtitle.transcribe', plan, type, cors);
+    if (denied) return denied;
+
+    try {
+      const out = await transcribeSubtitleAudio(env, {
+        model: body.model,
+        audioBase64: body.audioBase64,
+        mimeType: body.mimeType || 'audio/mpeg',
+        plan,
+        apiKey: body.apiKey,
+      });
+      // Usage counters remain browser-side; do not write user usage to server storage.
+      return json({ ok: true, ...out }, 200, cors);
+    } catch (error) {
+      return json({ error: 'transcribe_error', detail: friendlyError(error) }, 500, cors);
+    }
+  }
 
   // Subtitle Studio — Generate SRT from audio.
   if (path === '/api/studio/subtitle/srt' && request.method === 'POST') {

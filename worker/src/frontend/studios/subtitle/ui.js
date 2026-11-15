@@ -7,9 +7,17 @@ export const SUBTITLE_HOME_HTML = `
       <h2 id="subtitleCreateTitle">🎧 Audio / Video မှ SRT ဖန်တီးရန်</h2>
       <p>ဖိုင်ကို ရွေးပြီး SRT ဖန်တီးပါ။ ဖိုင်အရွယ်အစား 5MB အထိသာ လက်ခံပါသည်။</p>
       <label for="subtitleMediaFile">Media ဖိုင်</label><input id="subtitleMediaFile" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv">
-      <p class="subtitle-note" id="subtitleHandoffStatus" role="status" aria-live="polite">Shop Studio မှ Audio ပို့ထားပါက ဒီနေရာတွင် အလိုအလျောက် ချိတ်ဆက်ပေးပါမည်။</p>
+      <p class="subtitle-note" id="subtitleHandoffStatus" role="status" aria-live="polite">Shop မှ Audio ကို အလိုအလျောက် ချိတ်ဆက်ပေးပြီး Voice မှ Audio ကို ချိတ်ဆက်ရန် သင့်အတည်ပြုချက် လိုအပ်ပါသည်။</p>
+      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleConnectVoiceHandoffBtn" hidden>Voice Audio ချိတ်ဆက်ရန်</button></div>
       <label for="subtitleKnownText">ရှိပြီးသား စာသား (ရွေးချယ်နိုင်သည်)</label><textarea id="subtitleKnownText" rows="3" placeholder="ရှိပြီးသား စာသားရှိပါက ထည့်ပါ"></textarea>
       <div class="subtitle-actions"><button type="button" class="subtitle-button" id="subtitleGenerateBtn">SRT ဖန်တီးရန်</button></div>
+      <hr class="subtitle-divider">
+      <h3 id="subtitleTranscribeTitle">🗒️ Audio → Text (အသံမှ စာသား)</h3>
+      <p>ရွေးထားသော Audio / Video မှ စာသားကို သီးခြားထုတ်ယူပြီး အောက်တွင် ပြင်ဆင်နိုင်ပါသည်။</p>
+      <div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleTranscribeBtn" disabled aria-describedby="subtitleTranscribeStatus">စာသားထုတ်ရန်</button></div>
+      <p class="subtitle-note" id="subtitleTranscribeStatus" role="status" aria-live="polite">Audio ဖိုင် ရွေးပါ သို့မဟုတ် Shop မှ Audio ပို့ပါ။ ဖိုင်အရွယ်အစား 5MB အထိသာ လက်ခံပါသည်။</p>
+      <label for="subtitleTranscriptOutput">ထုတ်ယူထားသော စာသား</label>
+      <textarea id="subtitleTranscriptOutput" rows="7" placeholder="Audio မှ ထုတ်ယူထားသော စာသားကို ဒီနေရာတွင် ပြသပါမည်။"></textarea>
     </section>
     <section class="subtitle-card" aria-labelledby="subtitleEditorTitle">
       <h2 id="subtitleEditorTitle">📝 SRT Editor</h2>
