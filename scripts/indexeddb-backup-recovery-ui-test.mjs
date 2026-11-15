@@ -55,6 +55,7 @@ function createRecoveryHarness(backup, validateFileImpl) {
   ];
   const nodes = new Map();
   for (const id of ids) {
+    const classes = new Set();
     nodes.set(id, {
       id,
       textContent: '',
@@ -62,7 +63,14 @@ function createRecoveryHarness(backup, validateFileImpl) {
       disabled: id === 'backup-restore',
       value: '',
       files: [],
-      style: {},
+      classList: {
+        toggle(name, force) {
+          if (force) classes.add(name);
+          else classes.delete(name);
+          return classes.has(name);
+        },
+        contains(name) { return classes.has(name); }
+      },
       listeners: {},
       addEventListener(type, callback) { this.listeners[type] = callback; }
     });
@@ -175,6 +183,8 @@ assert.equal(modernHarness.calls.restore.length, 1, 'confirming must invoke Rest
 assert.equal(modernHarness.calls.restore[0].backup, modernBackup);
 assert.equal(modernHarness.calls.restore[0].options.confirmReplace, true);
 assert.match(modernHarness.nodes.get('backup-recovery-message').textContent, /Restore အောင်မြင်ပါသည်/);
+assert.equal(modernHarness.nodes.get('backup-recovery-message').classList.contains('is-success'), true);
+assert.equal(modernHarness.nodes.get('backup-recovery-message').classList.contains('is-error'), false);
 assert.equal(modernHarness.nodes.get('backup-preview').hidden, true);
 assert.equal(modernHarness.nodes.get('backup-file').value, '');
 
