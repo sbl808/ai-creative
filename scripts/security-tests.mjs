@@ -202,7 +202,7 @@ console.log('\\n--- B) Shared error message XSS regression ---');
     check('error visibility and prefix opacity are controlled by CSS classes',
       errorElement.classList.contains('aics-shared-error-visible') &&
       errorElement.children[0].className === 'aics-shared-error-prefix');
-    vm.runInNewContext(errorScript + '\\naicsHideError();', { document });
+    vm.runInNewContext(errorScript + '\naicsHideError();', { document });
     check('hide error removes the visibility class',
       !errorElement.classList.contains('aics-shared-error-visible'));
   }

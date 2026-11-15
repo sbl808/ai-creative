@@ -68,7 +68,6 @@ function aicsShowError(prefix, e) {
   el.classList.add('aics-shared-error-visible');
 
   var label = document.createElement('span');
-  label.style.opacity = '.85';
   label.className = 'aics-shared-error-prefix';
   label.textContent = prefix || '';
 
