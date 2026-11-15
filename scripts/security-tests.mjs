@@ -277,7 +277,8 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('HTML contains inline script/style elements for nonce validation', inlineElements.length >= 2);
   check('every script/style element receives the CSP response nonce',
     !!nonceMatch && inlineElements.length >= 2 &&
-    inlineElements.every((element) => element.attributes.includes('nonce="' + nonceMatch[1] + '"')));
+    inlineElements.every((element) => element.attributes.includes('nonce="' + nonceMatch[1] + '"')),
+    'elements=' + JSON.stringify(inlineElements));
   const htmlPagePaths = ['/auth/result', '/ai-test', '/cms-test', '/studio-test', '/creations-test'];
   const htmlPageResults = await Promise.all(htmlPagePaths.map(async (path) => {
     const response = await worker.fetch(new Request('https://w.dev' + path), envFor(DEV_ORIGIN), {});
@@ -295,7 +296,9 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
     const elements = getScriptStyleAttributes(html);
     check(path + ' response has CSP and nonces every inline script/style element',
       !!match && elements.length > 0 &&
-      elements.every((element) => element.attributes.includes('nonce="' + match[1] + '"')));
+      elements.every((element) => element.attributes.includes('nonce="' + match[1] + '"')),
+      'status=' + response.status + ', content-type=' + response.headers.get('content-type') +
+      ', csp=' + !!policyHeader + ', elements=' + elements.length);
   }
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
