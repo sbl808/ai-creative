@@ -48,7 +48,7 @@ function normalizeState(s){
   var base={
     mainStep:1,
     view:'content',
-    content:{input:{idea:'',type:'1',images:[]},result:''},
+    content:{input:{idea:'',type:'1',images:[]},result:'',approvedContent:''},
     video:{step:1,input:{text:'',type:'1',images:[],purpose:'Product Promotion'},result:{product:null,characters:[],scenes:[]}},
     audio:{step:1,input:{text:'',voiceName:'Puck',voiceGender:'male',purpose:'Product Description',settings:''},result:{data:'',mimeType:'audio/wav',url:'',voiceName:''},srt:{text:''},translation:{dir:'MY_TO_CN',srt:'',text:''}},
     image:{step:1,input:{text:'',images:[],purpose:'Product Image'},result:{data:'',mimeType:'image/png',url:'',prompt:''}}
@@ -144,7 +144,10 @@ function studioRestoreDraft(d){
     refImagesImage=JSON.parse(JSON.stringify(shopState.image.input.images));
     renderRefPreview('refPreviewImage',refImagesImage);
   }
+  if(shopState.view!=='content'&&!isShopContentApproved())shopState.view='content';
   if(res){studioMarkDone(1);studioMarkDone(2);}
+  showBranchViews();
+  renderShopApprovalState();
 }
 window.studioRestoreDraft=studioRestoreDraft;
 

@@ -119,6 +119,10 @@ ${aicsResultLoadingHtml('contentLoading','AI ရေးသားနေသည်..
 <div class="loading" id="loadingChat">&#9203; ပြင်ဆင်နေပါသည်...</div>
 </div>
 </div>
+<div class="btn-row shop-approval-panel shop-hidden" id="shopContentApprovalPanel">
+<span id="shopContentApprovalStatus" role="status" aria-live="polite">Product Content ကို စစ်ဆေးပြီး အတည်ပြုရန် လိုအပ်ပါသည်</span>
+<button type="button" class="btn btn-secondary" id="approveShopContentBtn" data-shop-event="click" data-shop-action="approveShopContent">Product Content ကို အတည်ပြုရန်</button>
+</div>
 <div class="error-box" id="step2Err"></div>
 <div class="retry-row" id="step2Retry">
 <button class="btn btn-primary" data-shop-event="click" data-shop-action="retryContent">&#8635; ပြန်ကြိုးစားရန်</button>

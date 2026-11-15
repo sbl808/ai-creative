@@ -67,6 +67,7 @@ function studioCollectDraft(){
     audioEmotion:val('audioEmotion'),
     audioPronunciation:val('audioPronunciation'),
     lastResult:lastResult,
+    approvedContent:contentState.approvedContent||'',
     videoPlan:videoPlan,
     audio:currentAudioBase64
   };
@@ -128,6 +129,7 @@ function studioRestoreDraft(d){
   videoPlan=d.videoPlan||null;
   currentAudioBase64=d.audio||null;
   contentState.result=lastResult;
+  contentState.approvedContent=(typeof d.approvedContent==='string')?d.approvedContent:'';
   if(lastResult){
     renderContentResult(true);
     csMarkDone(1);
@@ -136,16 +138,14 @@ function studioRestoreDraft(d){
   if(videoPlan){
     renderVideoPlan(videoPlan);
     setContentVisible(document.getElementById('videoResult'),true,'cs-display-block');
-    csMarkDone(12);
-    csMarkDone(14);
+    if(isContentApproved()){csMarkDone(12);csMarkDone(14);}
     var vp=document.getElementById('videoContentPreview');
     if(vp&&videoState.content)vp.textContent=videoState.content;
   }
   if(currentAudioBase64){
     var audioUrl='data:audio/wav;base64,'+currentAudioBase64;
     document.getElementById('audioContainer').innerHTML='<audio controls src="'+audioUrl+'"></audio><div class="btn-row"><button class="btn-ghost" data-aics-action="download-audio">&#128190; Save Audio</button></div>';
-    csMarkDone(22);
-    csMarkDone(24);
+    if(isContentApproved()){csMarkDone(22);csMarkDone(24);}
     var ap=document.getElementById('audioContentPreview');
     if(ap&&audioState.content)ap.textContent=audioState.content;
   }
@@ -163,13 +163,99 @@ function studioRestoreDraft(d){
   }
   csCur=target;
   csShow(target);
+  renderApprovalState();
 }
 window.studioRestoreDraft=studioRestoreDraft;
 
+// ===== User Approval Gate — Content must be approved before Video / Audio =====
+function isContentApproved(){
+  var current=getEditedContent();
+  return !!(current&&contentState.approvedContent&&contentState.approvedContent===current);
+}
+function ensureContentApprovalUI(){
+  var row=document.getElementById('resultActionsRow');
+  if(!row||!row.parentNode)return;
+  if(document.getElementById('contentApprovalPanel'))return;
+  var panel=document.createElement('div');
+  panel.id='contentApprovalPanel';
+  panel.className='btn-row content-approval-panel cs-hidden';
+  panel.innerHTML='<span id="contentApprovalStatus" role="status" aria-live="polite">အတည်ပြုရန် လိုအပ်ပါသည်</span><button type="button" id="approveContentBtn" class="btn btn-secondary">Content ကို အတည်ပြုရန်</button>';
+  row.parentNode.insertBefore(panel,row);
+  document.getElementById('approveContentBtn').addEventListener('click',approveContent);
+}
+function renderApprovalState(){
+  ensureContentApprovalUI();
+  var panel=document.getElementById('contentApprovalPanel');
+  var status=document.getElementById('contentApprovalStatus');
+  var approveBtn=document.getElementById('approveContentBtn');
+  var approved=isContentApproved();
+  if(panel){panel.classList.toggle('cs-hidden',!lastResult);panel.classList.toggle('cs-display-flex',!!lastResult);}
+  if(status)status.textContent=approved?'အတည်ပြုပြီးပါပြီ — နောက်အဆင့်သို့ ဆက်နိုင်ပါသည်':'Content ကို စစ်ဆေးပြီး အတည်ပြုရန် လိုအပ်ပါသည်';
+  if(approveBtn){approveBtn.disabled=approved;approveBtn.textContent=approved?'✓ အတည်ပြုပြီး':'Content ကို အတည်ပြုရန်';}
+  var branchButtons=document.querySelectorAll('[data-aics-action="open-branch"]');
+  for(var i=0;i<branchButtons.length;i++){
+    branchButtons[i].disabled=!approved;
+    branchButtons[i].setAttribute('aria-disabled',approved?'false':'true');
+  }
+  if(window.csUpdateStepper)window.csUpdateStepper();
+}
+function syncContentApproval(){
+  var current=getEditedContent();
+  if(contentState.approvedContent&&contentState.approvedContent!==current){
+    // မူလ Approved Snapshot ကို IndexedDB ထဲမှာ ထိန်းထားပြီး လက်ရှိ Version ကို Pending အဖြစ်သာ သတ်မှတ်သည်။
+    csDone[12]=false;csDone[14]=false;csDone[22]=false;csDone[24]=false;
+  }
+  renderApprovalState();
+}
+function approveContent(){
+  var content=getEditedContent();
+  if(!content||!content.trim()){showToastMsg('အတည်ပြုရန် Content မရှိသေးပါ');return;}
+  contentState.approvedContent=content;
+  contentState.editedResult=content;
+  renderApprovalState();
+  if(window.studioPersistDraft)window.studioPersistDraft(false);
+  showToastMsg('Content ကို အတည်ပြုပြီးပါပြီ');
+}
+window.approveContent=approveContent;
+
+// Keep the existing functions and add the approval check at their public entry points.
+var originalOpenBranch=window.openBranch;
+window.openBranch=function(kind){
+  syncContentApproval();
+  if(!isContentApproved()){showToastMsg('Video သို့မဟုတ် Audio မစမီ Content ကို အတည်ပြုပါ');return;}
+  return originalOpenBranch(kind);
+};
+var originalCsNav=window.csNav;
+window.csNav=function(n){
+  syncContentApproval();
+  if([12,14,22,24].indexOf(Number(n))!==-1&&!isContentApproved()){
+    showToastMsg('နောက်အဆင့်သို့ မသွားမီ Content ကို အတည်ပြုပါ');return;
+  }
+  return originalCsNav(n);
+};
+var originalCsAllowed=window.csAllowed;
+window.csAllowed=function(n){
+  if([12,14,22,24].indexOf(Number(n))!==-1&&!isContentApproved())return false;
+  return originalCsAllowed(n);
+};
+var originalOnContentEdit=window.onContentEdit;
+window.onContentEdit=function(){
+  if(originalOnContentEdit)originalOnContentEdit();
+  syncContentApproval();
+};
+var originalRenderContentResult=window.renderContentResult;
+window.renderContentResult=function(instant){
+  var result=originalRenderContentResult(instant);
+  syncContentApproval();
+  return result;
+};
+
 // ===== Boot (Shell ပြီးမှ Main + Branch Stepper ကို ကိုယ်ပိုင်ဖြင့် ပြန်ဆောက်သည်) =====
 function csBoot(){
+  ensureContentApprovalUI();
   csRenderStepper();
   csShow(csCur);
+  renderApprovalState();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',csBoot);
 else csBoot();
