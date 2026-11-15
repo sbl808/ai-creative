@@ -1042,6 +1042,28 @@ await check('Voice Studio routes SRT translation through the shared Voice transl
   };
 });
 
+console.log('— Subtitle Studio frontend integration contracts —');
+await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save actions', async () => {
+  const r = await get('/app/subtitle', await withToken());
+  const body = await r.text();
+  return {
+    ok: r.status === 200 && body.includes('Subtitle Studio') &&
+      body.includes('subtitleMediaFile') && body.includes('subtitleTranslateBtn') &&
+      body.includes('subtitleSaveSrtBtn') && body.includes('aicsApiFetch') &&
+      body.includes('AICS_CREATIONS.save'),
+    msg: 'status=' + r.status + ' UI, translation, BYOK bridge and IndexedDB save hooks checked',
+  };
+});
+await check('Home page exposes Subtitle Studio navigation', async () => {
+  const r = await get('/app', await withToken());
+  const body = await r.text();
+  return {
+    ok: r.status === 200 && body.includes('data-studio="subtitle"') &&
+      body.includes("['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop']"),
+    msg: 'status=' + r.status + ' Subtitle card and navigation allowlist checked',
+  };
+});
+
 console.log('\n=== RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 if (failed > 0) {
   console.log('\nFailures:');
