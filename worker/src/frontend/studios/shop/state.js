@@ -31,7 +31,7 @@ var shopState={
   content:{
     input:{idea:'',type:'1',images:[]},
     result:'',
-    approvedContent:'' // နောက်ဆုံး edited content — latest source
+    approvedContent:'' // User အတည်ပြုထားသော Product Content Snapshot
   },
   video:{
     step:1, // 1=setup 2=result
