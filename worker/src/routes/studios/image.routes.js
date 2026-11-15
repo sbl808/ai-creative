@@ -2,7 +2,7 @@ import { generateImagePrompt, generateAdImagePrompt, generateImageFromPrompt } f
 
 export async function handleImageStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
 
       // ===== Image Studio — Tab 1: Image Prompt Generate =====
       if (path === '/api/studio/image/prompt' && request.method === 'POST') {
@@ -90,7 +90,6 @@ export async function handleImageStudioRoutes(request, env, cors, deps) {
         try {
           const apiKey = body.apiKey;
           const out = await generateImageFromPrompt(env, { model: body.model, prompt: body.prompt, plan, apiKey });
-          await trackUsageSafe(env, payload.sub, 'image');
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
           return json({ error: 'image_generate_error', detail: friendlyError(e) }, 500, cors);
