@@ -1050,7 +1050,8 @@ await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save 
     ok: r.status === 200 && body.includes('Subtitle Studio') &&
       body.includes('subtitleMediaFile') && body.includes('subtitleTranslateBtn') &&
       body.includes('subtitleSaveSrtBtn') && body.includes('aicsApiFetch') &&
-      body.includes('AICS_CREATIONS.save'),
+      body.includes('AICS_CREATIONS.save') && body.includes('studioCollectDraft') &&
+      body.includes('studioRestoreDraft') && body.includes('AICS_STUDIO_DRAFTS.save'),
     msg: 'status=' + r.status + ' UI, translation, BYOK bridge and IndexedDB save hooks checked',
   };
 });
