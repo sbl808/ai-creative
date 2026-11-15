@@ -4,7 +4,7 @@ import { callGeminiText } from './ai.js';
 import { getCMSData, buildSystemPrompt } from './cms.js';
 import { resolveModel } from './aiModels.js';
 
-const STUDIOS = new Set(['story', 'content', 'short', 'image', 'voice', 'shop']);
+const STUDIOS = new Set(['story', 'content', 'short', 'image', 'shop']);
 const CATEGORY_FIELDS = Object.freeze({
   story: new Set(['characters', 'conflict', 'ending']),
   content: new Set(['tone', 'keyPoints', 'cta']),
@@ -95,7 +95,7 @@ export async function generateIdeas(env, { brief, plan, apiKey }) {
     'Selected category: ' + category,
     'Category direction: ' + categoryInstructions[category],
     'Use category-specific form fields when provided. Do not invent missing product facts, prices, claims, or guarantees.',
-    'Return only valid JSON in this exact shape: {"ideas":[{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|voice|shop"}]}',
+    'Return only valid JSON in this exact shape: {"ideas":[{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|shop"}]}',
     'Do not add markdown fences or text outside JSON. Each idea must include all five fields.',
     'Brief JSON:', JSON.stringify(safeBrief),
   ].join('\n\n');
@@ -177,7 +177,7 @@ export async function reviseIdea(env, { category, idea, fields, instruction, pla
     'Selected category: ' + category,
     'Category direction: ' + categoryInstructions[category],
     'Preserve correct facts. Do not invent prices, product claims, guarantees, or missing details.',
-    'Return only valid JSON in this shape: {"idea":{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|voice|shop"}}',
+    'Return only valid JSON in this shape: {"idea":{"title":"...","concept":"...","hook":"...","outline":"...","suggestedStudio":"story|content|short|image|shop"}}',
     'All five fields are required. Keep suggestedStudio valid.',
     'Current idea JSON:', JSON.stringify(idea),
     'Category form fields JSON:', JSON.stringify(fields || {}),
