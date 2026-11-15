@@ -267,6 +267,24 @@ console.log('\n--- B) HTML Content Security Policy rollout ---');
   check('every script/style element receives the CSP response nonce',
     !!nonceMatch && inlineElements.length >= 2 &&
     inlineElements.every((match) => match[2].includes('nonce="' + nonceMatch[1] + '"')));
+  const htmlPagePaths = ['/auth/result', '/ai-test', '/cms-test', '/studio-test', '/creations-test'];
+  const htmlPageResults = await Promise.all(htmlPagePaths.map(async (path) => {
+    const response = await worker.fetch(new Request('https://w.dev' + path), envFor(DEV_ORIGIN), {});
+    return { path, response, html: await response.clone().text() };
+  }));
+  check('Worker-generated HTML pages contain no inline event-handler attributes',
+    htmlPageResults.every(({ html }) => !/\\son[a-z]+\\s*=/i.test(html)));
+  check('Worker-generated HTML pages contain no inline style attributes',
+    htmlPageResults.every(({ html }) => !/\\sstyle\\s*=/i.test(html)));
+  check('Worker-generated HTML pages contain no javascript URLs',
+    htmlPageResults.every(({ html }) => !/javascript\\s*:/i.test(html)));
+  check('Worker-generated HTML pages nonce every inline script and style element',
+    htmlPageResults.every(({ html, response }) => {
+      const policyHeader = response.headers.get('content-security-policy-report-only') || '';
+      const match = policyHeader.match(/script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)'/);
+      const elements = [...html.matchAll(/<(script|style)\\b([^>]*)>/gi)];
+      return !!match && elements.every((element) => element[2].includes('nonce="' + match[1] + '"'));
+    }));
   const api = await worker.fetch(
     new Request('https://w.dev/api/ai-models'),
     envFor(DEV_ORIGIN),
