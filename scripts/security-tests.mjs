@@ -799,5 +799,25 @@ console.log('\n--- Shared Shell CSP markup contract ---');
 }
 
 
+console.log('\\n--- Settings CSP markup contract ---');
+{
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  check('Settings contains no inline style attributes',
+    !/\\sstyle\\s*=/i.test(settings));
+  check('Settings contains no direct DOM style property assignments',
+    !/\\.style(?:\\.|\\s*\\[)/.test(settings));
+  check('Settings contains no inline event-handler attributes',
+    !/\\s(onclick|onchange|oninput|onsubmit|onkeydown|onkeyup)\\s*=/i.test(settings));
+  check('Settings tab panels use CSS visibility classes',
+    (settings.match(/class="tab-panel is-hidden"/g) || []).length === 3 &&
+    settings.includes("p.classList.add('is-hidden')") &&
+    settings.includes("classList.remove('is-hidden')"));
+  check('Settings dynamic profile and plan markup uses CSS classes',
+    settings.includes('settings-profile-name') &&
+    settings.includes('settings-api-actions') &&
+    settings.includes('plan-catalog-grid') &&
+    settings.includes('plan-catalog-card'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
