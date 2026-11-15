@@ -46,6 +46,26 @@ function installBackupValidator(target, config) {
     }
   }
 
+  // Studio identifiers are retained as supplied for backward-compatible backups.
+  // Restrict them to a compact identifier alphabet; do not impose a current-Studio allowlist.
+  function validStudioIdentifier(value, maxLength) {
+    return typeof value === 'string' && value.length > 0 && value.length <= maxLength &&
+      /^[A-Za-z0-9_][A-Za-z0-9._:-]*$/.test(value);
+  }
+
+  function optionalStudioIdentifier(record, key, maxLength) {
+    if (hasOwn(record, key) && record[key] !== null &&
+        !validStudioIdentifier(record[key], maxLength)) {
+      throw fail('backup_invalid_record');
+    }
+  }
+
+  function requireStudioIdentifier(record, key, maxLength) {
+    if (!validStudioIdentifier(record[key], maxLength)) {
+      throw fail('backup_invalid_record');
+    }
+  }
+
   function optionalDate(record, key) {
     if (hasOwn(record, key) && record[key] !== null && !validDate(record[key])) {
       throw fail('backup_invalid_record');
@@ -75,7 +95,7 @@ function installBackupValidator(target, config) {
 
   function validateCreation(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'user_id');
-    optionalString(record, 'studio', 100);
+    optionalStudioIdentifier(record, 'studio', 100);
     optionalString(record, 'type', 40);
     optionalString(record, 'title', 500);
     optionalString(record, 'original_prompt', 2000000);
@@ -101,7 +121,7 @@ function installBackupValidator(target, config) {
 
   function validateSession(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'ownerId');
-    requireString(record, 'studio', 40);
+    requireStudioIdentifier(record, 'studio', 40);
     optionalString(record, 'title', 120);
     if (hasOwn(record, 'status') &&
         ['active', 'archived'].indexOf(record.status) === -1) throw fail('backup_invalid_record');
@@ -113,7 +133,7 @@ function installBackupValidator(target, config) {
   function validateHandoff(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'ownerId');
     if (record.contractVersion !== 1) throw fail('backup_invalid_record');
-    requireString(record, 'source', 40);
+    requireStudioIdentifier(record, 'source', 40);
     requireString(record, 'target', 40);
     if (['story', 'content', 'short', 'image', 'voice', 'shop', 'subtitle'].indexOf(record.target) === -1) {
       throw fail('backup_invalid_record');
