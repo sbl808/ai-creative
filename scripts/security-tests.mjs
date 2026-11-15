@@ -901,5 +901,32 @@ console.log('\\n--- Story Video Plan UI CSP markup contract ---');
     storyVideoPage.includes('@media(max-width:767px){.aics-video-card{padding:15px}}'));
 }
 
+
+console.log('\\n--- Login CSP markup contract ---');
+{
+  const login = readFileSync(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
+  check('Login page contains no inline style attributes',
+    !/\\sstyle\\s*=/i.test(login));
+  check('Login page contains no direct DOM style property access',
+    !/\\.style(?:\\.|\\s*\\[|\\s*=)/.test(login));
+  check('Login name and confirm-password fields use the hidden CSS class',
+    login.includes('class="field is-hidden" id="suNameField"') &&
+    login.includes('class="field is-hidden" id="suCfField"'));
+  check('Login hidden and Google loading states have matching CSS rules',
+    login.includes('.is-hidden{display:none!important}') &&
+    login.includes('.btn-google.is-loading{pointer-events:none;opacity:.6}'));
+  check('Login loading state toggles the Google button CSS class',
+    login.includes("googleBtn.classList.toggle('is-loading', on)") &&
+    !login.includes('googleBtn.style.'));
+  check('Login Sign Up mode toggles field visibility with CSS classes',
+    login.includes("nameField.classList.remove('is-hidden')") &&
+    login.includes("cfField.classList.remove('is-hidden')") &&
+    login.includes("nameField.classList.add('is-hidden')") &&
+    login.includes("cfField.classList.add('is-hidden')"));
+  check('Login Forgot Password visibility uses a CSS class',
+    login.includes("document.getElementById('forgotBtn').classList.add('is-hidden')") &&
+    login.includes("document.getElementById('forgotBtn').classList.remove('is-hidden')"));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
