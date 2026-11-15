@@ -234,11 +234,9 @@ assert.equal((await window.AICS_DRAFTS.list()).length, 3);
 const subtitleDraft = await window.AICS_STUDIO_DRAFTS.save('subtitle', {
   step: 1,
   data: {
-    data: {
-      schemaVersion: 1,
-      editedSrt: '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ',
-      translatedSrt: ''
-    }
+    schemaVersion: 1,
+    editedSrt: '1\\n00:00:00,000 --> 00:00:02,000\\nမင်္ဂလာပါ',
+    translatedSrt: ''
   }
 });
 assert.equal(subtitleDraft.studio, 'subtitle');
