@@ -59,7 +59,55 @@ function onContentEdit(){
   if(!ta)return;
   shopState.content.result=ta.value;
   autoExpand(ta);
+  syncShopContentApproval();
   scheduleSave();
+}
+
+// ===================== Shop Product Content Approval Gate =====================
+function isShopContentApproved(){
+  var current=shopState.content.result||'';
+  return !!(current.trim()&&shopState.content.approvedContent===current);
+}
+function renderShopApprovalState(){
+  var panel=document.getElementById('shopContentApprovalPanel');
+  var status=document.getElementById('shopContentApprovalStatus');
+  var button=document.getElementById('approveShopContentBtn');
+  var approved=isShopContentApproved();
+  var hasContent=!!((shopState.content.result||'').trim());
+  if(panel)panel.classList.toggle('shop-hidden',!hasContent);
+  if(status)status.textContent=approved?'အတည်ပြုပြီးပါပြီ — Video / Audio / Image သို့ ဆက်နိုင်ပါသည်':'Product Content ကို စစ်ဆေးပြီး အတည်ပြုရန် လိုအပ်ပါသည်';
+  if(button){
+    button.disabled=approved||!hasContent;
+    button.textContent=approved?'✓ အတည်ပြုပြီး':'Product Content ကို အတည်ပြုရန်';
+  }
+  var cards=document.querySelectorAll('.shop-out-cards .branch-action-card');
+  for(var i=0;i<cards.length;i++){
+    cards[i].setAttribute('aria-disabled',approved?'false':'true');
+  }
+}
+function syncShopContentApproval(){
+  renderShopApprovalState();
+}
+function approveShopContent(){
+  syncContent();
+  var content=shopState.content.result||'';
+  if(!content.trim()){
+    showToast('အတည်ပြုရန် Product Content မရှိသေးပါ','error');
+    return;
+  }
+  shopState.content.approvedContent=content;
+  renderShopApprovalState();
+  autoSave();
+  showToast('Product Content ကို အတည်ပြုပြီးပါပြီ','success');
+}
+function requireShopContentApproval(){
+  syncContent();
+  syncShopContentApproval();
+  if(!isShopContentApproved()){
+    showToast('Video / Audio / Image မစမီ Product Content ကို အတည်ပြုပါ','error');
+    return false;
+  }
+  return true;
 }
 
 // ===================== Reference Image Upload =====================
@@ -195,6 +243,7 @@ function generateContent(){
       if(d.speakingStyle)text+='\\n\\n[SPEAKING STYLE]\\n'+d.speakingStyle;
       if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
       shopState.content.result=text;
+      syncShopContentApproval();
       studioMarkDone(1);
       studioMarkDone(2);
       rbox.complete({content:text});
@@ -251,6 +300,7 @@ function sendRevision(){
       if(d.voiceStyle)text+='\\n\\n[VOICE STYLE]\\n'+d.voiceStyle;
       rbox.complete({content:text});
       shopState.content.result=text;
+      syncShopContentApproval();
       log.innerHTML+='<div class="chat-bubble chat-ai">✓ ပြင်ဆင်ပြီးပါပြီ</div>';
       log.scrollTop=log.scrollHeight;
       autoSave();
@@ -341,6 +391,11 @@ function imageBranchMeta(){
 
 // ===================== View Switching (Branch ပြောင်းလျှင် state မပျောက် — Branch Isolation) =====================
 function showBranchViews(){
+  if(shopState.view!=='content'){
+    syncContent();
+    if(!isShopContentApproved())shopState.view='content';
+  }
+  renderShopApprovalState();
   document.getElementById('viewContent').classList.toggle('shop-hidden',shopState.view!=='content');
   document.getElementById('viewVideo').classList.toggle('shop-hidden',shopState.view!=='video');
   document.getElementById('viewAudio').classList.toggle('shop-hidden',shopState.view!=='audio');
@@ -361,8 +416,7 @@ function goContentResult(){
 }
 // Product Content Result → Video Branch (Data Auto Transfer — user ကို ထပ်ကူးထည့်ခိုင်းမထားပါ)
 function goVideoBranch(){
-  if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  syncContent();
+  if(!requireShopContentApproval())return;
   shopState.view='video';
   var vta=document.getElementById('videoText');
   if(vta){vta.value=shopState.content.result;autoExpand(vta);}
@@ -373,8 +427,7 @@ function goVideoBranch(){
 }
 // Product Content Result → Audio Branch (Data Auto Transfer)
 function goAudioBranch(){
-  if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  syncContent();
+  if(!requireShopContentApproval())return;
   shopState.view='audio';
   var ata=document.getElementById('audioText');
   if(ata){ata.value=shopState.content.result;autoExpand(ata);}
@@ -388,8 +441,7 @@ function goAudioBranch(){
 }
 // Product Content Result + Product Reference ပုံများ → Image Branch (Data Auto Transfer)
 function goImageBranch(){
-  if(!shopState.content.result||!shopState.content.result.trim()){showToast('Product Content အရင် ဖန်တီးပါ','error');return;}
-  syncContent();
+  if(!requireShopContentApproval())return;
   shopState.view='image';
   var ita=document.getElementById('imageText');
   if(ita){ita.value=shopState.content.result;autoExpand(ita);}
@@ -409,7 +461,7 @@ function goImageBranch(){
 /* CSP-safe Shop event delegation. */
 (function installShopDelegatedEvents(){
  if(window.__aicsShopDelegationInstalled)return;window.__aicsShopDelegationInstalled=true;
- var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','handoffShopAudioToSubtitle','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav','removeShopReference','shopSelectType']);
+ var allowed=new Set(['studioToggleAdvanced','generateContent','onContentEdit','approveShopContent','copyResult','saveContent','toggleChat','sendRevision','retryContent','studioGoStep','goVideoBranch','goAudioBranch','goImageBranch','onVideoTextEdit','generateVideo','retryVideo','backFromVideoLoading','copyAllVideo','saveAllVideo','onAudioTextEdit','setVoiceGender','onVoiceChange','generateAudio','copyAudioText','toggleAudioPlay','downloadAudio','handoffShopAudioToSubtitle','generateSrt','retryAudio','backFromAudioLoading','backToAudioResult','onSrtEdit','copySrt','downloadSrt','onTransLangChange','onTransDirChange','translateSrt','retrySrt','backFromSrtLoading','backToSrtResult','retryTrans','backFromTransLoading','copyTranslated','downloadTranslated','onImageTextEdit','generateImage','retryImage','backFromImageLoading','smCopyProduct','genImage','smCopyChar','smCopyVideoPrompt','smCopyEnvPrompt','copyImagePrompt','saveImage','shopMainNav','removeShopReference','shopSelectType']);
  function dispatch(event){var el=event.target&&event.target.closest?event.target.closest('[data-shop-action]'):null;if(!el||!el.closest('.aics-work'))return;var expected=el.getAttribute('data-shop-event');if(expected&&expected!==event.type)return;if(event.type==='keydown'&&(event.key!=='Enter'||el.getAttribute('data-shop-key')!=='Enter'))return;var action=el.getAttribute('data-shop-action');if(action==='set-content-type'){contentType=el.value;return;}if(!allowed.has(action)||typeof window[action]!=='function')return;var args=[],pass=el.getAttribute('data-shop-pass');if(pass==='element')args=[el];else if(pass==='index')args=[Number(el.getAttribute('data-shop-index')||0)];else if(pass==='step')args=[Number(el.getAttribute('data-step')||1)];else{var a=el.getAttribute('data-shop-arg1'),b=el.getAttribute('data-shop-arg2');if(a!==null)args.push(a);if(b!==null)args.push(b);}window[action].apply(window,args);}
  ['click','input','change','keydown'].forEach(function(type){document.addEventListener(type,dispatch);});
 })();
