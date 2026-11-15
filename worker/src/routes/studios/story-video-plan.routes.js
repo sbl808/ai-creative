@@ -4,7 +4,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 // Story Video Plan API routes are isolated from Story Studio routes.
 export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError } = deps;
 
       // ===== Story Studio — Tab 2: Video Plan (04 Form → 05/06) =====
       // Backward Compat: ယခင် body.idea ကိုလည်း ဆက်လက်လက်ခံသည်။
@@ -52,7 +52,6 @@ export async function handleStoryVideoPlanRoutes(request, env, cors, deps) {
               plan, apiKey,
             }),
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
