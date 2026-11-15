@@ -31,7 +31,7 @@ if (typeof globalThis.HTMLRewriter === 'undefined') {
             let html = await response.text();
             for (const rule of rules) {
               const tag = rule.selector;
-              const pattern = new RegExp('<' + tag + '\b([^>]*)>', 'gi');
+              const pattern = new RegExp('<' + tag + '\\b([^>]*)>', 'gi');
               html = html.replace(pattern, (match, attributes) => {
                 const element = {
                   attributes,
