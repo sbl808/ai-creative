@@ -213,14 +213,13 @@ function loadSettings(){
   api('/api/users/me').then(function(d){
     if(d.error){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Data ရယူ၍ မရပါ — '+(d.error||'error')+'</div>';return;}
     var s=d.settings||{};
-    var u=d.usage||{};
     document.getElementById('tab-profile').innerHTML=
       '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" data-settings-action="save-name">သိမ်းပါ</button></span></div>'+
       '<div class="profile-row"><span class="profile-label">📧 အီးမေးလ်</span><span class="profile-value">'+escapeHtml(d.email||'')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">Plan</span><span class="profile-value"><span class="plan-badge'+(d.plan==='PRO'?' pro':'')+'">'+(d.plan==='PRO'?'PRO ⭐':'FREE')+'</span></span></div>'+
       '<div class="profile-row"><span class="profile-label">User ID</span><span class="profile-value">'+escapeHtml(String(d.user_id||''))+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">အခွင့်အရေး</span><span class="profile-value">'+(d.is_admin?'Admin ⚙️':'User')+'</span></div>'+
-      '<div class="profile-row"><span class="profile-label">📊 အသုံးပြုမှု</span><span class="profile-value">AI: '+(u.ai_requests||0)+' · ပုံ: '+(u.image_generations||0)+' · အသံ: '+(u.voice_generations||0)+'</span></div>';
+      '<div class="profile-row"><span class="profile-label">အခွင့်အရေး</span><span class="profile-value">'+(d.is_admin?'Admin ⚙️':'User')+'</span></div>';
     document.getElementById('pref_studio').value=s.default_studio||'story';
     document.getElementById('pref_voice').value=s.default_voice||'Kore';
     var pm=document.getElementById('pref_model');
