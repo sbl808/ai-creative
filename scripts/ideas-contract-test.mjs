@@ -56,6 +56,15 @@ assert.match(ideaUi, /aics_draft_short/, 'Short handoff draft key missing');
 assert.match(ideaUi, /aics_draft_image/, 'Image handoff draft key missing');
 assert.match(ideaUi, /aics_draft_shop/, 'Shop handoff draft key missing');
 assert.doesNotMatch(ideaUi, /id:'voice'/, 'Voice must not be an Ideas handoff target');
+const editorStudioSelect = ideaUi.match(/<select id="editStudio">([\\s\\S]*?)<\\/select>/);
+assert.ok(editorStudioSelect, 'Idea editor Studio selector must exist');
+assert.doesNotMatch(editorStudioSelect[1], /<option[^>]*>voice<\\/option>/i, 'Voice must not be selectable in the Idea editor');
+assert.match(editorStudioSelect[1], /option value="" disabled/, 'Legacy unsupported Studio values must require an explicit valid selection');
+assert.match(ideaUi, /ALLOWED_SUGGESTED_STUDIOS=\\['story','content','short','image','shop'\\]/, 'Idea editor must allow only independent Ideas destinations');
+assert.match(ideaUi, /isAllowedSuggestedStudio\\(result\\.suggestedStudio\\)\\?result\\.suggestedStudio:''/, 'Legacy Voice suggestions must not be silently converted');
+assert.match(ideaUi, /if\\(!isAllowedSuggestedStudio\\(el\\('editStudio'\\)\\.value\\)\\)/, 'AI revision must require an allowed Studio selection');
+assert.match(ideaUi, /if\\(!isAllowedSuggestedStudio\\(result\\.suggestedStudio\\)\\)/, 'Manual save must reject unsupported Studio values');
+assert.match(ideaUi, /if\\(!isAllowedSuggestedStudio\\(pendingRevision\\.suggestedStudio\\)\\)/, 'Revision apply must reject unsupported Studio values');
 assert.doesNotMatch(ideaUi, /aics_voice_transfer.*source:'ideas'/s, 'Ideas must not create a Voice transfer');
 
 const ignoredIdeasTransfer = voiceActions.match(/function applyContentTransfer\(\)\{([\s\S]*?)\n\}/);
