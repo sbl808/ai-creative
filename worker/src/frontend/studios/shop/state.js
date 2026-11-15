@@ -30,7 +30,8 @@ var shopState={
   view:'content', // 'content' | 'video' | 'audio' | 'image'
   content:{
     input:{idea:'',type:'1',images:[]},
-    result:'' // နောက်ဆုံး edited content — latest source
+    result:'',
+    approvedContent:'' // နောက်ဆုံး edited content — latest source
   },
   video:{
     step:1, // 1=setup 2=result
