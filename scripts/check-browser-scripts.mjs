@@ -23,6 +23,7 @@ const STUDIOS = [
   { slug: 'image', exportName: 'IMAGE_HTML' },
   { slug: 'voice', exportName: 'VOICE_HTML' },
   { slug: 'shop', exportName: 'SHOP_HTML' },
+  { slug: 'subtitle', exportName: 'SUBTITLE_HTML' },
   { slug: 'story-video-plan', exportName: 'STORY_VIDEO_PLAN_HTML' },
 ];
 

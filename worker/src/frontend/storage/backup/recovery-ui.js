@@ -94,7 +94,11 @@ const SCRIPT = String.raw`(function () {
     exportButton.disabled = true;
     window.AICS_BACKUP.download().then(function (result) {
       message('Backup ဖိုင် ထုတ်ယူပြီးပါပြီ — ' + result.filename);
-    }).catch(function () {
+    }).catch(function (error) {
+      if (error && error.code === 'backup_file_too_large') {
+        message('Backup ဒေတာသည် 50 MiB ကျော်နေပါသည်။ ဒေတာအရွယ်အစားကို လျှော့ချပြီး ထပ်မံကြိုးစားပါ။', true);
+        return;
+      }
       message('Backup ဖိုင် ထုတ်ယူ၍ မရပါ။ Browser Storage ကို စစ်ဆေးပါ။', true);
     }).then(function () { exportButton.disabled = false; });
   });

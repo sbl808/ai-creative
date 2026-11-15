@@ -75,6 +75,16 @@ try {
     const response = await page.goto(url + '/app/subtitle', { waitUntil: 'domcontentloaded' });
     check(viewport.name + ': Subtitle page returns HTTP 200', response?.status() === 200);
     await page.locator('#subtitleWorkflow').waitFor({ state: 'visible' });
+    await page.evaluate(() => {
+      // Override the production BYOK runtime only in this isolated browser test.
+      window.AICS_BYOK = {
+        withGeminiKey: async (body) => ({
+          ...body,
+          apiKey: 'subtitle-e2e-gemini-key',
+        }),
+      };
+    });
+
     check(viewport.name + ': page title is Subtitle Studio', (await page.title()).includes('Subtitle Studio'));
     check(viewport.name + ': media input exists', await page.locator('#subtitleMediaFile').count() === 1);
     check(viewport.name + ': SRT editor exists', await page.locator('#subtitleSrtInput').count() === 1);
@@ -405,7 +415,8 @@ try {
       generationRequest.body.audioBase64 === fakeAudio.toString('base64') &&
       generationRequest.body.mimeType === 'audio/wav' &&
       generationRequest.body.knownText === knownText &&
-      generationRequest.body.type === '2');
+      generationRequest.body.type === '2' &&
+      generationRequest.body.apiKey === 'subtitle-e2e-gemini-key');
     check(viewport.name + ': Generate SRT response populates editor',
       await editor.inputValue() === generatedSrt);
 
@@ -462,7 +473,8 @@ try {
     check(viewport.name + ': Translate SRT sends exact text, direction, and type',
       translationRequest.body.srtText === sampleSrt &&
       translationRequest.body.direction === 'CN_TO_MY' &&
-      translationRequest.body.type === '2');
+      translationRequest.body.type === '2' &&
+      translationRequest.body.apiKey === 'subtitle-e2e-gemini-key');
     check(viewport.name + ': Translate SRT response populates output',
       await translatedOutput.inputValue() === translatedApiSrt);
 

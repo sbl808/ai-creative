@@ -22,6 +22,8 @@ assert.match(panel, /အလိုအလျောက် Sync မလုပ်ပ�
 assert.match(script, /AICS_STORAGE_PERSISTENCE\.getStatus/);
 assert.match(script, /AICS_STORAGE_PERSISTENCE\.requestPersistence/);
 assert.match(script, /AICS_BACKUP\.download/);
+assert.match(script, /backup_file_too_large/);
+assert.match(script, /50 MiB/);
 assert.match(script, /AICS_BACKUP_IMPORT\.validateFile/);
 assert.match(script, /AICS_BACKUP_IMPORT\.restore/);
 

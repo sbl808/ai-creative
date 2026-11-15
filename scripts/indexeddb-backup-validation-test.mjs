@@ -120,11 +120,21 @@ function expectCode(input, code, owner = ownerId) {
 expectCode(validBackup, 'backup_owner_mismatch', 'other-user');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId: 'user-b', studio: 'short', data: {} }] } }, 'backup_owner_mismatch');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId, studio: 'unknown', data: {} }] } }, 'backup_invalid_record');
-const legacyBackup = JSON.parse(JSON.stringify(validBackup));
-delete legacyBackup.stores.drafts;
-delete legacyBackup.stores.ideas;
-legacyBackup.schemaVersion = 5;
-expectCode(legacyBackup, 'backup_invalid_stores');
+const versionFiveBackup = JSON.parse(JSON.stringify(validBackup));
+delete versionFiveBackup.stores.ideas;
+versionFiveBackup.schemaVersion = 5;
+assert.equal(validateBackupEnvelope(versionFiveBackup, ownerId).valid, true);
+assert.equal(validateBackupEnvelope(versionFiveBackup, ownerId).recordCount, 6);
+assert.equal(validateBackupText(JSON.stringify(versionFiveBackup), ownerId).recordCount, 6);
+
+const versionFiveWithIdeas = JSON.parse(JSON.stringify(validBackup));
+versionFiveWithIdeas.schemaVersion = 5;
+expectCode(versionFiveWithIdeas, 'backup_invalid_stores');
+
+const versionSixWithMediaAssets = JSON.parse(JSON.stringify(currentBackup));
+versionSixWithMediaAssets.schemaVersion = 6;
+expectCode(versionSixWithMediaAssets, 'backup_invalid_stores');
+
 const missingDraftsBackup = JSON.parse(JSON.stringify(validBackup));
 delete missingDraftsBackup.stores.drafts;
 expectCode(missingDraftsBackup, 'backup_invalid_stores');
