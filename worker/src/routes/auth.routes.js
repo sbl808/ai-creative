@@ -188,10 +188,8 @@ export async function handleAuthRoutes(request, env, cors, deps) {
       // ===== Phase 12 — Email/Password Sign Up (PBKDF2 — Plain Text မသိမ်းပါ) =====
       if (path === '/api/auth/signup' && request.method === 'POST') {
         const body = await readBody(request).catch(() => null);
-        const name = String((body && body.name) || '').trim().slice(0, 60);
         const email = String((body && body.email) || '').trim().toLowerCase();
         const password = String((body && body.password) || '');
-        if (!name) return json({ error: 'missing_name', detail: 'Name ထည့်ပါ။' }, 400, cors);
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email', detail: 'Email ပုံစံ မမှန်ပါ။' }, 400, cors);
         if (password.length < 6) return json({ error: 'weak_password', detail: 'Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။' }, 400, cors);
         if (!env.DB) return json({ error: 'db_missing' }, 500, cors);

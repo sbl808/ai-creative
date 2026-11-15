@@ -1,7 +1,8 @@
 import { storageErrorsScript } from './storage/storage-errors.js';
 import { databaseScript } from './storage/database.js';
 import { storageOwnerScript } from './storage/storage-owner.js';
-import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
+import { appPreferencesRepositoryScript } from './storage/repositories/app-preferences.js';
+import { i18nRuntimeScript } from './i18n/runtime.js';
 
 // ============================================================
 // AI CREATIVE STUDIO — Personal Login UI (Phase 12)
@@ -13,7 +14,7 @@ import { userSettingsRepositoryScript } from './storage/repositories/user-settin
 // ============================================================
 
 const LOGIN_HTML = `<!DOCTYPE html>
-<html lang="my">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -89,30 +90,29 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 <div class="login-card">
   <div class="brand"><div class="brand-logo">🎨</div><div class="brand-title">AI CREATIVE STUDIO</div></div>
   <div class="welcome">
-    <h1 id="headline">Welcome back</h1>
-    <p id="subline">Sign in to your workspace</p>
+    <h1 id="headline" data-i18n="auth.welcome">Welcome back</h1>
+    <p id="subline" data-i18n="auth.signin.subtitle">Sign in to your workspace</p>
   </div>
   <div id="alertBox" class="alert"></div>
 
   <!-- Google — Primary Sign In -->
   <a class="btn btn-google" id="googleBtn" href="/api/auth/login?next=/app">
     <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-    Continue with Google
+    <span data-i18n="auth.google">Continue with Google</span>
   </a>
 
-  <div class="divider">OR</div>
+  <div class="divider" data-i18n="auth.or">OR</div>
 
   <!-- Email / Password Sign In -->
   <form id="signinForm">
-    <div class="field" id="suNameField" style="display:none;"><label for="suName">Name</label><input id="suName" type="text" autocomplete="name" placeholder="မင်းရဲ့နာမည်" maxlength="60"></div>
-    <div class="field"><label for="siEmail">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
-    <div class="field"><label for="siPass">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" aria-pressed="false">Show</button></div></div>
-    <div class="field" id="suCfField" style="display:none;"><label for="suCf">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" aria-pressed="false">Show</button></div></div>
-    <div class="row2"><button type="button" class="link" id="forgotBtn">Forgot password?</button></div>
-    <button class="btn btn-primary" id="signinBtn" type="submit">Sign In</button>
+    <div class="field"><label for="siEmail" data-i18n="auth.email">Email</label><input id="siEmail" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-placeholder="auth.email.placeholder" required></div>
+    <div class="field"><label for="siPass" data-i18n="auth.password">Password</label><div class="password-wrap"><input id="siPass" type="password" autocomplete="current-password" placeholder="••••••••" required><button type="button" class="password-toggle" data-password-toggle="siPass" aria-controls="siPass" aria-label="Show password" data-i18n-aria-label="auth.password.show" aria-pressed="false" data-i18n="auth.password.show">Show</button></div></div>
+    <div class="field" id="suCfField" style="display:none;"><label for="suCf" data-i18n="auth.password.confirm">Confirm Password</label><div class="password-wrap"><input id="suCf" type="password" autocomplete="new-password" placeholder="••••••••"><button type="button" class="password-toggle" data-password-toggle="suCf" aria-controls="suCf" aria-label="Show confirm password" data-i18n-aria-label="auth.password.showConfirm" aria-pressed="false" data-i18n="auth.password.show">Show</button></div></div>
+    <div class="row2"><button type="button" class="link" id="forgotBtn" data-i18n="auth.forgot">Forgot password?</button></div>
+    <button class="btn btn-primary" id="signinBtn" type="submit" data-i18n="auth.signin">Sign In</button>
   </form>
 
-  <div class="switch">Don't have an account? <button type="button" id="toSignup">Sign up</button></div>
+  <div class="switch"><span data-i18n="auth.noAccount">Don't have an account?</span> <button type="button" id="toSignup" data-i18n="auth.signup">Sign up</button></div>
   <div class="hint">Login ဝင်ပြီးနောက် သင့် Personal Workspace — My Studios / Projects / Creations / Settings / API Keys / Usage ကို ရရှိပါမည်။</div>
 </div>
 
@@ -120,7 +120,8 @@ body{background:radial-gradient(900px 480px at 85% -10%,rgba(96,165,250,.22),tra
 ${storageErrorsScript()}
 ${databaseScript()}
 ${storageOwnerScript()}
-${userSettingsRepositoryScript()}
+${appPreferencesRepositoryScript()}
+${i18nRuntimeScript()}
 (function () {
   'use strict';
   var box = document.getElementById('alertBox');
@@ -129,11 +130,20 @@ ${userSettingsRepositoryScript()}
   var btn = document.getElementById('signinBtn');
   var headline = document.getElementById('headline');
   var subline = document.getElementById('subline');
+  function t(key) { return window.AICS_I18N ? window.AICS_I18N.t(key) : key; }
+  function applySavedLanguage() {
+    var preferences = window.AICS_APP_PREFERENCES;
+    if (!preferences || typeof preferences.getLanguage !== 'function') return;
+    preferences.getLanguage().then(function (locale) {
+      if (window.AICS_I18N) window.AICS_I18N.setLocale(locale);
+    }).catch(function () {});
+  }
+  applySavedLanguage();
 
   // Session Expired / Info message ပြခြင်း
   var q = new URLSearchParams(location.search);
   var msg = q.get('msg') || '';
-  if (msg === 'expired') { showBox('info', '⏳ Session သက်တမ်းကုန်သွားပါပြီ — ကျေးဇူးပြု၍ ပြန်ဝင်ပါ။'); }
+  if (msg === 'expired') { showBox('info', '⏳ ' + t('auth.session.expired')); }
 
   function showBox(type, text) {
     box.className = 'alert show ' + type;
@@ -143,7 +153,7 @@ ${userSettingsRepositoryScript()}
 
   function setLoading(on) {
     btn.disabled = on;
-    btn.innerHTML = on ? '<span class="loading-dot"></span> Signing in…' : 'Sign In';
+    btn.textContent = on ? t('auth.loading') : t(mode === 'signup' ? 'auth.createAccount' : 'auth.signin');
     googleBtn.style.pointerEvents = on ? 'none' : '';
     googleBtn.style.opacity = on ? '0.6' : '1';
   }
@@ -159,8 +169,8 @@ ${userSettingsRepositoryScript()}
     clearBox();
     var email = document.getElementById('siEmail').value.trim();
     var pass = document.getElementById('siPass').value;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 Email ပုံစံ မမှန်ပါ။'); return; }
-    if (!pass) { showBox('error', '🔑 Password ထည့်ပါ။'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 ' + t('auth.error.email')); return; }
+    if (!pass) { showBox('error', '🔑 ' + t('auth.error.passwordRequired')); return; }
     setLoading(true);
     fetch('/api/auth/signin', {
       method: 'POST',
@@ -169,67 +179,56 @@ ${userSettingsRepositoryScript()}
     }).then(function (r) { return r.json(); }).then(function (d) {
       setLoading(false);
       if (!d || !d.token) {
-        var m = (d && d.detail) || 'Email သို့မဟုတ် Password မှားနေပါသည်။';
+        var m = (d && d.detail) || t('auth.error.signin');
         showBox('error', '❌ ' + m);
         return;
       }
       try { localStorage.setItem('aics_token', d.token); localStorage.setItem('aics_email', d.email || ''); localStorage.setItem('aics_plan', d.plan || 'FREE'); } catch (e2) {}
-      headline.textContent = '✅ Welcome back!';
-      subline.textContent = 'Personal Workspace သို့ ပို့ဆောင်နေသည်…';
+      headline.textContent = '✅ ' + t('auth.welcome.success');
+      subline.textContent = t('auth.redirecting');
       setTimeout(function () { location.href = '/app'; }, 350);
     }).catch(function () {
       setLoading(false);
-      showBox('error', '🌐 Network error — အင်တာနက် စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။');
+      showBox('error', '🌐 ' + t('auth.error.network'));
     });
   }
 
   function doSignup() {
     clearBox();
-    var name = document.getElementById('suName').value.trim();
     var email = document.getElementById('siEmail').value.trim();
     var pass = document.getElementById('siPass').value;
     var cf = document.getElementById('suCf').value;
-    if (!name) { showBox('error', '👤 Name ထည့်ပါ။'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 Email ပုံစံ မမှန်ပါ။'); return; }
-    if (pass.length < 6) { showBox('error', '🔑 Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။'); return; }
-    if (pass !== cf) { showBox('error', '🔁 Password နှစ်ခု မတူပါ။'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showBox('error', '📧 ' + t('auth.error.email')); return; }
+    if (pass.length < 6) { showBox('error', '🔑 ' + t('auth.error.passwordLength')); return; }
+    if (pass !== cf) { showBox('error', '🔁 ' + t('auth.error.passwordMismatch')); return; }
     setLoading(true);
     fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name, email: email, password: pass })
+      body: JSON.stringify({ email: email, password: pass })
     }).then(function (r) { return r.json(); }).then(function (d) {
       setLoading(false);
       if (!d || !d.token) {
-        var m = (d && d.detail) || 'Account ဖန်တီး၍ မရပါ။';
+        var m = (d && d.detail) || t('auth.error.signup');
         showBox('error', '❌ ' + m);
         return;
       }
       try { localStorage.setItem('aics_token', d.token); localStorage.setItem('aics_email', d.email || ''); localStorage.setItem('aics_plan', d.plan || 'FREE'); } catch (e2) {}
-      var profileSave = window.AICS_USER_SETTINGS
-        ? window.AICS_USER_SETTINGS.save({ profile: { name: name } })
-        : Promise.reject(new Error('profile_storage_unavailable'));
-      profileSave.then(function () {
-        headline.textContent = '✅ Account created!';
-        subline.textContent = 'နာမည်ကို ဤ Browser ၏ IndexedDB ထဲတွင် သိမ်းပြီးပါပြီ။ Workspace သို့ ပို့ဆောင်နေသည်…';
-        setTimeout(function () { location.href = '/app'; }, 350);
-      }).catch(function () {
-        showBox('info', 'Account ဖန်တီးပြီးပါပြီ။ Profile Name ကို Settings ထဲတွင် ထပ်သိမ်းနိုင်ပါသည်။');
-        setTimeout(function () { location.href = '/app'; }, 1400);
-      });
+      headline.textContent = '✅ ' + t('auth.signup.success');
+      subline.textContent = t('auth.redirecting');
+      setTimeout(function () { location.href = '/app'; }, 350);
     }).catch(function () {
       setLoading(false);
-      showBox('error', '🌐 Network error — ပြန်ကြိုးစားပါ။');
+      showBox('error', '🌐 ' + t('auth.error.network'));
     });
   }
 
   document.getElementById('forgotBtn').addEventListener('click', function () {
-    showBox('info', 'Password မေ့နေပါက Google Login သုံးပါ သို့မဟုတ် Admin ကို ဆက်သွယ်ပါ။');
+    showBox('info', t('auth.forgot.help'));
   });
 
-  // ---- Sign Up Mode (Name / Confirm ကို ဖော်/ဖျောက်သည်) ----
+  // ---- Sign Up Mode (Confirm Password ကို ဖော်/ဖျောက်သည်) ----
   var mode = 'signin';
-  var nameField = document.getElementById('suNameField');
   var cfField = document.getElementById('suCfField');
   // Password visibility is a presentation-only toggle; it does not alter auth requests.
   document.querySelectorAll('[data-password-toggle]').forEach(function (toggle) {
@@ -238,28 +237,26 @@ ${userSettingsRepositoryScript()}
       if (!input) return;
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      toggle.textContent = show ? 'Hide' : 'Show';
+      toggle.textContent = t(show ? 'auth.password.hide' : 'auth.password.show');
       toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
-      toggle.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + (input.id === 'suCf' ? 'confirm password' : 'password'));
+      toggle.setAttribute('aria-label', t(show ? 'auth.password.hide' : (input.id === 'suCf' ? 'auth.password.showConfirm' : 'auth.password.show')));
     });
   });
   document.getElementById('toSignup').addEventListener('click', function () {
     mode = mode === 'signin' ? 'signup' : 'signin';
     if (mode === 'signup') {
-      headline.textContent = 'Create your account';
-      subline.textContent = 'Sign up — စက္ကန့်ပိုင်းအတွင်း ပြီးပါသည်';
-      nameField.style.display = '';
+      headline.textContent = t('auth.signup.title');
+      subline.textContent = t('auth.signup.subtitle');
       cfField.style.display = '';
-      btn.textContent = 'Create Account';
-      document.getElementById('toSignup').textContent = 'Sign in';
+      btn.textContent = t('auth.createAccount');
+      document.getElementById('toSignup').textContent = t('auth.signin');
       document.getElementById('forgotBtn').style.display = 'none';
     } else {
-      headline.textContent = 'Welcome back';
-      subline.textContent = 'Sign in to your workspace';
-      nameField.style.display = 'none';
+      headline.textContent = t('auth.welcome');
+      subline.textContent = t('auth.signin.subtitle');
       cfField.style.display = 'none';
-      btn.textContent = 'Sign In';
-      document.getElementById('toSignup').textContent = 'Sign up';
+      btn.textContent = t('auth.signin');
+      document.getElementById('toSignup').textContent = t('auth.signup');
       document.getElementById('forgotBtn').style.display = '';
     }
     clearBox();
