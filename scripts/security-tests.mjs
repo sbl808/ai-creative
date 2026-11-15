@@ -882,5 +882,24 @@ console.log('\n--- Story Video Plan CSP markup contract ---');
     storyActions.includes("Number(target.getAttribute('data-svp-index'))"));
 }
 
+
+console.log('\\n--- Story Video Plan UI CSP markup contract ---');
+{
+  const storyVideoUi = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/ui.js', import.meta.url), 'utf8');
+  const storyVideoPage = readFileSync(new URL('../worker/src/frontend/studios/story-video-plan/page.js', import.meta.url), 'utf8');
+  check('Story Video Plan UI contains no inline style attributes',
+    !/\\sstyle\\s*=/i.test(storyVideoUi));
+  check('Story Video Plan UI retains all three replacement CSS class hooks',
+    storyVideoUi.includes('aics-video-adv-panel') &&
+    storyVideoUi.includes('aics-video-audio-direction') &&
+    storyVideoUi.includes('aics-video-additional-instructions'));
+  check('Story Video Plan page defines all three replacement CSS rules',
+    storyVideoPage.includes('.aics-video-adv-panel{margin-top:2px}') &&
+    storyVideoPage.includes('.aics-video-audio-direction{min-height:64px}') &&
+    storyVideoPage.includes('.aics-video-additional-instructions{min-height:70px}'));
+  check('Story Video Plan page retains its mobile responsive rule',
+    storyVideoPage.includes('@media(max-width:767px){.aics-video-card{padding:15px}}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
