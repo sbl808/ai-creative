@@ -1267,7 +1267,7 @@ console.log('\n--- Shop Actions CSP event contract ---');
 }
 
 
-console.log('\\n--- Shop Visibility CSP contract ---');
+console.log('\n--- Shop Visibility CSP contract ---');
 {
   const shopPage = readFileSync(new URL('../worker/src/frontend/studios/shop/page.js', import.meta.url), 'utf8');
   const shopAudio = readFileSync(new URL('../worker/src/frontend/studios/shop/audio.js', import.meta.url), 'utf8');
@@ -1278,7 +1278,7 @@ console.log('\\n--- Shop Visibility CSP contract ---');
     shopAudio.includes("audioSetupCard').classList.toggle('shop-hidden',shopState.audio.step!==1)") &&
     shopVideo.includes("videoSetupCard').classList.toggle('shop-hidden',shopState.video.step!==1)") &&
     shopImage.includes("imageSetupCard').classList.toggle('shop-hidden',shopState.image.step!==1)") &&
-    !/\\.style\\.display/.test(shopAudio + shopVideo + shopImage));
+    !/\.style\.display/.test(shopAudio + shopVideo + shopImage));
   check('Shop page defines the shared hidden class used by setup cards',
     shopPage.includes('.aics-work .shop-hidden{display:none}'));
   check('Shop chat visibility uses a dedicated CSS class with a hidden default',
@@ -1287,6 +1287,5 @@ console.log('\\n--- Shop Visibility CSP contract ---');
     shopActions.includes("s.classList.toggle('shop-chat-visible')") &&
     !shopActions.includes('s.style.display'));
 }
-
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
