@@ -996,8 +996,17 @@ export function renderStudioShell(opts) {
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
     String.raw`  var studioDraftReady = false;
+  var subtitleDraftSaveTimer = null;
+  function scheduleSubtitleDraftSave() {
+    if (SHELL_ID !== "subtitle" || !studioDraftReady || !window.studioCollectDraft) return;
+    if (subtitleDraftSaveTimer) clearTimeout(subtitleDraftSaveTimer);
+    subtitleDraftSaveTimer = setTimeout(function () {
+      subtitleDraftSaveTimer = null;
+      window.studioPersistDraft(false);
+    }, 500);
+  }
   window.studioPersistDraft = function (showMessage) {
-    if (!studioDraftReady || ["content", "short", "image", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
+    if (!studioDraftReady || ["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
@@ -1019,7 +1028,7 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1) {
       window.studioPersistDraft(true);
       return;
     }
@@ -1032,7 +1041,7 @@ export function renderStudioShell(opts) {
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
         // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးနောက် legacy draft ကိုသာ ရှင်းသည်။
         try { localStorage.removeItem(draftKey); } catch (e) {}
@@ -1047,8 +1056,8 @@ export function renderStudioShell(opts) {
     location.reload();
   };
   var draftTouchedBeforeRestore = false;
-  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; }, true);
-  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; }, true);
+  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; scheduleSubtitleDraftSave(); }, true);
+  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; scheduleSubtitleDraftSave(); }, true);
   function restoreDraft(d) {
     if (!d || !d.data || !window.studioRestoreDraft || draftTouchedBeforeRestore) return;
     window.studioRestoreDraft(d.data);
@@ -1064,7 +1073,7 @@ export function renderStudioShell(opts) {
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
 
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}
