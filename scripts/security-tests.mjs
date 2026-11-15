@@ -520,7 +520,7 @@ console.log('\n--- D) API test rate-limit migration contract ---');
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
   const prod = toml.split('[env.prod]')[1] || '';
   const readTomlValue = (section, key) =>
-    section.match(new RegExp('^\s*' + key + '\s*=\s*"([^"]+)"', 'm'))?.[1] || '';
+    section.match(new RegExp('^\\s*' + key + '\\s*=\\s*"([^"]+)"', 'm'))?.[1] || '';
   const devName = readTomlValue(dev, 'database_name');
   const devId = readTomlValue(dev, 'database_id');
   const stagingId = readTomlValue(staging, 'database_id');
