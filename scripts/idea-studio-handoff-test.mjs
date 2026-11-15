@@ -38,7 +38,7 @@ context.window.window = context.window;
 vm.createContext(context);
 vm.runInContext(handoffSource, context, { filename: 'idea-studio-handoff.js' });
 
-for (const studio of ['content', 'short', 'image', 'voice', 'shop']) {
+for (const studio of ['content', 'short', 'image', 'shop']) {
   context.handoffIdea(0, studio);
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.ok(saved[studio], studio + ' must save a target draft');
@@ -46,6 +46,10 @@ for (const studio of ['content', 'short', 'image', 'voice', 'shop']) {
   assert.equal(saved[studio].data.ideaHandoff.category, 'content');
   assert.equal(saved[studio].data.ideaHandoff.fields.topic, 'စမ်းသပ်ချက်');
 }
+context.handoffIdea(0, 'voice');
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(saved.voice, undefined, 'Ideas must not hand off to Voice');
+assert.doesNotMatch(handoffSource, /id:'voice'/, 'Voice must not be an Ideas handoff target');
 
 assert.equal(saved.content.data.idea, 'Idea: Idea title\\n\\nConcept: Idea concept\\n\\nHook: Idea hook\\n\\nOutline: Idea outline');
 assert.equal(saved.short.data.fields[0], saved.content.data.idea);
