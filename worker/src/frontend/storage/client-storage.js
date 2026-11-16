@@ -14,6 +14,7 @@ import { ideasRepositoryScript } from './repositories/ideas.js';
 import { historyRepositoryScript } from './repositories/history.js';
 import { mediaAssetsRepositoryScript } from './repositories/media-assets.js';
 import { userSettingsRepositoryScript } from './repositories/user-settings.js';
+import { rateLimitIdentityRepositoryScript } from './repositories/rate-limit-identity.js';
 import { backupExportScript } from './backup/export.js';
 import { backupValidationScript } from './backup/validate.js';
 import { backupImportScript } from './backup/import.js';
@@ -117,6 +118,7 @@ export function clientStorageScript() {
     historyRepositoryScript(),
     mediaAssetsRepositoryScript(),
     userSettingsRepositoryScript(),
+    rateLimitIdentityRepositoryScript(),
     backupExportScript(),
     backupValidationScript(),
     backupImportScript(),
