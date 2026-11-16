@@ -10,6 +10,7 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
   { version: 6, up: function (db) { if (!db.objectStoreNames.contains('ideas')) { var ideas = db.createObjectStore('ideas', { keyPath: 'id' }); ideas.createIndex('ownerId', 'ownerId', { unique: false }); ideas.createIndex('owner_updatedAt', ['ownerId', 'updatedAt'], { unique: false }); ideas.createIndex('category', 'category', { unique: false }); ideas.createIndex('owner_category', ['ownerId', 'category'], { unique: false }); } }},
   { version: 7, up: function (db) { if (!db.objectStoreNames.contains('media_assets')) { var mediaAssets = db.createObjectStore('media_assets', { keyPath: 'id' }); mediaAssets.createIndex('ownerId', 'ownerId', { unique: false }); mediaAssets.createIndex('owner_studio', ['ownerId', 'studioId'], { unique: false }); mediaAssets.createIndex('owner_mediaType', ['ownerId', 'mediaType'], { unique: false }); mediaAssets.createIndex('owner_createdAt', ['ownerId', 'createdAt'], { unique: false }); } }},
   { version: 8, up: function (db) { if (!db.objectStoreNames.contains('user_settings')) { var settings = db.createObjectStore('user_settings', { keyPath: 'id' }); settings.createIndex('ownerId', 'ownerId', { unique: true }); settings.createIndex('updatedAt', 'updatedAt', { unique: false }); } }}
+  { version: 9, up: function (db) { if (!db.objectStoreNames.contains('rate_limit_identity')) { db.createObjectStore('rate_limit_identity', { keyPath: 'id' }); } }},
 ];
 function __aicsRunSchemaMigrations(db, oldVersion, newVersion) {
   var currentVersion = Number(oldVersion || 0);
