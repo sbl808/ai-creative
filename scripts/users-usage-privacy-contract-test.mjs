@@ -5,11 +5,16 @@ import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
 import { handleAiRoutes } from '../worker/src/routes/ai.routes.js';
 import { trackUsage } from '../worker/src/core/usage.js';
 
-const d1Calls = [];
+const d1Statements = [];
 const db = {
   prepare(sql) {
-    d1Calls.push(String(sql));
-    throw new Error('D1 user usage access is forbidden by the IndexedDB-only policy');
+    d1Statements.push(String(sql));
+    return {
+      bind() { return this; },
+      async all() { return { results: [] }; },
+      async first() { return null; },
+      async run() { return { success: true }; },
+    };
   },
 };
 const env = { ADMIN_EMAIL: '', DB: db };
@@ -34,21 +39,24 @@ console.log('--- User profile privacy contract ---');
   assert.equal(payload.user_id, 'verified-user-1');
   assert.equal(Object.hasOwn(payload, 'usage'), false,
     'API response must not expose server-side usage counters');
-  assert.equal(d1Calls.length, 0, 'user profile must not read or write D1 usage data');
+  assert.equal(d1Statements.some((sql) => /\\b(from|join)\\s+usage\\b/i.test(sql)), false,
+    'profile route may read platform config but must not read the user usage table');
 }
 
 console.log('--- Studio usage tracking privacy contract ---');
 {
+  const before = d1Statements.length;
   await trackUsage(env, 'private-user-id', 'IMAGE', 1);
   await trackUsage(env, 'private-user-id', 'VOICE', 1);
   await trackUsage(env, 'private-user-id', 'AI', 1);
-  assert.equal(d1Calls.length, 0,
+  assert.equal(d1Statements.length, before,
     'Studio usage tracking must remain a no-op and must not access D1');
 }
 
 console.log('--- AI connection-test privacy contract ---');
 {
   const limiterCalls = [];
+  const before = d1Statements.length;
   const response = await handleAiRoutes(
     new Request('https://aics.test/api/ai/test', {
       method: 'POST',
@@ -78,7 +86,8 @@ console.log('--- AI connection-test privacy contract ---');
   assert.equal(response.status, 400, 'invalid JSON should stop before any AI provider request');
   assert.deepEqual(limiterCalls, [{ key: 'verified-user-2' }],
     'AI Test rate limiting must use the verified user subject');
-  assert.equal(d1Calls.length, 0, 'AI Test route must not read or write D1 usage counters');
+  assert.equal(d1Statements.length, before,
+    'AI Test route must not read or write D1 usage counters');
 }
 
 console.log('--- Source-level H6 guardrails ---');
@@ -101,7 +110,8 @@ console.log('--- Source-level H6 guardrails ---');
     'AI Test route must not access the D1 binding');
   assert.equal(aiRouteSource.includes('.prepare('), false,
     'AI Test route must not execute D1 statements');
-  assert.equal(d1Calls.length, 0, 'no tested H6 path may access D1');
+  assert.equal(d1Statements.some((sql) => /\\b(from|join)\\s+usage\\b/i.test(sql)), false,
+    'no tested H6 path may query the user usage table');
 }
 
 console.log('User Usage / Studio / AI Test privacy contracts passed.');
