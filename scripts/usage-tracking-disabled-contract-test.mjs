@@ -28,9 +28,9 @@ const [entry, usage, users, settings] = await Promise.all([
 
 assert.equal(entry.includes('trackUsageSafe'), false, 'Worker entry must not inject usage tracking');
 assert.equal(entry.includes("./core/usage.js"), false, 'Worker entry must not import D1 usage service');
-assert.equal(/INSERT\\s+INTO\\s+usage/i.test(usage), false, 'Usage compatibility module must never write to D1');
+assert.equal(usage.includes('INSERT INTO usage'), false, 'Usage compatibility module must never write to D1');
 assert.equal(usage.includes('env.DB'), false, 'Usage compatibility module must not access D1');
-assert.equal(/FROM\\s+usage/i.test(users), false, 'User profile API must not read D1 usage records');
+assert.equal(users.includes('FROM usage'), false, 'User profile API must not read D1 usage records');
 assert.equal(users.includes('usage, settings'), false, 'User profile API must not return server usage totals');
 assert.equal(settings.includes('d.usage'), false, 'Settings UI must not render server usage totals');
 assert.equal(settings.includes('📊 အသုံးပြုမှု'), false, 'Settings UI must not display D1 usage totals');
