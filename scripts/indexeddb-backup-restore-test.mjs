@@ -364,15 +364,19 @@ assert.deepEqual(
   mediaAssetsBeforeLegacyRestore,
   'restoring a v6 backup without media_assets must preserve all existing Media Assets'
 );
+const userSettingsAfterLegacyRestore = Array.from(legacyDb.records.get('user_settings').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
 assert.deepEqual(
-  Array.from(legacyDb.records.get('user_settings').values()).sort((a, b) => a.id.localeCompare(b.id)),
+  userSettingsAfterLegacyRestore,
   Array.from(seed.user_settings || []).sort((a, b) => a.id.localeCompare(b.id)),
-  'restoring a legacy backup without user_settings must preserve existing User Settings'
+  'restoring a v6 backup without user_settings must preserve all existing User Settings'
 );
 
 
 const v5Backup = clone(backup);
 v5Backup.schemaVersion = 5;
+delete v5Backup.stores.ideas;
 delete v5Backup.stores.media_assets;
 delete v5Backup.stores.user_settings;
 
@@ -411,10 +415,13 @@ assert.deepEqual(
   mediaAssetsBeforeV5Restore,
   'restoring a v5 backup without media_assets must preserve every existing Media Asset, including other owners'
 );
+const userSettingsAfterV5Restore = Array.from(v5Db.records.get('user_settings').values())
+  .map(record => clone(record))
+  .sort((a, b) => a.id.localeCompare(b.id));
 assert.deepEqual(
-  Array.from(v5Db.records.get('user_settings').values()).sort((a, b) => a.id.localeCompare(b.id)),
+  userSettingsAfterV5Restore,
   Array.from(seed.user_settings || []).sort((a, b) => a.id.localeCompare(b.id)),
-  'restoring a v5 backup without user_settings must preserve existing User Settings'
+  'restoring a v5 backup without user_settings must preserve every existing User Setting'
 );
 
 console.log('IndexedDB backup safe restore tests passed.');

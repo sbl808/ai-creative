@@ -46,6 +46,32 @@ function installBackupValidator(target, config) {
     }
   }
 
+  // Studio identifiers are retained as supplied for backward-compatible backups.
+  // Restrict them to a compact identifier alphabet; do not impose a current-Studio allowlist.
+  function validStudioIdentifier(value, maxLength) {
+    if (typeof value !== 'string' || !value.trim() || value.length > maxLength) return false;
+    for (var i = 0; i < value.length; i++) {
+      var code = value.charCodeAt(i);
+      if (code < 32 || (code >= 127 && code <= 159)) return false;
+    }
+    return value.indexOf('<') === -1 && value.indexOf('>') === -1 &&
+      value.indexOf('"') === -1 && value.indexOf("'") === -1 &&
+      value.indexOf('`') === -1;
+  }
+
+  function optionalStudioIdentifier(record, key, maxLength) {
+    if (hasOwn(record, key) && record[key] !== null &&
+        !validStudioIdentifier(record[key], maxLength)) {
+      throw fail('backup_invalid_record');
+    }
+  }
+
+  function requireStudioIdentifier(record, key, maxLength) {
+    if (!validStudioIdentifier(record[key], maxLength)) {
+      throw fail('backup_invalid_record');
+    }
+  }
+
   function optionalDate(record, key) {
     if (hasOwn(record, key) && record[key] !== null && !validDate(record[key])) {
       throw fail('backup_invalid_record');
@@ -75,7 +101,7 @@ function installBackupValidator(target, config) {
 
   function validateCreation(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'user_id');
-    optionalString(record, 'studio', 100);
+    optionalStudioIdentifier(record, 'studio', 100);
     optionalString(record, 'type', 40);
     optionalString(record, 'title', 500);
     optionalString(record, 'original_prompt', 2000000);
@@ -101,7 +127,7 @@ function installBackupValidator(target, config) {
 
   function validateSession(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'ownerId');
-    requireString(record, 'studio', 40);
+    requireStudioIdentifier(record, 'studio', 40);
     optionalString(record, 'title', 120);
     if (hasOwn(record, 'status') &&
         ['active', 'archived'].indexOf(record.status) === -1) throw fail('backup_invalid_record');
@@ -113,9 +139,9 @@ function installBackupValidator(target, config) {
   function validateHandoff(record, ownerId) {
     validateOwnerRecord(record, ownerId, 'ownerId');
     if (record.contractVersion !== 1) throw fail('backup_invalid_record');
-    requireString(record, 'source', 40);
+    requireStudioIdentifier(record, 'source', 40);
     requireString(record, 'target', 40);
-    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(record.target) === -1) {
+    if (['story', 'content', 'short', 'image', 'voice', 'shop', 'subtitle'].indexOf(record.target) === -1) {
       throw fail('backup_invalid_record');
     }
     if (!isObject(record.payload)) throw fail('backup_invalid_record');
@@ -131,23 +157,15 @@ function installBackupValidator(target, config) {
   }
 
   function validateUserSettings(record, ownerId) {
-    if (!isObject(record) || record.id !== ownerId || record.ownerId !== ownerId) {
-      throw fail('backup_owner_mismatch');
-    }
+    if (!isObject(record) || record.id !== ownerId || record.ownerId !== ownerId) throw fail('backup_owner_mismatch');
     var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'updatedAt'];
-    if (Object.keys(record).some(function (key) { return allowedTop.indexOf(key) === -1; })) {
-      throw fail('backup_invalid_record');
-    }
+    if (Object.keys(record).some(function (key) { return allowedTop.indexOf(key) === -1; })) throw fail('backup_invalid_record');
     var profile = record.profile === undefined ? {} : record.profile;
     var settings = record.settings === undefined ? {} : record.settings;
     var preferences = record.preferences === undefined ? {} : record.preferences;
-    if (!isObject(profile) || !isObject(settings) || !isObject(preferences)) {
-      throw fail('backup_invalid_record');
-    }
+    if (!isObject(profile) || !isObject(settings) || !isObject(preferences)) throw fail('backup_invalid_record');
     if (Object.keys(profile).some(function (key) { return key !== 'name'; }) ||
-        (hasOwn(profile, 'name') && (typeof profile.name !== 'string' || profile.name.length > 60))) {
-      throw fail('backup_invalid_record');
-    }
+        (hasOwn(profile, 'name') && (typeof profile.name !== 'string' || profile.name.length > 60))) throw fail('backup_invalid_record');
     var allowedSettings = ['default_studio', 'default_voice', 'default_model', 'language', 'theme'];
     if (Object.keys(settings).some(function (key) {
       return allowedSettings.indexOf(key) === -1 || typeof settings[key] !== 'string' || settings[key].length > 100;
@@ -200,8 +218,17 @@ function installBackupValidator(target, config) {
     var requiredStoreNames = storeNames.filter(function (name) {
       if (envelope.schemaVersion < 7 && name === 'media_assets') return false;
       if (envelope.schemaVersion < 8 && name === 'user_settings') return false;
+      if (envelope.schemaVersion < 6 && name === 'ideas') return false;
       return true;
     });
+    var unsupportedStoreNames = {
+      ideas: envelope.schemaVersion < 6,
+      media_assets: envelope.schemaVersion < 7,
+      user_settings: envelope.schemaVersion < 8
+    };
+    for (var u = 0; u < storeKeys.length; u++) {
+      if (unsupportedStoreNames[storeKeys[u]]) throw fail('backup_invalid_stores');
+    }
     for (var s = 0; s < requiredStoreNames.length; s++) {
       if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
           !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
@@ -232,6 +259,7 @@ function installBackupValidator(target, config) {
         resultSessionIds.push(record.sessionId);
       },
       ideas: function (record) { validateIdea(record, expectedOwnerId); },
+      user_settings: function (record) { validateUserSettings(record, expectedOwnerId); },
       media_assets: function (record) {
         var allowedFields = [
           'contractVersion', 'id', 'ownerId', 'studioId', 'mediaType', 'createdAt'
@@ -248,7 +276,6 @@ function installBackupValidator(target, config) {
           throw fail('backup_invalid_record');
         }
       },
-      user_settings: function (record) { validateUserSettings(record, expectedOwnerId); },
       drafts: function (record) {
         validateOwnerRecord(record, expectedOwnerId, 'ownerId');
         if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {
