@@ -68,13 +68,14 @@ function makeDeps(overrides = {}) {
   };
   const response = await enforceSharedAiRateLimit(makeRequest(), env, '/api/studio/story/generate', deps);
   assert.equal(response.status, 429);
-  assert.deepEqual(await response.json(), {
+  const body = await response.text();
+  assert.deepEqual(JSON.parse(body), {
     error: 'rate_limited',
     limit: 10,
     window_seconds: 60,
   });
   assert.equal(response.headers.get('Retry-After'), '60');
-  assert.equal((await response.clone().text()).includes('verified-user-123'), false);
+  assert.equal(body.includes('verified-user-123'), false);
 }
 
 // Missing binding fails closed with 503; no D1 fallback is attempted.
