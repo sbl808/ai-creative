@@ -39,7 +39,7 @@ console.log('--- User profile privacy contract ---');
   assert.equal(payload.user_id, 'verified-user-1');
   assert.equal(Object.hasOwn(payload, 'usage'), false,
     'API response must not expose server-side usage counters');
-  assert.equal(d1Statements.some((sql) => /\\b(from|join)\\s+usage\\b/i.test(sql)), false,
+  assert.equal(d1Statements.some((sql) => sql.toLowerCase().includes('from usage') || sql.toLowerCase().includes('join usage')), false,
     'profile route may read platform config but must not read the user usage table');
 }
 
@@ -110,7 +110,7 @@ console.log('--- Source-level H6 guardrails ---');
     'AI Test route must not access the D1 binding');
   assert.equal(aiRouteSource.includes('.prepare('), false,
     'AI Test route must not execute D1 statements');
-  assert.equal(d1Statements.some((sql) => /\\b(from|join)\\s+usage\\b/i.test(sql)), false,
+  assert.equal(d1Statements.some((sql) => sql.toLowerCase().includes('from usage') || sql.toLowerCase().includes('join usage')), false,
     'no tested H6 path may query the user usage table');
 }
 
