@@ -501,9 +501,9 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
   check('generation routes use the verified-user Cloudflare binding at 10 per 60 seconds',
     /const SHARED_AI_RATE_LIMIT = 10/.test(guards) &&
     /const SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
-    /limiter\\.limit\\(\\{ key: String\\(payload\\.sub\\) \\}\\)/.test(guards) &&
-    !/api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\\(request, env, path, \\{/.test(route) &&
+    guards.includes("limiter.limit({ key: String(payload.sub) })") &&
+    !guards.includes('api_generation_limits') &&
+    route.includes('enforceSharedAiRateLimit(request, env, path, {') &&
     /rate_limited/.test(guards));
   const rateLimitBindings = ['dev', 'staging', 'prod'].every((environment) => {
     const binding = new RegExp(
