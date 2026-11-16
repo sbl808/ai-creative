@@ -19,24 +19,13 @@ export async function handleUserRoutes(request, env, cors, deps) {
         const preferences = await getUserPreferences(env, payload.sub);
         // Phase 4 — Studio ON/OFF အနေအထားကိုပါ ပြန်ပို့သည် (Sidebar မှ ပိတ်ထားသော Studio ကို ဖျောက်ရန်)
         const studio_settings = await getStudioSettings(env);
-        // Phase 12 — Name + Usage Summary (Personal Profile အတွက်)
+        // Account display name remains account metadata; usage counters stay in the browser.
         let name = '';
-        let usage = { ai_requests: 0, image_generations: 0, voice_generations: 0 };
         try {
           const row = env.DB ? await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(payload.sub).first() : null;
           name = (row && row.name) || '';
-          const usageRows = env.DB ? await env.DB.prepare('SELECT category, COUNT(*) AS n FROM usage WHERE user_id = ? GROUP BY category').bind(payload.sub).all() : null;
-          if (usageRows && usageRows.results) {
-            usageRows.results.forEach(function (r) {
-              const cat = String(r.category || '').toUpperCase();
-              const n = Number(r.n) || 0;
-              if (cat.indexOf('IMAGE') > -1) usage.image_generations += n;
-              else if (cat.indexOf('VOICE') > -1) usage.voice_generations += n;
-              else usage.ai_requests += n;
-            });
-          }
-        } catch (e) { console.error('[AICS] me usage failed', String(e)); }
-        return json({ email: payload.email, name, plan, user_id: payload.sub, is_admin: isAdmin, usage, settings, preferences, studio_settings }, 200, cors);
+        } catch (e) { name = ''; }
+        return json({ email: payload.email, name, plan, user_id: payload.sub, is_admin: isAdmin, settings, preferences, studio_settings }, 200, cors);
       }
 
       // ===== Phase 12 — Personal Profile Name ပြောင်းခြင်း (Server-side Whitelist) =====

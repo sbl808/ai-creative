@@ -3,7 +3,7 @@ import { generateVideoPlan } from '../../video-plans/engine.js';
 
 export async function handleContentStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
 
       // ===== Content Studio — Tab 1: Generate =====
       if (path === '/api/studio/content/generate' && request.method === 'POST') {
@@ -32,7 +32,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
               plan, apiKey,
               onChunk: (t) => send({ type: 'chunk', text: t }),
             });
-            await trackUsageSafe(env, payload.sub, 'ai');
             send({ type: 'done', result: out });
           }, cors);
         }
@@ -49,7 +48,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
             cta: body.cta,
             plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'content_error', detail: friendlyError(e) }, 500, cors);
@@ -120,7 +118,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
             voiceName: body.voiceName || 'Kore',
             plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'voice');
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
           return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
@@ -150,7 +147,6 @@ export async function handleContentStudioRoutes(request, env, cors, deps) {
               plan, apiKey,
             }),
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);

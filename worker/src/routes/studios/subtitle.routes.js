@@ -12,7 +12,6 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
     json,
     resolvePlan,
     requireFeature,
-    trackUsageSafe,
     friendlyError,
   } = deps;
 
@@ -77,7 +76,6 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
         plan,
         apiKey: body.apiKey,
       });
-      await trackUsageSafe(env, payload.sub, 'ai');
       return json({ ok: true, ...out }, 200, cors);
     } catch (error) {
       return json({ error: 'srt_error', detail: friendlyError(error) }, 500, cors);
@@ -111,7 +109,6 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
         plan,
         apiKey: body.apiKey,
       });
-      await trackUsageSafe(env, payload.sub, 'ai');
       return json({ ok: true, ...out }, 200, cors);
     } catch (error) {
       return json({ error: 'translate_error', detail: friendlyError(error) }, 500, cors);

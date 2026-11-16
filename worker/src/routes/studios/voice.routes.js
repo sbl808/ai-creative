@@ -2,7 +2,7 @@ import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSr
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
 
       // ===== Voice Studio — Tab 1: Text → Voice (TTS) =====
       if (path === '/api/studio/voice/tts' && request.method === 'POST') {
@@ -22,7 +22,6 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
             voiceName: body.voiceName || 'Kore',
             plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'voice');
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
           return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
@@ -47,7 +46,6 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
             mimeType: body.mimeType || 'audio/mpeg',
             type: reqType, plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'transcribe_error', detail: friendlyError(e) }, 500, cors);
@@ -72,7 +70,6 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
             mimeType: body.mimeType || 'audio/mpeg',
             type: String(body.type || '2'), plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
@@ -96,7 +93,6 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
             direction: body.direction || 'MY_TO_CN',
             type: String(body.type || '2'), plan, apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);

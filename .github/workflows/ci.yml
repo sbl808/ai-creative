@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Run route regression tests
         run: node --experimental-default-type=module scripts/regression-test.mjs
+      - name: Run browser-owned usage tracking contract tests
+        run: node --experimental-default-type=module scripts/usage-tracking-disabled-contract-test.mjs
       - name: Run Shared Image Media Contract tests
         run: node --experimental-default-type=module scripts/image-media-contract-test.mjs
       - name: Run Shared Media Asset Contract tests
