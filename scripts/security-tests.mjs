@@ -498,11 +498,20 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
   }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
-    /api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
+  check('generation routes use the verified-user Cloudflare binding at 10 per 60 seconds',
+    /const SHARED_AI_RATE_LIMIT = 10/.test(guards) &&
+    /const SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
+    /limiter\\.limit\\(\\{ key: String\\(payload\\.sub\\) \\}\\)/.test(guards) &&
+    !/api_generation_limits/.test(guards) &&
+    /enforceSharedAiRateLimit\\(request, env, path, \\{/.test(route) &&
     /rate_limited/.test(guards));
+  const rateLimitBindings = ['dev', 'staging', 'prod'].every((environment) => {
+    const binding = new RegExp(
+      `\\[\\[env\\.${environment}\\.ratelimits\\]\\]\\s*name = "SHARED_AI_RATE_LIMITER"\\s*namespace_id = "\\d+"\\s*\\[env\\.${environment}\\.ratelimits\\.simple\\]\\s*limit = 10\\s*period = 60`,
+    );
+    return binding.test(toml);
+  });
+  check('wrangler.toml binds SHARED_AI_RATE_LIMITER at 10/60 in dev, staging and prod', rateLimitBindings);
   check('rate-limit covers six Studio families and CMS prompt',
     /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
