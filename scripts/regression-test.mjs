@@ -186,7 +186,7 @@ const env = {
   ALLOWED_ORIGINS: 'https://test.local',
   ADMIN_EMAIL: 'a@b.com',
   DB: new MockD1({}),
-  AI_RATE_LIMITER: new MockRateLimitBinding(3),
+  AI_RATE_LIMITER: new MockRateLimitBinding(Number.POSITIVE_INFINITY),
 };
 
 // Test-only request shim: simulate the browser-generated IndexedDB identity and
