@@ -658,7 +658,7 @@ console.log('\n--- Admin H6 dashboard and usage retirement contracts ---');
   const adminApi = readFileSync(new URL('../worker/src/admin/api.js', import.meta.url), 'utf8');
   const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
   check('admin dashboard no longer queries user projects or usage tables',
-    !/FROM\\s+(projects|usage)\\b/i.test(adminApi) && !/JOIN\\s+usage\\b/i.test(adminApi));
+    !/FROM\s+(projects|usage)\b/i.test(adminApi) && !/JOIN\\s+usage\\b/i.test(adminApi));
   check('admin usage endpoint is retired from API routing',
     !adminApi.includes('/api/admin/usage') && !adminApi.includes('isUsage'));
   check('admin UI no longer requests or displays server-side usage metrics',
