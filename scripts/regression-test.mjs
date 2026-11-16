@@ -189,6 +189,7 @@ const env = {
   DB: new MockD1({}),
   // Unbounded by default so unrelated route tests do not share a test bucket.
   SHARED_AI_RATE_LIMITER: createMockRateLimiter(Number.MAX_SAFE_INTEGER),
+  AI_TEST_RATE_LIMITER: createMockRateLimiter(5),
 };
 
 // ---------------------------------------------------------------- helpers
@@ -520,17 +521,17 @@ await check('POST /api/user/apikey → 410 when encryption secret is missing', a
 });
 
 console.log('— API connection-test rate limit —');
-await check('POST /api/ai/test → 503 when rate-limit DB is unavailable', async () => {
+await check('POST /api/ai/test → 503 when rate-limit binding is unavailable', async () => {
   const headers = await withToken();
-  const noDbEnv = { ...env, DB: null };
+  const unavailableEnv = { ...env, AI_TEST_RATE_LIMITER: null };
   const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), noDbEnv, {});
+  }), unavailableEnv, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });
-await check('POST /api/ai/test → allows five attempts, blocks sixth in same window', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+await check('POST /api/ai/test → allows five attempts, blocks sixth without D1', async () => {
+  const rateEnv = { ...env, DB: null, AI_TEST_RATE_LIMITER: createMockRateLimiter(5) };
   const headers = await withToken();
   const statuses = [];
   // Invalid JSON intentionally stops after the rate-limit check, so this test
