@@ -662,9 +662,16 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
     /\[\[env\.dev\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config) &&
     /\[\[env\.staging\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config) &&
     /\[\[env\.prod\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config));
-  check('rate-limit covers six Studio families and CMS prompt',
+  check('rate-limit covers API connection test, six Studio families, and CMS prompt',
+    /path === '\/api\/ai\/test'/.test(guards) &&
     /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
+  const aiRoutes = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
+  check('API connection test no longer reads or writes D1 rate-limit records',
+    !/api_test_limits/.test(aiRoutes) && !/env\.DB/.test(aiRoutes));
+  const shared = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  check('browser attaches the random identity to API connection tests',
+    /path === '\/api\/ai\/test'/.test(shared));
   console.log('  ↷ Cloudflare binding runtime on a remote account NOT TESTED; historical D1 migration retained.');
 }
 
