@@ -41,7 +41,7 @@ button{cursor:pointer}
 .btn{border:1px solid transparent;border-radius:10px;padding:9px 13px;font-size:12px;font-weight:650;color:#fff;background:#182338;transition:.18s;white-space:nowrap}.btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.12)}.btn.primary{background:linear-gradient(135deg,#00BFD6,#008FA4);box-shadow:0 8px 24px rgba(0,229,255,.12)}.btn.green{background:rgba(74,222,128,.12);color:#8AF0AA;border-color:rgba(74,222,128,.18)}.btn.red{background:rgba(255,102,114,.10);color:#FF9BA3;border-color:rgba(255,102,114,.18)}.btn.gray{background:#151D2C;color:#98A3B5}.btn.sm{padding:7px 10px;font-size:11px}.btn.active{background:rgba(0,229,255,.11);border-color:rgba(0,229,255,.2);color:#fff}.btn.inactive{background:#121A2A;color:#8994A7}
 .card{background:linear-gradient(180deg,rgba(21,31,51,.96),rgba(15,24,41,.96));border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;box-shadow:0 10px 34px rgba(0,0,0,.10)}
 .card-title{font-size:13px;font-weight:750}.card-sub{font-size:11px;color:var(--muted);margin-top:4px}.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:13px}
-.grid{display:grid;gap:14px}.stats-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.two-col{grid-template-columns:1.3fr .7fr}.three-col{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid{display:grid;gap:14px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1.3fr .7fr}.three-col{grid-template-columns:repeat(3,minmax(0,1fr))}
 .stat{position:relative;overflow:hidden;min-height:118px}.stat:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-28px;bottom:-40px;background:rgba(0,229,255,.07)}.stat-label{font-size:11px;color:var(--muted)}.stat-value{font-size:27px;font-weight:800;margin-top:13px;letter-spacing:-.02em}.stat-foot{font-size:10px;color:#667287;margin-top:7px}
 .health{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid rgba(74,222,128,.14);background:rgba(74,222,128,.05);border-radius:11px}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(74,222,128,.5)}
 .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.quick .btn{text-align:left;padding:12px}.quick small{display:block;color:var(--muted);font-weight:400;margin-top:3px}
@@ -51,7 +51,7 @@ button{cursor:pointer}
 .empty{padding:32px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed rgba(255,255,255,.10);border-radius:12px}.err{color:#FF8E98}
 .overlay{position:fixed;inset:0;background:rgba(2,5,12,.78);backdrop-filter:blur(8px);overflow-y:auto;z-index:100;padding:24px}.form{max-width:820px;margin:0 auto}.form h3{font-size:18px;margin:0}.form label{display:block;font-size:10px;font-weight:750;color:#AAB5C5;letter-spacing:.05em;margin:13px 0 5px;text-transform:uppercase}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
 .divider{height:1px;background:var(--line);margin:16px 0}.muted{color:var(--muted)}
-@media(max-width:1100px){.stats-grid{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}.three-col{grid-template-columns:1fr 1fr}}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}.three-col{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.2s;width:280px}.sidebar.open{transform:translateX(0)}.main{margin-left:0;width:100%}.topbar{height:60px;padding:0 14px}.mobile-menu{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);background:#111A2C;color:#fff;border-radius:10px}.crumb{display:none}.content{padding:18px 14px}.page-head{align-items:flex-start;flex-direction:column}.page-title{font-size:23px}.stats-grid{grid-template-columns:repeat(2,1fr)}.three-col{grid-template-columns:1fr}.quick{grid-template-columns:1fr}.top-actions .admin-pill span.email{display:none}.card{padding:14px;border-radius:14px}.filters>*{width:100%!important}.filters .btn{width:auto!important}.list-row{align-items:flex-start;flex-direction:column}.user-row{align-items:flex-start}.form{padding:15px}}
 html[data-aics-theme="light"]{color-scheme:light;--bg:#f5f7fb;--panel:#fff;--card:#fff;--card2:#f8fafc;--line:#e1e7ef;--text:#172033;--muted:#667085;--cyan:#4f46e5;--purple:#6366f1;--green:#15803d;--orange:#b45309;--red:#b91c1c;--shadow:0 8px 24px rgba(16,24,40,.08)}html[data-aics-theme="dark"]{color-scheme:dark}.theme-toggle{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:8px 11px;min-height:38px;font-size:12px}.theme-toggle:focus-visible{outline:3px solid rgba(99,102,241,.4);outline-offset:2px}html[data-aics-theme="light"] .crumb b{color:var(--text)}html[data-aics-theme="light"] .admin-pill{color:var(--muted)}
 /* AICS UIUX: consistent keyboard focus, touch targets, and reduced-motion support */
@@ -89,7 +89,6 @@ ${AICS_DESIGN_SYSTEM_CSS}
     <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
 ${TASK_INSTRUCTIONS_NAV}
     <div class="nav-section">Analytics</div>
-    <button class="nav-btn inactive" id="tabUsage" onclick="switchTab('usage');closeNav()"><span class="nav-icon">⌁</span><span class="nav-label">Usage</span></button>
     <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
     <div class="sidebar-footer"><a class="app-link" href="/app">↗ <span>Open User App</span></a></div>
   </aside>
@@ -113,7 +112,6 @@ ${TASK_INSTRUCTIONS_VIEW}
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
       <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" onclick="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" onclick="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" onclick="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
       <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" onclick="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" onclick="mfPlan('')">All</button><button id="mfFree" class="btn sm" onclick="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" onclick="mfPlan('PRO')">PRO</button><select id="mfCat" onchange="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
-      <section id="usageView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Usage</h1><p class="page-desc">AI, Voice နဲ့ Image usage ကို စောင့်ကြည့်ပါ။</p></div><button class="btn" onclick="loadUsage()">↻ Refresh</button></div><div class="grid two-col"><div class="card"><div class="section-head"><div><div class="card-title">Daily Usage</div><div class="card-sub">နောက်ဆုံး 28 ရက်</div></div></div><div id="usageDaily" class="list"></div></div><div class="card"><div class="section-head"><div><div class="card-title">Top Users</div><div class="card-sub">Usage အများဆုံး Users</div></div></div><div id="usageTop" class="list"></div></div></div></section>
       <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" onclick="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
     </main>
   </section>
@@ -123,7 +121,7 @@ ${TASK_INSTRUCTIONS_VIEW}
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
 function closeNav(){var s=document.getElementById('sidebar');if(s)s.classList.remove('open');}
-function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',taskInstructions:'Task Instructions',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
+function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',taskInstructions:'Task Instructions',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
 </script>
 <script>
 window.onerror = function(msg, url, line) {
@@ -192,7 +190,7 @@ function fillStudios(){
 function switchTab(tab){
   currentTab=tab;
   setCrumb(tab);
-  ['dashboard','cms','brain','taskInstructions','users','studios','features','plans','models','usage','logs'].forEach(function(t){
+  ['dashboard','cms','brain','taskInstructions','users','studios','features','plans','models','logs'].forEach(function(t){
     $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='nav-btn '+(tab===t?'active':'inactive');
     $(t+'View').classList.toggle('hidden',tab!==t);
   });
@@ -201,7 +199,6 @@ function switchTab(tab){
   if(tab==='features') loadFeatures();
   if(tab==='plans'){loadPlans();loadPlanContacts();}
   if(tab==='models') loadModels();
-  if(tab==='usage') loadUsage();
   if(tab==='logs') loadLogs();
   if(tab==='dashboard') loadDashboard();
   if(tab==='taskInstructions') taskUiLoadCatalog();
@@ -260,16 +257,8 @@ function loadDashboard(){
     if(d.error==='forbidden'){location.href='/app';return;}
     if(d.error){$('statCards').innerHTML='<span class="err">'+(d.detail||d.error)+'</span>';return;}
     var st=d.stats||{};
-    var cards=[
-      ['👥 Users',st.users||0],
-      ['⭐ PRO',st.pro||0],
-      ['🗂️ Projects',st.projects||0],
-      ['🤖 AI (ယနေ့)',st.ai_today||0],
-      ['🎙️ Voice (ယနေ့)',st.voice_today||0],
-      ['🖼️ Image (ယနေ့)',st.image_today||0]
-    ];
     var html='';
-    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects'],['◈','AI Today','AI generations today','ai_today'],['◉','Voice Today','Voice generations today','voice_today'],['▧','Image Today','Image generations today','image_today']];
+    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro']];
     labels.forEach(function(x){html+='<div class="card stat"><div class="stat-label">'+x[0]+' '+x[1]+'</div><div class="stat-value">'+esc(st[x[3]]||0)+'</div><div class="stat-foot">'+x[2]+'</div></div>';});
     $('statCards').innerHTML=html;
     var hg=$('healthGrid'); if(hg){hg.innerHTML='<div class="muted" style="font-size:11px">Loading studio status…</div>'; api('/api/admin/studios').then(function(sd){var arr=sd.items||[]; hg.innerHTML=arr.map(function(x){return '<div class="health" style="opacity:'+(x.enabled?'1':'.55')+'"><span class="dot" style="background:'+(x.enabled?'var(--green)':'#64748B')+';box-shadow:none"></span><span style="font-size:11px">'+esc(x.nameMy||x.name||x.id)+'</span><span style="margin-left:auto;font-size:10px;color:'+(x.enabled?'#82EFA3':'#7C8799')+'">'+(x.enabled?'ON':'OFF')+'</span></div>';}).join('')||'<div class="muted" style="font-size:11px">No studio data</div>';}).catch(function(){hg.innerHTML='<div class="muted" style="font-size:11px">Studio status unavailable</div>';});}
@@ -408,22 +397,6 @@ function delModel(id){
   api('/api/admin/models/'+id,'DELETE').then(function(d){
     if(d.ok||d.ok===undefined){loadModels();}else{alert('ERROR: '+(d.detail||d.error||'unknown'));}
   }).catch(function(e){alert('Network error: '+(e&&e.message||e));});
-}
-
-// ===== Phase 5 — Usage Statistics =====
-function loadUsage(){
-  api('/api/admin/usage').then(function(d){
-    if(d.error==='forbidden'){location.href='/app';return;}
-    if(d.error){$('usageDaily').innerHTML='<span class="err">'+(d.detail||d.error)+'</span>';return;}
-    var h='';
-    (d.daily||[]).forEach(function(r){h+='<div class="list-row"><div class="list-main"><div class="list-title">'+esc(r.day||'')+'</div><div class="list-meta">'+esc(r.category||'')+'</div></div><b>'+esc(r.total)+'</b></div>';});
-    $('usageDaily').innerHTML=h||'(no data yet)';
-    var t='';
-    (d.byUser||[]).forEach(function(r){t+='<div class="list-row"><div class="list-main"><div class="list-title">'+esc(r.email||'')+'</div><div class="list-meta">'+esc(r.calls)+' calls</div></div><b>'+esc(r.total)+'</b></div>';});
-    $('usageTop').innerHTML=t||'(no data yet)';
-  }).catch(function(e){
-    $('usageDaily').innerHTML='<span class="err">Network error: '+esc(String(e&&e.message||e))+'</span>';
-  });
 }
 
 // ===== Phase 5 — Admin Logs (Audit) =====
