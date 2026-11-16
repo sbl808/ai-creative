@@ -600,9 +600,8 @@ console.log('\n--- D) API test rate-limit migration contract ---');
     check('migration indexes window_id for cleanup queries',
       /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
     const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
-    check('rate-limit route SQL matches migration table and columns',
-      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
-      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
+    check('retired API test route no longer reads or writes the legacy D1 limiter',
+      !/api_test_limits|env\.DB/.test(route));
   }
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
