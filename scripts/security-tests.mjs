@@ -505,7 +505,7 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
     /rate_limited/.test(guards));
 
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\\/api\\/cms\\/prompt'/.test(guards) &&
+    /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
 
   check('Cloudflare binding is configured for dev, staging, and prod',
