@@ -77,6 +77,6 @@ assert.equal(unauthenticated, null, 'route authentication keeps its existing una
 
 const html = sidebarScript();
 assert.match(html, /X-AICS-Client-ID/);
-assert.match(html, /AICS_RATE_LIMIT_IDENTITY\\.get/);
+assert.match(html, /AICS_RATE_LIMIT_IDENTITY\.get/);
 assert.match(html, /rate_limit_identity/);
 console.log('AI Rate Limit Binding contract tests passed.');
