@@ -125,6 +125,8 @@ jobs:
           node-version: 22
       - name: Run security tests
         run: node --experimental-default-type=module scripts/security-tests.mjs
+      - name: Run AI Rate Limit Binding contract tests
+        run: node --experimental-default-type=module scripts/ai-rate-limit-binding-contract-test.mjs
 
   browser-static:
     name: Browser script static checks
