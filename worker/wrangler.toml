@@ -78,3 +78,26 @@ namespace_id = "1103"
 [env.prod.ratelimits.simple]
 limit = 10
 period = 60
+
+# AI API connection-test rate limiting (per verified user subject).
+# Namespace IDs are provisional; verify account-wide uniqueness before remote deployment.
+[[env.dev.ratelimits]]
+name = "AI_TEST_RATE_LIMITER"
+namespace_id = "1201"
+[env.dev.ratelimits.simple]
+limit = 5
+period = 60
+
+[[env.staging.ratelimits]]
+name = "AI_TEST_RATE_LIMITER"
+namespace_id = "1202"
+[env.staging.ratelimits.simple]
+limit = 5
+period = 60
+
+[[env.prod.ratelimits]]
+name = "AI_TEST_RATE_LIMITER"
+namespace_id = "1203"
+[env.prod.ratelimits.simple]
+limit = 5
+period = 60
