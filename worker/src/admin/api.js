@@ -1,6 +1,6 @@
-// Phase 5 — AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Usage / Logs)
+// Phase 5 — AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Logs)
 // Phase 4 — Studio Control (ON/OFF) ထည့်သည် (Rule 14 — Admin က Code မပြင်ဘဲ ထိန်းချုပ်နိုင်)
-// Phase 5 — Free/Pro Feature ထိန်းချုပ် + Usage Statistics + Admin Logs (Rules 12/15/16/18)
+// Phase 5 — Free/Pro Feature ထိန်းချုပ် + Admin Logs (Rules 12/15/16/18)
 // Served at /admin. Admin-only — Server-side တွင် အမြဲ စစ်ဆေးသည် (Rule 13).
 
 import { listCMSPrompts, createCMSPrompt, updateCMSPrompt, deleteCMSPrompt, listBrainEntries, upsertBrainEntry, updateBrainEntry, deleteBrainEntry } from '../cms/repositories/index.js';
@@ -29,7 +29,6 @@ export async function adminApi(request, path, env, verifyToken) {
   const isFeatures = (path === '/api/admin/features' || path.indexOf('/api/admin/features/') === 0);
   const isModels = (path === '/api/admin/models' || path.indexOf('/api/admin/models/') === 0);
   const isDashboard = (path === '/api/admin/dashboard');
-  const isUsage = (path === '/api/admin/usage');
   const isLogs = (path === '/api/admin/logs');
   const isBrain = (path === '/api/brain' || path.indexOf('/api/brain/') === 0);
   const isPlans = (path === '/api/admin/plans' || path.indexOf('/api/admin/plans/') === 0 || path === '/api/admin/plan-contacts');
@@ -38,7 +37,7 @@ export async function adminApi(request, path, env, verifyToken) {
     path.indexOf('/api/admin/tasks/') === 0 ||
     path.indexOf('/api/admin/task-versions/') === 0
   );
-  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isUsage && !isLogs && !isBrain && !isPlans && !isTaskInstructions) return null;
+  if (!isCms && !isUsers && !isStudios && !isSettingsInit && !isFeatures && !isModels && !isDashboard && !isLogs && !isBrain && !isPlans && !isTaskInstructions) return null;
 
   const method = request.method;
   const authHeader = request.headers.get('Authorization') || '';
@@ -340,33 +339,15 @@ export async function adminApi(request, path, env, verifyToken) {
     try {
       const users = await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first();
       const pro = await env.DB.prepare("SELECT COUNT(*) AS c FROM users WHERE plan='PRO'").first();
-      // Phase 13 (Option 2): Creations ကို Browser IndexedDB တွင်သာ သိမ်းသည် — Dashboard တွင် မရေတွက်တော့ပါ
-      const projects = await env.DB.prepare('SELECT COUNT(*) AS c FROM projects').first();
-      const aiToday = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) AS s FROM usage WHERE category='ai' AND date(created_at)=date('now')").first();
-      const voiceToday = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) AS s FROM usage WHERE category='voice' AND date(created_at)=date('now')").first();
-      const imageToday = await env.DB.prepare("SELECT COALESCE(SUM(amount),0) AS s FROM usage WHERE category='image' AND date(created_at)=date('now')").first();
       const recent = await env.DB.prepare('SELECT email, plan, created_at FROM users ORDER BY created_at DESC LIMIT 5').all();
       return json({
         ok: true,
         stats: {
           users: (users && users.c) || 0,
           pro: (pro && pro.c) || 0,
-          projects: (projects && projects.c) || 0,
-          ai_today: (aiToday && aiToday.s) || 0,
-          voice_today: (voiceToday && voiceToday.s) || 0,
-          image_today: (imageToday && imageToday.s) || 0,
         },
         recent: (recent && recent.results) || [],
       });
-    } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
-  }
-
-  // ===== Phase 5 — Usage Statistics =====
-  if (path === '/api/admin/usage' && method === 'GET') {
-    try {
-      const daily = await env.DB.prepare("SELECT date(created_at) AS day, category, SUM(amount) AS total FROM usage GROUP BY day, category ORDER BY day DESC LIMIT 28").all();
-      const byUser = await env.DB.prepare("SELECT u.email, COUNT(*) AS calls, SUM(us.amount) AS total FROM usage us JOIN users u ON u.id=us.user_id GROUP BY us.user_id ORDER BY total DESC LIMIT 10").all();
-      return json({ ok: true, daily: (daily && daily.results) || [], byUser: (byUser && byUser.results) || [] });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
 
