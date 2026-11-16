@@ -169,6 +169,17 @@ class MockD1 {
   }
 }
 
+function createMockRateLimiter(limit = 10) {
+  const attempts = new Map();
+  return {
+    async limit({ key }) {
+      const count = (attempts.get(String(key)) || 0) + 1;
+      attempts.set(String(key), count);
+      return { success: count <= limit };
+    },
+  };
+}
+
 const env = {
   SESSION_SIGNING_KEY: 'regression-test-secret-key',
   GOOGLE_OAUTH_CLIENT_ID: 'test-client',
@@ -176,6 +187,8 @@ const env = {
   ALLOWED_ORIGINS: 'https://test.local',
   ADMIN_EMAIL: 'a@b.com',
   DB: new MockD1({}),
+  // Unbounded by default so unrelated route tests do not share a test bucket.
+  SHARED_AI_RATE_LIMITER: createMockRateLimiter(Number.MAX_SAFE_INTEGER),
 };
 
 // ---------------------------------------------------------------- helpers
@@ -533,8 +546,8 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
 });
 
 console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
-await check('Six Studios share one 30-request bucket; request 31 is blocked', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+await check('Six Studios share one 10-request bucket; request 11 is blocked', async () => {
+  const rateEnv = { ...env, DB: new MockD1({}), SHARED_AI_RATE_LIMITER: createMockRateLimiter(10) };
   const headers = await withToken();
   const paths = [
     '/api/studio/story/generate',
@@ -547,7 +560,7 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
   const statuses = [];
   // Empty but valid JSON reaches each route's input validation after rate limiting.
   // No Gemini/provider call can occur because every route returns a missing-input error.
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 10; i++) {
     const path = paths[i % paths.length];
     const r = await worker.fetch(new Request('https://test.local' + path, {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
@@ -562,15 +575,15 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     ok: statuses.every(status => status === 400) &&
       blocked.status === 429 &&
       blockedBody.error === 'rate_limited' &&
-      Number(blocked.headers.get('Retry-After')) > 0,
-    msg: `first30=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error} retry=${blocked.headers.get('Retry-After')}`,
+      blocked.headers.get('Retry-After') === '60',
+    msg: `first10=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error} retry=${blocked.headers.get('Retry-After')}`,
   };
 });
 await check('shared generation limit is isolated per authenticated user', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+  const rateEnv = { ...env, DB: new MockD1({}), SHARED_AI_RATE_LIMITER: createMockRateLimiter(10) };
   const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
   const userTwo = await signToken(env, { sub: 'rate-user-two', email: 'two@example.test' });
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 10; i++) {
     await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
       method: 'POST', headers: { Authorization: 'Bearer ' + userOne, 'Content-Type': 'application/json' }, body: '{}',
     }), rateEnv, {});
@@ -580,21 +593,22 @@ await check('shared generation limit is isolated per authenticated user', async 
   }), rateEnv, {});
   return { ok: r.status === 400, msg: `second user status=${r.status} (expected route validation 400)` };
 });
-await check('shared generation limit fails closed when D1 is unavailable', async () => {
+await check('shared generation limit fails closed when the binding is unavailable', async () => {
   const headers = await withToken();
-  const noDbEnv = { ...env, DB: null };
+  const noBindingEnv = { ...env, DB: null, SHARED_AI_RATE_LIMITER: undefined };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), noDbEnv, {});
+  }), noBindingEnv, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });
-await check('shared generation limit fails closed when D1 query throws', async () => {
+await check('shared generation limit fails closed when the binding throws', async () => {
   const headers = await withToken();
   const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const throwingBinding = { async limit() { throw new Error('simulated rate limiter outage'); } };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), { ...env, DB: brokenDb }, {});
+  }), { ...env, DB: brokenDb, SHARED_AI_RATE_LIMITER: throwingBinding }, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });
