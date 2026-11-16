@@ -14,6 +14,8 @@ const deps = {
   friendlyError: () => {}
 };
 
+assert.equal(isAiGenerationRoute('/api/ai/test', 'POST'), true);
+assert.equal(isAiGenerationRoute('/api/ai/test', 'GET'), false);
 assert.equal(isAiGenerationRoute('/api/ideas/generate', 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/subtitle/translate-srt', 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/voice/tts', 'POST'), true);
@@ -22,9 +24,9 @@ assert.equal(isAiGenerationRoute('/api/studio/unknown/generate', 'POST'), false)
 
 let receivedKey = null;
 const allowed = await enforceSharedAiRateLimit(
-  makeRequest('/api/studio/story/generate', { 'X-AICS-Client-ID': clientId }),
+  makeRequest('/api/ai/test', { 'X-AICS-Client-ID': clientId }),
   { AI_RATE_LIMITER: { limit: async ({ key }) => { receivedKey = key; return { success: true }; } } },
-  '/api/studio/story/generate',
+  '/api/ai/test',
   deps
 );
 assert.equal(allowed, null);
@@ -76,6 +78,7 @@ const unauthenticated = await enforceSharedAiRateLimit(
 assert.equal(unauthenticated, null, 'route authentication keeps its existing unauthenticated response');
 
 const html = sidebarScript();
+assert.match(html, /path === '\/api\/ai\/test'/);
 assert.match(html, /X-AICS-Client-ID/);
 assert.match(html, /AICS_RATE_LIMIT_IDENTITY\.get/);
 assert.match(html, /rate_limit_identity/);
