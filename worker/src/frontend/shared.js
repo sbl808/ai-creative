@@ -371,7 +371,28 @@ export function sidebarScript() {
     clientStorageScript() + '\n' +
     sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
-    'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
+    'var SB_TOKEN = localStorage.getItem(\\'aics_token\\') || \\'\\';\\n' +
+    '// H6-3: attach a browser-local random identity to AI generation requests.\\n' +
+    '(function installAicsRateLimitFetch() {\\n' +
+    '  if (window.__aicsRateLimitFetchInstalled || !window.fetch || !window.AICS_RATE_LIMIT_IDENTITY) return;\\n' +
+    '  window.__aicsRateLimitFetchInstalled = true;\\n' +
+    '  var originalFetch = window.fetch.bind(window);\\n' +
+    '  function isAiGenerationRequest(request) {\\n' +
+    '    if (request.method !== \\'POST\\') return false;\\n' +
+    '    var path; try { path = new URL(request.url).pathname; } catch (error) { return false; }\\n' +
+    '    if (path === \\'/api/ideas/generate\\' || path === \\'/api/cms/prompt\\' || path === \\'/api/studio/generate\\') return true;\\n' +
+    return /^\\/api\\/studio\\/(?:content|story|short|image|voice|shop|subtitle)(?:\\/.*)?$/.test(path) &&\\n' +
+    '      /\\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);\\n' +
+    '  }\\n' +
+    '  window.fetch = function (input, init) {\\n' +
+    '    var request; try { request = new Request(input, init || {}); } catch (error) { return originalFetch(input, init); }\\n' +
+    '    if (!isAiGenerationRequest(request)) return originalFetch(request);\\n' +
+    '    return window.AICS_RATE_LIMIT_IDENTITY.get().then(function (clientId) {\\n' +
+    '      var headers = new Headers(request.headers); headers.set(\\'X-AICS-Client-ID\\', clientId);\\n' +
+    '      return originalFetch(new Request(request, { headers: headers }));\\n' +
+    '    });\\n' +
+    '  };\\n' +
+    '})();\\n' +
     'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
     '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
     '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
