@@ -453,6 +453,7 @@ console.log('\n--- D) API test rate-limit runtime contract ---');
     (toml.match(/limit = 5\s+period = 60/g) || []).length === 3);
   console.log('  ↷ remote Cloudflare namespace uniqueness and runtime behavior NOT TESTED here.');
 }
+{
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
