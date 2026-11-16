@@ -9,7 +9,7 @@ const env = {
   DB: {
     prepare(sql) {
       sqlStatements.push(String(sql));
-      if (/\\bFROM\\s+usage\\b/i.test(sql)) {
+      if (/FROM\\s+usage/i.test(sql)) {
         throw new Error('D1 usage access is forbidden by the IndexedDB-only policy');
       }
       return {
@@ -38,11 +38,11 @@ assert.equal(response.status, 200, 'user profile endpoint should remain availabl
 const payload = await response.json();
 assert.equal(payload.user_id, 'verified-user-1');
 assert.equal(Object.hasOwn(payload, 'usage'), false, 'API response must not expose server-side usage counters');
-assert.equal(sqlStatements.some((sql) => /\\bFROM\\s+usage\\b/i.test(sql)), false,
+assert.equal(sqlStatements.some((sql) => /FROM\\s+usage/i.test(sql)), false,
   'profile endpoint must not read the D1 usage table');
 
 const routeSource = await readFile(new URL('../worker/src/routes/users.routes.js', import.meta.url), 'utf8');
-assert.equal(/\\bFROM\\s+usage\\b/i.test(routeSource), false,
+assert.equal(/FROM\\s+usage/i.test(routeSource), false,
   'user route source must not contain D1 usage queries');
 
 console.log('User usage privacy contract passed.');
