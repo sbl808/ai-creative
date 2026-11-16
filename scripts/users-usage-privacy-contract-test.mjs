@@ -130,7 +130,7 @@ console.log('--- Admin dashboard H6 privacy contract ---');
   const payload = await response.json();
   assert.deepEqual(Object.keys(payload.stats).sort(), ['pro', 'users'],
     'dashboard must expose account totals only, not user content or server usage metrics');
-  assert.equal(d1Statements.some((sql) => /\\b(projects|usage)\\b/i.test(sql)), false,
+  assert.equal(d1Statements.some((sql) => /\b(projects|usage)\b/i.test(sql)), false,
     'admin dashboard must not query user projects or usage tables');
   const retiredUsageResponse = await adminApi(
     new Request('https://aics.test/api/admin/usage', { method: 'GET' }),
