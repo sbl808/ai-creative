@@ -7,14 +7,14 @@ const SHARED_AI_RATE_WINDOW_SECONDS = 60;
 export function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
   if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
-  return /^\\/api\\/studio\\/(?:content|story|short|image|voice|shop|subtitle)(?:\\/.*)?$/.test(path) &&
-    /\\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
+  return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(path) &&
+    /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
 
 export async function enforceSharedAiRateLimit(request, env, path, deps) {
   if (!isAiGenerationRoute(path, request.method)) return null;
   const authHeader = request.headers.get('Authorization') || '';
-  const bearer = authHeader.match(/^Bearer\\s+(.+)$/i)?.[1] || '';
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
   const token = bearer || deps.cookieToken(request);
   const payload = token ? await deps.verifyTokenSafe(env, token) : null;
   if (!payload?.sub) return null; // Let route auth preserve its established response.
