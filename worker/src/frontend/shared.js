@@ -371,10 +371,13 @@ const RATE_LIMIT_FETCH_SCRIPT = String.raw`// H6-3: attach a browser-local rando
   if (window.__aicsRateLimitFetchInstalled || !window.fetch || !window.AICS_RATE_LIMIT_IDENTITY) return;
   window.__aicsRateLimitFetchInstalled = true;
   var originalFetch = window.fetch.bind(window);
-  function isAiGenerationRequest(request) {
-    if (request.method !== 'POST') return false;
+  function isAiGenerationRequest(input, init) {
+    var method = init && init.method ? init.method : (input instanceof Request ? input.method : 'GET');
+    if (String(method).toUpperCase() !== 'POST') return false;
     var url;
-    try { url = new URL(request.url); } catch (error) { return false; }
+    try {
+      url = new URL(input instanceof Request ? input.url : input, window.location.href);
+    } catch (error) { return false; }
     if (url.origin !== window.location.origin) return false;
     var path = url.pathname;
     if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
@@ -382,10 +385,10 @@ const RATE_LIMIT_FETCH_SCRIPT = String.raw`// H6-3: attach a browser-local rando
       /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
   }
   window.fetch = function (input, init) {
+    if (!isAiGenerationRequest(input, init)) return originalFetch(input, init);
     var request;
     try { request = new Request(input, init || {}); }
     catch (error) { return originalFetch(input, init); }
-    if (!isAiGenerationRequest(request)) return originalFetch(request);
     return window.AICS_RATE_LIMIT_IDENTITY.get().then(function (clientId) {
       var headers = new Headers(request.headers);
       headers.set('X-AICS-Client-ID', clientId);
