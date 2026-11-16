@@ -301,7 +301,7 @@ export default {
         return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
       }
 
-      // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
+      // STEP 9 — shared browser-keyed Cloudflare AI rate limit (3 requests/60 seconds).
       const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path, { cookieToken, verifyTokenSafe, json, friendlyError });
       if (rateLimitResponse) {
         const headers = new Headers(rateLimitResponse.headers);
