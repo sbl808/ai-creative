@@ -381,6 +381,7 @@ export function sidebarScript() {
     '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
     '      .then(function (legacy) { if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\'); return legacy; });\n' +
     '  }).then(function (record) {\n' +
+    '    var hasLocalRecord = Boolean(record && record.ownerId);\n' +
     '    var settings = Object.assign({}, record && record.settings || {});\n' +
     '    var preferences = Object.assign({}, record && record.preferences || {});\n' +
     '    var profile = Object.assign({}, record && record.profile || {});\n' +
@@ -395,6 +396,7 @@ export function sidebarScript() {
     '        if (key && /^aics_default_model_[a-zA-Z0-9_]+$/.test(key)) { var cat = key.slice(\'aics_default_model_\'.length); preferences[\'default_model_\' + cat] = localStorage.getItem(key) || \'\'; legacyKeys.push(key); }\n' +
     '      }\n' +
     '    } catch (e) {}\n' +
+    '    if (hasLocalRecord && legacyKeys.length === 0) return record;\n' +
     '    return window.AICS_USER_SETTINGS.save({ profile: profile, settings: settings, preferences: preferences }).then(function (saved) {\n' +
     '      try { legacyKeys.forEach(function (key) { localStorage.removeItem(key); }); } catch (e) {}\n' +
     '      return saved;\n' +
@@ -403,7 +405,6 @@ export function sidebarScript() {
     '  return window.__aicsUserSettingsPromise;\n' +
     '};\n' +
     themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
-'};\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +
     '  fetch(\'/api/auth/session\').then(function (r) { return r.json(); }).then(function (d) {\n' +
