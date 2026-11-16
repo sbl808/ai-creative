@@ -534,32 +534,39 @@ await check('POST /api/user/apikey → 410 when encryption secret is missing', a
   return { ok: r.status === 410 && body.error === 'browser_storage_only', msg: `status=${r.status} error=${body.error}` };
 });
 
-console.log('— API connection-test rate limit —');
-await check('POST /api/ai/test → 503 when rate-limit DB is unavailable', async () => {
+console.log('— API connection-test shared Cloudflare rate limit —');
+await check('POST /api/ai/test does not depend on D1 for rate limiting', async () => {
   const headers = await withToken();
   const noDbEnv = { ...env, DB: null };
-  const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
-    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  const response = await worker.fetch(new Request('https://test.local/api/ai/test', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
   }), noDbEnv, {});
-  const body = await r.json();
-  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+  return { ok: response.status === 400, msg: `status=${response.status} (expected invalid-body 400 without D1)` };
 });
-await check('POST /api/ai/test → allows five attempts, blocks sixth in same window', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+await check('POST /api/ai/test fails closed when Cloudflare rate-limit binding is unavailable', async () => {
+  const headers = await withToken();
+  const unavailableEnv = { ...env, AI_RATE_LIMITER: null };
+  const response = await worker.fetch(new Request('https://test.local/api/ai/test', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
+  }), unavailableEnv, {});
+  const body = await response.json();
+  return { ok: response.status === 503 && body.error === 'rate_limit_unavailable',
+    msg: `status=${response.status} error=${body.error}` };
+});
+await check('POST /api/ai/test shares the 3-request/60-second browser limit', async () => {
+  const rateEnv = { ...env, AI_RATE_LIMITER: new MockRateLimitBinding(3) };
   const headers = await withToken();
   const statuses = [];
-  // Invalid JSON intentionally stops after the rate-limit check, so this test
-  // never calls Gemini or makes an external network request.
-  for (let i = 0; i < 6; i++) {
-    const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
+  // Invalid JSON stops after the shared rate-limit guard and never calls Gemini.
+  for (let i = 0; i < 4; i++) {
+    const response = await worker.fetch(new Request('https://test.local/api/ai/test', {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
     }), rateEnv, {});
-    statuses.push(r.status);
+    statuses.push(response.status);
   }
-  return { ok: statuses.slice(0, 5).every(status => status === 400) && statuses[5] === 429,
+  return { ok: statuses.slice(0, 3).every(status => status === 400) && statuses[3] === 429,
     msg: `statuses=${statuses.join(',')}` };
 });
-
 console.log('— Subtitle shared AI rate-limit route matching —');
 await check('Subtitle SRT and translation POST endpoints are included; non-POST is excluded', async () => {
   const srt = isAiGenerationRoute('/api/studio/subtitle/srt', 'POST');
