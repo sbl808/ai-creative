@@ -653,5 +653,19 @@ console.log('\n--- CMS prompt authorization contracts ---');
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
   check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
+console.log('\n--- Admin H6 dashboard and usage retirement contracts ---');
+{
+  const adminApi = readFileSync(new URL('../worker/src/admin/api.js', import.meta.url), 'utf8');
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  check('admin dashboard no longer queries user projects or usage tables',
+    !/FROM\\s+(projects|usage)\\b/i.test(adminApi) && !/JOIN\\s+usage\\b/i.test(adminApi));
+  check('admin usage endpoint is retired from API routing',
+    !adminApi.includes('/api/admin/usage') && !adminApi.includes('isUsage'));
+  check('admin UI no longer requests or displays server-side usage metrics',
+    !adminUi.includes('/api/admin/usage') && !adminUi.includes('usageView') &&
+    !adminUi.includes('loadUsage') && !adminUi.includes('ai_today') &&
+    !adminUi.includes('voice_today') && !adminUi.includes('image_today') &&
+    !adminUi.includes('stats.projects'));
+}
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
