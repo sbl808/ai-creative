@@ -366,7 +366,7 @@ function sidebarSessionHistoryScript() {
 `;
 }
 
-const RATE_LIMIT_FETCH_SCRIPT = String.raw\`// H6-3: attach a browser-local random identity to AI generation requests.
+const RATE_LIMIT_FETCH_SCRIPT = String.raw`// H6-3: attach a browser-local random identity to AI generation requests.
 (function installAicsRateLimitFetch() {
   if (window.__aicsRateLimitFetchInstalled || !window.fetch || !window.AICS_RATE_LIMIT_IDENTITY) return;
   window.__aicsRateLimitFetchInstalled = true;
@@ -390,7 +390,7 @@ const RATE_LIMIT_FETCH_SCRIPT = String.raw\`// H6-3: attach a browser-local rand
       return originalFetch(new Request(request, { headers: headers }));
     });
   };
-})();\`;
+})();`;
 export function sidebarScript() {
   return '<script>\n' +
     clientStorageScript() + '\n' +
