@@ -642,26 +642,30 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
 {
   const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
   const migrationExists = existsSync(migrationPath);
-  check('shared AI rate-limit migration exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates per-user/per-window generation counters',
-      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup',
-      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
-  }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
-    /api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
-    /rate_limited/.test(guards));
+  const config = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+
+  check('historical D1 rate-limit migration remains untouched',
+    migrationExists && !/api_generation_limits/.test(guards));
+  check('generation routes use a 3-per-60-second Cloudflare browser limit',
+    /const SHARED_AI_RATE_LIMIT = 3/.test(guards) &&
+    /const SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
+    /env\.AI_RATE_LIMITER/.test(guards) &&
+    /limiter\.limit\(\{ key: clientId \}\)/.test(guards) &&
+    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
+  check('rate-limit identity comes from browser header, not account identifier',
+    /X-AICS-Client-ID/.test(guards) &&
+    /clientId/.test(guards) &&
+    !/payload\.sub/.test(guards.slice(guards.indexOf('const clientId'), guards.indexOf('const limiter'))));
+  check('dev, staging, and prod each configure the Cloudflare rate-limit binding',
+    /\[\[env\.dev\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config) &&
+    /\[\[env\.staging\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config) &&
+    /\[\[env\.prod\.ratelimits\]\][\s\S]*?limit = 3[\s\S]*?period = 60/.test(config));
   check('rate-limit covers six Studio families and CMS prompt',
     /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
-  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+  console.log('  ↷ Cloudflare binding runtime on a remote account NOT TESTED; historical D1 migration retained.');
 }
 
 console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
