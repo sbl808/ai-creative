@@ -64,12 +64,14 @@ try {
   const routeEnv = {
     SESSION_SIGNING_KEY: 'story-contract-test-secret',
     DB: new RouteMockD1(),
+    AI_RATE_LIMITER: { limit: async () => ({ success: true }) },
   };
   const token = await signToken(routeEnv, { sub: 'story-contract-user', email: 'story@test.local' });
   const routePost = (path, body, authenticated = true) => worker.fetch(new Request('https://test.local' + path, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'X-AICS-Client-ID': 'a'.repeat(32),
       ...(authenticated ? { Authorization: 'Bearer ' + token } : {}),
     },
     body: JSON.stringify(body),
