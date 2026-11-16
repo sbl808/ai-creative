@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
 import { handleAiRoutes } from '../worker/src/routes/ai.routes.js';
 import { trackUsage } from '../worker/src/core/usage.js';
+import { adminApi } from '../worker/src/admin/api.js';
 
 const d1Statements = [];
 const db = {
@@ -114,4 +115,29 @@ console.log('--- Source-level H6 guardrails ---');
     'no tested H6 path may query the user usage table');
 }
 
+console.log('--- Admin dashboard H6 privacy contract ---');
+{
+  d1Statements.length = 0;
+  const request = new Request('https://aics.test/api/admin/dashboard', {
+    method: 'GET',
+    headers: { Authorization: 'Bearer admin-token' },
+  });
+  const response = await adminApi(request, '/api/admin/dashboard', {
+    ...env,
+    ADMIN_EMAIL: 'admin@example.test',
+  }, async () => ({ sub: 'admin-user', email: 'admin@example.test' }));
+  assert.equal(response.status, 200, 'admin dashboard should remain available');
+  const payload = await response.json();
+  assert.deepEqual(Object.keys(payload.stats).sort(), ['pro', 'users'],
+    'dashboard must expose account totals only, not user content or server usage metrics');
+  assert.equal(d1Statements.some((sql) => /\\b(projects|usage)\\b/i.test(sql)), false,
+    'admin dashboard must not query user projects or usage tables');
+  const retiredUsageResponse = await adminApi(
+    new Request('https://aics.test/api/admin/usage', { method: 'GET' }),
+    '/api/admin/usage',
+    { ...env, ADMIN_EMAIL: 'admin@example.test' },
+    async () => ({ sub: 'admin-user', email: 'admin@example.test' }),
+  );
+  assert.equal(retiredUsageResponse, null, 'retired admin usage endpoint must no longer be handled');
+}
 console.log('User Usage / Studio / AI Test privacy contracts passed.');
