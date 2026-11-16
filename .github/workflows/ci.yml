@@ -160,7 +160,7 @@ jobs:
           python-version: "3.12"
       - name: Validate all migrations with SQLite (offline)
         run: python scripts/test-all-migrations.py
-      - name: Validate rate-limit migration behavior (offline)
+      - name: Validate legacy rate-limit migration schemas (offline)
         run: python scripts/test-api-test-limits-migration.py
 
   studio-architecture:
