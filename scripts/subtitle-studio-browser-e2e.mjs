@@ -453,8 +453,11 @@ try {
     await translationInput.fill(sampleSrt);
     await page.locator('#subtitleTranslationDirection').selectOption('CN_TO_MY');
     translationMode = 'delayed';
+    const translationRequestStarted = page.waitForRequest(request =>
+      request.url().includes('/api/studio/subtitle/translate-srt') && request.method() === 'POST');
     await page.locator('#subtitleTranslateBtn').click();
     await page.waitForFunction(() => document.getElementById('subtitleTranslateBtn')?.disabled);
+    await translationRequestStarted;
     check(viewport.name + ': Translate SRT button is disabled while processing',
       await page.locator('#subtitleTranslateBtn').isDisabled());
     check(viewport.name + ': Translate SRT sends one request while pending', translationRequests.length === 1);
