@@ -380,7 +380,7 @@ const RATE_LIMIT_FETCH_SCRIPT = String.raw`// H6-3: attach a browser-local rando
     } catch (error) { return false; }
     if (url.origin !== window.location.origin) return false;
     var path = url.pathname;
-    if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
+    if (path === '/api/ai/test' || path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
     return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(path) &&
       /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
   }
