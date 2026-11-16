@@ -7,7 +7,7 @@ import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/ve
 
 const source = clientStorageScript();
 assert.equal(STORAGE_SCHEMA_VERSION, 8);
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 9\)/);
 assert.match(source, /version:\s*6/);
 assert.match(source, /createObjectStore\('ideas',\s*\{\s*keyPath:\s*'id'\s*\}\)/);
 assert.match(source, /createIndex\('ownerId',\s*'ownerId'/);
