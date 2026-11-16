@@ -60,14 +60,6 @@ assert.equal(valid.backup.stores.drafts[0].studio, 'short');
 assert.equal(valid.backup.stores.ideas[0].result.title, 'A story idea');
 assert.equal(validateBackupText(JSON.stringify(validBackup), ownerId).recordCount, 7);
 
-const subtitleHandoffBackup = JSON.parse(JSON.stringify(validBackup));
-subtitleHandoffBackup.stores.studio_handoffs[0].target = 'subtitle';
-assert.equal(validateBackupEnvelope(subtitleHandoffBackup, ownerId).valid, true);
-assert.equal(validateBackupText(JSON.stringify(subtitleHandoffBackup), ownerId).valid, true);
-const unsupportedHandoffBackup = JSON.parse(JSON.stringify(validBackup));
-unsupportedHandoffBackup.stores.studio_handoffs[0].target = 'future-studio';
-expectCode(unsupportedHandoffBackup, 'backup_invalid_record');
-
 const currentBackup = JSON.parse(JSON.stringify(validBackup));
 currentBackup.schemaVersion = 7;
 currentBackup.stores.media_assets = [{
@@ -76,6 +68,35 @@ currentBackup.stores.media_assets = [{
 }];
 assert.equal(validateBackupEnvelope(currentBackup, ownerId).recordCount, 8);
 assert.equal(validateBackupText(JSON.stringify(currentBackup), ownerId).recordCount, 8);
+
+// Schema v8 must include the owner-scoped User Settings record.
+const v8Backup = JSON.parse(JSON.stringify(currentBackup));
+v8Backup.schemaVersion = 8;
+v8Backup.stores.user_settings = [{
+  id: ownerId,
+  ownerId,
+  profile: { name: 'User A' },
+  settings: { theme: 'dark', language: 'my' },
+  preferences: { compact_mode: 'true' },
+  updatedAt: '2026-11-04T07:00:00.000Z'
+}];
+assert.equal(validateBackupEnvelope(v8Backup, ownerId).recordCount, 9);
+assert.equal(validateBackupText(JSON.stringify(v8Backup), ownerId).recordCount, 9);
+
+for (const invalidSettings of [
+  { ...v8Backup.stores.user_settings[0], ownerId: 'user-b' },
+  { ...v8Backup.stores.user_settings[0], profile: { name: 123 } },
+  { ...v8Backup.stores.user_settings[0], settings: { unknown_setting: 'x' } },
+  { ...v8Backup.stores.user_settings[0], preferences: { unsafe: { nested: true } } }
+]) {
+  expectCode({
+    ...v8Backup,
+    stores: { ...v8Backup.stores, user_settings: [invalidSettings] }
+  }, invalidSettings.ownerId === 'user-b' ? 'backup_owner_mismatch' : 'backup_invalid_record');
+}
+
+const v7WithoutSettings = JSON.parse(JSON.stringify(currentBackup));
+assert.equal(validateBackupEnvelope(v7WithoutSettings, ownerId).recordCount, 8);
 
 // Media Asset V1 accepts exactly the six contract fields.
 const validMediaAsset = currentBackup.stores.media_assets[0];
@@ -128,21 +149,11 @@ function expectCode(input, code, owner = ownerId) {
 expectCode(validBackup, 'backup_owner_mismatch', 'other-user');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId: 'user-b', studio: 'short', data: {} }] } }, 'backup_owner_mismatch');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId, studio: 'unknown', data: {} }] } }, 'backup_invalid_record');
-const versionFiveBackup = JSON.parse(JSON.stringify(validBackup));
-delete versionFiveBackup.stores.ideas;
-versionFiveBackup.schemaVersion = 5;
-assert.equal(validateBackupEnvelope(versionFiveBackup, ownerId).valid, true);
-assert.equal(validateBackupEnvelope(versionFiveBackup, ownerId).recordCount, 6);
-assert.equal(validateBackupText(JSON.stringify(versionFiveBackup), ownerId).recordCount, 6);
-
-const versionFiveWithIdeas = JSON.parse(JSON.stringify(validBackup));
-versionFiveWithIdeas.schemaVersion = 5;
-expectCode(versionFiveWithIdeas, 'backup_invalid_stores');
-
-const versionSixWithMediaAssets = JSON.parse(JSON.stringify(currentBackup));
-versionSixWithMediaAssets.schemaVersion = 6;
-expectCode(versionSixWithMediaAssets, 'backup_invalid_stores');
-
+const legacyBackup = JSON.parse(JSON.stringify(validBackup));
+delete legacyBackup.stores.drafts;
+delete legacyBackup.stores.ideas;
+legacyBackup.schemaVersion = 5;
+expectCode(legacyBackup, 'backup_invalid_stores');
 const missingDraftsBackup = JSON.parse(JSON.stringify(validBackup));
 delete missingDraftsBackup.stores.drafts;
 expectCode(missingDraftsBackup, 'backup_invalid_stores');

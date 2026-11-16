@@ -6,8 +6,8 @@ import { validateBackupEnvelope } from '../worker/src/frontend/storage/backup/va
 import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 
 const source = clientStorageScript();
-assert.equal(STORAGE_SCHEMA_VERSION, 6);
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 6\)/);
+assert.equal(STORAGE_SCHEMA_VERSION, 8);
+assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
 assert.match(source, /version:\s*6/);
 assert.match(source, /createObjectStore\('ideas',\s*\{\s*keyPath:\s*'id'\s*\}\)/);
 assert.match(source, /createIndex\('ownerId',\s*'ownerId'/);
@@ -28,4 +28,5 @@ assert.throws(
   () => validateBackupEnvelope({ ...currentBackup, schemaVersion: 4 }, 'user-1'),
   /backup_schema_version_unsupported/
 );
+assert.match(source, /createObjectStore\('user_settings'/);
 console.log('IndexedDB Idea Foundation tests passed.');
