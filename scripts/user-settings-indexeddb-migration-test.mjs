@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
+import { themeControllerScript } from '../worker/src/frontend/shared.js';
 
 const sqlCalls = [];
 const env = {
@@ -100,5 +101,10 @@ assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
 assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
+assert.doesNotMatch(settingsSource, /localStorage\.(?:setItem|removeItem)\(['"]aics_default_model/);
+assert.doesNotMatch(sharedSource, /localStorage\.setItem\(['"]aics_default_model/);
+assert.doesNotMatch(themeControllerScript(), /localStorage/);
+assert.match(themeControllerScript(), /AICS_USER_SETTINGS\.save/);
+assert.match(sharedSource, /preferences\[preferenceKey\]/);
 
 console.log('User Settings IndexedDB migration contract tests passed.');

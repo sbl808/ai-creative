@@ -218,7 +218,6 @@ function responsiveStyles() {
 // One controller is shared by the app shell and the Admin document.
 export function themeControllerScript(options = {}) {
   const config = JSON.stringify({
-    key: 'aics-theme-preference',
     toggleId: options.toggleId || 'aicsThemeToggle',
     mountSelector: options.mountSelector || '',
     className: options.className || 'aics-theme-toggle',
@@ -227,11 +226,10 @@ export function themeControllerScript(options = {}) {
   return [
     '(function(){',
     '  var config=' + JSON.stringify(config) + ';config=JSON.parse(config);',
-    '  var key=config.key;',
-    '  function applyTheme(theme){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);try{localStorage.setItem(key,theme);}catch(e){}var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}',
-    '  var initial="dark";try{var saved=localStorage.getItem(key);if(saved==="light"||saved==="dark")initial=saved;}catch(e){}applyTheme(initial);',
-    '  function bindToggle(){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.addEventListener("click",function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark");});applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial);}',
-    '  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindToggle);else bindToggle();',
+    '  function applyTheme(theme,persist){if(theme!=="light"&&theme!=="dark")theme="dark";document.documentElement.setAttribute("data-aics-theme",theme);if(persist&&window.AICS_USER_SETTINGS)window.AICS_USER_SETTINGS.save({settings:{theme:theme}}).catch(function(){});var b=document.getElementById(config.toggleId);if(b){var dark=theme==="dark";b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");if(config.createToggle)b.innerHTML=(dark?"☀":"☾")+" <span>"+(dark?"Light mode":"Dark mode")+"</span>";else b.textContent=dark?"Light mode":"Dark mode";}}',
+    '  function bindToggle(initial){var b=document.getElementById(config.toggleId);if(!b&&config.createToggle){var mount=document.querySelector(config.mountSelector);if(!mount)return;b=document.createElement("button");b.type="button";b.id=config.toggleId;b.className=config.className;mount.insertBefore(b,mount.firstChild);}if(!b)return;b.addEventListener("click",function(){applyTheme(document.documentElement.getAttribute("data-aics-theme")==="dark"?"light":"dark",true);});applyTheme(document.documentElement.getAttribute("data-aics-theme")||initial,false);}',
+    '  var settingsPromise=typeof window.AICS_LOAD_USER_SETTINGS==="function"?window.AICS_LOAD_USER_SETTINGS():Promise.resolve(null);',
+    '  Promise.resolve(settingsPromise).then(function(record){var saved=record&&record.settings&&record.settings.theme;var initial=saved==="light"||saved==="dark"?saved:"dark";applyTheme(initial,false);if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){bindToggle(initial);});else bindToggle(initial);}).catch(function(){applyTheme("dark",false);if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){bindToggle("dark");});else bindToggle("dark");});',
     '})();'
   ].join('\n');
 }
@@ -370,7 +368,6 @@ function sidebarSessionHistoryScript() {
 
 export function sidebarScript() {
   return '<script>\n' +
-    themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     clientStorageScript() + '\n' +
     sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
@@ -382,16 +379,31 @@ export function sidebarScript() {
     '    if (record) return record;\n' +
     '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
-    '      .then(function (legacy) {\n' +
-    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
-    '        return window.AICS_USER_SETTINGS.save({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
-    '      });\n' +
+    '      .then(function (legacy) { if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\'); return legacy; });\n' +
     '  }).then(function (record) {\n' +
-    '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
-    '    return record;\n' +
+    '    var settings = Object.assign({}, record && record.settings || {});\n' +
+    '    var preferences = Object.assign({}, record && record.preferences || {});\n' +
+    '    var profile = Object.assign({}, record && record.profile || {});\n' +
+    '    var legacyKeys = [];\n' +
+    '    try {\n' +
+    '      var oldTheme = localStorage.getItem(\'aics-theme-preference\');\n' +
+    '      if (oldTheme === \'light\' || oldTheme === \'dark\') { settings.theme = oldTheme; legacyKeys.push(\'aics-theme-preference\'); }\n' +
+    '      var oldModel = localStorage.getItem(\'aics_default_model\');\n' +
+    '      if (oldModel) { settings.default_model = oldModel; legacyKeys.push(\'aics_default_model\'); }\n' +
+    '      for (var i = 0; i < localStorage.length; i++) {\n' +
+    '        var key = localStorage.key(i);\n' +
+    '        if (key && /^aics_default_model_[a-zA-Z0-9_]+$/.test(key)) { var cat = key.slice(\'aics_default_model_\'.length); preferences[\'default_model_\' + cat] = localStorage.getItem(key) || \'\'; legacyKeys.push(key); }\n' +
+    '      }\n' +
+    '    } catch (e) {}\n' +
+    '    return window.AICS_USER_SETTINGS.save({ profile: profile, settings: settings, preferences: preferences }).then(function (saved) {\n' +
+    '      try { legacyKeys.forEach(function (key) { localStorage.removeItem(key); }); } catch (e) {}\n' +
+    '      return saved;\n' +
+    '    });\n' +
     '  }).catch(function (error) { window.__aicsUserSettingsPromise = null; throw error; });\n' +
     '  return window.__aicsUserSettingsPromise;\n' +
     '};\n' +
+    themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
+'};\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +
     '  fetch(\'/api/auth/session\').then(function (r) { return r.json(); }).then(function (d) {\n' +
@@ -516,29 +528,29 @@ export function sidebarScript() {
     '      var pathParts = window.location.pathname.split(\'/\');\n' +
     '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
     '      var task = studio + \'.\' + cat;\n' +
-    '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
+    '      var preferenceKey = \'default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
-    '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
+    '      var settingsPromise = typeof window.AICS_LOAD_USER_SETTINGS === \'function\' ? window.AICS_LOAD_USER_SETTINGS().catch(function () { return null; }) : Promise.resolve(null);\n' +
     '      function fill(opts, selected) {\n' +
     '        if (!opts || opts.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
     '        var html = \'\';\n' +
-    '        for (var i = 0; i < opts.length; i++) {\n' +
-    '          var m = opts[i];\n' +
-    '          var isSel = m.id === selected;\n' +
-    '          html += \'<option value="\' + m.id + \'"\' + (isSel ? \' selected\' : \'\') + \'>\' + String(m.name || m.id) + \'</option>\';\n' +
-    '        }\n' +
-    '        sel.innerHTML = html;\n' +
-    '        if (!sel.value) sel.value = opts[0].id;\n' +
+    '        for (var i = 0; i < opts.length; i++) { var m = opts[i]; var isSel = m.id === selected; html += \'<option value="\' + m.id + \'"\' + (isSel ? \' selected\' : \'\') + \'>\' + String(m.name || m.id) + \'</option>\'; }\n' +
+    '        sel.innerHTML = html; if (!sel.value) sel.value = opts[0].id;\n' +
     '      }\n' +
-    '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
-    '        .then(function (r) { return r.json(); })\n' +
-    '        .then(function (d) {\n' +
-    '          if (!d || d.error || !d.items || d.items.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
-    '          fill(d.items, saved);\n' +
-    '        })\n' +
-    '        .catch(function () { sel.innerHTML = \'<option value="">(Default)</option>\'; });\n' +
+    '      settingsPromise.then(function (record) {\n' +
+    '        if (sel.id === \'aiModelSel\') saved = record && record.settings && record.settings.default_model || \'\';\n' +
+    '        else saved = record && record.preferences && record.preferences[preferenceKey] || \'\';\n' +
+    '        return fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } });\n' +
+    '      }).then(function (response) { return response.json(); }).then(function (d) {\n' +
+    '        if (!d || d.error || !d.items || d.items.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
+    '        fill(d.items, saved);\n' +
+    '      }).catch(function () { sel.innerHTML = \'<option value="">(Default)</option>\'; });\n' +
     '      sel.addEventListener(\'change\', function () {\n' +
-    '        try { localStorage.setItem(key, sel.value); } catch (e) {}\n' +
+    '        if (!window.AICS_USER_SETTINGS) return;\n' +
+    '        var patch = {};\n' +
+    '        if (sel.id === \'aiModelSel\') patch.settings = { default_model: sel.value };\n' +
+    '        else if (/^[a-zA-Z0-9_]{1,32}$/.test(preferenceKey)) { patch.preferences = {}; patch.preferences[preferenceKey] = sel.value; }\n' +
+    '        window.AICS_USER_SETTINGS.save(patch).catch(function () {});\n' +
     '      });\n' +
     '    })(sels[k]);\n' +
     '  }\n' +

@@ -248,7 +248,6 @@ function loadSettings(){
     document.getElementById('pref_studio').value=s.default_studio||'story';
     document.getElementById('pref_voice').value=s.default_voice||'Kore';
     var pm=document.getElementById('pref_model');pm.value=s.default_model||'';
-    try{if(pm.value)localStorage.setItem('aics_default_model',pm.value);else localStorage.removeItem('aics_default_model');}catch(e){}
     (function(){fetch('/api/ai-models',{headers:{'Authorization':'Bearer '+TOKEN}}).then(function(r){return r.json();}).then(function(d){
       if(!d||d.error||!d.items||d.items.length===0)return;
       var cur=pm.value,html='';
@@ -310,7 +309,6 @@ function savePrefs(ev){
     theme:document.getElementById('pref_theme').value
   }}).then(function(record){
     btn.disabled=false;btn.textContent='💾 သိမ်းပါ';
-    try{var model=record&&record.settings&&record.settings.default_model||'';if(model)localStorage.setItem('aics_default_model',model);else localStorage.removeItem('aics_default_model');}catch(e){}
     showToast('✓ ဆက်တင်များကို ဤ Browser ထဲတွင် သိမ်းပြီးပါပြီ','success');
   }).catch(function(){btn.disabled=false;btn.textContent='💾 သိမ်းပါ';showToast('Browser ထဲတွင် ဆက်တင်များ သိမ်း၍ မရပါ','error');});
 }
