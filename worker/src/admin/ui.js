@@ -88,7 +88,7 @@ ${AICS_DESIGN_SYSTEM_CSS}
     <button class="nav-btn inactive" id="tabCms" onclick="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
     <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
 ${TASK_INSTRUCTIONS_NAV}
-    <div class="nav-section">Analytics</div>
+    <div class="nav-section">Audit</div>
     <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
     <div class="sidebar-footer"><a class="app-link" href="/app">↗ <span>Open User App</span></a></div>
   </aside>
