@@ -431,24 +431,28 @@ console.log('\n--- D) Retired D1 BYOK helper contract ---');
     !/user_keys|KEY_ENCRYPTION_SECRET|encryptSecret|decryptSecret/.test(utilitiesSource));
 }
 
-console.log('\n--- D) API test rate-limit migration contract ---');
+console.log('\n--- D) API test rate-limit runtime contract ---');
 {
   const migrationPath = new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url);
   const migrationExists = existsSync(migrationPath);
-  check('API rate-limit migration file exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates api_test_limits table',
-      /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
-    check('migration defines per-user/per-window primary key',
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup queries',
-      /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
-    const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
-    check('rate-limit route SQL matches migration table and columns',
-      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
-      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
-  }
+  const migration = migrationExists ? readFileSync(migrationPath, 'utf8') : '';
+  const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
+  const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  check('legacy api_test_limits migration is retained for history',
+    migrationExists && /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
+  check('API test runtime no longer reads or writes D1 counters',
+    !/api_test_limits|env\.DB/.test(route));
+  check('API test route uses verified subject with Cloudflare binding',
+    /AI_TEST_RATE_LIMITER/.test(route) &&
+    /limiter\.limit\(\{ key: String\(payload\.sub\) \}\)/.test(route));
+  check('API test route returns 5-per-60-second rate-limit response',
+    /limit: 5, window_seconds: 60/.test(route) &&
+    /Retry-After': '60'/.test(route));
+  check('AI test Cloudflare binding is configured for dev, staging, and prod',
+    (toml.match(/name = "AI_TEST_RATE_LIMITER"/g) || []).length === 3 &&
+    (toml.match(/limit = 5\s+period = 60/g) || []).length === 3);
+  console.log('  ↷ remote Cloudflare namespace uniqueness and runtime behavior NOT TESTED here.');
+}
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
