@@ -50,7 +50,7 @@ def main():
         # These migrations are retained as historical schema records only.
         # Runtime rate limiting is tested separately through the Cloudflare binding contract.
         print("=== MIGRATION RESULT: PASS ===")
-        print("Both rate-limit migrations: SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite.\nShared AI counter upsert: 31 increments, user isolation, and window isolation verified in SQLite.")
+        print("Legacy rate-limit migration schemas: SQL syntax, idempotence, columns, default, index, and composite key verified in SQLite. Runtime rate limiting is covered by the Cloudflare binding contract test.")
         print("Cloudflare D1 remote application: NOT TESTED.")
     finally:
         db.close()
