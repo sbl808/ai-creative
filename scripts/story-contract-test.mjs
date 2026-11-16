@@ -64,6 +64,7 @@ try {
   const routeEnv = {
     SESSION_SIGNING_KEY: 'story-contract-test-secret',
     DB: new RouteMockD1(),
+    SHARED_AI_RATE_LIMITER: { limit: async () => ({ success: true }) },
   };
   const token = await signToken(routeEnv, { sub: 'story-contract-user', email: 'story@test.local' });
   const routePost = (path, body, authenticated = true) => worker.fetch(new Request('https://test.local' + path, {

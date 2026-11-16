@@ -496,6 +496,7 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
     check('migration indexes window_id for cleanup',
       /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
   }
+  const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
   check('generation routes use the verified-user Cloudflare binding at 10 per 60 seconds',
