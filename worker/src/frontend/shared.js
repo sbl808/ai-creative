@@ -377,17 +377,17 @@ export function sidebarScript() {
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
     '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
-    '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\\'settings_storage_unavailable\\'));\n' +
+    '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
     '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
     '    if (record) return record;\n' +
-    '    return fetch(\\'/api/users/me/legacy-settings\\', { headers: { \\'Authorization\\': \\'Bearer \\' + SB_TOKEN } })\n' +
-    '      .then(function (response) { if (!response.ok) throw new Error(\\'legacy_settings_unavailable\\'); return response.json(); })\n' +
+    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
     '      .then(function (legacy) {\n' +
-    '        if (!legacy || legacy.error) throw new Error(\\'legacy_settings_unavailable\\');\n' +
+    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
     '        return window.AICS_USER_SETTINGS.save({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
     '      });\n' +
     '  }).then(function (record) {\n' +
-    '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\\'aics_default_model\\', record.settings.default_model); else localStorage.removeItem(\\'aics_default_model\\'); } catch (e) {}\n' +
+    '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
     '    return record;\n' +
     '  }).catch(function (error) { window.__aicsUserSettingsPromise = null; throw error; });\n' +
     '  return window.__aicsUserSettingsPromise;\n' +
