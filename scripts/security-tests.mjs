@@ -449,6 +449,13 @@ console.log('\n--- D) AI test rate-limit binding contract ---');
     /const AI_TEST_RATE_LIMIT = 5/.test(route) &&
     /const AI_TEST_RATE_WINDOW_SECONDS = 60/.test(route));
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  const aiTestRateBindings = ['dev', 'staging', 'prod'].every((environment) => {
+    const binding = new RegExp(
+      `\\[\\[env\\.${environment}\\.ratelimits\\]\\]\\s*name = "AI_TEST_RATE_LIMITER"\\s*namespace_id = "\\d+"\\s*\\[env\\.${environment}\\.ratelimits\\.simple\\]\\s*limit = 5\\s*period = 60`,
+    );
+    return binding.test(toml);
+  });
+  check('wrangler.toml binds AI_TEST_RATE_LIMITER at 5/60 in dev, staging and prod', aiTestRateBindings);
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
   const prod = toml.split('[env.prod]')[1] || '';
