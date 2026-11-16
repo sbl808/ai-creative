@@ -28,6 +28,8 @@ jobs:
         run: node --experimental-default-type=module scripts/regression-test.mjs
       - name: Run shared AI rate-limit contract tests
         run: node --experimental-default-type=module scripts/shared-ai-rate-limit-test.mjs
+      - name: Run AI test rate-limit contract tests
+        run: node --experimental-default-type=module scripts/ai-test-rate-limit-contract-test.mjs
       - name: Run Shared Image Media Contract tests
         run: node --experimental-default-type=module scripts/image-media-contract-test.mjs
       - name: Run Shared Media Asset Contract tests
