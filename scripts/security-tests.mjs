@@ -431,24 +431,23 @@ console.log('\n--- D) Retired D1 BYOK helper contract ---');
     !/user_keys|KEY_ENCRYPTION_SECRET|encryptSecret|decryptSecret/.test(utilitiesSource));
 }
 
-console.log('\n--- D) API test rate-limit migration contract ---');
+console.log('\n--- D) AI test rate-limit binding contract ---');
 {
+  // Keep the old migration file as historical schema; current runtime must not use it.
   const migrationPath = new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url);
   const migrationExists = existsSync(migrationPath);
-  check('API rate-limit migration file exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates api_test_limits table',
-      /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
-    check('migration defines per-user/per-window primary key',
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup queries',
-      /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
-    const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
-    check('rate-limit route SQL matches migration table and columns',
-      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
-      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
-  }
+  check('historical API rate-limit migration remains available for schema history', migrationExists);
+  const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
+  check('AI test route uses Cloudflare binding and never references D1 counter SQL',
+    route.includes('env?.AI_TEST_RATE_LIMITER') &&
+    route.includes('limiter.limit({ key: String(payload.sub) })') &&
+    !/api_test_limits|env\.DB|\.prepare\(/.test(route));
+  check('AI test route fails closed when binding is unavailable or throws',
+    route.includes("{ error: 'rate_limit_unavailable' }, 503") &&
+    /catch \(_\)[\s\S]*?rate_limit_unavailable/.test(route));
+  check('AI test route enforces five requests per 60 seconds',
+    /const AI_TEST_RATE_LIMIT = 5/.test(route) &&
+    /const AI_TEST_RATE_WINDOW_SECONDS = 60/.test(route));
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
   const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
   const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
