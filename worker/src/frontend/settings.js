@@ -358,7 +358,7 @@ function testApiKey(){
   .then(function(body){return api('/api/ai/test',{method:'POST',body:body});})
   .then(function(d){
     buttons.forEach(function(b){b.disabled=false;});
-    if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၁၀ မိနစ်အတွင်း ၅ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
+    if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၆၀ စက္ကန့်အတွင်း ၅ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
     showToast('✓ API Connection အောင်မြင်ပါသည်','success');
   }).catch(function(){
     buttons.forEach(function(b){b.disabled=false;});

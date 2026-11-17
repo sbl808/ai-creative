@@ -431,82 +431,57 @@ console.log('\n--- D) Retired D1 BYOK helper contract ---');
     !/user_keys|KEY_ENCRYPTION_SECRET|encryptSecret|decryptSecret/.test(utilitiesSource));
 }
 
-console.log('\n--- D) API test rate-limit migration contract ---');
+console.log('\\n--- D) API connection-test Cloudflare rate-limit contract ---');
 {
-  const migrationPath = new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url);
-  const migrationExists = existsSync(migrationPath);
-  check('API rate-limit migration file exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates api_test_limits table',
-      /CREATE TABLE IF NOT EXISTS api_test_limits/i.test(migration));
-    check('migration defines per-user/per-window primary key',
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup queries',
-      /CREATE INDEX IF NOT EXISTS idx_api_test_limits_window ON api_test_limits\s*\(\s*window_id\s*\)/i.test(migration));
-    const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
-    check('rate-limit route SQL matches migration table and columns',
-      /INSERT INTO api_test_limits \(user_id, window_id, attempts\)/.test(route) &&
-      /SELECT attempts FROM api_test_limits WHERE user_id = \? AND window_id = \?/.test(route));
-  }
+  const route = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
   const toml = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
-  const dev = toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || '';
-  const staging = toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || '';
-  const prod = toml.split('[env.prod]')[1] || '';
-  const readTomlValue = (section, key) =>
-    section.match(new RegExp('^\\s*' + key + '\\s*=\\s*"([^"]+)"', 'm'))?.[1] || '';
-  const devName = readTomlValue(dev, 'database_name');
-  const devId = readTomlValue(dev, 'database_id');
-  const stagingId = readTomlValue(staging, 'database_id');
-  const prodId = readTomlValue(prod, 'database_id');
-  const isUuid = (value) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-  const devIdIsPlaceholder = devId === 'cloudflare အကောင့် မရှိသေးပါ';
-
-  check('dev D1 configuration names the dev database only',
-    devName === 'aics-db-dev',
-    'database_name=' + JSON.stringify(devName));
-  check('dev D1 ID is either an explicit unconfigured placeholder or a valid UUID',
-    devIdIsPlaceholder || isUuid(devId),
-    'database_id=' + JSON.stringify(devId));
-
-  if (devIdIsPlaceholder) {
-    // A placeholder is not a usable migration target. Keep CI useful without
-    // pretending a remote database exists or allowing a migration to run.
-    console.log('  ↷ dev D1 target identification NOT TESTED — database_id is an explicit placeholder; create D1 before remote migrations');
-  } else {
-    check('configured dev D1 ID is distinct from staging and production IDs',
-      devId !== stagingId && devId !== prodId,
-      'dev=' + JSON.stringify(devId) + ', staging=' + JSON.stringify(stagingId) + ', prod=' + JSON.stringify(prodId));
+  check('connection-test route uses dedicated Cloudflare binding and no D1 counter SQL',
+    route.includes('AI_CONNECTION_TEST_RATE_LIMITER') &&
+    route.includes('payload.sub') &&
+    !route.includes('api_test_limits') && !route.includes('env.DB.prepare'));
+  for (const envName of ['dev', 'staging', 'prod']) {
+    // Wrangler rate-limit bindings are declared as array tables after the
+    // [env.*] sections, so do not scope them by splitting on [env.*].
+    const rateLimitTables = [...toml.matchAll(
+      new RegExp('\\[\\[env\\.' + envName + '\\.ratelimits\\]\\]([\\s\\S]*?)(?=\\n\\[\\[env\\.|\\s*$)', 'g')
+    )].map((match) => match[1]);
+    const connectionTestTable = rateLimitTables.find((table) =>
+      /name = "AI_CONNECTION_TEST_RATE_LIMITER"/.test(table)
+    ) || '';
+    const simpleConfig = connectionTestTable.match(
+      new RegExp('\\[env\\.' + envName + '\\.ratelimits\\.simple\\]\\s*limit = (\\d+)\\s*period = (\\d+)')
+    );
+    check(envName + ' connection-test limit is five per 60 seconds',
+      !!connectionTestTable && !!simpleConfig &&
+      Number(simpleConfig[1]) === 5 && Number(simpleConfig[2]) === 60,
+      connectionTestTable.slice(0, 180));
   }
-  console.log('  ↷ remote D1 migration execution NOT TESTED — no database changes performed');
+  check('legacy api_test_limits migration is retained without runtime dependency',
+    existsSync(new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url)) &&
+    !/api_test_limits/.test(route));
+  console.log('  ↷ namespace IDs 2111/2112/2113 are provisional; verify account-wide uniqueness before remote deployment.');
+  console.log('  ↷ no remote D1 migration or Cloudflare resource operation performed.');
 }
-
 
 console.log('\n--- E) Shared AI generation rate-limit contract ---');
 {
-  const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
-  const migrationExists = existsSync(migrationPath);
-  check('shared AI rate-limit migration exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates per-user/per-window generation counters',
-      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup',
-      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
-  }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
-    /api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
-    /rate_limited/.test(guards));
+  const config = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  check('generation routes use a three-per-60-second Cloudflare limit',
+    /const SHARED_AI_RATE_LIMIT = 3/.test(guards) &&
+    /SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
+    /AI_GENERATION_RATE_LIMITER/.test(guards) &&
+    !/api_generation_limits|env\.DB\.prepare/.test(guards) &&
+    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
+  check('Cloudflare AI rate limiter is configured for dev, staging, and prod',
+    (config.match(/name = "AI_GENERATION_RATE_LIMITER"/g) || []).length === 3 &&
+    (config.match(/limit = 3/g) || []).length >= 3 &&
+    (config.match(/period = 60/g) || []).length >= 3);
   check('rate-limit covers six Studio families and CMS prompt',
     /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
-  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+  console.log('  ↷ Namespace IDs must be checked for account-wide uniqueness before remote deployment.');
 }
 
 console.log('\n--- E) Browser-local BYOK settings save/status contract ---');

@@ -36,6 +36,7 @@ const workerEntry = await readFile('worker/src/index.js', 'utf8');
 assert.match(workerEntry, /enforceSharedAiRateLimit/, 'Shared AI rate limiting must remain enabled');
 
 const rateLimitSource = await readFile('worker/src/middleware/requestGuards.js', 'utf8');
-assert.match(rateLimitSource, /INSERT INTO api_generation_limits/, 'Generation rate-limit storage must remain intact');
+assert.doesNotMatch(rateLimitSource, /api_generation_limits|env[.]DB[.]prepare/, 'AI generation rate limiting must not use D1');
+assert.match(rateLimitSource, /AI_GENERATION_RATE_LIMITER/, 'Cloudflare AI generation rate limiter must remain enabled');
 
 console.log('Server-side usage tracking and summaries are disabled; rate limiting remains enabled.');
