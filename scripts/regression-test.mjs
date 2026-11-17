@@ -808,6 +808,32 @@ await check('Initialization fills missing rows and preserves existing OFF overri
     msg: 'first=' + JSON.stringify(firstBody) + ' second=' + JSON.stringify(secondBody) + ' preserve=' + preserve,
   };
 });
+await check('Subtitle Studio and Subtitle Transcribe receive registry defaults during initialization', async () => {
+  const db = new MockD1({});
+  const headers = await withToken();
+  const response = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: '{}',
+  }), { ...env, DB: db }, {});
+  const body = await response.json();
+  const studioEnabled = await isStudioEnabled({ DB: db }, 'subtitle');
+  const feature = await checkFeature({ DB: db }, 'subtitle.transcribe', 'FREE', '1');
+  const featureRow = db.featureSettings.get('subtitle.transcribe');
+  return {
+    ok: response.status === 200 &&
+      studioEnabled === true &&
+      feature.ok === true &&
+      featureRow?.enabled === 1 &&
+      featureRow?.access === 'FREE',
+    msg: 'status=' + response.status +
+      ' studioEnabled=' + studioEnabled +
+      ' feature=' + JSON.stringify(feature) +
+      ' featureRow=' + JSON.stringify(featureRow) +
+      ' result=' + JSON.stringify(body),
+  };
+});
+
 await check('Non-admin cannot initialize settings', async () => {
   const token = await signToken(env, { sub: 'user-2', email: 'not-admin@example.test' });
   const r = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
