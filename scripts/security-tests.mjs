@@ -438,9 +438,13 @@ console.log('\\n--- D) API connection-test Cloudflare rate-limit contract ---');
   check('connection-test route uses dedicated Cloudflare binding and no D1 counter SQL',
     route.includes('AI_CONNECTION_TEST_RATE_LIMITER') &&
     route.includes('payload.sub') &&
-    !/api_test_limits|env\\.DB\\.prepare/.test(route));
+    !route.includes('api_test_limits') && !route.includes('env.DB.prepare'));
   for (const envName of ['dev', 'staging', 'prod']) {
-    const section = toml.split('[env.' + envName + ']')[1]?.split(/\\[env\\.(?:staging|prod)\\]/)[0] || '';
+    const section = envName === 'dev'
+      ? toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || ''
+      : envName === 'staging'
+        ? toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || ''
+        : toml.split('[env.prod]')[1] || '';
     const block = section.slice(section.indexOf('name = "AI_CONNECTION_TEST_RATE_LIMITER"'));
     check(envName + ' connection-test limit is five per 60 seconds',
       block.startsWith('name = "AI_CONNECTION_TEST_RATE_LIMITER"') &&
