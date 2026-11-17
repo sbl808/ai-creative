@@ -17,6 +17,7 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { enforceSharedAiRateLimit } from '../worker/src/middleware/requestGuards.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -72,7 +73,7 @@ class MockD1 {
   constructor(rows = {}) {
     this.rows = { ...rows, users: rows.users || {} };
     this.cmsPrompts = rows.cmsPrompts || [];
-    this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map();
+    this.apiTestLimits = new Map();
     this.featureSettings = new Map(); this.studioSettings = new Map();
     this.planCatalog = new Map((rows.planCatalog || [
       { plan_key: 'FREE', name: 'Free', icon: 'sparkles', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 0 },
@@ -98,9 +99,6 @@ class MockD1 {
         }
         if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
-        }
-        if (sql.startsWith('SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?')) {
-          return { attempts: self.apiGenerationLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -159,10 +157,6 @@ class MockD1 {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
         }
-        if (/INSERT INTO api_generation_limits/.test(sql)) {
-          const key = String(this._args[0]) + ':' + this._args[1];
-          self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
-        }
         return { success: true, meta: { changes } };
       },
     };
@@ -176,6 +170,7 @@ const env = {
   ALLOWED_ORIGINS: 'https://test.local',
   ADMIN_EMAIL: 'a@b.com',
   DB: new MockD1({}),
+  AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
 };
 
 // ---------------------------------------------------------------- helpers
@@ -201,6 +196,61 @@ const withToken = async (extra = {}) => {
 };
 
 // ---------------------------------------------------------------- tests
+console.log('— Cloudflare AI generation rate limit —');
+await check('AI generation allows three requests and blocks the fourth per authenticated user', async () => {
+  const counts = new Map();
+  const keys = [];
+  const limiter = {
+    async limit({ key }) {
+      keys.push(key);
+      const count = (counts.get(key) || 0) + 1;
+      counts.set(key, count);
+      return { success: count <= 3 };
+    },
+  };
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-token' },
+  });
+  const deps = {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  };
+  const testEnv = { AI_GENERATION_RATE_LIMITER: limiter };
+  const firstThree = [];
+  for (let i = 0; i < 3; i++) {
+    firstThree.push(await enforceSharedAiRateLimit(request, testEnv, '/api/studio/story/generate', deps));
+  }
+  const fourth = await enforceSharedAiRateLimit(request, testEnv, '/api/studio/story/generate', deps);
+  const fourthBody = fourth ? await fourth.json() : {};
+  return {
+    ok: firstThree.every(result => result === null) &&
+      fourth?.status === 429 &&
+      fourthBody.error === 'rate_limited' &&
+      fourthBody.limit === 3 &&
+      fourthBody.window_seconds === 60 &&
+      keys.every(key => key === 'user-1'),
+    msg: 'fourthStatus=' + fourth?.status + ' body=' + JSON.stringify(fourthBody) + ' keys=' + keys.join(','),
+  };
+});
+await check('AI generation rate limit fails closed when the Cloudflare binding is missing', async () => {
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-token' },
+  });
+  const deps = {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), { status }),
+  };
+  const response = await enforceSharedAiRateLimit(request, {}, '/api/studio/story/generate', deps);
+  return { ok: response?.status === 503, msg: 'status=' + response?.status };
+});
+
 console.log('— AI model task compatibility —');
 await check('Model dropdown filters by Studio task and category', async () => {
   const story = await listEnabledModels({}, 'text', 'FREE', 'story.text');
