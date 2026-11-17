@@ -2,9 +2,8 @@
 // AI CREATIVE STUDIO — STUDIO REGISTRY  (Phase 2 — App Shell)
 // ------------------------------------------------------------
 // ဤနေရာသည် Studio အားလုံး၏ တစ်ခုတည်းသော အရင်းအမြစ် (Single Source of Truth) ဖြစ်သည်။
-// Studio အသစ် (Music / Video / Podcast ...) ထည့်ရန် — ဤဖိုင်၌ Entry တစ်ခုသာ ထည့်ပါ။
-// Sidebar / Route / Admin တို့ကို ဤ Registry မှ အလိုအလျောက် ယူပါမည်။
-// (Phase 4 တွင် Admin က Studio ON/OFF လုပ်နိုင်ရန် DB (studio_settings) နှင့် ချိတ်ပါမည်။)
+// Studio အသစ်ထည့်ရန် — ဤဖိုင်၌ Entry တစ်ခု ထည့်ပါ။
+// Sidebar / Route / Admin တို့သည် ဤ Registry ကို အသုံးပြုသည်။
 // ============================================================
 
 export const STUDIO_REGISTRY = {
@@ -53,6 +52,15 @@ export const STUDIO_REGISTRY = {
     component: 'VoiceStudio',
     enabled: true,
   },
+  subtitle: {
+    id: 'subtitle',
+    name: 'Subtitle Studio',
+    nameMy: 'စာတန်းထိုး',
+    icon: '💬',
+    route: '/app/subtitle',
+    component: 'SubtitleStudio',
+    enabled: true,
+  },
   shop: {
     id: 'shop',
     name: 'Shop Studio',
@@ -65,10 +73,9 @@ export const STUDIO_REGISTRY = {
 };
 
 // Sidebar တွင် ပြသမည့် Studio အစဉ်
-export const STUDIO_ORDER = ['story', 'content', 'short', 'image', 'voice', 'shop'];
+export const STUDIO_ORDER = ['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop'];
 
 // Site Links — Telegram / Facebook (တစ်နေရာတည်းမှ ပြင်နိုင်ရန်)
-// ⚠️ ဤနေရာတွင်သာ သင့် Real Link များ ထည့်ပါ — Sidebar အားလုံးတွင် အလိုအလျောက် ပြောင်းပါမည်
 export const SITE_LINKS = {
   telegram: 'https://t.me/PASTE_YOUR_TELEGRAM_USERNAME_HERE',
   facebook: 'https://facebook.com/YOUR_PAGE_HERE',

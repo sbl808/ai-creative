@@ -3,14 +3,7 @@
 // Sidebar + Helper Script များကို Shared Component (frontend/shared.js) မှ ယူသည်
 
 import { renderSidebar, sidebarScript, shellIcon } from './shared.js';
-import { STUDIO_ORDER, getStudio } from '../config/studios.js';
 import { backupRecoveryPanelHtml, backupRecoveryUiScript } from './storage/backup/recovery-ui.js';
-
-// Studio စာရင်းကို Registry မှ အလိုအလျောက် ထုတ်သည် (ပြောင်းလဲမှု ရှိပါက ဤနေရာမှ အလိုအလျောက် ပြောင်းသည်)
-const studioOptions = STUDIO_ORDER.map(function (id) {
-  const s = getStudio(id);
-  return '<option value="' + s.id + '">' + s.icon + ' ' + s.nameMy + '</option>';
-}).join('\n      ');
 
 export const SETTINGS_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -117,16 +110,6 @@ ${renderSidebar('settings',{variant:'studio'})}
   <div id="tab-prefs" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-prefs" tabindex="0" style="display:none;">
     <form id="prefsForm">
       <div class="form-row">
-        <label for="pref_studio">ပုံမှန် Studio (Default Studio)</label>
-        <select id="pref_studio" class="form-select">
-          ${studioOptions}
-        </select>
-      </div>
-      <div class="form-row">
-        <label for="pref_voice">ပုံမှန် အသံ (Default Voice)</label>
-        <input id="pref_voice" class="form-input" type="text" placeholder="Kore">
-      </div>
-      <div class="form-row">
         <label for="pref_model">ပုံမှန် AI Model</label>
         <select id="pref_model" class="form-select"><option value="">Loading…</option></select>
         <span style="font-size:11px;color:var(--text3);">Studio များတွင် ရွေးထားသော Model ကို ဤနေရာမှ ပုံသေထားနိုင်သည် (Phase C)</span>
@@ -135,6 +118,7 @@ ${renderSidebar('settings',{variant:'studio'})}
         <label for="pref_lang">ဘာသာစကား (Language)</label>
         <select id="pref_lang" class="form-select">
           <option value="my">မြန်မာ (Myanmar)</option>
+          <option value="zh-CN">简体中文 (Chinese)</option>
           <option value="en">English</option>
         </select>
       </div>
@@ -169,7 +153,6 @@ document.addEventListener('click', function (event) {
   if (!action) return;
   var type = action.getAttribute('data-settings-action');
   if (type === 'retry-key-status') loadKeyStatus();
-  else if (type === 'save-name') saveName();
   else if (type === 'set-api-key') setApiKeyAndRefresh();
   else if (type === 'test-api-key') testApiKey();
   else if (type === 'remove-api-key') removeApiKey();
@@ -179,6 +162,32 @@ if (prefsForm) prefsForm.addEventListener('submit', function (event) {
   event.preventDefault();
   savePrefs(event);
 });
+var appLanguageSelect = document.getElementById('pref_lang');
+var savedAppLanguage = 'zh-CN';
+if (appLanguageSelect) appLanguageSelect.addEventListener('change', saveAppLanguage);
+function saveAppLanguage(){
+  var select = document.getElementById('pref_lang');
+  if (!select || !window.AICS_APP_PREFERENCES || typeof window.AICS_APP_PREFERENCES.setLanguage !== 'function') {
+    if (select) select.value = savedAppLanguage;
+    showToast('App Language Storage မရနိုင်ပါ','error');
+    return;
+  }
+  var requestedLanguage = select.value;
+  select.disabled = true;
+  window.AICS_APP_PREFERENCES.setLanguage(requestedLanguage).then(function(language){
+    savedAppLanguage = language;
+    select.value = language;
+    if (window.AICS_I18N && typeof window.AICS_I18N.setLocale === 'function') {
+      window.AICS_I18N.setLocale(language);
+    }
+    showToast('✓ App Language ကို Browser ထဲတွင် သိမ်းပြီးပါပြီ','success');
+  }).catch(function(){
+    select.value = savedAppLanguage;
+    showToast('App Language သိမ်း၍ မရပါ။ ယခင်ဘာသာစကားကို ပြန်ထားပါသည်။','error');
+  }).then(function(){
+    select.disabled = false;
+  });
+}
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
@@ -210,23 +219,28 @@ document.querySelectorAll('[role="tab"]').forEach(function(tab){
   });
 });
 function loadSettings(){
-  api('/api/users/me').then(function(d){
-    if(d.error){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Data ရယူ၍ မရပါ — '+(d.error||'error')+'</div>';return;}
-    var s=d.settings||{};
+  if (typeof window.AICS_LOAD_USER_SETTINGS !== 'function') {
+    document.getElementById('tab-profile').innerHTML='<div class="empty-state">Browser Settings မရနိုင်ပါ။ Page ကို ပြန်ဖွင့်ကြည့်ပါ။</div>';
+    return;
+  }
+  Promise.all([api('/api/users/me'), window.AICS_LOAD_USER_SETTINGS()]).then(function(results){
+    var d=results[0]||{};
+    var local=results[1]||{};
+    if(d.error){
+      document.getElementById('tab-profile').innerHTML='<div class="empty-state">Account Data ရယူ၍ မရပါ။ Login ကို ပြန်စစ်ပါ။</div>';
+      return;
+    }
+    var s=local.settings||{};
     var u=d.usage||{};
     document.getElementById('tab-profile').innerHTML=
-      '<div class="profile-row"><span class="profile-label">👤 နာမည်</span><span class="profile-value"><input id="profileName" aria-label="နာမည်" maxlength="60" value="'+escapeHtml(d.name||'')+'" style="width:200px;max-width:100%;min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--aics-border-strong);background:var(--aics-surface);color:var(--aics-text);font-size:14px"> <button class="btn btn-secondary" style="padding:8px 14px;min-height:40px" data-settings-action="save-name">သိမ်းပါ</button></span></div>'+
       '<div class="profile-row"><span class="profile-label">📧 အီးမေးလ်</span><span class="profile-value">'+escapeHtml(d.email||'')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">Plan</span><span class="profile-value"><span class="plan-badge'+(d.plan==='PRO'?' pro':'')+'">'+(d.plan==='PRO'?'PRO ⭐':'FREE')+'</span></span></div>'+
       '<div class="profile-row"><span class="profile-label">User ID</span><span class="profile-value">'+escapeHtml(String(d.user_id||''))+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">အခွင့်အရေး</span><span class="profile-value">'+(d.is_admin?'Admin ⚙️':'User')+'</span></div>'+
       '<div class="profile-row"><span class="profile-label">📊 အသုံးပြုမှု</span><span class="profile-value">AI: '+(u.ai_requests||0)+' · ပုံ: '+(u.image_generations||0)+' · အသံ: '+(u.voice_generations||0)+'</span></div>';
-    document.getElementById('pref_studio').value=s.default_studio||'story';
-    document.getElementById('pref_voice').value=s.default_voice||'Kore';
     var pm=document.getElementById('pref_model');
     pm.value=s.default_model||'';
-    if(!pm.value&&pm.options.length>1)pm.value=pm.options[1].value;
-    try{localStorage.setItem('aics_default_model',pm.value);}catch(e){}
+    try{if(pm.value)localStorage.setItem('aics_default_model',pm.value);else localStorage.removeItem('aics_default_model');}catch(e){}
     (function(){
       fetch('/api/ai-models',{headers:{'Authorization':'Bearer '+TOKEN}}).then(function(r){return r.json();}).then(function(d){
         if(!d||d.error||!d.items||d.items.length===0)return;
@@ -237,12 +251,25 @@ function loadSettings(){
         if(!pm.value&&pm.options.length>0)pm.value=pm.options[0].value;
       }).catch(function(){});
     })();
-    document.getElementById('pref_lang').value=s.language||'my';
+    var languageSelect = document.getElementById('pref_lang');
+    if (window.AICS_APP_PREFERENCES && typeof window.AICS_APP_PREFERENCES.getLanguage === 'function') {
+      window.AICS_APP_PREFERENCES.getLanguage().then(function(language){
+        savedAppLanguage = language;
+        languageSelect.value = language;
+      }).catch(function(){
+        savedAppLanguage = 'zh-CN';
+        languageSelect.value = savedAppLanguage;
+      });
+    } else {
+      savedAppLanguage = 'zh-CN';
+      languageSelect.value = savedAppLanguage;
+    }
     document.getElementById('pref_theme').value=s.theme||'dark';
     loadKeyStatus();
     loadPlanCatalog();
-
-  }).catch(function(){document.getElementById('tab-profile').innerHTML='<div class="empty-state">Network problem</div>';});
+  }).catch(function(){
+    document.getElementById('tab-profile').innerHTML='<div class="empty-state">Browser ထဲရှိ Settings ကို ရယူခြင်း သို့မဟုတ် အဟောင်းဒေတာ ပြောင်းရွှေ့ခြင်း မအောင်မြင်ပါ။ ဒေတာမပြောင်းလဲထားပါ။ Browser Storage ကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။</div>';
+  });
 }
 function loadPlanCatalog(){
   var host=document.getElementById('planCatalogUser');
@@ -273,33 +300,30 @@ function loadPlanCatalog(){
     host.innerHTML=html;
   }).catch(function(){host.innerHTML='<div style="font-weight:700;font-size:16px">Plans & Pricing</div><p class="hint">Plan information is temporarily unavailable.</p>';});
 }
-function saveName(){
-  var name=document.getElementById('profileName').value.trim();
-  if(!name){showToast('နာမည် ထည့်ပါ','error');return;}
-  api('/api/users/me/profile',{method:'PUT',body:{name:name}}).then(function(d){
-    if(d.error){showToast('သိမ်း၍ မရပါ','error');return;}
-    showToast('✓ နာမည် သိမ်းပြီးပါပြီ','success');
-    var sn=document.getElementById('sideName');if(sn)sn.textContent=name;
-    var av=document.getElementById('sideAvatar');if(av)av.textContent=name.charAt(0).toUpperCase();
-  }).catch(function(){showToast('Network error','error');});
-}
 function savePrefs(ev){
   ev.preventDefault();
   var btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='⏳ သိမ်းနေသည်…';
-  api('/api/users/me/settings',{method:'PUT',body:{
-    settings:{
-      default_studio:document.getElementById('pref_studio').value,
-      default_voice:document.getElementById('pref_voice').value.trim(),
-      default_model:document.getElementById('pref_model').value.trim(),
-      language:document.getElementById('pref_lang').value,
-      theme:document.getElementById('pref_theme').value
-    }
-  }}).then(function(d){
+  if(!window.AICS_USER_SETTINGS){
     btn.disabled=false;btn.textContent='💾 သိမ်းပါ';
-    if(d.error){showToast('သိမ်း၍ မရပါ','error');return;}
-    showToast('✓ ဆက်တင်များ သိမ်းပြီးပါပြီ','success');
-  }).catch(function(){btn.disabled=false;btn.textContent='💾 သိမ်းပါ';showToast('Network error','error');});
+    showToast('Browser Storage မရနိုင်ပါ','error');
+    return;
+  }
+  window.AICS_USER_SETTINGS.save({settings:{
+    default_model:document.getElementById('pref_model').value.trim(),
+    theme:document.getElementById('pref_theme').value
+  }}).then(function(record){
+    btn.disabled=false;btn.textContent='💾 သိမ်းပါ';
+    try{
+      var model=record&&record.settings&&record.settings.default_model||'';
+      if(model)localStorage.setItem('aics_default_model',model);
+      else localStorage.removeItem('aics_default_model');
+    }catch(e){}
+    showToast('✓ ဆက်တင်များကို ဤ Browser ထဲတွင် သိမ်းပြီးပါပြီ','success');
+  }).catch(function(){
+    btn.disabled=false;btn.textContent='💾 သိမ်းပါ';
+    showToast('Browser ထဲတွင် ဆက်တင်များ သိမ်း၍ မရပါ','error');
+  });
 }
 function loadKeyStatus(){
   if(!window.AICS_BYOK){

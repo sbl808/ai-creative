@@ -26,7 +26,8 @@ function createFakeIndexedDB(seed) {
       studio_handoffs: { ownerId: 'ownerId' },
       session_results: { ownerId: 'ownerId' },
       drafts: { ownerId: 'ownerId' },
-      media_assets: { ownerId: 'ownerId' }
+      media_assets: { ownerId: 'ownerId' },
+      user_settings: { ownerId: 'ownerId' }
     };
     definitions.set(name, { keyPath: 'id', indexes: new Map(Object.entries(indexPaths[name] || {})) });
   }
@@ -201,7 +202,7 @@ const sessionId = 'session-new';
 const backup = {
   format: 'aics-browser-backup',
   exportVersion: 1,
-  schemaVersion: 7,
+  schemaVersion: 8,
   exportedAt: '2026-11-04T08:00:00.000Z',
   stores: {
     creations: [{ id: 'creation-new', user_id: owner, title: 'New creation' }],
@@ -217,7 +218,8 @@ const backup = {
       content: { text: 'New story result' }
     }],
     drafts: [{ id: 'draft-new', ownerId: owner, studio: 'short', draftVersion: 1, data: { prompt: 'New draft' } }],
-    media_assets: [{ contractVersion: 1, id: 'asset-new', ownerId: owner, studioId: 'image', mediaType: 'image', createdAt: '2026-11-04T07:00:00.000Z' }]
+    media_assets: [{ contractVersion: 1, id: 'asset-new', ownerId: owner, studioId: 'image', mediaType: 'image', createdAt: '2026-11-04T07:00:00.000Z' }],
+    user_settings: [{ id: owner, ownerId: owner, profile: { name: 'New profile' }, settings: { theme: 'dark' }, preferences: {}, updatedAt: '2026-11-04T07:00:00.000Z' }]
   }
 };
 
@@ -242,7 +244,8 @@ function seedRecordSet(userId, suffix) {
       type: 'story', content: { text: 'Old result' }
     }],
     drafts: [{ id: 'draft-' + suffix, ownerId: userId, studio: 'short', draftVersion: 1, data: { prompt: 'Old draft' } }],
-    media_assets: [{ contractVersion: 1, id: 'asset-' + suffix, ownerId: userId, studioId: 'image', mediaType: 'image', createdAt: '2026-11-03T07:00:00.000Z' }]
+    media_assets: [{ contractVersion: 1, id: 'asset-' + suffix, ownerId: userId, studioId: 'image', mediaType: 'image', createdAt: '2026-11-03T07:00:00.000Z' }],
+    user_settings: [{ id: userId, ownerId: userId, profile: { name: 'Old profile' }, settings: { theme: 'light' }, preferences: {}, updatedAt: '2026-11-03T07:00:00.000Z' }]
   };
 }
 
@@ -271,9 +274,9 @@ await assert.rejects(
 const result = await window.AICS_BACKUP_IMPORT.restore(backup, { confirmReplace: true });
 assert.equal(result.restored, true);
 assert.equal(result.mode, 'replace');
-assert.equal(result.removedCount, 8);
-assert.equal(result.importedCount, 7);
-assert.equal(result.recordCount, 7);
+assert.equal(result.removedCount, 9);
+assert.equal(result.importedCount, 8);
+assert.equal(result.recordCount, 8);
 
 for (const [name, values] of Object.entries(backup.stores)) {
   const all = Array.from(fakeDb.records.get(name).values());
@@ -324,6 +327,7 @@ assert.equal(
 const legacyBackup = clone(backup);
 legacyBackup.schemaVersion = 6;
 delete legacyBackup.stores.media_assets;
+delete legacyBackup.stores.user_settings;
 
 const legacyDb = createFakeIndexedDB(seed);
 const legacyWindow = {
@@ -360,11 +364,17 @@ assert.deepEqual(
   mediaAssetsBeforeLegacyRestore,
   'restoring a v6 backup without media_assets must preserve all existing Media Assets'
 );
+assert.deepEqual(
+  Array.from(legacyDb.records.get('user_settings').values()).sort((a, b) => a.id.localeCompare(b.id)),
+  Array.from(seed.user_settings || []).sort((a, b) => a.id.localeCompare(b.id)),
+  'restoring a legacy backup without user_settings must preserve existing User Settings'
+);
 
 
 const v5Backup = clone(backup);
 v5Backup.schemaVersion = 5;
 delete v5Backup.stores.media_assets;
+delete v5Backup.stores.user_settings;
 
 const v5Db = createFakeIndexedDB(seed);
 const v5Window = {
@@ -400,6 +410,11 @@ assert.deepEqual(
   mediaAssetsAfterV5Restore,
   mediaAssetsBeforeV5Restore,
   'restoring a v5 backup without media_assets must preserve every existing Media Asset, including other owners'
+);
+assert.deepEqual(
+  Array.from(v5Db.records.get('user_settings').values()).sort((a, b) => a.id.localeCompare(b.id)),
+  Array.from(seed.user_settings || []).sort((a, b) => a.id.localeCompare(b.id)),
+  'restoring a v5 backup without user_settings must preserve existing User Settings'
 );
 
 console.log('IndexedDB backup safe restore tests passed.');

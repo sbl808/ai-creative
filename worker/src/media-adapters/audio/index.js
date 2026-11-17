@@ -6,7 +6,7 @@ import { generateSharedAudio } from '../../media-production/audio/engine.js';
  * settings outside the versioned media contract.
  */
 export function createAudioStudioAdapter(studioId, engine = generateSharedAudio) {
-  if (!['content', 'voice', 'shop'].includes(studioId)) {
+  if (!['content', 'voice', 'shop', 'subtitle'].includes(studioId)) {
     throw new Error('unsupported_audio_adapter_studio');
   }
 
@@ -44,7 +44,7 @@ export function createAudioStudioAdapter(studioId, engine = generateSharedAudio)
       plan,
       prompt,
     } = {}) {
-      if (studioId !== 'voice') {
+      if (studioId !== 'voice' && studioId !== 'subtitle') {
         throw new Error('unsupported_audio_adapter_operation');
       }
       const response = await execute('transcribe', {

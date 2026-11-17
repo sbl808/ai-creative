@@ -3,7 +3,7 @@ import { generateStudio } from '../studio.js';
 export async function handleGenericStudioRoute(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const url = new URL(request.url);
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, getStudio, isStudioEnabled } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, getStudio, isStudioEnabled } = deps;
 
       if (path === '/api/studio/generate' && request.method === 'POST') {
         const token = bearer(request);
@@ -40,7 +40,6 @@ export async function handleGenericStudioRoute(request, env, cors, deps) {
             apiKey,
             model: body.model,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json(out, 200, cors);
         } catch (e) {
           return json({ error: 'studio_error', detail: friendlyError(e) }, 500, cors);

@@ -89,7 +89,6 @@ ${AICS_DESIGN_SYSTEM_CSS}
     <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
 ${TASK_INSTRUCTIONS_NAV}
     <div class="nav-section">Analytics</div>
-    <button class="nav-btn inactive" id="tabUsage" onclick="switchTab('usage');closeNav()"><span class="nav-icon">⌁</span><span class="nav-label">Usage</span></button>
     <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
     <div class="sidebar-footer"><a class="app-link" href="/app">↗ <span>Open User App</span></a></div>
   </aside>
@@ -113,7 +112,6 @@ ${TASK_INSTRUCTIONS_VIEW}
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
       <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" onclick="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" onclick="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" onclick="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
       <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" onclick="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" onclick="mfPlan('')">All</button><button id="mfFree" class="btn sm" onclick="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" onclick="mfPlan('PRO')">PRO</button><select id="mfCat" onchange="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
-      <section id="usageView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Usage</h1><p class="page-desc">AI, Voice နဲ့ Image usage ကို စောင့်ကြည့်ပါ။</p></div><button class="btn" onclick="loadUsage()">↻ Refresh</button></div><div class="grid two-col"><div class="card"><div class="section-head"><div><div class="card-title">Daily Usage</div><div class="card-sub">နောက်ဆုံး 28 ရက်</div></div></div><div id="usageDaily" class="list"></div></div><div class="card"><div class="section-head"><div><div class="card-title">Top Users</div><div class="card-sub">Usage အများဆုံး Users</div></div></div><div id="usageTop" class="list"></div></div></div></section>
       <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" onclick="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
     </main>
   </section>
@@ -123,7 +121,7 @@ ${TASK_INSTRUCTIONS_VIEW}
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
 function closeNav(){var s=document.getElementById('sidebar');if(s)s.classList.remove('open');}
-function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',taskInstructions:'Task Instructions',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',usage:'Usage',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
+function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Brain CMS',taskInstructions:'Task Instructions',users:'Users',studios:'AI Studios',features:'Plans & Features',plans:'Plan Catalog',models:'AI Models',logs:'Activity'};var e=document.getElementById('crumbTitle');if(e)e.textContent=m[tab]||'Overview';}
 </script>
 <script>
 window.onerror = function(msg, url, line) {
@@ -192,7 +190,7 @@ function fillStudios(){
 function switchTab(tab){
   currentTab=tab;
   setCrumb(tab);
-  ['dashboard','cms','brain','taskInstructions','users','studios','features','plans','models','usage','logs'].forEach(function(t){
+  ['dashboard','cms','brain','taskInstructions','users','studios','features','plans','models','logs'].forEach(function(t){
     $('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className='nav-btn '+(tab===t?'active':'inactive');
     $(t+'View').classList.toggle('hidden',tab!==t);
   });
@@ -201,7 +199,6 @@ function switchTab(tab){
   if(tab==='features') loadFeatures();
   if(tab==='plans'){loadPlans();loadPlanContacts();}
   if(tab==='models') loadModels();
-  if(tab==='usage') loadUsage();
   if(tab==='logs') loadLogs();
   if(tab==='dashboard') loadDashboard();
   if(tab==='taskInstructions') taskUiLoadCatalog();
@@ -263,13 +260,10 @@ function loadDashboard(){
     var cards=[
       ['👥 Users',st.users||0],
       ['⭐ PRO',st.pro||0],
-      ['🗂️ Projects',st.projects||0],
-      ['🤖 AI (ယနေ့)',st.ai_today||0],
-      ['🎙️ Voice (ယနေ့)',st.voice_today||0],
-      ['🖼️ Image (ယနေ့)',st.image_today||0]
+      ['🗂️ Projects',st.projects||0]
     ];
     var html='';
-    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects'],['◈','AI Today','AI generations today','ai_today'],['◉','Voice Today','Voice generations today','voice_today'],['▧','Image Today','Image generations today','image_today']];
+    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects']];
     labels.forEach(function(x){html+='<div class="card stat"><div class="stat-label">'+x[0]+' '+x[1]+'</div><div class="stat-value">'+esc(st[x[3]]||0)+'</div><div class="stat-foot">'+x[2]+'</div></div>';});
     $('statCards').innerHTML=html;
     var hg=$('healthGrid'); if(hg){hg.innerHTML='<div class="muted" style="font-size:11px">Loading studio status…</div>'; api('/api/admin/studios').then(function(sd){var arr=sd.items||[]; hg.innerHTML=arr.map(function(x){return '<div class="health" style="opacity:'+(x.enabled?'1':'.55')+'"><span class="dot" style="background:'+(x.enabled?'var(--green)':'#64748B')+';box-shadow:none"></span><span style="font-size:11px">'+esc(x.nameMy||x.name||x.id)+'</span><span style="margin-left:auto;font-size:10px;color:'+(x.enabled?'#82EFA3':'#7C8799')+'">'+(x.enabled?'ON':'OFF')+'</span></div>';}).join('')||'<div class="muted" style="font-size:11px">No studio data</div>';}).catch(function(){hg.innerHTML='<div class="muted" style="font-size:11px">Studio status unavailable</div>';});}
@@ -408,22 +402,6 @@ function delModel(id){
   api('/api/admin/models/'+id,'DELETE').then(function(d){
     if(d.ok||d.ok===undefined){loadModels();}else{alert('ERROR: '+(d.detail||d.error||'unknown'));}
   }).catch(function(e){alert('Network error: '+(e&&e.message||e));});
-}
-
-// ===== Phase 5 — Usage Statistics =====
-function loadUsage(){
-  api('/api/admin/usage').then(function(d){
-    if(d.error==='forbidden'){location.href='/app';return;}
-    if(d.error){$('usageDaily').innerHTML='<span class="err">'+(d.detail||d.error)+'</span>';return;}
-    var h='';
-    (d.daily||[]).forEach(function(r){h+='<div class="list-row"><div class="list-main"><div class="list-title">'+esc(r.day||'')+'</div><div class="list-meta">'+esc(r.category||'')+'</div></div><b>'+esc(r.total)+'</b></div>';});
-    $('usageDaily').innerHTML=h||'(no data yet)';
-    var t='';
-    (d.byUser||[]).forEach(function(r){t+='<div class="list-row"><div class="list-main"><div class="list-title">'+esc(r.email||'')+'</div><div class="list-meta">'+esc(r.calls)+' calls</div></div><b>'+esc(r.total)+'</b></div>';});
-    $('usageTop').innerHTML=t||'(no data yet)';
-  }).catch(function(e){
-    $('usageDaily').innerHTML='<span class="err">Network error: '+esc(String(e&&e.message||e))+'</span>';
-  });
 }
 
 // ===== Phase 5 — Admin Logs (Audit) =====

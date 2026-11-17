@@ -4,7 +4,7 @@ import { generateShopAudio, generateShopSrt, translateShopSrt } from '../../stud
 
 export async function handleShopStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
 
       // ===== Shop Studio — Tab 1: Generate =====
       if (path === '/api/studio/shop/content/generate' && request.method === 'POST') {
@@ -25,14 +25,12 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
               model: body.model, idea: body.idea, type: reqType, plan, apiKey, images: body.images || [],
               onChunk: (t) => send({ type: 'chunk', text: t }),
             });
-            await trackUsageSafe(env, payload.sub, 'ai');
             send({ type: 'done', result: out });
           }, cors);
         }
         try {
           const apiKey = body.apiKey;
           const out = await generateShopContent(env, { model: body.model,  idea: body.idea, type: reqType, plan, apiKey, images: body.images || [] });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'shop_content_error', detail: friendlyError(e) }, 500, cors);
@@ -96,7 +94,6 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
               images: body.images || [],
             }),
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'video_error', detail: friendlyError(e) }, 500, cors);
@@ -140,7 +137,6 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
             text: body.text, voiceName: body.voiceName || 'Kore',
             model: body.model, plan, apiKey: body.apiKey,
           });
-          await trackUsageSafe(env, payload.sub, 'voice');
           return json({ ok: true, data: out.data, mimeType: out.mimeType }, 200, cors);
         } catch (e) {
           return json({ error: 'tts_error', detail: friendlyError(e) }, 500, cors);
@@ -165,7 +161,6 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
             mimeType: body.mimeType || 'audio/mpeg',
             type: reqType, plan, apiKey: body.apiKey, model: body.model,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'srt_error', detail: friendlyError(e) }, 500, cors);
@@ -189,7 +184,6 @@ export async function handleShopStudioRoutes(request, env, cors, deps) {
             direction: body.direction || 'MY_TO_CN',
             type: reqType, plan, apiKey: body.apiKey, model: body.model,
           });
-          await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'translate_error', detail: friendlyError(e) }, 500, cors);
