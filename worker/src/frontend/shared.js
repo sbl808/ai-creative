@@ -513,7 +513,7 @@ export function sidebarScript() {
     '      var cat = sel.getAttribute(\'data-category\') || \'text\';\n' +
     '      var pathParts = window.location.pathname.split(\'/\');\n' +
     '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
-    '      var task = studio + \'.\' + cat;\n' +
+    '      var task = sel.getAttribute(\'data-task\') || studio + \'.\' + cat;\n' +
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
@@ -825,6 +825,7 @@ export function renderStudioShell(opts) {
   const desc = opts.desc || '';
   const icon = opts.icon || '🎨';
   const modelCat = opts.modelCat || 'text';
+  const modelTask = opts.modelTask || '';
   const steps = opts.steps || [];
   const content = opts.content || '';
   const stepsJson = JSON.stringify(steps.map(function (s, i) {
@@ -850,7 +851,7 @@ export function renderStudioShell(opts) {
     '</section>\n' +
     '</div>\n' +
     '<div class="aics-actions">\n' +
-    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"></select></div></div>\n' +
+    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"' + (modelTask ? ' data-task="' + modelTask + '"' : '') + '></select></div></div>\n' +
     '</div>\n' +
     '</main>\n' +
     '</div>\n' +
