@@ -14,29 +14,11 @@ export async function handleUserRoutes(request, env, cors, deps) {
     const adminEmail = env.ADMIN_EMAIL || '';
     const isAdmin = Boolean(adminEmail) && String(payload.email || '').toLowerCase() === String(adminEmail).toLowerCase();
     const studio_settings = await getStudioSettings(env);
-    let usage = { ai_requests: 0, image_generations: 0, voice_generations: 0 };
-    try {
-      const usageRows = env.DB
-        ? await env.DB.prepare('SELECT category, COUNT(*) AS n FROM usage WHERE user_id = ? GROUP BY category').bind(payload.sub).all()
-        : null;
-      if (usageRows && usageRows.results) {
-        usageRows.results.forEach(function (row) {
-          const category = String(row.category || '').toUpperCase();
-          const count = Number(row.n) || 0;
-          if (category.indexOf('IMAGE') > -1) usage.image_generations += count;
-          else if (category.indexOf('VOICE') > -1) usage.voice_generations += count;
-          else usage.ai_requests += count;
-        });
-      }
-    } catch (_) {
-      // Usage tracking is handled separately; never expose or log user data here.
-    }
     return json({
       email: payload.email,
       plan,
       user_id: payload.sub,
       is_admin: isAdmin,
-      usage,
       studio_settings
     }, 200, cors);
   }
