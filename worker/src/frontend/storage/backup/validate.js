@@ -251,7 +251,7 @@ function installBackupValidator(target, config) {
       user_settings: function (record) { validateUserSettings(record, expectedOwnerId); },
       drafts: function (record) {
         validateOwnerRecord(record, expectedOwnerId, 'ownerId');
-        if (['content', 'short', 'image', 'voice', 'shop'].indexOf(record.studio) === -1) {
+        if (['content', 'short', 'image', 'voice', 'subtitle', 'shop'].indexOf(record.studio) === -1) {
           throw fail('backup_invalid_record');
         }
         if (hasOwn(record, 'draftVersion') &&
