@@ -440,16 +440,21 @@ console.log('\\n--- D) API connection-test Cloudflare rate-limit contract ---');
     route.includes('payload.sub') &&
     !route.includes('api_test_limits') && !route.includes('env.DB.prepare'));
   for (const envName of ['dev', 'staging', 'prod']) {
-    const section = envName === 'dev'
-      ? toml.split('[env.dev]')[1]?.split('[env.staging]')[0] || ''
-      : envName === 'staging'
-        ? toml.split('[env.staging]')[1]?.split('[env.prod]')[0] || ''
-        : toml.split('[env.prod]')[1] || '';
-    const block = section.slice(section.indexOf('name = "AI_CONNECTION_TEST_RATE_LIMITER"'));
+    // Wrangler rate-limit bindings are declared as array tables after the
+    // [env.*] sections, so do not scope them by splitting on [env.*].
+    const rateLimitTables = [...toml.matchAll(
+      new RegExp('\\[\\[env\\.' + envName + '\\.ratelimits\\]\\]([\\s\\S]*?)(?=\\n\\[\\[env\\.|\\s*$)', 'g')
+    )].map((match) => match[1]);
+    const connectionTestTable = rateLimitTables.find((table) =>
+      /name = "AI_CONNECTION_TEST_RATE_LIMITER"/.test(table)
+    ) || '';
+    const simpleConfig = toml.match(
+      new RegExp('\\[env\\.' + envName + '\\.ratelimits\\.simple\\]\\s*limit = (\\d+)\\s*period = (\\d+)')
+    );
     check(envName + ' connection-test limit is five per 60 seconds',
-      block.startsWith('name = "AI_CONNECTION_TEST_RATE_LIMITER"') &&
-      /limit = 5/.test(block) && /period = 60/.test(block),
-      block.slice(0, 180));
+      !!connectionTestTable && !!simpleConfig &&
+      Number(simpleConfig[1]) === 5 && Number(simpleConfig[2]) === 60,
+      connectionTestTable.slice(0, 180));
   }
   check('legacy api_test_limits migration is retained without runtime dependency',
     existsSync(new URL('../worker/migrations/006_create_api_test_limits.sql', import.meta.url)) &&
