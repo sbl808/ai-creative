@@ -19,6 +19,11 @@ function subtitleDraftValue(id) {
   return element ? String(element.value || '') : '';
 }
 
+function subtitleSelectedModel() {
+  var selector = document.getElementById('aiModelSel');
+  return selector ? String(selector.value || '') : '';
+}
+
 window.studioCollectDraft = function () {
   // File objects and media bytes are deliberately excluded from persisted drafts.
   return {
@@ -136,7 +141,8 @@ function subtitleGenerateSrt() {
       audioBase64: audioBase64,
       mimeType: mimeType,
       knownText: known ? known.value : '',
-      type: outputMode === 'text' ? '1' : '2'
+      type: outputMode === 'text' ? '1' : '2',
+      model: subtitleSelectedModel()
     }).then(function (result) {
       if (outputMode === 'text') {
         var transcript = String(result.text || '');
@@ -281,7 +287,8 @@ function subtitleTranslateSrt() {
   subtitleApiPost('/api/studio/subtitle/translate-srt', {
     srtText: srtText,
     direction: direction,
-    type: '2'
+    type: '2',
+    model: subtitleSelectedModel()
   }).then(function (result) {
     var translated = String(result.srt || '');
     if (!translated.trim()) throw new Error('empty_result');
