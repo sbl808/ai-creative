@@ -654,15 +654,18 @@ await check('shared generation limit is isolated per authenticated user', async 
   };
 });
 await check('AI generation rate limit does not depend on D1 availability', async () => {
-  const headers = await withToken();
-  const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
-    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), {
-    ...env,
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST', headers: { Authorization: 'Bearer test-token' },
+  });
+  const response = await enforceSharedAiRateLimit(request, {
     DB: null,
     AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
-  }, {});
-  return { ok: r.status === 400, msg: 'status=' + r.status + ' (expected route validation 400)' };
+  }, '/api/studio/story/generate', {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), { status }),
+  });
+  return { ok: response === null, msg: 'guardResponse=' + (response?.status || 'allowed') };
 });
 await check('shared generation limit fails closed when the Cloudflare binding is unavailable', async () => {
   const headers = await withToken();
