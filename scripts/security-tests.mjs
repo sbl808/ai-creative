@@ -485,28 +485,23 @@ console.log('\n--- D) API test rate-limit migration contract ---');
 
 console.log('\n--- E) Shared AI generation rate-limit contract ---');
 {
-  const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
-  const migrationExists = existsSync(migrationPath);
-  check('shared AI rate-limit migration exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates per-user/per-window generation counters',
-      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup',
-      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
-  }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
-    /api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
-    /rate_limited/.test(guards));
+  const config = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  check('generation routes use a three-per-60-second Cloudflare limit',
+    /const SHARED_AI_RATE_LIMIT = 3/.test(guards) &&
+    /SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
+    /AI_GENERATION_RATE_LIMITER/.test(guards) &&
+    !/api_generation_limits|env\.DB\.prepare/.test(guards) &&
+    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
+  check('Cloudflare AI rate limiter is configured for dev, staging, and prod',
+    (config.match(/name = "AI_GENERATION_RATE_LIMITER"/g) || []).length === 3 &&
+    (config.match(/limit = 3/g) || []).length >= 3 &&
+    (config.match(/period = 60/g) || []).length >= 3);
   check('rate-limit covers six Studio families and CMS prompt',
     /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
-  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+  console.log('  ↷ Namespace IDs must be checked for account-wide uniqueness before remote deployment.');
 }
 
 console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
