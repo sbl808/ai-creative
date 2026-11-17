@@ -1,7 +1,7 @@
 import { TRANSLATION_CONTRACT_VERSION } from '../../media-production/contracts/translation.contract.js';
 import { translateSharedSrt } from '../../media-production/translation/engine.js';
 
-const STUDIO_IDS = Object.freeze(['content', 'voice', 'shop']);
+const STUDIO_IDS = Object.freeze(['content', 'voice', 'shop', 'subtitle']);
 
 export function normalizeTranslationDirection(direction, fallback = 'MY_TO_CN') {
   const value = String(direction || fallback).trim().replace(/-/g, '_').toUpperCase();

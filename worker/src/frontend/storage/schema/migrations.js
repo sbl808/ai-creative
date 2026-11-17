@@ -65,6 +65,16 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
         mediaAssets.createIndex('owner_createdAt', ['ownerId', 'createdAt'], { unique: false });
       }
     }
+  },
+  {
+    version: 8,
+    up: function (db) {
+      if (!db.objectStoreNames.contains('user_settings')) {
+        var settings = db.createObjectStore('user_settings', { keyPath: 'id' });
+        settings.createIndex('ownerId', 'ownerId', { unique: true });
+        settings.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+    }
   }
 ];
 

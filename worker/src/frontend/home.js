@@ -164,6 +164,11 @@ ${renderSidebar('home',{variant:'studio'})}
       <div class="title">အသံ Studio</div>
       <div class="desc" id="desc-voice">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
+    <div class="studio-card card-subtitle" data-studio="subtitle" role="link" tabindex="0" aria-label="Open subtitle studio" data-home-action="navigate-studio">
+      <div class="sparkle">✨</div><div class="bg-icon">💬</div>
+      <div class="title">စာတန်းထိုး Studio</div>
+      <div class="desc" id="desc-subtitle">အသံ/ဗီဒီယိုမှ SRT နှင့် စာသား ဖန်တီးပါ</div>
+    </div>
     <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
       <div class="title">ရောင်းချရေး Studio</div>
@@ -208,7 +213,7 @@ document.addEventListener('click', function (event) {
   else if (type === 'navigate-creations') location.href = '/app/creations';
   else if (type === 'navigate-studio') {
     var studio = action.getAttribute('data-studio');
-    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
+    if (['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
   }
 });
 document.addEventListener('keydown', function (event) {
@@ -237,7 +242,8 @@ var CARD_MESSAGES={
   content:["AI ဖြင့် Content ရေးပါ","Facebook Content လွယ်ကူစွာ ဖန်တီးပါ"],
   short:["TikTok/Reels Script ဖန်တီးပါ","Short Video Idea ဖန်တီးပါ"],
   image:["AI Image Prompt ဖန်တီးပါ","ပုံလှလှလေးတွေ ဖန်တီးပါ"],
-  voice:["Voice နဲ့ Text ပြောင်းပါ","အသံဖိုင်ကို Subtitle ပြောင်းပါ"],
+  voice:["Voice နဲ့ Text ပြောင်းပါ","အသံဖိုင်ကို Voice ပြောင်းပါ"],
+  subtitle:["အသံမှ SRT ဖန်တီးပါ","စာတန်းထိုး ဘာသာပြန်ပါ"],
   shop:["Marketing Content ဖန်တီးပါ","ရောင်းအား တက်အောင် ကူညီပါ"]
 };
 function rotateCard(key,index){

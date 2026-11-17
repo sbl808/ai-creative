@@ -13,6 +13,7 @@ import { handleStoryVideoPlanRoutes } from './routes/studios/story-video-plan.ro
 import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
+import { handleSubtitleStudioRoutes } from './routes/studios/subtitle.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
 import { buildHtmlSecurityHeaders, createCspNonce } from './middleware/securityHeaders.js';
@@ -33,7 +34,6 @@ import { verifyToken } from './platform/auth/index.js';
 
 
 
-import { trackUsage } from './core/usage.js';
 
 import { isStudioEnabled } from './configuration/studio-config/index.js';
 import { checkFeature } from './configuration/feature-config/index.js';
@@ -155,11 +155,6 @@ async function resolvePlan(env, payload) {
     if (row.plan === 'PRO' && row.expiry && new Date(row.expiry) < new Date()) return 'FREE';
     return row.plan || 'FREE';
   } catch (e) { return 'FREE'; }
-}
-
-// Usage Tracking — Track လုပ်ရာတွင် မှားယွင်းမှု ရှိလျှင်ပင် အဓိက API မထိခိုက်စေရန် Safe Wrapper (Phase 3)
-async function trackUsageSafe(env, userId, category) {
-  try { await trackUsage(env, userId, category); } catch (e) {}
 }
 
 // Phase 5 — Feature Check (Rule 15): Free/Pro ကို Admin Config (feature_settings) ဖြင့် ထိန်းချုပ်သည်
@@ -304,7 +299,7 @@ export default {
         return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
       }
 
-      // STEP 9 — shared D1-backed AI generation limit (30 requests/user/10 minutes).
+      // STEP 9 — shared Cloudflare Rate Limiting binding (3 requests/user/60 seconds).
       const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path, { cookieToken, verifyTokenSafe, json, friendlyError });
       if (rateLimitResponse) {
         const headers = new Headers(rateLimitResponse.headers);
@@ -440,41 +435,46 @@ export default {
       const cmsResponse = await handleCmsRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan });
       if (cmsResponse) return cmsResponse;
 
-      const ideasResponse = await handleIdeasRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError });
+      const ideasResponse = await handleIdeasRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError });
       if (ideasResponse) return ideasResponse;
 
-      const genericStudioResponse = await handleGenericStudioRoute(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, getStudio, isStudioEnabled });
+      const genericStudioResponse = await handleGenericStudioRoute(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, getStudio, isStudioEnabled });
       if (genericStudioResponse) return genericStudioResponse;
 
       // ===== Studio API — Disabled Studio ကို Server-side တွင် ပိတ်သည် (Rule 14) =====
       // UI တွင် ဖျောက်ထားရုံဖြင့် မရ — API ကိုယ်တိုင် စစ်ဆေးသည်
       {
-        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop)\//) || [])[1];
-        if (studioApiId) {
+        const studioApiId = (path.match(/^\/api\/studio\/(story|content|short|image|voice|shop|subtitle)\//) || [])[1];
+        // Subtitle is an independent API capability, not a seventh Dashboard Studio.
+        // Its individual endpoints are controlled by subtitle.* feature settings.
+        if (studioApiId && studioApiId !== 'subtitle') {
           const enabled = await isStudioEnabled(env, studioApiId);
           if (!enabled) return json({ error: 'studio_disabled', message: 'This studio is currently disabled.' }, 403, cors);
         }
       }
 
-      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const contentStudioResponse = await handleContentStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (contentStudioResponse) return contentStudioResponse;
 
-      const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const storyStudioResponse = await handleStoryStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (storyStudioResponse) return storyStudioResponse;
 
-      const storyVideoPlanResponse = await handleStoryVideoPlanRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError });
+      const storyVideoPlanResponse = await handleStoryVideoPlanRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError });
       if (storyVideoPlanResponse) return storyVideoPlanResponse;
 
-      const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const shortStudioResponse = await handleShortStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (shortStudioResponse) return shortStudioResponse;
 
-      const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (imageStudioResponse) return imageStudioResponse;
 
-      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const subtitleStudioResponse = await handleSubtitleStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError });
+      if (subtitleStudioResponse) return subtitleStudioResponse;
+
+      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (voiceStudioResponse) return voiceStudioResponse;
 
-      const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (shopStudioResponse) return shopStudioResponse;
 
       // ===== Creations (Phase 13 — Option 2) =====

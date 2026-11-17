@@ -41,6 +41,11 @@ export const FEATURE_REGISTRY = {
   'voice.srt': { name: 'Voice SRT', nameMy: 'SRT ထုတ်ခြင်း', access: 'PRO', desc: 'Voice Studio — SRT (PRO)' },
   'voice.translate_srt': { name: 'Voice Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Voice Studio — Translate SRT (PRO)' },
 
+  // Subtitle is an independent capability; keep legacy Voice feature IDs for backward compatibility.
+  'subtitle.transcribe': { name: 'Subtitle Transcribe', nameMy: 'အသံမှ စာသားထုတ်ခြင်း', access: 'FREE', desc: 'Subtitle Studio — Audio Transcription' },
+  'subtitle.srt': { name: 'Subtitle SRT', nameMy: 'SRT စာတန်းထိုးထုတ်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT Generation (PRO)' },
+  'subtitle.translate_srt': { name: 'Subtitle Translate SRT', nameMy: 'SRT ဘာသာပြန်ခြင်း', access: 'PRO', desc: 'Subtitle Studio — SRT Translation (PRO)' },
+
   'shop.content_generate': { name: 'Shop Content Generate', nameMy: 'ဈေး Content ရေးခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 1' },
   'shop.content_revise': { name: 'Shop Content Revise', nameMy: 'ဈေး Content ပြင်ဆင်ခြင်း', access: 'FREE', desc: 'Shop Studio — Tab 2' },
   'shop.video_generate': { name: 'Shop Video Plan', nameMy: 'ဈေး Video Plan', access: 'FREE', desc: 'Shop Studio — Video Plan' },

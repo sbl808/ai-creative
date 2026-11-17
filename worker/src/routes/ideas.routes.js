@@ -13,7 +13,7 @@ function noStore(response) {
 
 export async function handleIdeasRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
-  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe } = deps;
+  const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature } = deps;
 
   if (path === '/api/ideas/generate' && request.method === 'POST') {
     const token = bearer(request);
@@ -37,7 +37,6 @@ export async function handleIdeasRoutes(request, env, cors, deps) {
       if (!Array.isArray(ideas) || ideas.length !== 3) {
         return noStore(json({ error: 'invalid_ai_output' }, 502, cors));
       }
-      await trackUsageSafe(env, payload.sub, 'ai');
       return noStore(json({ ok: true, count: 3, category: validation.category, ideas }, 200, cors));
     } catch (error) {
       if (error && error.message === 'cms_prompt_missing') {
@@ -81,7 +80,6 @@ export async function handleIdeasRoutes(request, env, cors, deps) {
         plan,
         apiKey,
       });
-      await trackUsageSafe(env, payload.sub, 'ai');
       return noStore(json({ ok: true, category: validation.category, idea }, 200, cors));
     } catch (error) {
       if (error && error.message === 'cms_prompt_missing') {

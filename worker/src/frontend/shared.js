@@ -366,13 +366,53 @@ function sidebarSessionHistoryScript() {
 `;
 }
 
+function oauthProfileNameBootstrapScript() {
+  return String.raw`var AICS_OAUTH_PROFILE_NAME = (function () {
+  try {
+    var params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (!params.has('aics_profile_name')) return '';
+    var name = String(params.get('aics_profile_name') || '').trim().slice(0, 60);
+    params.delete('aics_profile_name');
+    var nextUrl = window.location.pathname + window.location.search;
+    if (params.toString()) nextUrl += '#' + params.toString();
+    window.history.replaceState(window.history.state, '', nextUrl);
+    return name;
+  } catch (error) {
+    return '';
+  }
+})();`;
+}
+
 export function sidebarScript() {
   return '<script>\n' +
     themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     clientStorageScript() + '\n' +
+    oauthProfileNameBootstrapScript() + '\n' +
     sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
+    'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
+    '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
+    '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
+    '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
+    '    if (record) {\n' +
+    '      if (AICS_OAUTH_PROFILE_NAME && !String(record.profile && record.profile.name || \'\').trim()) return window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } });\n' +
+    '      return record;\n' +
+    '    }\n' +
+    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
+    '      .then(function (legacy) {\n' +
+    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
+    '        var legacyProfile = legacy.profile || {};\n' +
+    '        if (AICS_OAUTH_PROFILE_NAME && !String(legacyProfile.name || \'\').trim()) legacyProfile = Object.assign({}, legacyProfile, { name: AICS_OAUTH_PROFILE_NAME });\n' +
+    '        return window.AICS_USER_SETTINGS.save({ profile: legacyProfile, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
+    '      });\n' +
+    '  }).then(function (record) {\n' +
+    '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
+    '    return record;\n' +
+    '  }).catch(function (error) { window.__aicsUserSettingsPromise = null; throw error; });\n' +
+    '  return window.__aicsUserSettingsPromise;\n' +
+    '};\n' +
     '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +
     '  fetch(\'/api/auth/session\').then(function (r) { return r.json(); }).then(function (d) {\n' +
@@ -449,11 +489,15 @@ export function sidebarScript() {
     '      var se = document.getElementById(\'sideEmail\');\n' +
     '      if (se) se.textContent = d.email || \'—\';\n' +
     '      var sn = document.getElementById(\'sideName\');\n' +
-    '      if (sn) {\n' +
-    '        var disp = d.name || (d.email || \'\').split(\'@\')[0] || \'User\';\n' +
-    '        sn.textContent = disp;\n' +
-    '        var av = document.getElementById(\'sideAvatar\');\n' +
-    '        if (av) av.textContent = disp.charAt(0).toUpperCase();\n' +
+    '      var fallbackName = (d.email || \'\').split(\'@\')[0] || \'User\';\n' +
+    '      if (sn) { sn.textContent = fallbackName; var fallbackAvatar = document.getElementById(\'sideAvatar\'); if (fallbackAvatar) fallbackAvatar.textContent = fallbackName.charAt(0).toUpperCase(); }\n' +
+    '      if (sn && typeof window.AICS_LOAD_USER_SETTINGS === \'function\') {\n' +
+    '        window.AICS_LOAD_USER_SETTINGS().then(function (record) {\n' +
+    '          var displayName = record && record.profile && record.profile.name || fallbackName;\n' +
+    '          sn.textContent = displayName;\n' +
+    '          var avatar = document.getElementById(\'sideAvatar\');\n' +
+    '          if (avatar) avatar.textContent = displayName.charAt(0).toUpperCase();\n' +
+    '        }).catch(function () {});\n' +
     '      }\n' +
     '      var ue = document.getElementById(\'userEmail\');\n' +
     '      if (ue) ue.textContent = d.email || \'\';\n' +
@@ -492,7 +536,7 @@ export function sidebarScript() {
     '      var cat = sel.getAttribute(\'data-category\') || \'text\';\n' +
     '      var pathParts = window.location.pathname.split(\'/\');\n' +
     '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
-    '      var task = studio + \'.\' + cat;\n' +
+    '      var task = sel.getAttribute(\'data-task\') || studio + \'.\' + cat;\n' +
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
@@ -804,6 +848,7 @@ export function renderStudioShell(opts) {
   const desc = opts.desc || '';
   const icon = opts.icon || '🎨';
   const modelCat = opts.modelCat || 'text';
+  const modelTask = opts.modelTask || '';
   const steps = opts.steps || [];
   const content = opts.content || '';
   const stepsJson = JSON.stringify(steps.map(function (s, i) {
@@ -829,7 +874,7 @@ export function renderStudioShell(opts) {
     '</section>\n' +
     '</div>\n' +
     '<div class="aics-actions">\n' +
-    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"></select></div></div>\n' +
+    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"' + (modelTask ? ' data-task="' + modelTask + '"' : '') + '></select></div></div>\n' +
     '</div>\n' +
     '</main>\n' +
     '</div>\n' +
@@ -996,8 +1041,17 @@ export function renderStudioShell(opts) {
     '  };\n' +
     '  window.studioPreview = function (html) { /* preview panel removed */ };\n' +
     String.raw`  var studioDraftReady = false;
+  var subtitleDraftSaveTimer = null;
+  function scheduleSubtitleDraftSave() {
+    if (SHELL_ID !== "subtitle" || !studioDraftReady || !window.studioCollectDraft) return;
+    if (subtitleDraftSaveTimer) clearTimeout(subtitleDraftSaveTimer);
+    subtitleDraftSaveTimer = setTimeout(function () {
+      subtitleDraftSaveTimer = null;
+      window.studioPersistDraft(false);
+    }, 500);
+  }
   window.studioPersistDraft = function (showMessage) {
-    if (!studioDraftReady || ["content", "short", "image", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
+    if (!studioDraftReady || ["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) === -1 || !window.AICS_STUDIO_DRAFTS) return Promise.resolve(false);
     var data = null;
     try {
       if (window.studioCollectDraft) data = window.studioCollectDraft();
@@ -1019,7 +1073,7 @@ export function renderStudioShell(opts) {
     }
   };
   window.studioSaveDraft = function () {
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1) {
       window.studioPersistDraft(true);
       return;
     }
@@ -1032,7 +1086,7 @@ export function renderStudioShell(opts) {
   };
   window.studioReset = function () {
     if (!confirm("ဤ Studio ရဲ့ အချက်အလက်အားလုံးကို ဖျက်ပြီး အစကပြန်စမလား?")) return;
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       window.AICS_STUDIO_DRAFTS.remove(SHELL_ID).then(function () {
         // Reset ကို အသုံးပြုသူက အတည်ပြုပြီးနောက် legacy draft ကိုသာ ရှင်းသည်။
         try { localStorage.removeItem(draftKey); } catch (e) {}
@@ -1047,8 +1101,8 @@ export function renderStudioShell(opts) {
     location.reload();
   };
   var draftTouchedBeforeRestore = false;
-  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; }, true);
-  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; }, true);
+  document.addEventListener("input", function () { draftTouchedBeforeRestore = true; scheduleSubtitleDraftSave(); }, true);
+  document.addEventListener("change", function () { draftTouchedBeforeRestore = true; scheduleSubtitleDraftSave(); }, true);
   function restoreDraft(d) {
     if (!d || !d.data || !window.studioRestoreDraft || draftTouchedBeforeRestore) return;
     window.studioRestoreDraft(d.data);
@@ -1064,7 +1118,7 @@ export function renderStudioShell(opts) {
     var raw = null;
     try { raw = localStorage.getItem(draftKey); } catch (e) {}
 
-    if (["content", "short", "image", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
+    if (["content", "short", "image", "subtitle", "shop"].indexOf(SHELL_ID) !== -1 && window.AICS_STUDIO_DRAFTS) {
       var legacy = null;
       var legacyCache = null;
       try { if (raw) legacy = JSON.parse(raw); } catch (e) {}

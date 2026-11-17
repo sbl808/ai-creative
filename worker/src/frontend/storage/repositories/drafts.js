@@ -1,6 +1,6 @@
 const SCRIPT = String.raw`function __aicsDraftStudio(value) {
   var studio = String(value || '').trim().toLowerCase();
-  if (['content', 'short', 'image', 'voice', 'shop'].indexOf(studio) === -1) {
+  if (['content', 'short', 'image', 'voice', 'subtitle', 'shop'].indexOf(studio) === -1) {
     throw __aicsStorageError('invalid_draft_studio');
   }
   return studio;
