@@ -502,7 +502,7 @@ console.log('\n--- E) Cloudflare AI generation rate-limit contract ---');
   check('generation routes remain behind the shared Worker guard',
     /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\\/api\\/cms\\/prompt'/.test(guards) &&
+    /path === '\/api\/cms\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
   const ids = ['dev', 'staging', 'prod'].map((environment) => {
     const match = wrangler.match(new RegExp(
