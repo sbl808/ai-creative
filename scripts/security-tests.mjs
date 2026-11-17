@@ -448,7 +448,7 @@ console.log('\\n--- D) API connection-test Cloudflare rate-limit contract ---');
     const connectionTestTable = rateLimitTables.find((table) =>
       /name = "AI_CONNECTION_TEST_RATE_LIMITER"/.test(table)
     ) || '';
-    const simpleConfig = toml.match(
+    const simpleConfig = connectionTestTable.match(
       new RegExp('\\[env\\.' + envName + '\\.ratelimits\\.simple\\]\\s*limit = (\\d+)\\s*period = (\\d+)')
     );
     check(envName + ' connection-test limit is five per 60 seconds',
