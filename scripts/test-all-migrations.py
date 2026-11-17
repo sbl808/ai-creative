@@ -136,9 +136,9 @@ def main():
         backfilled_tasks = [
             row[0]
             for row in db.execute(
-                "SELECT value FROM json_each("
+                "SELECT value FROM json_each(("
                 "SELECT supported_tasks_json FROM ai_models WHERE id=?"
-                ")",
+                "))",
                 (subtitle_model_id,),
             )
         ]
@@ -152,9 +152,9 @@ def main():
         repeated_tasks = [
             row[0]
             for row in db.execute(
-                "SELECT value FROM json_each("
+                "SELECT value FROM json_each(("
                 "SELECT supported_tasks_json FROM ai_models WHERE id=?"
-                ")",
+                "))",
                 (subtitle_model_id,),
             )
         ]
