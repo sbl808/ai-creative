@@ -114,6 +114,55 @@ def main():
         if db.execute("SELECT COUNT(*) FROM plan_catalog").fetchone()[0] != 2:
             raise AssertionError("Plan catalog migration is not idempotent")
 
+        # Subtitle model metadata backfill: preserve existing tasks and remain idempotent.
+        subtitle_model_id = "migration-check-transcribe"
+        db.execute(
+            """
+            INSERT INTO ai_models (
+                id, name, category, enabled, is_default, plan_access,
+                provider, capabilities_json, supported_tasks_json, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                subtitle_model_id, "Migration check", "transcribe", 1, 0, "FREE",
+                "gemini", '["audio-transcription"]',
+                '["content.transcribe","voice.transcribe"]', "active",
+            ),
+        )
+        subtitle_migration = (
+            MIGRATIONS_DIR / "019_add_subtitle_transcribe_task.sql"
+        ).read_text(encoding="utf-8")
+        db.executescript(subtitle_migration)
+        backfilled_tasks = [
+            row[0]
+            for row in db.execute(
+                "SELECT value FROM json_each("
+                "SELECT supported_tasks_json FROM ai_models WHERE id=?"
+                ")",
+                (subtitle_model_id,),
+            )
+        ]
+        if backfilled_tasks != [
+            "content.transcribe", "voice.transcribe", "subtitle.transcribe"
+        ]:
+            raise AssertionError(
+                f"Subtitle task backfill did not preserve existing tasks: {backfilled_tasks}"
+            )
+        db.executescript(subtitle_migration)
+        repeated_tasks = [
+            row[0]
+            for row in db.execute(
+                "SELECT value FROM json_each("
+                "SELECT supported_tasks_json FROM ai_models WHERE id=?"
+                ")",
+                (subtitle_model_id,),
+            )
+        ]
+        if repeated_tasks != backfilled_tasks:
+            raise AssertionError(
+                f"Subtitle task backfill is not idempotent: {repeated_tasks}"
+            )
+
         # Explicitly guard against accidentally overlooking the duplicate 006 prefix.
         duplicate_prefix_migrations = [
             path.name for path in migration_paths if path.name.startswith("006_")
