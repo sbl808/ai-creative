@@ -163,6 +163,50 @@ def main():
                 f"Subtitle task backfill is not idempotent: {repeated_tasks}"
             )
 
+        # Subtitle platform settings are seeded for existing installations.
+        subtitle_studio = db.execute(
+            "SELECT enabled FROM studio_settings WHERE studio_id='subtitle'"
+        ).fetchone()
+        if not subtitle_studio or subtitle_studio[0] != 1:
+            raise AssertionError("Subtitle Studio default setting was not seeded")
+
+        subtitle_feature = db.execute(
+            "SELECT enabled, access, limit_value FROM feature_settings "
+            "WHERE feature_id='subtitle.transcribe'"
+        ).fetchone()
+        if not subtitle_feature or subtitle_feature != (1, "FREE", 0):
+            raise AssertionError(
+                f"Unexpected Subtitle feature defaults: {subtitle_feature}"
+            )
+
+        # Reapplying the migration must preserve Admin overrides.
+        db.execute(
+            "UPDATE studio_settings SET enabled=0 WHERE studio_id='subtitle'"
+        )
+        db.execute(
+            "UPDATE feature_settings SET enabled=0, access='PRO', limit_value=9 "
+            "WHERE feature_id='subtitle.transcribe'"
+        )
+        subtitle_settings_migration = (
+            MIGRATIONS_DIR / "020_seed_subtitle_platform_settings.sql"
+        ).read_text(encoding="utf-8")
+        db.executescript(subtitle_settings_migration)
+
+        preserved_studio = db.execute(
+            "SELECT enabled FROM studio_settings WHERE studio_id='subtitle'"
+        ).fetchone()
+        if not preserved_studio or preserved_studio[0] != 0:
+            raise AssertionError("Subtitle Studio Admin override was overwritten")
+
+        preserved_feature = db.execute(
+            "SELECT enabled, access, limit_value FROM feature_settings "
+            "WHERE feature_id='subtitle.transcribe'"
+        ).fetchone()
+        if not preserved_feature or preserved_feature != (0, "PRO", 9):
+            raise AssertionError(
+                f"Subtitle Feature Admin override was overwritten: {preserved_feature}"
+            )
+
         # Explicitly guard against accidentally overlooking the duplicate 006 prefix.
         duplicate_prefix_migrations = [
             path.name for path in migration_paths if path.name.startswith("006_")
