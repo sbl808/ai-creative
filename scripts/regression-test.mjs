@@ -17,6 +17,8 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { enforceSharedAiRateLimit } from '../worker/src/middleware/requestGuards.js';
+import { generateMultimodal } from '../worker/src/core/ai/aiService.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -72,7 +74,7 @@ class MockD1 {
   constructor(rows = {}) {
     this.rows = { ...rows, users: rows.users || {} };
     this.cmsPrompts = rows.cmsPrompts || [];
-    this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map();
+    this.apiTestLimits = new Map();
     this.featureSettings = new Map(); this.studioSettings = new Map();
     this.planCatalog = new Map((rows.planCatalog || [
       { plan_key: 'FREE', name: 'Free', icon: 'sparkles', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 0 },
@@ -98,9 +100,6 @@ class MockD1 {
         }
         if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
-        }
-        if (sql.startsWith('SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?')) {
-          return { attempts: self.apiGenerationLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -159,10 +158,6 @@ class MockD1 {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
         }
-        if (/INSERT INTO api_generation_limits/.test(sql)) {
-          const key = String(this._args[0]) + ':' + this._args[1];
-          self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
-        }
         return { success: true, meta: { changes } };
       },
     };
@@ -176,6 +171,7 @@ const env = {
   ALLOWED_ORIGINS: 'https://test.local',
   ADMIN_EMAIL: 'a@b.com',
   DB: new MockD1({}),
+  AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
 };
 
 // ---------------------------------------------------------------- helpers
@@ -201,6 +197,61 @@ const withToken = async (extra = {}) => {
 };
 
 // ---------------------------------------------------------------- tests
+console.log('— Cloudflare AI generation rate limit —');
+await check('AI generation allows three requests and blocks the fourth per authenticated user', async () => {
+  const counts = new Map();
+  const keys = [];
+  const limiter = {
+    async limit({ key }) {
+      keys.push(key);
+      const count = (counts.get(key) || 0) + 1;
+      counts.set(key, count);
+      return { success: count <= 3 };
+    },
+  };
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-token' },
+  });
+  const deps = {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  };
+  const testEnv = { AI_GENERATION_RATE_LIMITER: limiter };
+  const firstThree = [];
+  for (let i = 0; i < 3; i++) {
+    firstThree.push(await enforceSharedAiRateLimit(request, testEnv, '/api/studio/story/generate', deps));
+  }
+  const fourth = await enforceSharedAiRateLimit(request, testEnv, '/api/studio/story/generate', deps);
+  const fourthBody = fourth ? await fourth.json() : {};
+  return {
+    ok: firstThree.every(result => result === null) &&
+      fourth?.status === 429 &&
+      fourthBody.error === 'rate_limited' &&
+      fourthBody.limit === 3 &&
+      fourthBody.window_seconds === 60 &&
+      keys.every(key => key === 'user-1'),
+    msg: 'fourthStatus=' + fourth?.status + ' body=' + JSON.stringify(fourthBody) + ' keys=' + keys.join(','),
+  };
+});
+await check('AI generation rate limit fails closed when the Cloudflare binding is missing', async () => {
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-token' },
+  });
+  const deps = {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), { status }),
+  };
+  const response = await enforceSharedAiRateLimit(request, {}, '/api/studio/story/generate', deps);
+  return { ok: response?.status === 503, msg: 'status=' + response?.status };
+});
+
 console.log('— AI model task compatibility —');
 await check('Model dropdown filters by Studio task and category', async () => {
   const story = await listEnabledModels({}, 'text', 'FREE', 'story.text');
@@ -225,6 +276,106 @@ await check('AI model metadata resolver exposes provider and enforces active tas
     ok: model?.provider === 'gemini' && compatible?.id === model.id && incompatible === null,
     msg: 'provider=' + model?.provider + ' compatible=' + !!compatible + ' incompatible=' + !!incompatible,
   };
+});
+
+await check('D1 model metadata allows Subtitle transcription at the AI Service runtime gate', async () => {
+  const modelRow = {
+    id: 'gemini-3.6-flash',
+    name: 'Subtitle transcription test',
+    category: 'transcribe',
+    enabled: 1,
+    is_default: 1,
+    plan_access: 'FREE',
+    provider: 'gemini',
+    capabilities_json: '["audio-transcription","subtitle-generation","text-translation"]',
+    supported_tasks_json: '["content.transcribe","voice.transcribe","subtitle.transcribe"]',
+    status: 'active',
+  };
+  const runtimeEnv = {
+    DB: {
+      prepare(sql) {
+        return {
+          async all() {
+            if (!sql.includes('supported_tasks_json')) throw new Error('unexpected_model_query');
+            return { results: [modelRow] };
+          },
+        };
+      },
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async (url) => {
+      providerCalls++;
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: 'Subtitle transcription result' }] } }],
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    const output = await generateMultimodal(runtimeEnv, {
+      model: modelRow.id,
+      task: 'subtitle.transcribe',
+      prompt: 'Transcribe this audio.',
+      images: [{ mimeType: 'audio/mpeg', base64: 'YXVkaW8=' }],
+      apiKey: 'test-only-key',
+    });
+    return {
+      ok: output === 'Subtitle transcription result' && providerCalls === 1,
+      msg: 'output=' + output + ' providerCalls=' + providerCalls,
+    };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+await check('AI Service rejects Subtitle transcription when persisted D1 task metadata omits it', async () => {
+  const modelRow = {
+    id: 'gemini-3.6-flash',
+    name: 'Subtitle transcription test',
+    category: 'transcribe',
+    enabled: 1,
+    is_default: 1,
+    plan_access: 'FREE',
+    provider: 'gemini',
+    capabilities_json: '["audio-transcription","subtitle-generation","text-translation"]',
+    supported_tasks_json: '["content.transcribe","voice.transcribe"]',
+    status: 'active',
+  };
+  const runtimeEnv = {
+    DB: {
+      prepare() {
+        return {
+          async all() { return { results: [modelRow] }; },
+        };
+      },
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async () => {
+      providerCalls++;
+      return new Response('{}', { status: 200 });
+    };
+    let errorCode = '';
+    try {
+      await generateMultimodal(runtimeEnv, {
+        model: modelRow.id,
+        task: 'subtitle.transcribe',
+        prompt: 'Transcribe this audio.',
+        images: [{ mimeType: 'audio/mpeg', base64: 'YXVkaW8=' }],
+        apiKey: 'test-only-key',
+      });
+    } catch (error) {
+      errorCode = error?.code || '';
+    }
+    return {
+      ok: errorCode === 'task_not_supported' && providerCalls === 0,
+      msg: 'errorCode=' + errorCode + ' providerCalls=' + providerCalls,
+    };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 
@@ -532,9 +683,23 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
     msg: `statuses=${statuses.join(',')}` };
 });
 
-console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
-await check('Six Studios share one 30-request bucket; request 31 is blocked', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+console.log('— Cloudflare AI generation rate-limit runtime tests —');
+function createMockAiGenerationRateLimiter() {
+  const counts = new Map();
+  return {
+    async limit({ key }) {
+      const count = (counts.get(key) || 0) + 1;
+      counts.set(key, count);
+      return { success: count <= 3 };
+    },
+  };
+}
+await check('Six Studios share one three-request bucket; request four is blocked', async () => {
+  const rateEnv = {
+    ...env,
+    DB: new MockD1({}),
+    AI_GENERATION_RATE_LIMITER: createMockAiGenerationRateLimiter(),
+  };
   const headers = await withToken();
   const paths = [
     '/api/studio/story/generate',
@@ -545,9 +710,8 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     '/api/studio/shop/content/generate',
   ];
   const statuses = [];
-  // Empty but valid JSON reaches each route's input validation after rate limiting.
-  // No Gemini/provider call can occur because every route returns a missing-input error.
-  for (let i = 0; i < 30; i++) {
+  // Empty JSON reaches route validation after the Cloudflare rate-limit check.
+  for (let i = 0; i < 3; i++) {
     const path = paths[i % paths.length];
     const r = await worker.fetch(new Request('https://test.local' + path, {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
@@ -562,41 +726,66 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     ok: statuses.every(status => status === 400) &&
       blocked.status === 429 &&
       blockedBody.error === 'rate_limited' &&
-      Number(blocked.headers.get('Retry-After')) > 0,
-    msg: `first30=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error} retry=${blocked.headers.get('Retry-After')}`,
+      blockedBody.limit === 3 &&
+      blockedBody.window_seconds === 60,
+    msg: 'first3=' + [...new Set(statuses)].join(',') +
+      ' blocked=' + blocked.status + ' body=' + JSON.stringify(blockedBody),
   };
 });
 await check('shared generation limit is isolated per authenticated user', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+  const rateEnv = {
+    ...env,
+    DB: new MockD1({}),
+    AI_GENERATION_RATE_LIMITER: createMockAiGenerationRateLimiter(),
+  };
   const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
   const userTwo = await signToken(env, { sub: 'rate-user-two', email: 'two@example.test' });
-  for (let i = 0; i < 30; i++) {
-    await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + userOne, 'Content-Type': 'application/json' }, body: '{}',
-    }), rateEnv, {});
-  }
-  const r = await worker.fetch(new Request('https://test.local/api/studio/image/prompt', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + userTwo, 'Content-Type': 'application/json' }, body: '{}',
+  const sendGeneration = async (token) => worker.fetch(new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
-  return { ok: r.status === 400, msg: `second user status=${r.status} (expected route validation 400)` };
+  const firstThree = [];
+  for (let i = 0; i < 3; i++) firstThree.push(await sendGeneration(userOne));
+  const blockedOne = await sendGeneration(userOne);
+  const allowedTwo = await sendGeneration(userTwo);
+  return {
+    ok: firstThree.every(r => r.status === 400) &&
+      blockedOne.status === 429 && allowedTwo.status === 400,
+    msg: 'userOne=' + firstThree.map(r => r.status).join(',') +
+      ' then=' + blockedOne.status + ' userTwo=' + allowedTwo.status,
+  };
 });
-await check('shared generation limit fails closed when D1 is unavailable', async () => {
+await check('AI generation rate limit does not depend on D1 availability', async () => {
+  const request = new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST', headers: { Authorization: 'Bearer test-token' },
+  });
+  const response = await enforceSharedAiRateLimit(request, {
+    DB: null,
+    AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
+  }, '/api/studio/story/generate', {
+    cookieToken: () => '',
+    verifyTokenSafe: async () => ({ sub: 'user-1' }),
+    json: (body, status) => new Response(JSON.stringify(body), { status }),
+  });
+  return { ok: response === null, msg: 'guardResponse=' + (response?.status || 'allowed') };
+});
+await check('shared generation limit fails closed when the Cloudflare binding is unavailable', async () => {
   const headers = await withToken();
-  const noDbEnv = { ...env, DB: null };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), noDbEnv, {});
+  }), { ...env, AI_GENERATION_RATE_LIMITER: undefined }, {});
   const body = await r.json();
-  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: 'status=' + r.status + ' error=' + body.error };
 });
-await check('shared generation limit fails closed when D1 query throws', async () => {
+await check('shared generation limit fails closed when the Cloudflare binding throws', async () => {
   const headers = await withToken();
-  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), { ...env, DB: brokenDb }, {});
+  }), {
+    ...env,
+    AI_GENERATION_RATE_LIMITER: { async limit() { throw new Error('simulated rate limiter failure'); } },
+  }, {});
   const body = await r.json();
-  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
+  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: 'status=' + r.status + ' error=' + body.error };
 });
 
 console.log('— Feature gate regression —');
@@ -720,6 +909,32 @@ await check('Initialization fills missing rows and preserves existing OFF overri
     msg: 'first=' + JSON.stringify(firstBody) + ' second=' + JSON.stringify(secondBody) + ' preserve=' + preserve,
   };
 });
+await check('Subtitle Studio and Subtitle Transcribe receive registry defaults during initialization', async () => {
+  const db = new MockD1({});
+  const headers = await withToken();
+  const response = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: '{}',
+  }), { ...env, DB: db }, {});
+  const body = await response.json();
+  const studioEnabled = await isStudioEnabled({ DB: db }, 'subtitle');
+  const feature = await checkFeature({ DB: db }, 'subtitle.transcribe', 'FREE', '1');
+  const featureRow = db.featureSettings.get('subtitle.transcribe');
+  return {
+    ok: response.status === 200 &&
+      studioEnabled === true &&
+      feature.ok === true &&
+      featureRow?.enabled === 1 &&
+      featureRow?.access === 'FREE',
+    msg: 'status=' + response.status +
+      ' studioEnabled=' + studioEnabled +
+      ' feature=' + JSON.stringify(feature) +
+      ' featureRow=' + JSON.stringify(featureRow) +
+      ' result=' + JSON.stringify(body),
+  };
+});
+
 await check('Non-admin cannot initialize settings', async () => {
   const token = await signToken(env, { sub: 'user-2', email: 'not-admin@example.test' });
   const r = await worker.fetch(new Request('https://test.local/api/admin/settings/initialize', {

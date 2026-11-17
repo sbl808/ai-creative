@@ -144,6 +144,8 @@ jobs:
           node-version: 22
       - name: Check browser scripts
         run: node --experimental-default-type=module scripts/check-browser-scripts.mjs
+      - name: Check Settings usage display contract
+        run: node --experimental-default-type=module scripts/settings-usage-display-contract-test.mjs
 
   shim-writer-safety:
     name: Shim writer safety tests

@@ -218,7 +218,7 @@ ${sidebarScript()}
       if(requestId!==activeRequest)return;
       var response=await window.aicsApiFetch('/api/studio/subtitle/transcribe',{
         audioBase64:audioBase64,
-        mimeType:file.type||'audio/mpeg',
+        mimeType:resolveAudioMimeType(file),
         type:'1'
       },{
         method:'POST',
@@ -251,12 +251,29 @@ ${sidebarScript()}
       if(requestId===activeRequest)transcribeButton.disabled=!(input.files&&input.files[0]);
     }
   }
+  function resolveAudioMimeType(file){
+    if(file.type)return file.type.indexOf('audio/')===0?file.type:'';
+    var extension=String(file.name||'').split('.').pop().toLowerCase();
+    var knownAudioTypes={
+      mp3:'audio/mpeg',
+      wav:'audio/wav',
+      m4a:'audio/mp4',
+      aac:'audio/aac',
+      ogg:'audio/ogg',
+      oga:'audio/ogg',
+      opus:'audio/opus',
+      flac:'audio/flac',
+      webm:'audio/webm'
+    };
+    return knownAudioTypes[extension]||'';
+  }
   input.addEventListener('change',function(){
     activeRequest++;
     transcript.value='';
     var file=input.files&&input.files[0];
     if(!file){clearFile();return;}
-    if(!file.type||file.type.indexOf('audio/')!==0){
+    var detectedMimeType=resolveAudioMimeType(file);
+    if(!detectedMimeType){
       clearFile();showStatus('Audio ဖိုင်အမျိုးအစားကိုသာ ရွေးချယ်ပါ။');return;
     }
     if(file.size>maxAudioBytes){
@@ -265,7 +282,7 @@ ${sidebarScript()}
     if(objectUrl)URL.revokeObjectURL(objectUrl);
     objectUrl=URL.createObjectURL(file);
     name.textContent=file.name;
-    meta.textContent=file.type+' · '+(file.size/1024/1024).toFixed(2)+' MB';
+    meta.textContent=detectedMimeType+' · '+(file.size/1024/1024).toFixed(2)+' MB';
     player.src=objectUrl;
     info.classList.add('show');preview.classList.add('show');
     transcribeButton.disabled=false;

@@ -114,6 +114,177 @@ def main():
         if db.execute("SELECT COUNT(*) FROM plan_catalog").fetchone()[0] != 2:
             raise AssertionError("Plan catalog migration is not idempotent")
 
+        # Subtitle model metadata backfill: preserve existing tasks and remain idempotent.
+        subtitle_model_id = "migration-check-transcribe"
+        db.execute(
+            """
+            INSERT INTO ai_models (
+                id, name, category, enabled, is_default, plan_access,
+                provider, capabilities_json, supported_tasks_json, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                subtitle_model_id, "Migration check", "transcribe", 1, 0, "FREE",
+                "gemini", '["audio-transcription"]',
+                '["content.transcribe","voice.transcribe"]', "active",
+            ),
+        )
+        subtitle_migration = (
+            MIGRATIONS_DIR / "019_add_subtitle_transcribe_task.sql"
+        ).read_text(encoding="utf-8")
+        db.executescript(subtitle_migration)
+        backfilled_tasks = [
+            row[0]
+            for row in db.execute(
+                "SELECT value FROM json_each(("
+                "SELECT supported_tasks_json FROM ai_models WHERE id=?"
+                "))",
+                (subtitle_model_id,),
+            )
+        ]
+        if backfilled_tasks != [
+            "content.transcribe", "voice.transcribe", "subtitle.transcribe"
+        ]:
+            raise AssertionError(
+                f"Subtitle task backfill did not preserve existing tasks: {backfilled_tasks}"
+            )
+        db.executescript(subtitle_migration)
+        repeated_tasks = [
+            row[0]
+            for row in db.execute(
+                "SELECT value FROM json_each(("
+                "SELECT supported_tasks_json FROM ai_models WHERE id=?"
+                "))",
+                (subtitle_model_id,),
+            )
+        ]
+        if repeated_tasks != backfilled_tasks:
+            raise AssertionError(
+                f"Subtitle task backfill is not idempotent: {repeated_tasks}"
+            )
+
+        # The complete platform registry is seeded so fail-closed settings reads
+        # do not accidentally disable unrelated Studios or Features.
+        expected_studios = {
+            "story", "content", "short", "image", "voice", "subtitle", "shop"
+        }
+        seeded_studios = {
+            row[0]: row[1]
+            for row in db.execute("SELECT studio_id, enabled FROM studio_settings")
+        }
+        if set(seeded_studios) != expected_studios:
+            raise AssertionError(
+                f"Unexpected Studio settings seeded: {sorted(seeded_studios)}"
+            )
+        if any(enabled != 1 for enabled in seeded_studios.values()):
+            raise AssertionError(
+                f"Registry-enabled Studios were not all enabled: {seeded_studios}"
+            )
+
+        expected_features = {
+            "generate": "FREE",
+            "ideas.generate": "FREE",
+            "content.generate": "FREE",
+            "content.revise": "FREE",
+            "content.tts": "FREE",
+            "content.video": "FREE",
+            "content.video_image": "FREE",
+            "content.srt": "FREE",
+            "content.translate_srt": "FREE",
+            "story.generate": "FREE",
+            "story.revise": "FREE",
+            "story.video": "PRO",
+            "story.video_image": "PRO",
+            "short.generate": "FREE",
+            "short.revise": "FREE",
+            "short.video": "FREE",
+            "short.video_image": "FREE",
+            "image.prompt": "FREE",
+            "image.ad_prompt": "FREE",
+            "image.generate": "FREE",
+            "voice.tts": "FREE",
+            "voice.transcribe": "FREE",
+            "voice.srt": "PRO",
+            "voice.translate_srt": "PRO",
+            "subtitle.transcribe": "FREE",
+            "shop.content_generate": "FREE",
+            "shop.content_revise": "FREE",
+            "shop.video_generate": "FREE",
+            "shop.video_image": "FREE",
+        }
+        seeded_features = {
+            row[0]: (row[1], row[2], row[3])
+            for row in db.execute(
+                "SELECT feature_id, enabled, access, limit_value FROM feature_settings"
+            )
+        }
+        if set(seeded_features) != set(expected_features):
+            raise AssertionError(
+                f"Unexpected Feature settings seeded: {sorted(seeded_features)}"
+            )
+        for feature_id, access in expected_features.items():
+            if seeded_features[feature_id] != (1, access, 0):
+                raise AssertionError(
+                    f"Unexpected defaults for {feature_id}: {seeded_features[feature_id]}"
+                )
+
+        # Simulate a partially initialized existing installation. Existing
+        # Admin overrides must survive while all missing registry rows are added.
+        db.execute(
+            "UPDATE studio_settings SET enabled=0 WHERE studio_id='story'"
+        )
+        db.execute(
+            "UPDATE feature_settings SET enabled=0, access='PRO', limit_value=9 "
+            "WHERE feature_id='subtitle.transcribe'"
+        )
+        db.execute(
+            "DELETE FROM studio_settings WHERE studio_id <> 'story'"
+        )
+        db.execute(
+            "DELETE FROM feature_settings WHERE feature_id <> 'subtitle.transcribe'"
+        )
+        subtitle_settings_migration = (
+            MIGRATIONS_DIR / "020_seed_subtitle_platform_settings.sql"
+        ).read_text(encoding="utf-8")
+        db.executescript(subtitle_settings_migration)
+
+        restored_studios = {
+            row[0]: row[1]
+            for row in db.execute("SELECT studio_id, enabled FROM studio_settings")
+        }
+        if set(restored_studios) != expected_studios:
+            raise AssertionError(
+                f"Migration did not backfill missing Studios: {sorted(restored_studios)}"
+            )
+        if restored_studios["story"] != 0:
+            raise AssertionError("Story Studio Admin override was overwritten")
+        if any(
+            restored_studios[studio_id] != 1
+            for studio_id in expected_studios - {"story"}
+        ):
+            raise AssertionError("Missing Studio defaults were not restored")
+
+        restored_features = {
+            row[0]: (row[1], row[2], row[3])
+            for row in db.execute(
+                "SELECT feature_id, enabled, access, limit_value FROM feature_settings"
+            )
+        }
+        if set(restored_features) != set(expected_features):
+            raise AssertionError(
+                f"Migration did not backfill missing Features: {sorted(restored_features)}"
+            )
+        if restored_features["subtitle.transcribe"] != (0, "PRO", 9):
+            raise AssertionError("Subtitle Feature Admin override was overwritten")
+        for feature_id, access in expected_features.items():
+            if feature_id == "subtitle.transcribe":
+                continue
+            if restored_features[feature_id] != (1, access, 0):
+                raise AssertionError(
+                    f"Missing Feature default was not restored for {feature_id}: "
+                    f"{restored_features[feature_id]}"
+                )
+
         # Explicitly guard against accidentally overlooking the duplicate 006 prefix.
         duplicate_prefix_migrations = [
             path.name for path in migration_paths if path.name.startswith("006_")
