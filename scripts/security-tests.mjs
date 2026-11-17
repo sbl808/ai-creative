@@ -502,17 +502,16 @@ console.log('\n--- E) Cloudflare AI generation rate-limit contract ---');
   check('generation routes remain behind the shared Worker guard',
     /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\/api\/cms\/prompt'/.test(guards) &&
+    guards.includes("path === '/api/cms/prompt'") &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
   const ids = ['dev', 'staging', 'prod'].map((environment) => {
-    const match = wrangler.match(new RegExp(
-      '\\[\\[env\\.' + environment + '\\.ratelimits\\]\\]\\s*' +
-      'name = "AI_GENERATION_RATE_LIMITER"\\s*' +
-      'namespace_id = "(\\d+)"\\s*' +
-      '\\[env\\.' + environment + '\\.ratelimits\\.simple\\]\\s*' +
-      'limit = 3\\s*period = 60'
-    ));
-    return match && match[1];
+    const marker = '[[env.' + environment + '.ratelimits]]\nname = "AI_GENERATION_RATE_LIMITER"';
+    const start = wrangler.indexOf(marker);
+    const section = start >= 0 ? wrangler.slice(start, start + 220) : '';
+    const idMatch = section.match(/namespace_id = "(\d+)"/);
+    const valid = section.includes('[env.' + environment + '.ratelimits.simple]') &&
+      /limit = 3\s+period = 60/.test(section);
+    return valid && idMatch ? idMatch[1] : null;
   });
   check('dev/staging/prod each declare a unique AI generation limiter namespace',
     ids.every(Boolean) && new Set(ids).size === 3,
