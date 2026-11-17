@@ -41,6 +41,13 @@ namespace_id = "2101"
 limit = 3
 period = 60
 
+[[env.dev.ratelimits]]
+name = "AI_CONNECTION_TEST_RATE_LIMITER"
+namespace_id = "2111"
+[env.dev.ratelimits.simple]
+limit = 5
+period = 60
+
 [[env.staging.ratelimits]]
 name = "AI_GENERATION_RATE_LIMITER"
 namespace_id = "2102"
@@ -48,9 +55,23 @@ namespace_id = "2102"
 limit = 3
 period = 60
 
+[[env.staging.ratelimits]]
+name = "AI_CONNECTION_TEST_RATE_LIMITER"
+namespace_id = "2112"
+[env.staging.ratelimits.simple]
+limit = 5
+period = 60
+
 [[env.prod.ratelimits]]
 name = "AI_GENERATION_RATE_LIMITER"
 namespace_id = "2103"
 [env.prod.ratelimits.simple]
 limit = 3
+period = 60
+
+[[env.prod.ratelimits]]
+name = "AI_CONNECTION_TEST_RATE_LIMITER"
+namespace_id = "2113"
+[env.prod.ratelimits.simple]
+limit = 5
 period = 60
