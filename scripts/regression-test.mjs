@@ -18,6 +18,7 @@ import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 import { enforceSharedAiRateLimit } from '../worker/src/middleware/requestGuards.js';
+import { generateMultimodal } from '../worker/src/core/ai/aiService.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -275,6 +276,106 @@ await check('AI model metadata resolver exposes provider and enforces active tas
     ok: model?.provider === 'gemini' && compatible?.id === model.id && incompatible === null,
     msg: 'provider=' + model?.provider + ' compatible=' + !!compatible + ' incompatible=' + !!incompatible,
   };
+});
+
+await check('D1 model metadata allows Subtitle transcription at the AI Service runtime gate', async () => {
+  const modelRow = {
+    id: 'gemini-3.6-flash',
+    name: 'Subtitle transcription test',
+    category: 'transcribe',
+    enabled: 1,
+    is_default: 1,
+    plan_access: 'FREE',
+    provider: 'gemini',
+    capabilities_json: '["audio-transcription","subtitle-generation","text-translation"]',
+    supported_tasks_json: '["content.transcribe","voice.transcribe","subtitle.transcribe"]',
+    status: 'active',
+  };
+  const runtimeEnv = {
+    DB: {
+      prepare(sql) {
+        return {
+          async all() {
+            if (!sql.includes('supported_tasks_json')) throw new Error('unexpected_model_query');
+            return { results: [modelRow] };
+          },
+        };
+      },
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async (url) => {
+      providerCalls++;
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: 'Subtitle transcription result' }] } }],
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    const output = await generateMultimodal(runtimeEnv, {
+      model: modelRow.id,
+      task: 'subtitle.transcribe',
+      prompt: 'Transcribe this audio.',
+      images: [{ mimeType: 'audio/mpeg', base64: 'YXVkaW8=' }],
+      apiKey: 'test-only-key',
+    });
+    return {
+      ok: output === 'Subtitle transcription result' && providerCalls === 1,
+      msg: 'output=' + output + ' providerCalls=' + providerCalls,
+    };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+await check('AI Service rejects Subtitle transcription when persisted D1 task metadata omits it', async () => {
+  const modelRow = {
+    id: 'gemini-3.6-flash',
+    name: 'Subtitle transcription test',
+    category: 'transcribe',
+    enabled: 1,
+    is_default: 1,
+    plan_access: 'FREE',
+    provider: 'gemini',
+    capabilities_json: '["audio-transcription","subtitle-generation","text-translation"]',
+    supported_tasks_json: '["content.transcribe","voice.transcribe"]',
+    status: 'active',
+  };
+  const runtimeEnv = {
+    DB: {
+      prepare() {
+        return {
+          async all() { return { results: [modelRow] }; },
+        };
+      },
+    },
+  };
+  const originalFetch = globalThis.fetch;
+  let providerCalls = 0;
+  try {
+    globalThis.fetch = async () => {
+      providerCalls++;
+      return new Response('{}', { status: 200 });
+    };
+    let errorCode = '';
+    try {
+      await generateMultimodal(runtimeEnv, {
+        model: modelRow.id,
+        task: 'subtitle.transcribe',
+        prompt: 'Transcribe this audio.',
+        images: [{ mimeType: 'audio/mpeg', base64: 'YXVkaW8=' }],
+        apiKey: 'test-only-key',
+      });
+    } catch (error) {
+      errorCode = error?.code || '';
+    }
+    return {
+      ok: errorCode === 'task_not_supported' && providerCalls === 0,
+      msg: 'errorCode=' + errorCode + ' providerCalls=' + providerCalls,
+    };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 
