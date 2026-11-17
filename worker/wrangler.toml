@@ -55,3 +55,28 @@ namespace_id = "1003"
 [env.prod.ratelimits.simple]
 limit = 10
 period = 60
+
+# AI Generation rate limiting.
+# Namespace IDs are provisional; verify they are unused in the Cloudflare account
+# before any remote deployment. Each environment has an independent namespace.
+[[env.dev.ratelimits]]
+name = "AI_GENERATION_RATE_LIMITER"
+namespace_id = "1101"
+[env.dev.ratelimits.simple]
+limit = 3
+period = 60
+
+[[env.staging.ratelimits]]
+name = "AI_GENERATION_RATE_LIMITER"
+namespace_id = "1102"
+[env.staging.ratelimits.simple]
+limit = 3
+period = 60
+
+[[env.prod.ratelimits]]
+name = "AI_GENERATION_RATE_LIMITER"
+namespace_id = "1103"
+[env.prod.ratelimits.simple]
+limit = 3
+period = 60
+
