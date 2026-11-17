@@ -260,13 +260,10 @@ function loadDashboard(){
     var cards=[
       ['👥 Users',st.users||0],
       ['⭐ PRO',st.pro||0],
-      ['🗂️ Projects',st.projects||0],
-      ['🤖 AI (ယနေ့)',st.ai_today||0],
-      ['🎙️ Voice (ယနေ့)',st.voice_today||0],
-      ['🖼️ Image (ယနေ့)',st.image_today||0]
+      ['🗂️ Projects',st.projects||0]
     ];
     var html='';
-    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects'],['◈','AI Today','AI generations today','ai_today'],['◉','Voice Today','Voice generations today','voice_today'],['▧','Image Today','Image generations today','image_today']];
+    var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects']];
     labels.forEach(function(x){html+='<div class="card stat"><div class="stat-label">'+x[0]+' '+x[1]+'</div><div class="stat-value">'+esc(st[x[3]]||0)+'</div><div class="stat-foot">'+x[2]+'</div></div>';});
     $('statCards').innerHTML=html;
     var hg=$('healthGrid'); if(hg){hg.innerHTML='<div class="muted" style="font-size:11px">Loading studio status…</div>'; api('/api/admin/studios').then(function(sd){var arr=sd.items||[]; hg.innerHTML=arr.map(function(x){return '<div class="health" style="opacity:'+(x.enabled?'1':'.55')+'"><span class="dot" style="background:'+(x.enabled?'var(--green)':'#64748B')+';box-shadow:none"></span><span style="font-size:11px">'+esc(x.nameMy||x.name||x.id)+'</span><span style="margin-left:auto;font-size:10px;color:'+(x.enabled?'#82EFA3':'#7C8799')+'">'+(x.enabled?'ON':'OFF')+'</span></div>';}).join('')||'<div class="muted" style="font-size:11px">No studio data</div>';}).catch(function(){hg.innerHTML='<div class="muted" style="font-size:11px">Studio status unavailable</div>';});}
