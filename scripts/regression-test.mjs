@@ -72,7 +72,7 @@ class MockD1 {
   constructor(rows = {}) {
     this.rows = { ...rows, users: rows.users || {} };
     this.cmsPrompts = rows.cmsPrompts || [];
-    this.apiTestLimits = new Map(); this.apiGenerationLimits = new Map();
+    this.apiTestLimits = new Map();
     this.featureSettings = new Map(); this.studioSettings = new Map();
     this.planCatalog = new Map((rows.planCatalog || [
       { plan_key: 'FREE', name: 'Free', icon: 'sparkles', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 0 },
@@ -98,9 +98,6 @@ class MockD1 {
         }
         if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
           return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
-        }
-        if (sql.startsWith('SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?')) {
-          return { attempts: self.apiGenerationLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -159,17 +156,25 @@ class MockD1 {
           const key = String(this._args[0]) + ':' + this._args[1];
           self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
         }
-        if (/INSERT INTO api_generation_limits/.test(sql)) {
-          const key = String(this._args[0]) + ':' + this._args[1];
-          self.apiGenerationLimits.set(key, (self.apiGenerationLimits.get(key) || 0) + 1);
-        }
         return { success: true, meta: { changes } };
       },
     };
   }
 }
 
+function createMockRateLimiter(limit = 3) {
+  const attempts = new Map();
+  return {
+    async limit({ key }) {
+      const count = (attempts.get(String(key)) || 0) + 1;
+      attempts.set(String(key), count);
+      return { success: count <= limit };
+    },
+  };
+}
+
 const env = {
+  AI_GENERATION_RATE_LIMITER: createMockRateLimiter(),
   SESSION_SIGNING_KEY: 'regression-test-secret-key',
   GOOGLE_OAUTH_CLIENT_ID: 'test-client',
   GOOGLE_OAUTH_CLIENT_SECRET: 'test-secret',
@@ -533,8 +538,8 @@ await check('POST /api/ai/test → allows five attempts, blocks sixth in same wi
 });
 
 console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
-await check('Six Studios share one 30-request bucket; request 31 is blocked', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+await check('Six Studios share one three-request bucket; request four is blocked', async () => {
+  const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const headers = await withToken();
   const paths = [
     '/api/studio/story/generate',
@@ -545,9 +550,7 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     '/api/studio/shop/content/generate',
   ];
   const statuses = [];
-  // Empty but valid JSON reaches each route's input validation after rate limiting.
-  // No Gemini/provider call can occur because every route returns a missing-input error.
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 3; i++) {
     const path = paths[i % paths.length];
     const r = await worker.fetch(new Request('https://test.local' + path, {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
@@ -562,15 +565,16 @@ await check('Six Studios share one 30-request bucket; request 31 is blocked', as
     ok: statuses.every(status => status === 400) &&
       blocked.status === 429 &&
       blockedBody.error === 'rate_limited' &&
-      Number(blocked.headers.get('Retry-After')) > 0,
-    msg: `first30=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error} retry=${blocked.headers.get('Retry-After')}`,
+      blockedBody.limit === 3 &&
+      blockedBody.window_seconds === 60,
+    msg: `first3=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error}`,
   };
 });
 await check('shared generation limit is isolated per authenticated user', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+  const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
   const userTwo = await signToken(env, { sub: 'rate-user-two', email: 'two@example.test' });
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 3; i++) {
     await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
       method: 'POST', headers: { Authorization: 'Bearer ' + userOne, 'Content-Type': 'application/json' }, body: '{}',
     }), rateEnv, {});
@@ -580,21 +584,21 @@ await check('shared generation limit is isolated per authenticated user', async 
   }), rateEnv, {});
   return { ok: r.status === 400, msg: `second user status=${r.status} (expected route validation 400)` };
 });
-await check('shared generation limit fails closed when D1 is unavailable', async () => {
+await check('shared generation limit fails closed when Cloudflare binding is unavailable', async () => {
   const headers = await withToken();
-  const noDbEnv = { ...env, DB: null };
+  const noBindingEnv = { ...env, AI_GENERATION_RATE_LIMITER: null };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), noDbEnv, {});
+  }), noBindingEnv, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });
-await check('shared generation limit fails closed when D1 query throws', async () => {
+await check('shared generation limit fails closed when Cloudflare binding throws', async () => {
   const headers = await withToken();
-  const brokenDb = { prepare() { throw new Error('simulated D1 outage'); } };
+  const brokenLimiter = { async limit() { throw new Error('simulated rate limiter outage'); } };
   const r = await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), { ...env, DB: brokenDb }, {});
+  }), { ...env, AI_GENERATION_RATE_LIMITER: brokenLimiter }, {});
   const body = await r.json();
   return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
 });

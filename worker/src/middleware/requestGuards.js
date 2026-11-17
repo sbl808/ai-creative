@@ -2,8 +2,8 @@
 export const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
 
 
-const SHARED_AI_RATE_LIMIT = 30;
-const SHARED_AI_RATE_WINDOW_MS = 10 * 60 * 1000;
+const SHARED_AI_RATE_LIMIT = 3;
+const SHARED_AI_RATE_WINDOW_SECONDS = 60;
 
 export function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
@@ -15,30 +15,28 @@ export function isAiGenerationRoute(path, method) {
 export async function enforceSharedAiRateLimit(request, env, path, deps) {
   if (!isAiGenerationRoute(path, request.method)) return null;
   const authHeader = request.headers.get('Authorization') || '';
-  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
+  const bearer = authHeader.match(/^Bearer\\s+(.+)$/i)?.[1] || '';
   const token = bearer || deps.cookieToken(request);
   const payload = token ? await deps.verifyTokenSafe(env, token) : null;
   if (!payload?.sub) return null; // Let route auth preserve its established response.
-  if (!env.DB) return deps.json({ error: 'rate_limit_unavailable' }, 503);
 
-  const windowId = Math.floor(Date.now() / SHARED_AI_RATE_WINDOW_MS);
+  const limiter = env.AI_GENERATION_RATE_LIMITER;
+  if (!limiter || typeof limiter.limit !== 'function') {
+    return deps.json({ error: 'rate_limit_unavailable' }, 503);
+  }
+
   try {
-    await env.DB.prepare(
-      'INSERT INTO api_generation_limits (user_id, window_id, attempts) VALUES (?, ?, 1) ' +
-      'ON CONFLICT(user_id, window_id) DO UPDATE SET attempts = attempts + 1'
-    ).bind(payload.sub, windowId).run();
-    const row = await env.DB.prepare(
-      'SELECT attempts FROM api_generation_limits WHERE user_id = ? AND window_id = ?'
-    ).bind(payload.sub, windowId).first();
-    if (!row || row.attempts > SHARED_AI_RATE_LIMIT) {
-      const retryAfter = Math.max(1, Math.ceil(((windowId + 1) * SHARED_AI_RATE_WINDOW_MS - Date.now()) / 1000));
-      return deps.json({ error: 'rate_limited', limit: SHARED_AI_RATE_LIMIT, window_seconds: 600 }, 429, {
-        'Retry-After': String(retryAfter),
-      });
+    const { success } = await limiter.limit({ key: String(payload.sub) });
+    if (!success) {
+      return deps.json({
+        error: 'rate_limited',
+        limit: SHARED_AI_RATE_LIMIT,
+        window_seconds: SHARED_AI_RATE_WINDOW_SECONDS,
+      }, 429);
     }
     return null;
-  } catch (e) {
-    deps.friendlyError(e);
+  } catch (_) {
+    // Do not log request data, identifiers, or exception details.
     return deps.json({ error: 'rate_limit_unavailable' }, 503);
   }
 }
