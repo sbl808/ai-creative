@@ -571,6 +571,34 @@ await check('Six Studios share one three-request bucket; request four is blocked
     msg: `first3=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error}`,
   };
 });
+await check('all Subtitle API endpoints share the same three-request rate-limit bucket', async () => {
+  const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
+  const headers = await withToken();
+  const paths = [
+    '/api/studio/subtitle/transcribe',
+    '/api/studio/subtitle/srt',
+    '/api/studio/subtitle/translate-srt',
+  ];
+  const statuses = [];
+  for (const path of paths) {
+    const r = await worker.fetch(new Request('https://test.local' + path, {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+    }), rateEnv, {});
+    statuses.push(r.status);
+  }
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/transcribe', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), rateEnv, {});
+  const body = await blocked.json();
+  return {
+    ok: statuses.every(status => status === 400) &&
+      blocked.status === 429 &&
+      body.error === 'rate_limited' &&
+      body.limit === 3 &&
+      body.window_seconds === 60,
+    msg: `subtitle=${statuses.join(',')} blocked=${blocked.status} error=${body.error}`,
+  };
+});
 await check('shared generation limit is isolated per authenticated user', async () => {
   const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
