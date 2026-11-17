@@ -78,6 +78,7 @@ function envFor(origin) {
     SESSION_SIGNING_KEY: 'sec-test-key',
     GOOGLE_OAUTH_CLIENT_ID: 'c', GOOGLE_OAUTH_CLIENT_SECRET: 's',
     ALLOWED_ORIGINS: origin, ADMIN_EMAIL: 'a@b.com', DB: null,
+    AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
   };
 }
 const fetchCors = async (path, origin, method = 'GET') => {
@@ -483,30 +484,40 @@ console.log('\n--- D) API test rate-limit migration contract ---');
 }
 
 
-console.log('\n--- E) Shared AI generation rate-limit contract ---');
+console.log('\n--- E) Cloudflare AI generation rate-limit contract ---');
 {
-  const migrationPath = new URL('../worker/migrations/015_create_api_generation_limits.sql', import.meta.url);
-  const migrationExists = existsSync(migrationPath);
-  check('shared AI rate-limit migration exists', migrationExists);
-  if (migrationExists) {
-    const migration = readFileSync(migrationPath, 'utf8');
-    check('migration creates per-user/per-window generation counters',
-      /CREATE TABLE IF NOT EXISTS api_generation_limits/i.test(migration) &&
-      /PRIMARY KEY\s*\(\s*user_id\s*,\s*window_id\s*\)/i.test(migration));
-    check('migration indexes window_id for cleanup',
-      /idx_api_generation_limits_window[\s\S]*?ON api_generation_limits\s*\(\s*window_id\s*\)/i.test(migration));
-  }
   const route = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
   const guards = readFileSync(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  check('generation routes share a 30-per-10-minute user limit',
-    /const SHARED_AI_RATE_LIMIT = 30/.test(guards) &&
-    /api_generation_limits/.test(guards) &&
-    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route) &&
-    /rate_limited/.test(guards));
+  const wrangler = readFileSync(new URL('../worker/wrangler.toml', import.meta.url), 'utf8');
+  check('AI generation uses three requests per 60-second Cloudflare window',
+    /const SHARED_AI_RATE_LIMIT = 3/.test(guards) &&
+    /const SHARED_AI_RATE_WINDOW_SECONDS = 60/.test(guards) &&
+    /limit = 3\s+period = 60/.test(wrangler));
+  check('AI generation limiter uses authenticated user key and Cloudflare binding',
+    /env\.AI_GENERATION_RATE_LIMITER/.test(guards) &&
+    /limiter\.limit\(\{\s*key:\s*String\(payload\.sub\)\s*\}\)/.test(guards));
+  check('AI generation no longer reads or writes the D1 generation counter',
+    !/api_generation_limits/.test(guards) &&
+    !/api_generation_limits/.test(route));
+  check('generation routes remain behind the shared Worker guard',
+    /enforceSharedAiRateLimit\(request, env, path, \{/.test(route));
   check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\/api\/cms\/prompt'/.test(guards) &&
+    /path === '\\/api\\/cms\\/prompt'/.test(guards) &&
     /content\|story\|short\|image\|voice\|shop/.test(guards));
-  console.log('  ↷ D1-backed runtime behavior and remote D1 application NOT TESTED by this static contract.');
+  const ids = ['dev', 'staging', 'prod'].map((environment) => {
+    const match = wrangler.match(new RegExp(
+      '\\[\\[env\\.' + environment + '\\.ratelimits\\]\\]\\s*' +
+      'name = "AI_GENERATION_RATE_LIMITER"\\s*' +
+      'namespace_id = "(\\d+)"\\s*' +
+      '\\[env\\.' + environment + '\\.ratelimits\\.simple\\]\\s*' +
+      'limit = 3\\s*period = 60'
+    ));
+    return match && match[1];
+  });
+  check('dev/staging/prod each declare a unique AI generation limiter namespace',
+    ids.every(Boolean) && new Set(ids).size === 3,
+    'namespace_ids=' + JSON.stringify(ids));
+  console.log('  ↷ Cloudflare account namespace availability and remote runtime behavior NOT TESTED.');
 }
 
 console.log('\n--- E) Browser-local BYOK settings save/status contract ---');
