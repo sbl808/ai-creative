@@ -167,6 +167,7 @@ function createMockRateLimiter(limit = 3) {
 
 const env = {
   AI_GENERATION_RATE_LIMITER: createMockRateLimiter(1000),
+  AI_CONNECTION_TEST_RATE_LIMITER: createMockRateLimiter(1000),
   SESSION_SIGNING_KEY: 'regression-test-secret-key',
   GOOGLE_OAUTH_CLIENT_ID: 'test-client',
   GOOGLE_OAUTH_CLIENT_SECRET: 'test-secret',
