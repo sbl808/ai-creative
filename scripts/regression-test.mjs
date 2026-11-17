@@ -17,6 +17,7 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { appendOAuthProfileName } from '../worker/src/routes/auth.routes.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -399,6 +400,58 @@ await check('Plan Catalog metadata does not grant PRO-only Feature Gate access t
   const db = new MockD1({ users: { 'user-1': { plan:'FREE', expiry:null } } });
   const result = await checkFeature({DB:db},'story.video_image','FREE','1');
   return { ok:result.ok===false && result.reason==='pro_only', msg:JSON.stringify(result) };
+});
+
+console.log('— Google OAuth browser-local profile name —');
+await check('OAuth profile name is URL-encoded in the same-origin redirect fragment and existing fragment values are preserved', async () => {
+  const redirect = appendOAuthProfileName('https://test.local/app?from=google#tab=home', 'Sai & Lin');
+  const target = new URL(redirect);
+  const params = new URLSearchParams(target.hash.replace(/^#/, ''));
+  return {
+    ok: target.origin === 'https://test.local' && target.pathname === '/app' &&
+      target.searchParams.get('from') === 'google' && params.get('tab') === 'home' &&
+      params.get('aics_profile_name') === 'Sai & Lin',
+    msg: 'redirect=' + redirect,
+  };
+});
+await check('OAuth profile name is bounded and empty names do not add a fragment parameter', async () => {
+  const longName = appendOAuthProfileName('https://test.local/app', 'N'.repeat(80));
+  const emptyName = appendOAuthProfileName('https://test.local/app#tab=home', '   ');
+  const longParams = new URLSearchParams(new URL(longName).hash.replace(/^#/, ''));
+  const emptyParams = new URLSearchParams(new URL(emptyName).hash.replace(/^#/, ''));
+  return {
+    ok: longParams.get('aics_profile_name') === 'N'.repeat(60) &&
+      emptyParams.get('tab') === 'home' && !emptyParams.has('aics_profile_name'),
+    msg: 'longNameLength=' + (longParams.get('aics_profile_name') || '').length + ' empty=' + emptyName,
+  };
+});
+await check('Google profile name is consumed once, URL fragment is cleaned, and custom IndexedDB names are preserved', async () => {
+  const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const settingsSource = await readFile(new URL('../worker/src/frontend/storage/repositories/user-settings.js', import.meta.url), 'utf8');
+  return {
+    ok: sharedSource.includes("params.has('aics_profile_name')") &&
+      sharedSource.includes("params.delete('aics_profile_name')") &&
+      sharedSource.includes("window.history.replaceState(window.history.state, '', nextUrl)") &&
+      sharedSource.includes('window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } })') &&
+      sharedSource.includes('!String(record.profile && record.profile.name ||') &&
+      sharedSource.includes('!String(legacyProfile.name ||') &&
+      settingsSource.includes("profile.name !== undefined") &&
+      settingsSource.includes("profile.name = input.profile.name"),
+    msg: 'fragment cleanup, IndexedDB seed and existing-name guard checked',
+  };
+});
+await check('Google profile name is not added to D1 user columns or server-side profile endpoints', async () => {
+  const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
+  const usersSource = await readFile(new URL('../worker/src/routes/users.routes.js', import.meta.url), 'utf8');
+  const hasNameColumnWrite = /INSERT INTO users\s*\([^)]*\bname\b/i.test(authSource) ||
+    /UPDATE users SET[^;]*\bname\s*=/i.test(authSource);
+  return {
+    ok: !hasNameColumnWrite &&
+      authSource.includes('Location: appendOAuthProfileName(statePayload.redirectTo, user.name)') &&
+      usersSource.includes("'/api/users/me'") &&
+      !usersSource.includes('profile_name'),
+    msg: 'D1 user writes remain account metadata only; no profile-name endpoint added',
+  };
 });
 
 console.log('— Auth / user API —');
