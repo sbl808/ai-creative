@@ -229,13 +229,20 @@ await check('AI model metadata resolver exposes provider and enforces active tas
 await check('AI model API applies Studio task filtering', async () => {
   const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());
   const incompatible = await get('/api/ai-models?category=voice&task=story.text', await withToken());
+  const subtitleCompatible = await get('/api/ai-models?category=transcribe&task=voice.transcribe', await withToken());
+  const subtitleIncompatible = await get('/api/ai-models?category=transcribe&task=subtitle.transcribe', await withToken());
   const good = await compatible.json();
   const bad = await incompatible.json();
+  const subtitleGood = await subtitleCompatible.json();
+  const subtitleBad = await subtitleIncompatible.json();
   return {
     ok: compatible.status === 200 && incompatible.status === 200 &&
       good.items.length > 0 && good.items.every(m => m.category === 'text') &&
-      bad.items.length === 0,
-    msg: `compatible=${good.items.length} incompatible=${bad.items.length}`,
+      bad.items.length === 0 &&
+      subtitleCompatible.status === 200 && subtitleIncompatible.status === 200 &&
+      subtitleGood.items.length > 0 && subtitleGood.items.every(m => m.category === 'transcribe') &&
+      subtitleBad.items.length === 0,
+    msg: `compatible=${good.items.length} incompatible=${bad.items.length} subtitleCompatible=${subtitleGood.items.length} subtitleWrongTask=${subtitleBad.items.length}`,
   };
 });
 
@@ -1079,8 +1086,21 @@ console.log('— Subtitle Studio frontend integration contracts —');
 await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save actions', async () => {
   const r = await get('/app/subtitle', await withToken());
   const body = await r.text();
+  const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const actionSource = await readFile(new URL('../worker/src/frontend/studios/subtitle/actions.js', import.meta.url), 'utf8');
+  const audioRequestStart = actionSource.indexOf('subtitleApiPost(path, {');
+  const audioRequestEnd = actionSource.indexOf('}).then(function (result)', audioRequestStart);
+  const translationRequestStart = actionSource.indexOf("subtitleApiPost('/api/studio/subtitle/translate-srt', {");
+  const translationRequestEnd = actionSource.indexOf('}).then(function (result)', translationRequestStart);
+  const audioRequest = audioRequestStart >= 0 && audioRequestEnd > audioRequestStart ? actionSource.slice(audioRequestStart, audioRequestEnd) : '';
+  const translationRequest = translationRequestStart >= 0 && translationRequestEnd > translationRequestStart ? actionSource.slice(translationRequestStart, translationRequestEnd) : '';
   return {
     ok: r.status === 200 && body.includes('Subtitle Studio') &&
+      body.includes('data-task="voice.transcribe"') &&
+      sharedSource.includes('data-task') && sharedSource.includes('opts.modelTask') &&
+      actionSource.includes('function subtitleSelectedModel()') &&
+      audioRequest.includes('model: subtitleSelectedModel()') &&
+      translationRequest.includes('model: subtitleSelectedModel()') &&
       body.includes('subtitleMediaFile') && body.includes('subtitleTranslateBtn') &&
       body.includes('subtitleSaveSrtBtn') && body.includes('aicsApiFetch') &&
       body.includes('AICS_CREATIONS.save') && body.includes('studioCollectDraft') &&
