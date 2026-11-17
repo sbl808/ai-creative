@@ -83,7 +83,7 @@ var countNode=document.getElementById('historyCount');
 var emptyNode=document.getElementById('historyEmpty');
 function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function dateLabel(value){if(!value)return '';var d=new Date(value);return isNaN(d.getTime())?'':d.toLocaleString()}
-function studioPath(value){var studio=String(value||'').toLowerCase();return ['story','content','short','image','voice','shop'].indexOf(studio)!==-1?'/app/'+studio:'/app'}
+function studioPath(value){var studio=String(value||'').toLowerCase();return ['story','content','short','image','voice','subtitle','shop'].indexOf(studio)!==-1?'/app/'+studio:'/app'}
 function itemLabel(kind){return ({creation:'Creation',idea:'Idea',result:'Studio Result',session:'Session',draft:'Draft'})[kind]||'Item'}
 function itemHref(item){
  if(item.kind==='creation')return '/app/creations';

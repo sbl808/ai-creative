@@ -1135,6 +1135,15 @@ await check('Voice Studio routes SRT translation through the shared Voice transl
   };
 });
 
+await check('History opens Subtitle Draft in Subtitle Studio', async () => {
+  const source = await readFile(new URL('../worker/src/frontend/history.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("['story','content','short','image','voice','subtitle','shop']") &&
+      source.includes("if(item.kind==='result'||item.kind==='session'||item.kind==='draft')return studioPath(item.studio);"),
+    msg: 'Subtitle is allowed by History studioPath and Draft items use that route',
+  };
+});
+
 console.log('— Subtitle Studio frontend integration contracts —');
 await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save actions', async () => {
   const r = await get('/app/subtitle', await withToken());
