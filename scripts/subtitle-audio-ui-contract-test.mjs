@@ -10,7 +10,7 @@ assert.match(page, /mimeType:resolveAudioMimeType\(file\)/);
 assert.match(page, /mp3:'audio\\/mpeg'/);
 assert.match(page, /wav:'audio\\/wav'/);
 assert.match(page, /m4a:'audio\\/mp4'/);
-assert.match(page, /if\(file\.type\)return file\.type\.indexOf\('audio\\/'\)===0\?file\.type:''/);
+assert.ok(page.includes("if(file.type)return file.type.indexOf('audio/')===0?file.type:''"));
 assert.match(page, /if\(!detectedMimeType\)/);
 assert.match(page, /maxAudioBytes=5\*1024\*1024/);
 assert.match(page, /credentials_not_found/);
