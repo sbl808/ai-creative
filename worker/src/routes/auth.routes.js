@@ -34,6 +34,20 @@ function safeOAuthRedirect(next, requestOrigin) {
   }
 }
 
+function appendOAuthProfileName(redirectTo, profileName) {
+  const name = String(profileName || '').trim().slice(0, 60);
+  if (!name) return String(redirectTo || '');
+  try {
+    const target = new URL(String(redirectTo));
+    const params = new URLSearchParams(target.hash.replace(/^#/, ''));
+    params.set('aics_profile_name', name);
+    target.hash = params.toString();
+    return target.href;
+  } catch (_) {
+    return String(redirectTo || '');
+  }
+}
+
 async function createOAuthStateCookieValue(env, state, redirectTo, now = Date.now()) {
   const secret = String(env.SESSION_SIGNING_KEY || '').trim();
   if (!secret) throw new Error('missing_signing_key');
@@ -159,7 +173,7 @@ export async function handleAuthRoutes(request, env, cors, deps) {
           const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
           const response = new Response(null, {
             status: 302,
-            headers: { Location: statePayload.redirectTo, 'Set-Cookie': sessionCookie },
+            headers: { Location: appendOAuthProfileName(statePayload.redirectTo, user.name), 'Set-Cookie': sessionCookie },
           });
           return withClearedState(response);
         } catch (e) {
@@ -225,4 +239,4 @@ export async function handleAuthRoutes(request, env, cors, deps) {
   return null;
 }
 
-export { safeOAuthRedirect, createOAuthStateCookieValue, verifyOAuthStateCookieValue };
+export { safeOAuthRedirect, appendOAuthProfileName, createOAuthStateCookieValue, verifyOAuthStateCookieValue };

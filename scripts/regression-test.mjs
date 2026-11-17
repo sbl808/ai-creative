@@ -17,6 +17,7 @@ import { BRAIN_LAYER_ORDER, buildBrainPrompt } from '../worker/src/core/cmsBrain
 import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
+import { appendOAuthProfileName } from '../worker/src/routes/auth.routes.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -229,13 +230,20 @@ await check('AI model metadata resolver exposes provider and enforces active tas
 await check('AI model API applies Studio task filtering', async () => {
   const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());
   const incompatible = await get('/api/ai-models?category=voice&task=story.text', await withToken());
+  const subtitleCompatible = await get('/api/ai-models?category=transcribe&task=voice.transcribe', await withToken());
+  const subtitleIncompatible = await get('/api/ai-models?category=transcribe&task=subtitle.transcribe', await withToken());
   const good = await compatible.json();
   const bad = await incompatible.json();
+  const subtitleGood = await subtitleCompatible.json();
+  const subtitleBad = await subtitleIncompatible.json();
   return {
     ok: compatible.status === 200 && incompatible.status === 200 &&
       good.items.length > 0 && good.items.every(m => m.category === 'text') &&
-      bad.items.length === 0,
-    msg: `compatible=${good.items.length} incompatible=${bad.items.length}`,
+      bad.items.length === 0 &&
+      subtitleCompatible.status === 200 && subtitleIncompatible.status === 200 &&
+      subtitleGood.items.length > 0 && subtitleGood.items.every(m => m.category === 'transcribe') &&
+      subtitleBad.items.length === 0,
+    msg: `compatible=${good.items.length} incompatible=${bad.items.length} subtitleCompatible=${subtitleGood.items.length} subtitleWrongTask=${subtitleBad.items.length}`,
   };
 });
 
@@ -392,6 +400,58 @@ await check('Plan Catalog metadata does not grant PRO-only Feature Gate access t
   const db = new MockD1({ users: { 'user-1': { plan:'FREE', expiry:null } } });
   const result = await checkFeature({DB:db},'story.video_image','FREE','1');
   return { ok:result.ok===false && result.reason==='pro_only', msg:JSON.stringify(result) };
+});
+
+console.log('— Google OAuth browser-local profile name —');
+await check('OAuth profile name is URL-encoded in the same-origin redirect fragment and existing fragment values are preserved', async () => {
+  const redirect = appendOAuthProfileName('https://test.local/app?from=google#tab=home', 'Sai & Lin');
+  const target = new URL(redirect);
+  const params = new URLSearchParams(target.hash.replace(/^#/, ''));
+  return {
+    ok: target.origin === 'https://test.local' && target.pathname === '/app' &&
+      target.searchParams.get('from') === 'google' && params.get('tab') === 'home' &&
+      params.get('aics_profile_name') === 'Sai & Lin',
+    msg: 'redirect=' + redirect,
+  };
+});
+await check('OAuth profile name is bounded and empty names do not add a fragment parameter', async () => {
+  const longName = appendOAuthProfileName('https://test.local/app', 'N'.repeat(80));
+  const emptyName = appendOAuthProfileName('https://test.local/app#tab=home', '   ');
+  const longParams = new URLSearchParams(new URL(longName).hash.replace(/^#/, ''));
+  const emptyParams = new URLSearchParams(new URL(emptyName).hash.replace(/^#/, ''));
+  return {
+    ok: longParams.get('aics_profile_name') === 'N'.repeat(60) &&
+      emptyParams.get('tab') === 'home' && !emptyParams.has('aics_profile_name'),
+    msg: 'longNameLength=' + (longParams.get('aics_profile_name') || '').length + ' empty=' + emptyName,
+  };
+});
+await check('Google profile name is consumed once, URL fragment is cleaned, and custom IndexedDB names are preserved', async () => {
+  const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const settingsSource = await readFile(new URL('../worker/src/frontend/storage/repositories/user-settings.js', import.meta.url), 'utf8');
+  return {
+    ok: sharedSource.includes("params.has('aics_profile_name')") &&
+      sharedSource.includes("params.delete('aics_profile_name')") &&
+      sharedSource.includes("window.history.replaceState(window.history.state, '', nextUrl)") &&
+      sharedSource.includes('window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } })') &&
+      sharedSource.includes('!String(record.profile && record.profile.name ||') &&
+      sharedSource.includes('!String(legacyProfile.name ||') &&
+      settingsSource.includes("profile.name !== undefined") &&
+      settingsSource.includes("profile.name = input.profile.name"),
+    msg: 'fragment cleanup, IndexedDB seed and existing-name guard checked',
+  };
+});
+await check('Google profile name is not added to D1 user columns or server-side profile endpoints', async () => {
+  const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
+  const usersSource = await readFile(new URL('../worker/src/routes/users.routes.js', import.meta.url), 'utf8');
+  const hasNameColumnWrite = /INSERT INTO users\s*\([^)]*\bname\b/i.test(authSource) ||
+    /UPDATE users SET[^;]*\bname\s*=/i.test(authSource);
+  return {
+    ok: !hasNameColumnWrite &&
+      authSource.includes('Location: appendOAuthProfileName(statePayload.redirectTo, user.name)') &&
+      usersSource.includes("'/api/users/me'") &&
+      !usersSource.includes('profile_name'),
+    msg: 'D1 user writes remain account metadata only; no profile-name endpoint added',
+  };
 });
 
 console.log('— Auth / user API —');
@@ -569,6 +629,34 @@ await check('Six Studios share one three-request bucket; request four is blocked
       blockedBody.limit === 3 &&
       blockedBody.window_seconds === 60,
     msg: `first3=${[...new Set(statuses)].join(',')} blocked=${blocked.status} error=${blockedBody.error}`,
+  };
+});
+await check('all Subtitle API endpoints share the same three-request rate-limit bucket', async () => {
+  const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
+  const headers = await withToken();
+  const paths = [
+    '/api/studio/subtitle/transcribe',
+    '/api/studio/subtitle/srt',
+    '/api/studio/subtitle/translate-srt',
+  ];
+  const statuses = [];
+  for (const path of paths) {
+    const r = await worker.fetch(new Request('https://test.local' + path, {
+      method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+    }), rateEnv, {});
+    statuses.push(r.status);
+  }
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/transcribe', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
+  }), rateEnv, {});
+  const body = await blocked.json();
+  return {
+    ok: statuses.every(status => status === 400) &&
+      blocked.status === 429 &&
+      body.error === 'rate_limited' &&
+      body.limit === 3 &&
+      body.window_seconds === 60,
+    msg: `subtitle=${statuses.join(',')} blocked=${blocked.status} error=${body.error}`,
   };
 });
 await check('shared generation limit is isolated per authenticated user', async () => {
@@ -1047,12 +1135,34 @@ await check('Voice Studio routes SRT translation through the shared Voice transl
   };
 });
 
+await check('History opens Subtitle Draft in Subtitle Studio', async () => {
+  const source = await readFile(new URL('../worker/src/frontend/history.js', import.meta.url), 'utf8');
+  return {
+    ok: source.includes("['story','content','short','image','voice','subtitle','shop']") &&
+      source.includes("if(item.kind==='result'||item.kind==='session'||item.kind==='draft')return studioPath(item.studio);"),
+    msg: 'Subtitle is allowed by History studioPath and Draft items use that route',
+  };
+});
+
 console.log('— Subtitle Studio frontend integration contracts —');
 await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save actions', async () => {
   const r = await get('/app/subtitle', await withToken());
   const body = await r.text();
+  const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const actionSource = await readFile(new URL('../worker/src/frontend/studios/subtitle/actions.js', import.meta.url), 'utf8');
+  const audioRequestStart = actionSource.indexOf('subtitleApiPost(path, {');
+  const audioRequestEnd = actionSource.indexOf('}).then(function (result)', audioRequestStart);
+  const translationRequestStart = actionSource.indexOf("subtitleApiPost('/api/studio/subtitle/translate-srt', {");
+  const translationRequestEnd = actionSource.indexOf('}).then(function (result)', translationRequestStart);
+  const audioRequest = audioRequestStart >= 0 && audioRequestEnd > audioRequestStart ? actionSource.slice(audioRequestStart, audioRequestEnd) : '';
+  const translationRequest = translationRequestStart >= 0 && translationRequestEnd > translationRequestStart ? actionSource.slice(translationRequestStart, translationRequestEnd) : '';
   return {
     ok: r.status === 200 && body.includes('Subtitle Studio') &&
+      body.includes('data-task="voice.transcribe"') &&
+      sharedSource.includes('data-task') && sharedSource.includes('opts.modelTask') &&
+      actionSource.includes('function subtitleSelectedModel()') &&
+      audioRequest.includes('model: subtitleSelectedModel()') &&
+      translationRequest.includes('model: subtitleSelectedModel()') &&
       body.includes('subtitleMediaFile') && body.includes('subtitleTranslateBtn') &&
       body.includes('subtitleSaveSrtBtn') && body.includes('aicsApiFetch') &&
       body.includes('AICS_CREATIONS.save') && body.includes('studioCollectDraft') &&

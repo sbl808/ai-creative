@@ -1,12 +1,12 @@
 // AI Creative Studio — Subtitle Studio UI
 export const SUBTITLE_HOME_HTML = `
 <main class="subtitle-screen" id="subtitleWorkflow">
-  <header class="subtitle-hero"><div class="subtitle-hero-icon" aria-hidden="true">💬</div><div><h1>Subtitle Studio</h1><p>Audio / Video မှ SRT ဖန်တီးခြင်း၊ ပြင်ဆင်ခြင်းနှင့် ဘာသာပြန်ခြင်းကို တစ်နေရာတည်းတွင် ပြုလုပ်ပါ။</p></div></header>
+  <header class="subtitle-hero"><div class="subtitle-hero-icon" aria-hidden="true">💬</div><div><h1>Subtitle Studio</h1><p>Audio မှ SRT ဖန်တီးခြင်း၊ ပြင်ဆင်ခြင်းနှင့် ဘာသာပြန်ခြင်းကို တစ်နေရာတည်းတွင် ပြုလုပ်ပါ။</p></div></header>
   <div class="subtitle-grid">
     <section class="subtitle-card" aria-labelledby="subtitleCreateTitle">
-      <h2 id="subtitleCreateTitle">🎧 Audio / Video မှ SRT ဖန်တီးရန်</h2>
-      <p>ဖိုင်ကို ရွေးပြီး SRT ဖန်တီးပါ။ ဖိုင်အရွယ်အစား 5MB အထိသာ လက်ခံပါသည်။</p>
-      <label for="subtitleMediaFile">Media ဖိုင်</label><input id="subtitleMediaFile" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm,.mp4,.mov,.mkv">
+      <h2 id="subtitleCreateTitle">🎧 Audio မှ SRT ဖန်တီးရန်</h2>
+      <p>Audio ဖိုင်ကို ရွေးပြီး SRT ဖန်တီးပါ။ MP3, WAV, M4A, AAC, OGG နှင့် FLAC ဖိုင်များကို 5MB အထိ လက်ခံပါသည်။</p>
+      <label for="subtitleMediaFile">Media ဖိုင်</label><input id="subtitleMediaFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac">
       <label for="subtitleKnownText">ရှိပြီးသား စာသား (ရွေးချယ်နိုင်သည်)</label><textarea id="subtitleKnownText" rows="3" placeholder="ရှိပြီးသား စာသားရှိပါက ထည့်ပါ"></textarea>
       <label for="subtitleAudioOutput">ရလဒ်အမျိုးအစား</label><select id="subtitleAudioOutput" class="subtitle-select"><option value="srt">SRT စာတန်းထိုး</option><option value="text">စာသားသက်သက်</option></select><div class="subtitle-actions"><button type="button" class="subtitle-button" id="subtitleGenerateBtn">ဖန်တီးရန်</button></div><label for="subtitleTranscriptOutput">စာသားရလဒ်</label><textarea id="subtitleTranscriptOutput" rows="6" readonly placeholder="စာသားရလဒ်ကို ဤနေရာတွင် ပြသပါမည်"></textarea><div class="subtitle-actions"><button type="button" class="subtitle-button secondary" id="subtitleDownloadTranscriptBtn">စာသား Download</button><button type="button" class="subtitle-button secondary" id="subtitleSaveTranscriptBtn">IndexedDB သိမ်းရန်</button></div>
     </section>

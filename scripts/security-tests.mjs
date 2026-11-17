@@ -312,8 +312,11 @@ console.log('\n--- C) OAuth redirect and state security ---');
   const sharedFrontend = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
   check('OAuth callback requires matching browser-bound state',
     authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
-  check('OAuth callback redirects without putting token in URL',
-    authRoute.includes('Location: statePayload.redirectTo') && !authRoute.includes('#token='));
+  check('OAuth callback redirects with browser-only profile fragment and without token in URL',
+    authRoute.includes('Location: appendOAuthProfileName(statePayload.redirectTo, user.name)') &&
+    authRoute.includes("params.set('aics_profile_name', name)") &&
+    authRoute.includes('target.hash = params.toString()') &&
+    !authRoute.includes('#token='));
   check('OAuth callback clears one-time state cookie',
     authRoute.includes('Max-Age=0') && authRoute.includes('withClearedState(response)'));
   check('frontend no longer imports tokens from URL fragments',

@@ -19,6 +19,11 @@ function subtitleDraftValue(id) {
   return element ? String(element.value || '') : '';
 }
 
+function subtitleSelectedModel() {
+  var selector = document.getElementById('aiModelSel');
+  return selector ? String(selector.value || '') : '';
+}
+
 window.studioCollectDraft = function () {
   // File objects and media bytes are deliberately excluded from persisted drafts.
   return {
@@ -83,12 +88,33 @@ function subtitleApiPost(path, body) {
   });
 }
 
+function subtitleResolveAudioMimeType(file) {
+  var mimeType = String(file && file.type || '').toLowerCase().split(';')[0].trim();
+  if (mimeType.indexOf('audio/') === 0) return mimeType;
+  // Some browsers leave File.type empty or use a generic binary MIME type.
+  // Resolve only known audio extensions; never reinterpret a video MIME type.
+  if (mimeType && mimeType !== 'application/octet-stream') return '';
+  var name = String(file && file.name || '').toLowerCase();
+  var extension = name.slice(name.lastIndexOf('.') + 1);
+  var audioMimeTypes = {
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    m4a: 'audio/mp4',
+    aac: 'audio/aac',
+    ogg: 'audio/ogg',
+    flac: 'audio/flac'
+  };
+  return audioMimeTypes[extension] || '';
+}
+
 function subtitleGenerateSrt() {
   if (SUBTITLE_STATE.processingState === 'processing') return;
   var input = document.getElementById('subtitleMediaFile');
   var file = input && input.files && input.files[0];
   var outputMode = (document.getElementById('subtitleAudioOutput') || {}).value || 'srt';
-  if (!file) { subtitleSetStatus('Audio သို့မဟုတ် Video ဖိုင် ရွေးပေးပါ။', true); return; }
+  if (!file) { subtitleSetStatus('Audio ဖိုင် ရွေးပေးပါ။', true); return; }
+  var mimeType = subtitleResolveAudioMimeType(file);
+  if (!mimeType) { subtitleSetStatus('လက်ရှိတွင် Audio ဖိုင်များကိုသာ လက်ခံပါသည်။ MP3, WAV, M4A, AAC, OGG သို့မဟုတ် FLAC ကို ရွေးပါ။', true); return; }
   if (file.size > 5 * 1024 * 1024) { subtitleSetStatus('ဖိုင်သည် 5MB ထက် မကျော်ရပါ။', true); return; }
   var button = document.getElementById('subtitleGenerateBtn');
   var known = document.getElementById('subtitleKnownText');
@@ -113,9 +139,10 @@ function subtitleGenerateSrt() {
     }
     subtitleApiPost(path, {
       audioBase64: audioBase64,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: mimeType,
       knownText: known ? known.value : '',
-      type: outputMode === 'text' ? '1' : '2'
+      type: outputMode === 'text' ? '1' : '2',
+      model: subtitleSelectedModel()
     }).then(function (result) {
       if (outputMode === 'text') {
         var transcript = String(result.text || '');
@@ -260,7 +287,8 @@ function subtitleTranslateSrt() {
   subtitleApiPost('/api/studio/subtitle/translate-srt', {
     srtText: srtText,
     direction: direction,
-    type: '2'
+    type: '2',
+    model: subtitleSelectedModel()
   }).then(function (result) {
     var translated = String(result.srt || '');
     if (!translated.trim()) throw new Error('empty_result');

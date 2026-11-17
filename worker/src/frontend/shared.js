@@ -366,10 +366,28 @@ function sidebarSessionHistoryScript() {
 `;
 }
 
+function oauthProfileNameBootstrapScript() {
+  return String.raw`var AICS_OAUTH_PROFILE_NAME = (function () {
+  try {
+    var params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (!params.has('aics_profile_name')) return '';
+    var name = String(params.get('aics_profile_name') || '').trim().slice(0, 60);
+    params.delete('aics_profile_name');
+    var nextUrl = window.location.pathname + window.location.search;
+    if (params.toString()) nextUrl += '#' + params.toString();
+    window.history.replaceState(window.history.state, '', nextUrl);
+    return name;
+  } catch (error) {
+    return '';
+  }
+})();`;
+}
+
 export function sidebarScript() {
   return '<script>\n' +
     themeControllerScript({ toggleId: 'aicsThemeToggle', mountSelector: '#sidebar .sidebar-bottom', className: 'aics-theme-toggle' }) + '\n' +
     clientStorageScript() + '\n' +
+    oauthProfileNameBootstrapScript() + '\n' +
     sidebarSessionHistoryScript() + '\n' +
     '// ===== AI Creative Studio — Shared Sidebar Script (Phase 2 — App Shell) =====\n' +
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
@@ -377,12 +395,17 @@ export function sidebarScript() {
     '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
     '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
     '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
-    '    if (record) return record;\n' +
+    '    if (record) {\n' +
+    '      if (AICS_OAUTH_PROFILE_NAME && !String(record.profile && record.profile.name || \'\').trim()) return window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } });\n' +
+    '      return record;\n' +
+    '    }\n' +
     '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
     '      .then(function (legacy) {\n' +
     '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
-    '        return window.AICS_USER_SETTINGS.save({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
+    '        var legacyProfile = legacy.profile || {};\n' +
+    '        if (AICS_OAUTH_PROFILE_NAME && !String(legacyProfile.name || \'\').trim()) legacyProfile = Object.assign({}, legacyProfile, { name: AICS_OAUTH_PROFILE_NAME });\n' +
+    '        return window.AICS_USER_SETTINGS.save({ profile: legacyProfile, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
     '      });\n' +
     '  }).then(function (record) {\n' +
     '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
@@ -513,7 +536,7 @@ export function sidebarScript() {
     '      var cat = sel.getAttribute(\'data-category\') || \'text\';\n' +
     '      var pathParts = window.location.pathname.split(\'/\');\n' +
     '      var studio = pathParts.filter(function (part) { return !!part; }).pop() || \'\';\n' +
-    '      var task = studio + \'.\' + cat;\n' +
+    '      var task = sel.getAttribute(\'data-task\') || studio + \'.\' + cat;\n' +
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
@@ -825,6 +848,7 @@ export function renderStudioShell(opts) {
   const desc = opts.desc || '';
   const icon = opts.icon || '🎨';
   const modelCat = opts.modelCat || 'text';
+  const modelTask = opts.modelTask || '';
   const steps = opts.steps || [];
   const content = opts.content || '';
   const stepsJson = JSON.stringify(steps.map(function (s, i) {
@@ -850,7 +874,7 @@ export function renderStudioShell(opts) {
     '</section>\n' +
     '</div>\n' +
     '<div class="aics-actions">\n' +
-    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"></select></div></div>\n' +
+    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"' + (modelTask ? ' data-task="' + modelTask + '"' : '') + '></select></div></div>\n' +
     '</div>\n' +
     '</main>\n' +
     '</div>\n' +
