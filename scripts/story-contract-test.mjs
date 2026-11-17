@@ -31,16 +31,12 @@ const facts = {
 };
 
 class RouteMockD1 {
-  constructor() { this.limits = new Map(); }
+  constructor() {}
   prepare(sql) {
     const self = this;
     return {
       bind(...args) { this.args = args; return this; },
       async run() {
-        if (sql.includes('INSERT INTO api_generation_limits')) {
-          const key = String(this.args[0]) + ':' + this.args[1];
-          self.limits.set(key, (self.limits.get(key) || 0) + 1);
-        }
         return { success: true };
       },
       async all() {
@@ -50,10 +46,6 @@ class RouteMockD1 {
         return { results: [] };
       },
       async first() {
-        if (sql.includes('SELECT attempts FROM api_generation_limits')) {
-          const key = String(this.args[0]) + ':' + this.args[1];
-          return { attempts: self.limits.get(key) || 0 };
-        }
         return null;
       },
     };
@@ -62,6 +54,7 @@ class RouteMockD1 {
 
 try {
   const routeEnv = {
+    AI_GENERATION_RATE_LIMITER: { async limit() { return { success: true }; } },
     SESSION_SIGNING_KEY: 'story-contract-test-secret',
     DB: new RouteMockD1(),
   };
