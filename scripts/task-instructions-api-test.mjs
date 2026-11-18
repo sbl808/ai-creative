@@ -16,16 +16,19 @@ const [taskInstructionsApi, taskReviewApi, taskInstructionWorkflow, taskInstruct
 ]);
 
 // New Task Instruction writes must never pass an administrator identity.
-assert.doesNotMatch(taskInstructionsApi, /user\\.email/);
-assert.doesNotMatch(taskReviewApi, /user\\.email/);
-assert.doesNotMatch(taskInstructionWorkflow, /createdBy|reviewedBy/);
-assert.doesNotMatch(taskInstructionRepository, /updatedBy|createdBy|reviewedBy/);
-assert.match(taskInstructionRepository, /updated_by = NULL/);
-assert.match(taskInstructionRepository, /'pending', NULL, datetime\\('now'\\)/);
-assert.match(taskInstructionRepository, /decision, reviewed_by, comment, reviewed_at\\) ["+]\\s*["+]SELECT \\?, version_id, \\?, NULL, \\?/);
-assert.match(taskInstructionMigration, /updated_by TEXT CHECK \\(updated_by IS NULL\\)/);
-assert.match(taskInstructionMigration, /created_by TEXT CHECK \\(created_by IS NULL\\)/);
-assert.match(taskInstructionMigration, /reviewed_by TEXT CHECK \\(reviewed_by IS NULL\\)/);
+assert.equal(taskInstructionsApi.includes('user.email'), false);
+assert.equal(taskReviewApi.includes('user.email'), false);
+assert.equal(taskInstructionWorkflow.includes('createdBy'), false);
+assert.equal(taskInstructionWorkflow.includes('reviewedBy'), false);
+assert.equal(taskInstructionRepository.includes('updatedBy'), false);
+assert.equal(taskInstructionRepository.includes('createdBy'), false);
+assert.equal(taskInstructionRepository.includes('reviewedBy'), false);
+assert.ok(taskInstructionRepository.includes('updated_by = NULL'));
+assert.ok(taskInstructionRepository.includes("'pending', NULL, datetime('now')"));
+assert.ok(taskInstructionRepository.includes('SELECT ?, version_id, ?, NULL, ?, datetime(\'now\')'));
+assert.ok(taskInstructionMigration.includes('updated_by TEXT CHECK (updated_by IS NULL)'));
+assert.ok(taskInstructionMigration.includes('created_by TEXT CHECK (created_by IS NULL)'));
+assert.ok(taskInstructionMigration.includes('reviewed_by TEXT CHECK (reviewed_by IS NULL)'));
 
 const listResponse = await handleTaskCatalogAdminApi(
   new Request('https://studio.test/api/admin/tasks'),
