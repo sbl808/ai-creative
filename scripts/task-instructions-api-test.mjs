@@ -1,10 +1,31 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { handleTaskCatalogAdminApi } from '../worker/src/admin/task-catalog-api.js';
 import { handleTaskInstructionsAdminApi } from '../worker/src/admin/task-instructions-api.js';
 import { handleTaskReviewAdminApi } from '../worker/src/admin/task-review-api.js';
 import { isSameOriginMutation, taskApiError } from '../worker/src/admin/task-api-utils.js';
 
 const user = { email: 'admin@example.test' };
+
+const [taskInstructionsApi, taskReviewApi, taskInstructionWorkflow, taskInstructionRepository, taskInstructionMigration] = await Promise.all([
+  readFile(new URL('../worker/src/admin/task-instructions-api.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/admin/task-review-api.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/cms/task-instructions/workflow.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/cms/repositories/task-instructions.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/migrations-platform/0010_task_instructions.sql', import.meta.url), 'utf8'),
+]);
+
+// New Task Instruction writes must never pass an administrator identity.
+assert.doesNotMatch(taskInstructionsApi, /user\\.email/);
+assert.doesNotMatch(taskReviewApi, /user\\.email/);
+assert.doesNotMatch(taskInstructionWorkflow, /createdBy|reviewedBy/);
+assert.doesNotMatch(taskInstructionRepository, /updatedBy|createdBy|reviewedBy/);
+assert.match(taskInstructionRepository, /updated_by = NULL/);
+assert.match(taskInstructionRepository, /'pending', NULL, datetime\\('now'\\)/);
+assert.match(taskInstructionRepository, /decision, reviewed_by, comment, reviewed_at\\) ["+]\\s*["+]SELECT \\?, version_id, \\?, NULL, \\?/);
+assert.match(taskInstructionMigration, /updated_by TEXT CHECK \\(updated_by IS NULL\\)/);
+assert.match(taskInstructionMigration, /created_by TEXT CHECK \\(created_by IS NULL\\)/);
+assert.match(taskInstructionMigration, /reviewed_by TEXT CHECK \\(reviewed_by IS NULL\\)/);
 
 const listResponse = await handleTaskCatalogAdminApi(
   new Request('https://studio.test/api/admin/tasks'),
