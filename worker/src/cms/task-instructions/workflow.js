@@ -45,17 +45,17 @@ export async function initializeTaskInstructions(env, taskId, initialFields = {}
   return { instruction_set: instructionSet, draft };
 }
 
-export async function submitTaskInstructions(env, taskId, createdBy = null) {
+export async function submitTaskInstructions(env, taskId) {
   await getTaskOrFail(env, taskId);
   const draft = await getTaskInstructionDraft(env, taskId);
   if (!draft) throw new Error('task_instruction_draft_not_found');
-  return createTaskInstructionVersion(env, taskId, createdBy);
+  return createTaskInstructionVersion(env, taskId);
 }
 
-export async function reviewTaskInstructions(env, versionId, decision, reviewedBy = null, comment = null) {
+export async function reviewTaskInstructions(env, versionId, decision, comment = null) {
   const version = await getTaskInstructionVersion(env, versionId);
   if (!version) throw new Error('version_not_found');
-  return recordTaskInstructionReview(env, versionId, decision, reviewedBy, comment);
+  return recordTaskInstructionReview(env, versionId, decision, comment);
 }
 
 export async function publishTaskInstructions(env, taskId, versionId) {
