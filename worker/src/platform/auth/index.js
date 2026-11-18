@@ -1,7 +1,5 @@
-// Public domain entry point for stateless token and password primitives.
+// Public entry point for stateless session token primitives.
 export {
   signToken,
   verifyToken,
-  hashPassword,
-  verifyPassword,
 } from '../../core/auth.js';

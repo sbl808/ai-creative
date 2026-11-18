@@ -1,3 +1,5 @@
+import { signToken } from '../platform/auth/index.js';
+
 const OAUTH_STATE_COOKIE = 'aics_oauth_state';
 const OAUTH_STATE_TTL_SECONDS = 600;
 const oauthEncoder = new TextEncoder();
@@ -19,8 +21,6 @@ function createOAuthNonce() {
 }
 
 function safeOAuthRedirect(next, requestOrigin) {
-  // The session cookie is host-only. Keep OAuth completion on the same origin
-  // so the browser can use that cookie after returning from Google.
   try {
     const target = new URL(String(next || '/app'), requestOrigin);
     if (target.protocol !== 'https:' && target.protocol !== 'http:') return requestOrigin + '/app';
@@ -95,148 +95,169 @@ function readCookie(request, name) {
   return null;
 }
 
-import { signToken, hashPassword, verifyPassword } from '../platform/auth/index.js';
-
 export async function handleAuthRoutes(request, env, cors, deps) {
-  const path = new URL(request.url).pathname;
   const url = new URL(request.url);
-  const { json, friendlyError, readBody, verifyTokenSafe, cookieToken, clearSessionCookie } = deps;
+  const path = url.pathname;
+  const { json, friendlyError, verifyTokenSafe, cookieToken, clearSessionCookie } = deps;
 
-      if (path === '/api/auth/login' && request.method === 'GET') {
-        const origin = url.origin;
-        const redirectTo = safeOAuthRedirect(url.searchParams.get('next') || '/app', origin, env);
-        const state = createOAuthNonce();
-        const stateCookie = await createOAuthStateCookieValue(env, state, redirectTo);
-        const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID || '') +
+  if (path === '/api/auth/login' && request.method === 'GET') {
+    if (!env.GOOGLE_OAUTH_CLIENT_ID) {
+      return json({ error: 'auth_service_unavailable' }, 503, cors);
+    }
+    const redirectTo = safeOAuthRedirect(url.searchParams.get('next') || '/app', url.origin);
+    const state = createOAuthNonce();
+    const stateCookie = await createOAuthStateCookieValue(env, state, redirectTo);
+    const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID) +
+      '&redirect_uri=' + encodeURIComponent(url.origin + '/api/auth/callback') +
+      '&response_type=code&scope=openid%20email%20profile' +
+      '&state=' + encodeURIComponent(state) + '&access_type=online';
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: authUrl,
+        'Cache-Control': 'no-store',
+        'Set-Cookie': OAUTH_STATE_COOKIE + '=' + encodeURIComponent(stateCookie) +
+          '; Path=/api/auth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=600',
+      },
+    });
+  }
+
+  if (path === '/api/auth/callback' && request.method === 'GET') {
+    const stateCookie = readCookie(request, OAUTH_STATE_COOKIE);
+    const statePayload = await verifyOAuthStateCookieValue(env, stateCookie);
+    const suppliedState = url.searchParams.get('state') || '';
+    const stateValid = !!statePayload && !!suppliedState && suppliedState === statePayload.state;
+    const clearStateCookie = OAUTH_STATE_COOKIE + '=; Path=/api/auth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
+    const withClearedState = (response) => {
+      response.headers.append('Set-Cookie', clearStateCookie);
+      return response;
+    };
+
+    if (!stateValid) return withClearedState(json({ error: 'invalid_oauth_state' }, 400, cors));
+
+    try {
+      if (!env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) {
+        return withClearedState(json({ error: 'auth_service_unavailable' }, 503, cors));
+      }
+      const code = url.searchParams.get('code');
+      if (!code) return withClearedState(json({ error: 'auth_failed' }, 400, cors));
+      if (!env.DB) return withClearedState(json({ error: 'account_service_unavailable' }, 503, cors));
+
+      const origin = url.origin;
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'code=' + encodeURIComponent(code) +
+          '&client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID) +
+          '&client_secret=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_SECRET) +
           '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
-          '&response_type=code&scope=openid%20email%20profile' +
-          '&state=' + encodeURIComponent(state) + '&access_type=online';
-        return new Response(null, {
-          status: 302,
-          headers: { Location: authUrl, 'Set-Cookie': OAUTH_STATE_COOKIE + '=' + encodeURIComponent(stateCookie) + '; Path=/api/auth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=600' },
-        });
+          '&grant_type=authorization_code',
+      });
+      if (!tokenResponse.ok) {
+        return withClearedState(json({ error: 'auth_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors));
+      }
+      const tokenData = await tokenResponse.json().catch(() => ({}));
+      if (!tokenData || typeof tokenData.access_token !== 'string' || !tokenData.access_token) {
+        return withClearedState(json({ error: 'auth_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors));
       }
 
-      if (path === '/api/auth/callback' && request.method === 'GET') {
-        const stateCookie = readCookie(request, OAUTH_STATE_COOKIE);
-        const statePayload = await verifyOAuthStateCookieValue(env, stateCookie);
-        const suppliedState = url.searchParams.get('state') || '';
-        const stateValid = !!statePayload && !!suppliedState && suppliedState === statePayload.state;
-        const clearStateCookie = OAUTH_STATE_COOKIE + '=; Path=/api/auth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
-        const withClearedState = (response) => {
-          response.headers.append('Set-Cookie', clearStateCookie);
-          return response;
-        };
-        if (!stateValid) return withClearedState(json({ error: 'invalid_oauth_state' }, 400, cors));
-        try {
-          const code = url.searchParams.get('code');
-          if (!code) return withClearedState(json({ error: 'no_code' }, 400, cors));
-          const origin = url.origin;
-          const res = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'code=' + encodeURIComponent(code) +
-              '&client_id=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_ID) +
-              '&client_secret=' + encodeURIComponent(env.GOOGLE_OAUTH_CLIENT_SECRET) +
-              '&redirect_uri=' + encodeURIComponent(origin + '/api/auth/callback') +
-              '&grant_type=authorization_code',
-          });
-          const tokenData = await res.json().catch(() => ({}));
-          if (!tokenData.access_token) {
-            try { console.error('[AICS] oauth token failed', JSON.stringify(tokenData).slice(0, 300)); } catch (_) {}
-            return json({ error: 'auth_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
-          }
-          const ures = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: { Authorization: 'Bearer ' + tokenData.access_token },
-          });
-          const user = await ures.json().catch(() => ({}));
-          if (!user.id || !user.email) {
-            try { console.error('[AICS] oauth userinfo failed', JSON.stringify(user).slice(0, 300)); } catch (_) {}
-            return json({ error: 'userinfo_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors);
-          }
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: 'Bearer ' + tokenData.access_token },
+      });
+      if (!userResponse.ok) {
+        return withClearedState(json({ error: 'userinfo_failed', detail: 'Login could not be completed. Please try again.' }, 400, cors));
+      }
+      const user = await userResponse.json().catch(() => ({}));
+      const googleSub = String(user && user.id || '').trim();
+      const email = String(user && user.email || '').trim().toLowerCase();
+      if (!googleSub || googleSub.length > 255 || !email ||
+          email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+          user.verified_email !== true) {
+        return withClearedState(json({ error: 'google_account_not_verified' }, 400, cors));
+      }
 
-          const existing = env.DB ? await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(user.email).first() : null;
-          let userId;
-          if (existing) {
-            userId = existing.id;
-            // Profile Name is browser-local; only account metadata is updated in D1.
-            await env.DB.prepare('UPDATE users SET updated_at = datetime(\'now\') WHERE id = ?').bind(userId).run();
-          } else {
-            const ins = await env.DB.prepare('INSERT INTO users (email, plan, created_at, updated_at) VALUES (?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(user.email).run();
-            userId = ins.meta.last_row_id;
-          }
+      // Never link accounts by email alone: Google subject is the stable identity key.
+      const emailOwner = await env.DB.prepare(
+        'SELECT id, google_sub FROM users WHERE email = ?'
+      ).bind(email).first();
+      if (emailOwner && String(emailOwner.google_sub || '') !== googleSub) {
+        return withClearedState(json({ error: 'account_identity_conflict' }, 409, cors));
+      }
 
-          const token = await signToken(env, { sub: String(userId), email: user.email, plan: 'FREE' });
-          // Phase 12 — Default ကို Personal Workspace (/app) သို့ ပြောင်းသည်
-          // Phase 11 — Browser မှ Page Navigation များတွင် Header မပါသော်လည်း Admin Panel ဝင်နိုင်ရန်
-          // HttpOnly Cookie ကိုပါ ထည့်ပေးသည် (Authorization Header ကို မူလအတိုင်း ထားသည်)
-          const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-          const response = new Response(null, {
-            status: 302,
-            headers: { Location: appendOAuthProfileName(statePayload.redirectTo, user.name), 'Set-Cookie': sessionCookie },
-          });
-          return withClearedState(response);
-        } catch (e) {
-          return withClearedState(json({ error: 'auth_error', detail: friendlyError(e) }, 500, cors));
+      let account = await env.DB.prepare(
+        'SELECT id, plan, expiry FROM users WHERE google_sub = ?'
+      ).bind(googleSub).first();
+
+      if (account) {
+        await env.DB.prepare(
+          "UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?"
+        ).bind(email, account.id).run();
+        account = { ...account, email };
+      } else {
+        const insert = await env.DB.prepare(
+          "INSERT INTO users (google_sub, email, plan, created_at, updated_at) " +
+          "VALUES (?, ?, 'FREE', datetime('now'), datetime('now'))"
+        ).bind(googleSub, email).run();
+        const userId = insert && insert.meta ? insert.meta.last_row_id : null;
+        if (!userId) {
+          return withClearedState(json({ error: 'account_service_unavailable' }, 503, cors));
         }
+        account = { id: userId, plan: 'FREE', expiry: null, email };
       }
 
-      // Phase 11 — Logout: HttpOnly Cookie ကို ရှင်းပြီး ပင်မသို့ ပြန်ပို့သည်
-      if (path === '/api/auth/logout' && request.method === 'GET') {
-        return new Response(null, {
-          status: 302,
-          headers: { Location: url.origin + '/app', 'Set-Cookie': clearSessionCookie() },
-        });
-      }
+      const token = await signToken(env, {
+        sub: String(account.id),
+        email,
+        plan: account.plan || 'FREE',
+      });
+      const sessionCookie = 'aics_token=' + encodeURIComponent(token) +
+        '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
+      const response = new Response(null, {
+        status: 302,
+        headers: {
+          Location: appendOAuthProfileName(statePayload.redirectTo, user.name),
+          'Set-Cookie': sessionCookie,
+          'Cache-Control': 'no-store',
+        },
+      });
+      return withClearedState(response);
+    } catch (_) {
+      return withClearedState(json({ error: 'auth_error', detail: friendlyError() }, 500, cors));
+    }
+  }
 
-      // ===== Phase 12-fix — Remember Session: Cookie ရှိလျှင် Token ပြန်ပေးသည် =====
-      // (App ပြန်ဖွင့်လျှင် localStorage မရှိသော်လည်း Cookie ဖြင့် Session ပြန်ရသည် — Rule 14)
-      if (path === '/api/auth/session' && request.method === 'GET') {
-        const c = cookieToken(request);
-        if (!c) return json({ error: 'no_session' }, 401, cors);
-        const p = await verifyTokenSafe(env, c);
-        if (!p) return json({ error: 'invalid_session' }, 401, cors);
-        return json({ ok: true, token: c, email: p.email, plan: p.plan || 'FREE', user_id: p.sub }, 200, cors);
-      }
+  if (path === '/api/auth/logout' && request.method === 'GET') {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: url.origin + '/app',
+        'Set-Cookie': clearSessionCookie(),
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
 
-      // ===== Phase 12 — Email/Password Sign Up (PBKDF2 — Plain Text မသိမ်းပါ) =====
-      if (path === '/api/auth/signup' && request.method === 'POST') {
-        const body = await readBody(request).catch(() => null);
-        const name = String((body && body.name) || '').trim().slice(0, 60);
-        const email = String((body && body.email) || '').trim().toLowerCase();
-        const password = String((body && body.password) || '');
-        if (!name) return json({ error: 'missing_name', detail: 'Name ထည့်ပါ။' }, 400, cors);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email', detail: 'Email ပုံစံ မမှန်ပါ။' }, 400, cors);
-        if (password.length < 6) return json({ error: 'weak_password', detail: 'Password အနည်းဆုံး ၆ လုံး ရှိရပါမည်။' }, 400, cors);
-        if (!env.DB) return json({ error: 'db_missing' }, 500, cors);
-        const dup = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-        if (dup) return json({ error: 'email_taken', detail: 'ဒီ Email နဲ့ Account ရှိပြီးသားပါ။ Google Login သုံးပါ သို့မဟုတ် Sign in လုပ်ပါ။' }, 409, cors);
-        const hash = await hashPassword(password);
-        const ins = await env.DB.prepare('INSERT INTO users (email, password_hash, plan, created_at, updated_at) VALUES (?, ?, \'FREE\', datetime(\'now\'), datetime(\'now\'))').bind(email, hash).run();
-        const userId = ins.meta.last_row_id;
-        const token = await signToken(env, { sub: String(userId), email, plan: 'FREE' });
-        // Phase 12-fix — /app သို့ Browser Navigation မှာပါ Session ရှိစေရန် Cookie ကိုပါ ထည့်ပေးသည်
-        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, plan: 'FREE', user_id: String(userId) }, 201, { ...cors, 'Set-Cookie': sessionCookie });
-      }
+  if (path === '/api/auth/session' && request.method === 'GET') {
+    const token = cookieToken(request);
+    if (!token) return json({ error: 'no_session' }, 401, cors);
+    const payload = await verifyTokenSafe(env, token);
+    if (!payload) return json({ error: 'invalid_session' }, 401, cors);
+    return json({
+      ok: true,
+      token,
+      email: payload.email,
+      plan: payload.plan || 'FREE',
+      user_id: payload.sub,
+    }, 200, cors);
+  }
 
-      // ===== Phase 12 — Email/Password Sign In =====
-      if (path === '/api/auth/signin' && request.method === 'POST') {
-        const body = await readBody(request).catch(() => null);
-        const email = String((body && body.email) || '').trim().toLowerCase();
-        const password = String((body && body.password) || '');
-        if (!email || !password || !env.DB) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const row = await env.DB.prepare('SELECT id, plan, expiry, password_hash FROM users WHERE email = ?').bind(email).first();
-        if (!row || !row.password_hash) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const okPass = await verifyPassword(password, row.password_hash);
-        if (!okPass) return json({ error: 'invalid_credentials', detail: 'Email သို့မဟုတ် Password မှားနေပါသည်။' }, 401, cors);
-        const token = await signToken(env, { sub: String(row.id), email, plan: row.plan || 'FREE' });
-        // Phase 12-fix — Sign In ပြီးနောက် /app သို့ Browser Navigation အတွက် Cookie ပါ ထည့်ပေးသည်
-        const sessionCookie = 'aics_token=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800';
-        return json({ ok: true, token, email, plan: row.plan || 'FREE', user_id: String(row.id) }, 200, { ...cors, 'Set-Cookie': sessionCookie });
-      }
-
+  // Email/password signup and signin routes are intentionally not supported.
   return null;
 }
 
-export { safeOAuthRedirect, appendOAuthProfileName, createOAuthStateCookieValue, verifyOAuthStateCookieValue };
+export {
+  safeOAuthRedirect,
+  appendOAuthProfileName,
+  createOAuthStateCookieValue,
+  verifyOAuthStateCookieValue,
+};
