@@ -1,3 +1,7 @@
+import { storageErrorsScript } from './storage/storage-errors.js';
+import { databaseScript } from './storage/database.js';
+import { storageOwnerScript } from './storage/storage-owner.js';
+import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
 // AI Creative Studio — Google OAuth-only login page.
 const LOGIN_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -61,6 +65,10 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:
   <p class="hint">Login ဝင်ပြီးနောက် My Studios၊ Projects၊ Creations၊ Settings နှင့် API Keys ကို အသုံးပြုနိုင်ပါမည်။</p>
 </main>
 <script>
+${storageErrorsScript()}
+${databaseScript()}
+${storageOwnerScript()}
+${userSettingsRepositoryScript()}
 (function () {
   'use strict';
   var box = document.getElementById('alertBox');
