@@ -87,7 +87,7 @@ export async function adminApi(request, path, env, verifyToken) {
   if (path === '/api/admin/plans' && method === 'POST') {
     try {
       const item = await savePlanCatalogItem(env, await readBody(request));
-      await logAdminAction(env, user.email, 'plan_create', item.plan_key);
+      await logAdminAction(env, 'plan_create');
       return json({ ok: true, item });
     } catch (e) {
       const msg = String(e && e.message || e);
@@ -99,7 +99,7 @@ export async function adminApi(request, path, env, verifyToken) {
     if (method === 'PUT') {
       try {
         const item = await savePlanCatalogItem(env, await readBody(request), key);
-        await logAdminAction(env, user.email, 'plan_update', key);
+        await logAdminAction(env, 'plan_update');
         return json({ ok: true, item });
       } catch (e) {
         const msg = String(e && e.message || e);
@@ -109,7 +109,7 @@ export async function adminApi(request, path, env, verifyToken) {
     if (method === 'DELETE') {
       try {
         await deletePlanCatalogItem(env, key);
-        await logAdminAction(env, user.email, 'plan_delete', key);
+        await logAdminAction(env, 'plan_delete');
         return json({ ok: true });
       } catch (e) {
         const msg = String(e && e.message || e);
@@ -125,7 +125,7 @@ export async function adminApi(request, path, env, verifyToken) {
   if (path === '/api/admin/plan-contacts' && method === 'PUT') {
     try {
       const contacts = await updatePlanContactSettings(env, await readBody(request));
-      await logAdminAction(env, user.email, 'plan_contacts_update', 'Facebook Messenger / Telegram');
+      await logAdminAction(env, 'plan_contacts_update');
       return json({ ok: true, contacts });
     } catch (e) {
       const msg = String(e && e.message || e);
@@ -143,7 +143,7 @@ export async function adminApi(request, path, env, verifyToken) {
     if (!body || !body.studio || !body.plan || !body.type) return json({ error: 'missing_fields', detail: 'studio, plan, type required' }, 400);
     try {
       const item = await createCMSPrompt(env, body);
-      await logAdminAction(env, user.email, 'cms_create', item.studio + '/' + item.plan + '/' + item.type);
+      await logAdminAction(env, 'cms_create');
       return json({ ok: true });
     } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
@@ -154,14 +154,14 @@ export async function adminApi(request, path, env, verifyToken) {
       const body = await readBody(request);
       try {
         const item = await updateCMSPrompt(env, id, body || {});
-        await logAdminAction(env, user.email, 'cms_update', 'id=' + id + ' ' + item.studio + '/' + item.plan + '/' + item.type);
+        await logAdminAction(env, 'cms_update');
         return json({ ok: true });
       } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
     if (method === 'DELETE') {
       try {
         await deleteCMSPrompt(env, id);
-        await logAdminAction(env, user.email, 'cms_delete', 'id=' + id);
+        await logAdminAction(env, 'cms_delete');
         return json({ ok: true });
       } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
     }
@@ -177,7 +177,7 @@ export async function adminApi(request, path, env, verifyToken) {
     if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
     try {
       const item = await upsertBrainEntry(env, body);
-      await logAdminAction(env, user.email, 'brain_create', item.scope + '/' + item.module + '/' + item.type + '/' + item.key);
+      await logAdminAction(env, 'brain_create');
       return json({ ok: true });
     } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
   }
@@ -188,14 +188,14 @@ export async function adminApi(request, path, env, verifyToken) {
       if (!body || !body.scope || !body.module || !body.key) return json({ error: 'missing_fields', detail: 'scope, module, key required' }, 400);
       try {
         await updateBrainEntry(env, id, body);
-        await logAdminAction(env, user.email, 'brain_update', 'id=' + id);
+        await logAdminAction(env, 'brain_update');
         return json({ ok: true });
       } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
     }
     if (method === 'DELETE') {
       try {
         await deleteBrainEntry(env, id);
-        await logAdminAction(env, user.email, 'brain_delete', 'id=' + id);
+        await logAdminAction(env, 'brain_delete');
         return json({ ok: true });
       } catch (e) { const detail = String(e && e.message || e); return json({ error: detail, detail }, cmsRepositoryErrorStatus(e)); }
     }
@@ -213,7 +213,7 @@ export async function adminApi(request, path, env, verifyToken) {
     const expiry = (body && body.expiry) ? String(body.expiry) : null;
     try {
       await env.DB.prepare('UPDATE users SET plan=?, expiry=?, updated_at=datetime(\'now\') WHERE id=?').bind(plan, expiry, id).run();
-      await logAdminAction(env, user.email, 'user_plan', 'user_id=' + id + ' → ' + plan);
+      await logAdminAction(env, 'user_plan');
       return json({ ok: true });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
@@ -237,7 +237,7 @@ export async function adminApi(request, path, env, verifyToken) {
         ).bind(id, def.access).run();
         featuresAdded += Number(result && result.meta && result.meta.changes || 0);
       }
-      await logAdminAction(env, user.email, 'settings_initialize', 'studios_added=' + studiosAdded + ', features_added=' + featuresAdded);
+      await logAdminAction(env, 'settings_initialize');
       return json({ ok: true, studiosAdded, featuresAdded });
     } catch (e) {
       return json({ error: 'initialization_failed', detail: String(e && e.message || e) }, 500);
@@ -263,7 +263,7 @@ export async function adminApi(request, path, env, verifyToken) {
     const body = await readBody(request);
     try {
       const r = await setStudioEnabled(env, id, !!(body && body.enabled));
-      await logAdminAction(env, user.email, 'studio_toggle', r.id + ' → ' + (r.enabled ? 'ON' : 'OFF'));
+      await logAdminAction(env, 'studio_toggle');
       return json({ ok: true, id: r.id, enabled: r.enabled });
     } catch (e) { return json({ error: 'db_error', detail: String(e && e.message || e) }, 500); }
   }
@@ -290,7 +290,7 @@ export async function adminApi(request, path, env, verifyToken) {
     const body = await readBody(request);
     try {
       const r = await setFeatureSetting(env, id, body || {});
-      await logAdminAction(env, user.email, 'feature_update', r.id + ' → enabled=' + r.enabled + ', access=' + r.access + ', limit=' + r.limit_value);
+      await logAdminAction(env, 'feature_update');
       return json({ ok: true, id: r.id, enabled: r.enabled, access: r.access, limit_value: r.limit_value });
     } catch (e) { return json({ error: 'unknown_feature', detail: String(e && e.message || e) }, 400); }
   }
@@ -307,7 +307,7 @@ export async function adminApi(request, path, env, verifyToken) {
     const body = await readBody(request);
     try {
       const r = await setAiModel(env, body || {});
-      await logAdminAction(env, user.email, 'model_create', r.id + ' [' + r.category + ']');
+      await logAdminAction(env, 'model_create');
       return json({ ok: true, ...r });
     } catch (e) { return json({ error: String(e && e.message || e) === 'last_model' ? 'last_model' : 'model_error', detail: String(e && e.message || e) }, 400); }
   }
@@ -317,7 +317,7 @@ export async function adminApi(request, path, env, verifyToken) {
     const body = await readBody(request);
     try {
       const r = await setAiModel(env, Object.assign({ id }, body || {}));
-      await logAdminAction(env, user.email, 'model_update', r.id + ' → enabled=' + r.enabled + ', plan=' + r.plan_access + ', default=' + r.is_default);
+      await logAdminAction(env, 'model_update');
       return json({ ok: true, ...r });
     } catch (e) { return json({ error: String(e && e.message || e) === 'last_model' ? 'last_model' : 'model_error', detail: String(e && e.message || e) }, 400); }
   }
@@ -327,7 +327,7 @@ export async function adminApi(request, path, env, verifyToken) {
     try {
       const r = await deleteAiModel(env, id);
       if (r.ok) {
-        await logAdminAction(env, user.email, 'model_delete', id);
+        await logAdminAction(env, 'model_delete');
         return json({ ok: true });
       }
       return json({ error: 'not_found', detail: 'Model မတွေ့ပါ' }, 404);

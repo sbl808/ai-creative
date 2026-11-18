@@ -28,6 +28,8 @@ jobs:
         run: node --experimental-default-type=module scripts/regression-test.mjs
       - name: Run Google OAuth-only authentication contract tests
         run: node --experimental-default-type=module scripts/google-oauth-only-contract-test.mjs
+      - name: Run Admin Logs privacy contract tests
+        run: node --experimental-default-type=module scripts/admin-logs-privacy-contract-test.mjs
       - name: Run server-side usage tracking boundary tests
         run: node --experimental-default-type=module scripts/no-server-usage-tracking-test.mjs
       - name: Run Shared Image Media Contract tests
