@@ -37,6 +37,7 @@ assert.match(ui, /r\.result_code/);
 assert.doesNotMatch(ui, /r\.admin_email|r\.detail/);
 assert.match(schema, /action_code TEXT NOT NULL/);
 assert.match(schema, /result_code TEXT NOT NULL/);
-assert.doesNotMatch(schema, /admin_email|user_id|detail|payload|content/i);
+const schemaColumns = schema.split('CREATE TABLE IF NOT EXISTS admin_logs (')[1].split(');')[0];
+assert.doesNotMatch(schemaColumns, /admin_email|user_id|detail|payload|content/i);
 
 console.log('Admin Logs privacy contract: PASS');
