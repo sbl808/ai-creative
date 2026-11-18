@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { chromium } from 'playwright';
 import { Script } from 'node:vm';
 
@@ -169,17 +169,15 @@ try {
       contentType: String(response.headers()['content-type'] || '').slice(0, 120),
     });
   });
-  const email = 'browser-e2e-' + randomUUID() + '@example.invalid';
+  // The CI workflow seeds this account into the local-only D1 database.
+  // This E2E covers browser workflows, not account registration; OAuth itself
+  // is covered by google-oauth-only-contract-test.mjs.
+  const email = 'browser-e2e@example.invalid';
+  const userId = '900001';
   sensitiveDiagnosticValues.add(email);
-  const signup = await page.request.post(baseURL + '/api/auth/signup', {
-    data: { name: 'Browser E2E', email, password: 'local-e2e-password-2026' },
-  });
-  assert.equal(signup.status(), 201, 'Local test account should be created');
-  const account = await signup.json();
-  assert.ok(account.user_id, 'Signup should return a local test user ID');
-  sensitiveDiagnosticValues.add(String(account.user_id));
+  sensitiveDiagnosticValues.add(userId);
 
-  const token = createProTestToken(account.user_id, email);
+  const token = createProTestToken(userId, email);
   sensitiveDiagnosticValues.add(token);
   await context.addCookies([{
     name: 'aics_token',
