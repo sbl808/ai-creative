@@ -212,7 +212,7 @@ export async function getTaskInstructionDraft(env, taskId) {
   return mapDraft(row);
 }
 
-export async function saveTaskInstructionDraft(env, taskId, fieldsInput, expectedRevision, updatedBy = null) {
+export async function saveTaskInstructionDraft(env, taskId, fieldsInput, expectedRevision) {
   requireDatabase(env);
   const id = normalizeTaskId(taskId);
   const fields = normalizeFields(fieldsInput);
@@ -220,12 +220,10 @@ export async function saveTaskInstructionDraft(env, taskId, fieldsInput, expecte
   if (!Number.isSafeInteger(revision) || revision < 1) {
     throw new Error('invalid_expected_revision');
   }
-  const actor = updatedBy === null || updatedBy === undefined ? null : String(updatedBy).trim().slice(0, 200);
-
   const result = await env.DB.prepare(
-    "UPDATE task_instruction_drafts SET fields_json = ?, revision = revision + 1, updated_by = ?, updated_at = datetime('now') " +
+    "UPDATE task_instruction_drafts SET fields_json = ?, revision = revision + 1, updated_by = NULL, updated_at = datetime('now') " +
     'WHERE instruction_id = (SELECT instruction_id FROM task_instruction_sets WHERE task_id = ?) AND revision = ?'
-  ).bind(JSON.stringify(fields), actor, id, revision).run();
+  ).bind(JSON.stringify(fields), id, revision).run();
 
   if (!result || !result.meta || Number(result.meta.changes) === 0) {
     const current = await getTaskInstructionDraft(env, id);
@@ -239,7 +237,7 @@ export async function saveTaskInstructionDraft(env, taskId, fieldsInput, expecte
   return getTaskInstructionDraft(env, id);
 }
 
-export async function resetTaskInstructionDraft(env, taskId, expectedRevision, updatedBy = null) {
+export async function resetTaskInstructionDraft(env, taskId, expectedRevision) {
   requireDatabase(env);
   const id = normalizeTaskId(taskId);
   const instructionSet = await getInstructionSetRow(env, id);
@@ -261,10 +259,10 @@ export async function resetTaskInstructionDraft(env, taskId, expectedRevision, u
       throw new Error('instruction_integrity_error');
     }
   }
-  return saveTaskInstructionDraft(env, id, fields, expectedRevision, updatedBy);
+  return saveTaskInstructionDraft(env, id, fields, expectedRevision);
 }
 
-export async function createTaskInstructionVersion(env, taskId, createdBy = null) {
+export async function createTaskInstructionVersion(env, taskId) {
   requireDatabase(env);
   const id = normalizeTaskId(taskId);
   const instructionSet = await getInstructionSetRow(env, id);
@@ -281,19 +279,16 @@ export async function createTaskInstructionVersion(env, taskId, createdBy = null
   ).bind(instructionSet.instruction_id).first();
   const versionNumber = Number(latest && latest.latest_version || 0) + 1;
   const versionId = createId();
-  const actor = createdBy === null || createdBy === undefined ? null : String(createdBy).trim().slice(0, 200);
-
   try {
     const result = await env.DB.prepare(
       "INSERT INTO task_instruction_versions (version_id, instruction_id, version_number, fields_json, content_hash, status, created_by, created_at, published_at) " +
-      "SELECT ?, instruction_id, ?, ?, ?, 'pending', ?, datetime('now'), NULL " +
+      "SELECT ?, instruction_id, ?, ?, ?, 'pending', NULL, datetime('now'), NULL " +
       "FROM task_instruction_drafts WHERE instruction_id = ? AND revision = ?"
     ).bind(
       versionId,
       versionNumber,
       fieldsJson,
       contentHash,
-      actor,
       instructionSet.instruction_id,
       draft.revision
     ).run();
@@ -352,14 +347,13 @@ export async function listTaskInstructionReviews(env, versionId) {
   return (results || []).map(mapReview);
 }
 
-export async function recordTaskInstructionReview(env, versionId, decision, reviewedBy = null, comment = null) {
+export async function recordTaskInstructionReview(env, versionId, decision, comment = null) {
   requireDatabase(env);
   const id = normalizeId(versionId, 'invalid_version_id');
   const normalizedDecision = String(decision || '').trim().toLowerCase();
   if (!['approved', 'rejected'].includes(normalizedDecision)) {
     throw new Error('invalid_review_decision');
   }
-  const actor = reviewedBy === null || reviewedBy === undefined ? null : String(reviewedBy).trim().slice(0, 200);
   const reviewComment = comment === null || comment === undefined ? null : String(comment).trim().slice(0, 2000);
   const reviewVersion = await getTaskInstructionVersion(env, id);
   if (!reviewVersion) throw new Error('version_not_found');
@@ -369,9 +363,9 @@ export async function recordTaskInstructionReview(env, versionId, decision, revi
   const results = await env.DB.batch([
     env.DB.prepare(
       "INSERT INTO task_instruction_reviews (review_id, version_id, decision, reviewed_by, comment, reviewed_at) " +
-      "SELECT ?, version_id, ?, ?, ?, datetime('now') FROM task_instruction_versions " +
+      "SELECT ?, version_id, ?, NULL, ?, datetime('now') FROM task_instruction_versions " +
       "WHERE version_id = ? AND status = 'pending'"
-    ).bind(reviewId, normalizedDecision, actor, reviewComment, id),
+    ).bind(reviewId, normalizedDecision, reviewComment, id),
     env.DB.prepare(
       'UPDATE task_instruction_versions SET status = ? WHERE version_id = ? AND status = ?'
     ).bind(normalizedDecision, id, 'pending'),
