@@ -1,5 +1,5 @@
 // AI Creative Studio — Google OAuth-only login page.
-const LOGIN_HTML = \`<!DOCTYPE html>
+const LOGIN_HTML = `<!DOCTYPE html>
 <html lang="my">
 <head>
 <meta charset="utf-8">
@@ -72,6 +72,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:
 })();
 <\/script>
 </body>
-</html>\`;
+</html>`;
 
 export { LOGIN_HTML };
