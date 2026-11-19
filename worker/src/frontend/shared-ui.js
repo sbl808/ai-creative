@@ -503,7 +503,7 @@ export const AICS_RESULT_BOX_SCRIPT = `
 // Returns a promise with .abort(). A new stream automatically
 // aborts the previous active one (no stuck GENERATING states).
 // ============================================================
-export const AICS_STREAM_SCRIPT = `
+export const AICS_RATE_LIMIT_CLIENT_SCRIPT = `
 // A random browser-scoped identifier is used only as a rate-limit key.
 // It is not an account ID and is never sent to storage/logging services by the Worker.
 var aicsCachedRateLimitClientId = '';
@@ -533,11 +533,15 @@ function aicsRateLimitClientId() {
   aicsCachedRateLimitClientId = id;
   return id;
 }
+window.aicsRateLimitClientId = aicsRateLimitClientId;
+`;
 
+export const AICS_STREAM_SCRIPT = `
+${AICS_RATE_LIMIT_CLIENT_SCRIPT}
 function aicsNeedsRateLimitClientId(path, method) {
   if (method !== 'POST') return false;
   var pathname = String(path || '').split('?')[0];
-  if (pathname === '/api/ideas/generate' || pathname === '/api/cms/prompt' || pathname === '/api/studio/generate') return true;
+  if (pathname === '/api/ideas/generate' || pathname === '/api/cms/prompt' || pathname === '/api/studio/generate' || pathname === '/api/ai/test') return true;
   var segments = pathname.split('/');
   if (segments[1] !== 'api' || segments[2] !== 'studio') return false;
   var studios = ['content', 'story', 'short', 'image', 'voice', 'shop', 'subtitle'];
