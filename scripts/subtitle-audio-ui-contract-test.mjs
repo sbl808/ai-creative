@@ -11,6 +11,7 @@ assert.match(page, /maxAudioBytes=5\*1024\*1024/);
 assert.match(page, /credentials_not_found/);
 assert.match(page, /rate_limited/);
 assert.match(page, /rate_limit_unavailable/);
+assert.match(page, /တစ်မိနစ်အတွင်း အသုံးပြုခွင့် ၃ ကြိမ်/);
 assert.match(page, /transcribe_error/);
 assert.match(page, /audioBase64=await readAudioBase64\(file\)/);
 assert.match(page, /transcript\.value=result/);
