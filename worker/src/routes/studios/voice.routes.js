@@ -1,4 +1,5 @@
 import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from '../../studios/voice/index.js';
+import { transcribeSubtitleAudio } from '../../studios/subtitle/audio.js';
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
@@ -39,15 +40,24 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, 'voice.transcribe', plan, reqType, cors); if (denied) return denied; }
+        const isSubtitleRequest = body.studio === 'subtitle';
+        const feature = isSubtitleRequest ? 'subtitle.transcribe' : 'voice.transcribe';
+        { const denied = await requireFeature(env, feature, plan, reqType, cors); if (denied) return denied; }
         try {
           const apiKey = body.apiKey;
-          const out = await transcribeAudio(env, { model: body.model, 
+          const input = {
+            model: body.model,
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
-            type: reqType, plan, apiKey,
-          });
-          await trackUsageSafe(env, payload.sub, 'ai');
+            type: reqType,
+            plan,
+            apiKey,
+          };
+          const out = isSubtitleRequest
+            ? await transcribeSubtitleAudio(env, input)
+            : await transcribeAudio(env, input);
+          // Subtitle requests must not create server-side usage records.
+          if (!isSubtitleRequest) await trackUsageSafe(env, payload.sub, 'ai');
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
           return json({ error: 'transcribe_error', detail: friendlyError(e) }, 500, cors);
