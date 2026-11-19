@@ -414,7 +414,7 @@ console.log('— CMS prompt Admin authorization —');
 // Use a local helper here so these tests do not depend on the later generic send() declaration.
 const cmsSend = (headers = {}, body = { studio: 'STORY', type: '1' }) => worker.fetch(new Request('https://test.local/api/cms/prompt', {
   method: 'POST',
-  headers: { ...headers, 'Content-Type': 'application/json' },
+  headers: { 'X-AICS-Client-ID': '123e4567-e89b-42d3-a456-426614174000', ...headers, 'Content-Type': 'application/json' },
   body: JSON.stringify(body),
 }), env, {});
 await check('POST /api/cms/prompt → 401 without token', async () => {
@@ -446,7 +446,7 @@ await check('POST /api/cms/prompt → Admin can read prompt; non-Admin cannot', 
   const adminBody = await adminResponse.json();
   const userToken = await signToken(testEnv, { sub: 'ordinary-user', email: 'user@example.com', plan: 'FREE' });
   const userResponse = await worker.fetch(new Request('https://test.local/api/cms/prompt', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + userToken, 'Content-Type': 'application/json' },
+    method: 'POST', headers: { Authorization: 'Bearer ' + userToken, 'Content-Type': 'application/json', 'X-AICS-Client-ID': '123e4567-e89b-42d3-a456-426614174000' },
     body: JSON.stringify({ studio: 'STORY', type: '1' }),
   }), testEnv, {});
   const userBody = await userResponse.json();
