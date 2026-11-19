@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { enforceSharedAiRateLimit, isAiGenerationRoute } from '../worker/src/middleware/requestGuards.js';
+import { buildCors } from '../worker/src/middleware/cors.js';
 
 const CLIENT_ID = '123e4567-e89b-42d3-a456-426614174000';
 const PATH = '/api/studio/voice/transcribe';
@@ -24,6 +25,8 @@ assert.equal(isAiGenerationRoute('/api/studio/voice/transcribe', 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/subtitle/transcribe', 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/voice/transcribe', 'GET'), false);
 assert.equal(isAiGenerationRoute('/api/users/me', 'POST'), false);
+const corsHeaders = buildCors(new Request('https://test.local', { headers: { Origin: 'https://aics-frontend-dev.pages.dev' } }), { ALLOWED_ORIGINS: 'https://aics-frontend-dev.pages.dev' });
+assert.match(corsHeaders['Access-Control-Allow-Headers'], /X-AICS-Client-ID/);
 
 // Browser-generated ID, not the authenticated account ID, is the only limiter key.
 {
