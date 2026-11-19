@@ -5,6 +5,7 @@
 import { renderSidebar, sidebarScript, shellIcon } from './shared.js';
 import { STUDIO_ORDER, getStudio } from '../config/studios.js';
 import { backupRecoveryPanelHtml, backupRecoveryUiScript } from './storage/backup/recovery-ui.js';
+import { AICS_RATE_LIMIT_CLIENT_SCRIPT } from './shared-ui.js';
 
 // Studio စာရင်းကို Registry မှ အလိုအလျောက် ထုတ်သည် (ပြောင်းလဲမှု ရှိပါက ဤနေရာမှ အလိုအလျောက် ပြောင်းသည်)
 const studioOptions = STUDIO_ORDER.map(function (id) {
@@ -160,6 +161,7 @@ ${renderSidebar('settings',{variant:'studio'})}
 <div class="toast" id="toast"></div>
 ${sidebarScript()}
 <script>
+${AICS_RATE_LIMIT_CLIENT_SCRIPT}
 var TOKEN = localStorage.getItem('aics_token') || '';
 document.addEventListener('click', function (event) {
   var target = event.target;
@@ -179,7 +181,7 @@ if (prefsForm) prefsForm.addEventListener('submit', function (event) {
   event.preventDefault();
   savePrefs(event);
 });
-function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
+function api(path,opts){opts=opts||{};var h=opts.headers||{};var method=String(opts.method||'GET').toUpperCase();h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;if(path==='/api/ai/test'&&method==='POST')h['X-AICS-Client-ID']=window.aicsRateLimitClientId();return fetch(path,{method:method,headers:h,body:opts.body?JSON.stringify(opts.body):undefined,cache:'no-store'}).then(function(r){return r.json();});}
 function showToast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.className='toast';},2500);}
 function escapeHtml(text){var div=document.createElement('div');div.innerText=text;return div.innerHTML;}
 if(!TOKEN){
@@ -337,7 +339,7 @@ function testApiKey(){
   .then(function(body){return api('/api/ai/test',{method:'POST',body:body});})
   .then(function(d){
     buttons.forEach(function(b){b.disabled=false;});
-    if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၁၀ မိနစ်အတွင်း ၅ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
+    if(d.error){showToast(d.error==='rate_limited'?'စမ်းသပ်မှု များလွန်းပါသည် — ၁ မိနစ်အတွင်း ၃ ကြိမ်သာ ခွင့်ပြုပါသည်':d.error==='rate_limit_unavailable'?'Connection Test ယာယီ မရနိုင်ပါ':'Connection မအောင်မြင်ပါ — Key သို့မဟုတ် Model ကို စစ်ပါ','error');return;}
     showToast('✓ API Connection အောင်မြင်ပါသည်','success');
   }).catch(function(){
     buttons.forEach(function(b){b.disabled=false;});
