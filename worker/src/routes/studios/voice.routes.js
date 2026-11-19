@@ -2,13 +2,24 @@ import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSr
 import { transcribeSubtitleAudio } from '../../studios/subtitle/audio.js';
 
 const MAX_SUBTITLE_AUDIO_BYTES = 5 * 1024 * 1024;
-const AUDIO_BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-
 function getBase64DecodedByteLength(value) {
-  if (typeof value !== 'string' || value.length === 0 || value.length % 4 !== 0 || !AUDIO_BASE64_PATTERN.test(value)) {
-    return null;
-  }
+  if (typeof value !== 'string' || value.length === 0 || value.length % 4 !== 0) return null;
+
   const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  const contentLength = value.length - padding;
+  if (contentLength === 0) return null;
+
+  // Scan characters directly so very large uploads cannot trigger regex backtracking/stack growth.
+  for (let index = 0; index < contentLength; index += 1) {
+    const code = value.charCodeAt(index);
+    const isAlphaNumeric = (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || (code >= 48 && code <= 57);
+    if (!isAlphaNumeric && code !== 43 && code !== 47) return null;
+  }
+  for (let index = contentLength; index < value.length; index += 1) {
+    if (value[index] !== '=') return null;
+  }
+  if ((padding === 2 && contentLength % 4 !== 2) || (padding === 1 && contentLength % 4 !== 3)) return null;
+
   return (value.length / 4) * 3 - padding;
 }
 
