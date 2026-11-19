@@ -13,7 +13,6 @@ import { handleStoryVideoPlanRoutes } from './routes/studios/story-video-plan.ro
 import { handleShortStudioRoutes } from './routes/studios/short.routes.js';
 import { handleImageStudioRoutes } from './routes/studios/image.routes.js';
 import { handleVoiceStudioRoutes } from './routes/studios/voice.routes.js';
-import { handleSubtitleStudioRoutes } from './routes/studios/subtitle.routes.js';
 import { handleShopStudioRoutes } from './routes/studios/shop.routes.js';
 import { enforceSharedAiRateLimit } from './middleware/requestGuards.js';
 import { buildHtmlSecurityHeaders, createCspNonce } from './middleware/securityHeaders.js';
@@ -471,9 +470,6 @@ export default {
 
       const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (imageStudioResponse) return imageStudioResponse;
-
-      const subtitleStudioResponse = await handleSubtitleStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature });
-      if (subtitleStudioResponse) return subtitleStudioResponse;
 
       const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (voiceStudioResponse) return voiceStudioResponse;
