@@ -472,7 +472,7 @@ export default {
       const imageStudioResponse = await handleImageStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
       if (imageStudioResponse) return imageStudioResponse;
 
-      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
+      const voiceStudioResponse = await handleVoiceStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse });
       if (voiceStudioResponse) return voiceStudioResponse;
 
       const shopStudioResponse = await handleShopStudioRoutes(request, env, cors, { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse });
