@@ -38,7 +38,7 @@ export async function handleTaskReviewAdminApi(request, path, env, user) {
       const decision = approveMatch[2] === 'approve' ? 'approved' : 'rejected';
       const body = await readTaskApiBody(request) || {};
       const version = await reviewTaskInstructions(
-        env, versionId, decision, user.email, body.comment
+        env, versionId, decision, body.comment
       );
       await logTaskAdminAction(env, user, 'task_instruction_' + decision, {
         version_id: version.version_id,

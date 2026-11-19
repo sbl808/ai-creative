@@ -411,7 +411,7 @@ function loadLogs(){
     rows.forEach(function(r){
       var c=document.createElement('div');
       c.className='list-row';
-      c.innerHTML='<div class="list-main"><div class="list-title">'+esc(r.action||'')+'</div><div class="list-meta">'+esc(r.admin_email||'')+' · '+esc(r.created_at||'')+'</div><div class="list-meta">'+esc(r.detail||'')+'</div></div>';
+      c.innerHTML='<div class="list-main"><div class="list-title">'+esc(r.action_code||'')+'</div><div class="list-meta">'+esc(r.result_code||'')+' · '+esc(r.created_at||'')+'</div></div>';
       list.appendChild(c);
     });
   }).catch(function(e){

@@ -1,10 +1,34 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { handleTaskCatalogAdminApi } from '../worker/src/admin/task-catalog-api.js';
 import { handleTaskInstructionsAdminApi } from '../worker/src/admin/task-instructions-api.js';
 import { handleTaskReviewAdminApi } from '../worker/src/admin/task-review-api.js';
 import { isSameOriginMutation, taskApiError } from '../worker/src/admin/task-api-utils.js';
 
 const user = { email: 'admin@example.test' };
+
+const [taskInstructionsApi, taskReviewApi, taskInstructionWorkflow, taskInstructionRepository, taskInstructionMigration] = await Promise.all([
+  readFile(new URL('../worker/src/admin/task-instructions-api.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/admin/task-review-api.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/cms/task-instructions/workflow.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/src/cms/repositories/task-instructions.js', import.meta.url), 'utf8'),
+  readFile(new URL('../worker/migrations-platform/0010_task_instructions.sql', import.meta.url), 'utf8'),
+]);
+
+// New Task Instruction writes must never pass an administrator identity.
+assert.equal(taskInstructionsApi.includes('user.email'), false);
+assert.equal(taskReviewApi.includes('user.email'), false);
+assert.equal(taskInstructionWorkflow.includes('createdBy'), false);
+assert.equal(taskInstructionWorkflow.includes('reviewedBy'), false);
+assert.equal(taskInstructionRepository.includes('updatedBy'), false);
+assert.equal(taskInstructionRepository.includes('createdBy'), false);
+assert.equal(taskInstructionRepository.includes('reviewedBy'), false);
+assert.ok(taskInstructionRepository.includes('updated_by = NULL'));
+assert.ok(taskInstructionRepository.includes("'pending', NULL, datetime('now')"));
+assert.ok(taskInstructionRepository.includes('SELECT ?, version_id, ?, NULL, ?, datetime(\'now\')'));
+assert.ok(taskInstructionMigration.includes('updated_by TEXT CHECK (updated_by IS NULL)'));
+assert.ok(taskInstructionMigration.includes('created_by TEXT CHECK (created_by IS NULL)'));
+assert.ok(taskInstructionMigration.includes('reviewed_by TEXT CHECK (reviewed_by IS NULL)'));
 
 const listResponse = await handleTaskCatalogAdminApi(
   new Request('https://studio.test/api/admin/tasks'),

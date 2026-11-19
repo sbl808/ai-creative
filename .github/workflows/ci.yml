@@ -26,6 +26,10 @@ jobs:
           node-version: 22
       - name: Run route regression tests
         run: node --experimental-default-type=module scripts/regression-test.mjs
+      - name: Run Google OAuth-only authentication contract tests
+        run: node --experimental-default-type=module scripts/google-oauth-only-contract-test.mjs
+      - name: Run Admin Logs privacy contract tests
+        run: node --experimental-default-type=module scripts/admin-logs-privacy-contract-test.mjs
       - name: Run server-side usage tracking boundary tests
         run: node --experimental-default-type=module scripts/no-server-usage-tracking-test.mjs
       - name: Run Shared Image Media Contract tests
@@ -205,8 +209,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Apply D1 migrations to local-only database
+      - name: Apply Platform D1 migrations to local-only database
         run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --config worker/wrangler.toml
+      - name: Seed local-only Google OAuth browser E2E account
+        run: |
+          npx --yes wrangler@4 d1 execute aics-db-dev --local --env dev --config worker/wrangler.toml --command "INSERT OR IGNORE INTO users (id, google_sub, email, plan, expiry, created_at, updated_at) VALUES (900001, 'google-sub-local-browser-e2e', 'browser-e2e@example.invalid', 'PRO', NULL, datetime('now'), datetime('now'));"
       - name: Create ephemeral local-only session signing key
         shell: bash
         run: |
@@ -217,7 +224,7 @@ jobs:
         run: |
           npm init -y
           npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Start Worker locally and smoke-test app routes
         shell: bash
         run: |

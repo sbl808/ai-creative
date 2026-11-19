@@ -51,9 +51,9 @@ export function taskApiError(error) {
   return taskApiJson({ error: 'internal_error' }, 500);
 }
 
-export async function logTaskAdminAction(env, user, action, metadata) {
-  const detail = JSON.stringify(metadata || {}).slice(0, 500);
-  await logAdminAction(env, user && user.email, action, detail);
+export async function logTaskAdminAction(env, _user, action, _metadata) {
+  // Keep the existing caller contract, but never serialize identity or metadata.
+  await logAdminAction(env, action);
 }
 
 export function isSameOriginMutation(request) {

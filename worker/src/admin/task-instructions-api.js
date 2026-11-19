@@ -109,7 +109,7 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
           return taskApiJson({ error: 'invalid_request' }, 400);
         }
         const draft = await saveTaskInstructionDraft(
-          env, taskId, body.fields, body.expectedRevision, user.email
+          env, taskId, body.fields, body.expectedRevision
         );
         await logTaskAdminAction(env, user, 'task_instruction_draft_save', {
           task_id: taskId,
@@ -127,7 +127,7 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
         return taskApiJson({ error: 'invalid_request' }, 400);
       }
       const draft = await resetTaskInstructionDraft(
-        env, taskId, body.expectedRevision, user.email
+        env, taskId, body.expectedRevision
       );
       await logTaskAdminAction(env, user, 'task_instruction_draft_reset', {
         task_id: taskId,
@@ -147,7 +147,7 @@ export async function handleTaskInstructionsAdminApi(request, path, env, user) {
     const submitMatch = path.match(/^\/api\/admin\/tasks\/([^/]+)\/submit$/);
     if (submitMatch && method === 'POST') {
       const taskId = decodeURIComponent(submitMatch[1]);
-      const version = await submitTaskInstructions(env, taskId, user.email);
+      const version = await submitTaskInstructions(env, taskId);
       await logTaskAdminAction(env, user, 'task_instruction_submit', {
         task_id: taskId,
         version_id: version.version_id,

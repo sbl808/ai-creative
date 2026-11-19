@@ -99,6 +99,8 @@ assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
-assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
+assert.match(loginSource, /\$\{userSettingsRepositoryScript\(\)\}/);
+assert.doesNotMatch(loginSource, /\/api\/auth\/(?:signup|signin)/);
+assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: AICS_OAUTH_PROFILE_NAME \} \}\)/);
 
 console.log('User Settings IndexedDB migration contract tests passed.');
