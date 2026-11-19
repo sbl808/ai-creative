@@ -11,8 +11,7 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   if (!token) return json({ error: 'unauthorized' }, 401, cors);
 
   const payload = await verifyTokenSafe(env, token);
-  const userId = typeof payload?.sub === 'string' ? payload.sub.trim() : '';
-  if (!userId) return json({ error: 'invalid_token' }, 401, cors);
+  if (!payload?.sub) return json({ error: 'invalid_token' }, 401, cors);
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body.audioBase64 !== 'string' || !body.audioBase64.trim()) {
@@ -27,25 +26,7 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   const denied = await requireFeature(env, 'subtitle.transcribe', plan, reqType, cors);
   if (denied) return denied;
 
-  // Fail closed: do not process audio when the Cloudflare binding is absent
-  // or unavailable. The key is the verified session subject, never the IP.
-  const limiter = env?.SUBTITLE_RATE_LIMITER;
-  if (!limiter || typeof limiter.limit !== 'function') {
-    return json({ error: 'rate_limit_unavailable' }, 503, cors);
-  }
-  try {
-    const decision = await limiter.limit({ key: userId });
-    if (!decision?.success) {
-      return json({ error: 'rate_limited', limit: 10, window_seconds: 60 }, 429, {
-        ...cors,
-        'Retry-After': '60',
-      });
-    }
-  } catch (_) {
-    return json({ error: 'rate_limit_unavailable' }, 503, cors);
-  }
-
-  try {
+subtitle local limiter  try {
     const transcribe = deps.transcribeSubtitleAudio || transcribeSubtitleAudio;
     const result = await transcribe(env, {
       audioBase64: body.audioBase64,
