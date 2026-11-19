@@ -5,6 +5,7 @@ Uses an in-memory SQLite database only. This does NOT connect to or validate
 the state of any remote Cloudflare D1 database.
 """
 from pathlib import Path
+import json
 import sqlite3
 import sys
 
@@ -100,6 +101,20 @@ def main():
             raise AssertionError(f"Unexpected plan contact defaults: {contacts}")
         if db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_plan_catalog_enabled_order'").fetchone()[0] != 1:
             raise AssertionError("Plan catalog enabled/order index is missing")
+
+        # Subtitle Studio platform configuration is seeded for existing databases.
+        subtitle_feature = db.execute(
+            "SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?",
+            ("subtitle.transcribe",),
+        ).fetchone()
+        if subtitle_feature != (1, "FREE", 0):
+            raise AssertionError(f"Unexpected Subtitle feature seed: {subtitle_feature}")
+
+        subtitle_model = db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE id=?", ("gemini-3.6-flash",)
+        ).fetchone()
+        if not subtitle_model or "subtitle.transcribe" not in json.loads(subtitle_model[0]):
+            raise AssertionError("gemini-3.6-flash is missing subtitle.transcribe task metadata")
 
         # The migration is idempotent and does not modify the existing users.plan values.
         migration_user = db.execute(

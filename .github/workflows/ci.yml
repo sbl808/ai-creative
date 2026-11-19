@@ -162,6 +162,8 @@ jobs:
         run: python scripts/test-all-migrations.py
       - name: Validate rate-limit migration behavior (offline)
         run: python scripts/test-api-test-limits-migration.py
+      - name: Validate Subtitle model and feature seed migration (offline)
+        run: python scripts/test-subtitle-config-migration.py
 
   studio-architecture:
     name: Studio architecture boundaries
