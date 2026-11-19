@@ -217,8 +217,9 @@ function aiTestPage() {
     '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run</button>' +
     '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
     '<script>' +
+    'function clientId(){var k="aics_rate_limit_client_id",id="";try{id=localStorage.getItem(k)||"";}catch(e){}if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)){if(!crypto||typeof crypto.randomUUID!=="function")throw new Error("Browser UUID support is required");id=crypto.randomUUID();try{localStorage.setItem(k,id);}catch(e){}}return id;}' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
-    'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim()},' +
+    'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim(),"X-AICS-Client-ID":clientId()},' +
     'body:JSON.stringify({prompt:document.getElementById("p").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){o.textContent=d.output?("✅ "+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
     '.catch(function(e){o.textContent="Network error: "+e;});}' +
