@@ -538,8 +538,11 @@ function aicsNeedsRateLimitClientId(path, method) {
   if (method !== 'POST') return false;
   var pathname = String(path || '').split('?')[0];
   if (pathname === '/api/ideas/generate' || pathname === '/api/cms/prompt' || pathname === '/api/studio/generate') return true;
-  return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(pathname) &&
-    /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(pathname);
+  var segments = pathname.split('/');
+  if (segments[1] !== 'api' || segments[2] !== 'studio') return false;
+  var studios = ['content', 'story', 'short', 'image', 'voice', 'shop', 'subtitle'];
+  var actions = ['generate', 'revise', 'tts', 'transcribe', 'srt', 'translate-srt', 'video', 'video-image', 'prompt', 'ad-prompt'];
+  return studios.indexOf(segments[3]) !== -1 && actions.indexOf(segments[segments.length - 1]) !== -1;
 }
 
 // Non-streaming AI requests use the same encrypted IndexedDB credential source.
