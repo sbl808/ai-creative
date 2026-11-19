@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { enforceSharedAiRateLimit, isAiGenerationRoute } from '../worker/src/middleware/requestGuards.js';
 import { buildCors } from '../worker/src/middleware/cors.js';
+import { readFileSync } from 'node:fs';
 
 const CLIENT_ID = '123e4567-e89b-42d3-a456-426614174000';
 const PATH = '/api/studio/voice/transcribe';
@@ -22,9 +23,13 @@ function makeDeps(overrides = {}) {
 }
 
 assert.equal(isAiGenerationRoute('/api/studio/voice/transcribe', 'POST'), true);
+assert.equal(isAiGenerationRoute('/api/ai/test', 'POST'), true);
+assert.equal(isAiGenerationRoute('/api/ai/test', 'GET'), false);
 assert.equal(isAiGenerationRoute('/api/studio/subtitle/transcribe', 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/voice/transcribe', 'GET'), false);
 assert.equal(isAiGenerationRoute('/api/users/me', 'POST'), false);
+const aiRouteSource = readFileSync(new URL('../worker/src/routes/ai.routes.js', import.meta.url), 'utf8');
+assert.equal(aiRouteSource.includes('api_test_limits'), false, 'AI connection-test route must not use the legacy D1 counter');
 const corsHeaders = buildCors(new Request('https://test.local', { headers: { Origin: 'https://aics-frontend-dev.pages.dev' } }), { ALLOWED_ORIGINS: 'https://aics-frontend-dev.pages.dev' });
 assert.match(corsHeaders['Access-Control-Allow-Headers'], /X-AICS-Client-ID/);
 
