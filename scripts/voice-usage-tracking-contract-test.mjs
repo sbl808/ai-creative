@@ -15,17 +15,39 @@ for (const endpoint of voiceEndpoints) {
   assert.ok(voiceRoutes.includes(endpoint), 'Voice endpoint is missing: ' + endpoint);
 }
 
-assert.doesNotMatch(voiceRoutes, /\btrackUsageSafe\b|\btrackUsage\s*\(/, 'Voice Studio routes must not write server-side usage records');
+assert.doesNotMatch(
+  voiceRoutes,
+  /\btrackUsageSafe\b|\btrackUsage\s*\(/,
+  'Voice Studio routes must not write server-side usage records',
+);
 
-const voiceRegistration = workerIndex.split('\n').find(line => line.includes('handleVoiceStudioRoutes('));
+const voiceRegistration = workerIndex
+  .split('\n')
+  .find(line => line.includes('handleVoiceStudioRoutes(request'));
 assert.ok(voiceRegistration, 'Voice Studio route registration must exist');
-assert.doesNotMatch(voiceRegistration, /\btrackUsageSafe\b/, 'Voice Studio must not receive the server-side usage tracker dependency');
+assert.doesNotMatch(
+  voiceRegistration,
+  /\btrackUsageSafe\b/,
+  'Voice Studio must not receive the server-side usage tracker dependency',
+);
 
 // This task is intentionally limited to Voice. Other Studios retain their current tracker dependency.
-for (const routeName of ['handleContentStudioRoutes', 'handleStoryStudioRoutes', 'handleShortStudioRoutes', 'handleImageStudioRoutes', 'handleShopStudioRoutes']) {
-  const registration = workerIndex.split('\n').find(line => line.includes(routeName + '('));
+for (const routeName of [
+  'handleContentStudioRoutes',
+  'handleStoryStudioRoutes',
+  'handleShortStudioRoutes',
+  'handleImageStudioRoutes',
+  'handleShopStudioRoutes',
+]) {
+  const registration = workerIndex
+    .split('\n')
+    .find(line => line.includes(routeName + '(request'));
   assert.ok(registration, routeName + ' registration must exist');
-  assert.match(registration, /\btrackUsageSafe\b/, routeName + ' tracking dependency is outside this task scope');
+  assert.match(
+    registration,
+    /\btrackUsageSafe\b/,
+    routeName + ' tracking dependency is outside this task scope',
+  );
 }
 
 console.log('Voice server-side usage tracking contract tests passed.');
