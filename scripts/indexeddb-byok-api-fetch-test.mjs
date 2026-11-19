@@ -43,7 +43,7 @@ await sandbox.window.aicsApiFetch('/api/ai-models?category=text', undefined, { m
 assert.equal(injected, 2);
 assert.equal(calls[2].init.body, undefined);
 assert.equal(calls[2].init.cache, 'no-store');
-assert.equal(calls[2].init.headers, undefined);
+assert.deepEqual(calls[2].init.headers, {});
 
 const failClosed = { window: {}, fetch: async () => { throw new Error('fetch_should_not_run'); }, Promise, Object, String, Error };
 vm.runInNewContext(AICS_STREAM_SCRIPT, failClosed);
