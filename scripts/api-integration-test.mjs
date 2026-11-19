@@ -25,7 +25,7 @@ function record(name, ok, extra) {
 function blockedNote(name, why) { blocked++; notes.push('  ⊘ ' + name + ' — ' + why); console.log('  ⊘ ' + name + ' — ' + why); }
 
 const { server, url, token } = await startE2EServer(0);
-const auth = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+const auth = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-AICS-Client-ID': '123e4567-e89b-42d3-a456-426614174000' };
 // /api/auth/session reads the aics_token cookie (server-side session guard).
 const cookieAuth = { ...auth, Cookie: 'aics_token=' + encodeURIComponent(token) };
 
