@@ -190,7 +190,7 @@ ${sidebarScript()}
       missing_api_key:'Settings ထဲတွင် Gemini API Key ထည့်ပြီးမှ အသုံးပြုနိုင်ပါသည်။',
       credentials_unavailable:'Browser ထဲရှိ API Key Storage ကို ဖွင့်မရပါ။ Settings ကို စစ်ဆေးပါ။',
       credentials_not_found:'Gemini API Key မရှိသေးပါ။ Settings ထဲတွင် ထည့်ပါ။',
-      rate_limited:'တစ်မိနစ်အတွင်း အသုံးပြုခွင့် ၁၀ ကြိမ် ပြည့်သွားပါပြီ။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။',
+      rate_limited:'တစ်မိနစ်အတွင်း အသုံးပြုခွင့် ၃ ကြိမ် ပြည့်သွားပါပြီ။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။',
       rate_limit_unavailable:'ဝန်ဆောင်မှုကို ယာယီအသုံးပြုမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။',
       feature_disabled:'ဤ Feature ကို ယာယီပိတ်ထားပါသည်။',
       feature_settings_unavailable:'Feature အခြေအနေကို ယခု စစ်ဆေးမရပါ။ နောက်မှ ပြန်ကြိုးစားပါ။',
