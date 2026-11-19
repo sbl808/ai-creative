@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Run route regression tests
         run: node --experimental-default-type=module scripts/regression-test.mjs
+      - name: Run browser-keyed AI rate-limit contract tests
+        run: node --experimental-default-type=module scripts/browser-keyed-ai-rate-limit-contract-test.mjs
       - name: Run Google OAuth-only authentication contract tests
         run: node --experimental-default-type=module scripts/google-oauth-only-contract-test.mjs
       - name: Run Admin Logs privacy contract tests
