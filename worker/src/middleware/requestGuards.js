@@ -7,7 +7,7 @@ const BROWSER_CLIENT_ID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$
 
 export function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
-  if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
+  if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate' || path === '/api/ai/test') return true;
   return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(path) &&
     /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
