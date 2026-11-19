@@ -216,10 +216,11 @@ ${sidebarScript()}
       if(!window.aicsApiFetch)throw new Error('credentials_unavailable');
       audioBase64=await readAudioBase64(file);
       if(requestId!==activeRequest)return;
-      var response=await window.aicsApiFetch('/api/studio/subtitle/transcribe',{
+      var response=await window.aicsApiFetch('/api/studio/voice/transcribe',{
         audioBase64:audioBase64,
         mimeType:file.type||'audio/mpeg',
-        type:'1'
+        type:'1',
+        studio:'subtitle'
       },{
         method:'POST',
         headers:{
