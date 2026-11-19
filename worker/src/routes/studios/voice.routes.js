@@ -54,7 +54,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
             apiKey,
           };
           const out = isSubtitleRequest
-            ? await transcribeSubtitleAudio(env, input)
+            ? await (deps.transcribeSubtitleAudio || transcribeSubtitleAudio)(env, input)
             : await transcribeAudio(env, input);
           // Subtitle requests must not create server-side usage records.
           if (!isSubtitleRequest) await trackUsageSafe(env, payload.sub, 'ai');
