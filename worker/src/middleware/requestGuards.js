@@ -15,7 +15,7 @@ export function isAiGenerationRoute(path, method) {
 export async function enforceSharedAiRateLimit(request, env, path, deps) {
   if (!isAiGenerationRoute(path, request.method)) return null;
   const authHeader = request.headers.get('Authorization') || '';
-  const bearer = authHeader.match(/^Bearer\\s+(.+)$/i)?.[1] || '';
+  const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || '';
   const token = bearer || deps.cookieToken(request);
   const payload = token ? await deps.verifyTokenSafe(env, token) : null;
   if (!payload?.sub) return null; // Let route auth preserve its established response.
