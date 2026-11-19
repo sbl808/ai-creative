@@ -3,14 +3,14 @@ import { readFile } from 'node:fs/promises';
 import { AUDIO_CONTRACT_VERSION } from '../worker/src/media-production/contracts/audio.contract.js';
 import { createSharedAudioEngine } from '../worker/src/media-production/audio/engine.js';
 import { createSubtitleAudioAdapter } from '../worker/src/media-adapters/subtitle/audio.adapter.js';
-import { handleSubtitleStudioRoutes } from '../worker/src/routes/studios/subtitle.routes.js';
+import { handleVoiceStudioRoutes } from '../worker/src/routes/studios/voice.routes.js';
 
 const PRIVATE_AUDIO = 'UFJJVkFURV9BVURJT19TRU5USU5FTA==';
 const PRIVATE_KEY = 'PRIVATE_SUBTITLE_PROVIDER_KEY';
 const PRIVATE_TEXT = 'PRIVATE_SUBTITLE_TRANSCRIPT';
 
-function makeRequest(body = { audioBase64: PRIVATE_AUDIO, apiKey: PRIVATE_KEY }) {
-  return new Request('https://test.local/api/studio/subtitle/transcribe', {
+function makeRequest(body = { audioBase64: PRIVATE_AUDIO, apiKey: PRIVATE_KEY, studio: 'subtitle' }) {
+  return new Request('https://test.local/api/studio/voice/transcribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-token' },
     body: JSON.stringify(body),
@@ -95,7 +95,7 @@ function makeDeps(overrides = {}) {
 // Authentication remains enforced by the route; shared rate limiting is centralized in Worker middleware.
 {
   const { deps, state } = makeDeps({ bearer: () => '' });
-  const response = await handleSubtitleStudioRoutes(makeRequest(), {}, {}, deps);
+  const response = await handleVoiceStudioRoutes(makeRequest(), {}, {}, { ...deps, generateVoiceAudio: async () => ({}), transcribeAudio: async () => ({ text: 'VOICE_PATH_SHOULD_NOT_RUN' }), generateVoiceSrt: async () => ({}), translateVoiceSrt: async () => ({}) });
   assert.equal(response.status, 401);
   assert.equal(state.transcribeCalls.length, 0);
 }
@@ -103,7 +103,7 @@ function makeDeps(overrides = {}) {
 // Successful route is transient, no-store, Browser BYOK, and does not track usage.
 {
   const { deps, state } = makeDeps();
-  const response = await handleSubtitleStudioRoutes(makeRequest(), {}, {}, deps);
+  const response = await handleVoiceStudioRoutes(makeRequest(), {}, {}, { ...deps, generateVoiceAudio: async () => ({}), transcribeAudio: async () => ({ text: 'VOICE_PATH_SHOULD_NOT_RUN' }), generateVoiceSrt: async () => ({}), translateVoiceSrt: async () => ({}) });
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
@@ -118,15 +118,17 @@ function makeDeps(overrides = {}) {
 
 // Route source must not add user-content persistence, usage tracking, account-keyed limiting, or logging.
 {
-  const route = await readFile(new URL('../worker/src/routes/studios/subtitle.routes.js', import.meta.url), 'utf8');
+  const route = await readFile(new URL('../worker/src/routes/studios/voice.routes.js', import.meta.url), 'utf8');
   const guard = await readFile(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
-  assert.equal(route.includes('trackUsageSafe'), false);
+  assert.match(route, /isSubtitleRequest[\s\S]*?if \(!isSubtitleRequest\) await trackUsageSafe/);
   assert.equal(route.includes('console.'), false);
   assert.equal(route.includes('env.DB'), false);
+  assert.match(route, /body\.studio === 'subtitle'/);
+  assert.match(route, /subtitle\.transcribe/);
   assert.equal(route.includes('SUBTITLE_RATE_LIMITER'), false);
   assert.match(guard, /AI_RATE_LIMITER/);
   assert.match(guard, /X-AICS-Client-ID/);
   assert.match(guard, /subtitle/);
 }
 
-console.log('Subtitle Audio → Text Route Contracts: PASS');
+console.log('Shared Voice/Subtitle Audio → Text Route Contracts: PASS');
