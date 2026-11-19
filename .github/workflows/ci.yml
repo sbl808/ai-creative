@@ -209,12 +209,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Apply D1 migrations to local-only database
+      - name: Apply Platform D1 migrations to local-only database
         run: npx --yes wrangler@4 d1 migrations apply aics-db-dev --local --env dev --config worker/wrangler.toml
       - name: Seed local-only Google OAuth browser E2E account
         run: |
-          npx --yes wrangler@4 d1 execute aics-db-dev --local --env dev --config worker/wrangler.toml --command "ALTER TABLE users ADD COLUMN google_sub TEXT;"
-          npx --yes wrangler@4 d1 execute aics-db-dev --local --env dev --config worker/wrangler.toml --command "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub);"
           npx --yes wrangler@4 d1 execute aics-db-dev --local --env dev --config worker/wrangler.toml --command "INSERT OR IGNORE INTO users (id, google_sub, email, plan, expiry, created_at, updated_at) VALUES (900001, 'google-sub-local-browser-e2e', 'browser-e2e@example.invalid', 'PRO', NULL, datetime('now'), datetime('now'));"
       - name: Create ephemeral local-only session signing key
         shell: bash
