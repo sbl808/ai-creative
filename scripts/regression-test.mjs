@@ -72,7 +72,6 @@ class MockD1 {
   constructor(rows = {}) {
     this.rows = { ...rows, users: rows.users || {} };
     this.cmsPrompts = rows.cmsPrompts || [];
-    this.apiTestLimits = new Map();
     this.featureSettings = new Map(); this.studioSettings = new Map();
     this.planCatalog = new Map((rows.planCatalog || [
       { plan_key: 'FREE', name: 'Free', icon: 'sparkles', description: '', price_amount: null, price_currency: null, billing_period: '', features_json: '[]', enabled: 1, sort_order: 0 },
@@ -95,9 +94,6 @@ class MockD1 {
         }
         if (sql.startsWith('SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?')) {
           return self.featureSettings.get(String(this._args && this._args[0])) || null;
-        }
-        if (sql.startsWith('SELECT attempts FROM api_test_limits WHERE user_id = ? AND window_id = ?')) {
-          return { attempts: self.apiTestLimits.get(String(this._args[0]) + ':' + this._args[1]) || 0 };
         }
         return null;
       },
@@ -151,10 +147,6 @@ class MockD1 {
         if (/INSERT OR IGNORE INTO feature_settings/.test(sql)) {
           const id = String(this._args[0]);
           if (!self.featureSettings.has(id)) { self.featureSettings.set(id, { enabled: 1, access: String(this._args[1]), limit_value: 0 }); changes = 1; }
-        }
-        if (/INSERT INTO api_test_limits/.test(sql)) {
-          const key = String(this._args[0]) + ':' + this._args[1];
-          self.apiTestLimits.set(key, (self.apiTestLimits.get(key) || 0) + 1);
         }
         return { success: true, meta: { changes } };
       },
@@ -509,30 +501,27 @@ await check('POST /api/user/apikey → 410 when encryption secret is missing', a
   return { ok: r.status === 410 && body.error === 'browser_storage_only', msg: `status=${r.status} error=${body.error}` };
 });
 
-console.log('— API connection-test rate limit —');
-await check('POST /api/ai/test → 503 when rate-limit DB is unavailable', async () => {
-  const headers = await withToken();
-  const noDbEnv = { ...env, DB: null };
-  const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
-    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
-  }), noDbEnv, {});
-  const body = await r.json();
-  return { ok: r.status === 503 && body.error === 'rate_limit_unavailable', msg: `status=${r.status} error=${body.error}` };
-});
-await check('POST /api/ai/test → allows five attempts, blocks sixth in same window', async () => {
-  const rateEnv = { ...env, DB: new MockD1({}) };
+console.log('— API connection-test shared browser rate limit —');
+await check('POST /api/ai/test → shares the 3-request / 60-second browser client bucket without D1', async () => {
+  const rateEnv = { ...env, AI_RATE_LIMITER: createMockRateLimiter(3), get DB() { throw new Error('Connection test rate limit must not access D1'); } };
   const headers = await withToken();
   const statuses = [];
-  // Invalid JSON intentionally stops after the rate-limit check, so this test
-  // never calls Gemini or makes an external network request.
-  for (let i = 0; i < 6; i++) {
+  // Invalid JSON stops after the shared limiter and route body validation; no Gemini call is made.
+  for (let i = 0; i < 4; i++) {
     const r = await worker.fetch(new Request('https://test.local/api/ai/test', {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  return { ok: statuses.slice(0, 5).every(status => status === 400) && statuses[5] === 429,
-    msg: `statuses=${statuses.join(',')}` };
+  const blocked = await worker.fetch(new Request('https://test.local/api/ai/test', {
+    method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{',
+  }), rateEnv, {});
+  const body = await blocked.json();
+  return {
+    ok: statuses.slice(0, 3).every(status => status === 400) && statuses[3] === 429 &&
+      blocked.status === 429 && body.error === 'rate_limited' && body.limit === 3 && body.window_seconds === 60,
+    msg: `statuses=${statuses.join(',')} blocked=${blocked.status} error=${body.error}`,
+  };
 });
 
 console.log('— STEP 10: shared AI generation rate-limit runtime tests —');
