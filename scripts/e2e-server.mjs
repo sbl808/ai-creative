@@ -79,6 +79,7 @@ export function buildE2EEnv(origin) {
     ALLOWED_ORIGINS: origin,
     ADMIN_EMAIL: 'e2e@test.local',
     DB: new MockD1(),
+    AI_RATE_LIMITER: { limit: async () => ({ success: true }) },
     // NOTE: no GEMINI_API_KEY on purpose — AI calls must fail honestly.
   };
 }
