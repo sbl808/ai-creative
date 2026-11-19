@@ -26,3 +26,6 @@ const sharedUi = await readFile(new URL('../worker/src/frontend/shared-ui.js', i
 assert.match(sharedUi, /window\.AICS_BYOK\.withGeminiKey/);
 assert.match(sharedUi, /cache: 'no-store'/);
 console.log('Subtitle Audio → Text UI integration contract tests passed.');
+
+assert.match(page, /audio_file_too_large/);
+assert.match(page, /invalid_audio/);

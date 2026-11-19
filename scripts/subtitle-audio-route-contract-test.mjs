@@ -116,6 +116,48 @@ function makeDeps(overrides = {}) {
   assert.equal(JSON.stringify(body).includes(PRIVATE_TEXT), true);
 }
 
+// Server enforces the same 5 MiB limit even when the browser-side check is bypassed.
+{
+  const oversizedAudio = Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64');
+  const { deps, state } = makeDeps();
+  const response = await handleVoiceStudioRoutes(
+    makeRequest({ audioBase64: oversizedAudio, apiKey: PRIVATE_KEY, studio: 'subtitle' }),
+    {}, {},
+    { ...deps, generateVoiceAudio: async () => ({}), transcribeAudio: async () => ({ text: 'VOICE_PATH_SHOULD_NOT_RUN' }), generateVoiceSrt: async () => ({}), translateVoiceSrt: async () => ({}) },
+  );
+  const body = await response.json();
+  assert.equal(response.status, 413);
+  assert.equal(body.error, 'audio_file_too_large');
+  assert.equal(state.transcribeCalls.length, 0);
+}
+
+// Exactly 5 MiB is accepted by server-side validation.
+{
+  const boundaryAudio = Buffer.alloc(5 * 1024 * 1024).toString('base64');
+  const { deps, state } = makeDeps();
+  const response = await handleVoiceStudioRoutes(
+    makeRequest({ audioBase64: boundaryAudio, apiKey: PRIVATE_KEY, studio: 'subtitle' }),
+    {}, {},
+    { ...deps, generateVoiceAudio: async () => ({}), transcribeAudio: async () => ({ text: 'VOICE_PATH_SHOULD_NOT_RUN' }), generateVoiceSrt: async () => ({}), translateVoiceSrt: async () => ({}) },
+  );
+  assert.equal(response.status, 200);
+  assert.equal(state.transcribeCalls.length, 1);
+}
+
+// Malformed Base64 is rejected before feature lookup or provider execution.
+{
+  const { deps, state } = makeDeps();
+  const response = await handleVoiceStudioRoutes(
+    makeRequest({ audioBase64: 'not-valid-base64!', apiKey: PRIVATE_KEY, studio: 'subtitle' }),
+    {}, {},
+    { ...deps, generateVoiceAudio: async () => ({}), transcribeAudio: async () => ({ text: 'VOICE_PATH_SHOULD_NOT_RUN' }), generateVoiceSrt: async () => ({}), translateVoiceSrt: async () => ({}) },
+  );
+  const body = await response.json();
+  assert.equal(response.status, 400);
+  assert.equal(body.error, 'invalid_audio');
+  assert.equal(state.transcribeCalls.length, 0);
+}
+
 // Route source must not add user-content persistence, usage tracking, account-keyed limiting, or logging.
 {
   const route = await readFile(new URL('../worker/src/routes/studios/voice.routes.js', import.meta.url), 'utf8');

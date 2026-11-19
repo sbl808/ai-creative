@@ -1,6 +1,17 @@
 import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from '../../studios/voice/index.js';
 import { transcribeSubtitleAudio } from '../../studios/subtitle/audio.js';
 
+const MAX_SUBTITLE_AUDIO_BYTES = 5 * 1024 * 1024;
+const AUDIO_BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+function getBase64DecodedByteLength(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length % 4 !== 0 || !AUDIO_BASE64_PATTERN.test(value)) {
+    return null;
+  }
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return (value.length / 4) * 3 - padding;
+}
+
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, trackUsageSafe, friendlyError, ndjsonResponse } = deps;
@@ -38,9 +49,16 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         if (!payload) return json({ error: 'invalid_token' }, 401, cors);
         const body = await request.json().catch(() => null);
         if (!body || !body.audioBase64) return json({ error: 'missing_audio' }, 400, cors);
+        const isSubtitleRequest = body.studio === 'subtitle';
+        if (isSubtitleRequest) {
+          const audioBytes = getBase64DecodedByteLength(body.audioBase64);
+          if (audioBytes === null) return json({ error: 'invalid_audio' }, 400, cors);
+          if (audioBytes > MAX_SUBTITLE_AUDIO_BYTES) {
+            return json({ error: 'audio_file_too_large' }, 413, cors);
+          }
+        }
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
-        const isSubtitleRequest = body.studio === 'subtitle';
         const feature = isSubtitleRequest ? 'subtitle.transcribe' : 'voice.transcribe';
         { const denied = await requireFeature(env, feature, plan, reqType, cors); if (denied) return denied; }
         try {
