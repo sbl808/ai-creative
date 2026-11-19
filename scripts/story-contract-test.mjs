@@ -31,30 +31,14 @@ const facts = {
 };
 
 class RouteMockD1 {
-  constructor() { this.limits = new Map(); }
   prepare(sql) {
-    const self = this;
     return {
-      bind(...args) { this.args = args; return this; },
-      async run() {
-        if (sql.includes('INSERT INTO api_generation_limits')) {
-          const key = String(this.args[0]) + ':' + this.args[1];
-          self.limits.set(key, (self.limits.get(key) || 0) + 1);
-        }
-        return { success: true };
-      },
+      bind() { return this; },
       async all() {
         if (sql.includes('SELECT studio_id, enabled FROM studio_settings')) {
           return { results: ['story', 'content', 'short', 'image', 'voice', 'shop'].map(studio_id => ({ studio_id, enabled: 1 })) };
         }
         return { results: [] };
-      },
-      async first() {
-        if (sql.includes('SELECT attempts FROM api_generation_limits')) {
-          const key = String(this.args[0]) + ':' + this.args[1];
-          return { attempts: self.limits.get(key) || 0 };
-        }
-        return null;
       },
     };
   }
@@ -63,6 +47,7 @@ class RouteMockD1 {
 try {
   const routeEnv = {
     SESSION_SIGNING_KEY: 'story-contract-test-secret',
+    AI_RATE_LIMITER: { limit: async () => ({ success: true }) },
     DB: new RouteMockD1(),
   };
   const token = await signToken(routeEnv, { sub: 'story-contract-user', email: 'story@test.local' });
@@ -70,6 +55,7 @@ try {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'X-AICS-Client-ID': '123e4567-e89b-42d3-a456-426614174000',
       ...(authenticated ? { Authorization: 'Bearer ' + token } : {}),
     },
     body: JSON.stringify(body),
