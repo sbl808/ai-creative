@@ -26,7 +26,7 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   const denied = await requireFeature(env, 'subtitle.transcribe', plan, reqType, cors);
   if (denied) return denied;
 
-subtitle local limiter  try {
+  try {
     const transcribe = deps.transcribeSubtitleAudio || transcribeSubtitleAudio;
     const result = await transcribe(env, {
       audioBase64: body.audioBase64,
