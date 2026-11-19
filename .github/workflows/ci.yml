@@ -46,6 +46,8 @@ jobs:
         run: node --experimental-default-type=module scripts/shop-audio-route-contract-test.mjs
       - name: Run Subtitle Audio → Text route contract tests
         run: node --experimental-default-type=module scripts/subtitle-audio-route-contract-test.mjs
+      - name: Run shared browser-keyed AI rate-limit contract tests
+        run: node --experimental-default-type=module scripts/ai-rate-limit-contract-test.mjs
       - name: Run Subtitle Audio → Text UI integration contract tests
         run: node --experimental-default-type=module scripts/subtitle-audio-ui-contract-test.mjs
       - name: Run Shared SRT Studio Adapter tests
