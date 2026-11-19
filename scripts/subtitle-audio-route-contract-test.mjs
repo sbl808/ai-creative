@@ -18,7 +18,7 @@ function makeRequest(body = { audioBase64: PRIVATE_AUDIO, apiKey: PRIVATE_KEY })
 }
 
 function makeDeps(overrides = {}) {
-  const state = { rateCalls: [], transcribeCalls: [], usageCalls: 0 };
+  const state = { transcribeCalls: [], usageCalls: 0 };
   const deps = {
     bearer: () => 'test-token',
     verifyTokenSafe: async () => ({ sub: 'verified-user-123' }),
@@ -92,65 +92,21 @@ function makeDeps(overrides = {}) {
   assert.equal(JSON.stringify(calls[0][1]).includes(PRIVATE_KEY), false);
 }
 
-// Authentication and feature gates run before rate limiting or transcription.
+// Authentication remains enforced by the route; shared rate limiting is centralized in Worker middleware.
 {
   const { deps, state } = makeDeps({ bearer: () => '' });
   const response = await handleSubtitleStudioRoutes(makeRequest(), {}, {}, deps);
   assert.equal(response.status, 401);
-  assert.equal(state.rateCalls.length, 0);
   assert.equal(state.transcribeCalls.length, 0);
 }
 
-// Missing binding fails closed.
+// Successful route is transient, no-store, Browser BYOK, and does not track usage.
 {
   const { deps, state } = makeDeps();
   const response = await handleSubtitleStudioRoutes(makeRequest(), {}, {}, deps);
-  assert.equal(response.status, 503);
-  assert.equal(state.transcribeCalls.length, 0);
-}
-
-// Verified user subject is used as the rate-limit key; denied requests never reach AI.
-{
-  const { deps, state } = makeDeps();
-  const env = {
-    SUBTITLE_RATE_LIMITER: {
-      limit: async (args) => {
-        state.rateCalls.push(args);
-        return { success: false };
-      },
-    },
-  };
-  const response = await handleSubtitleStudioRoutes(makeRequest(), env, {}, deps);
-  assert.equal(response.status, 429);
-  assert.deepEqual(state.rateCalls, [{ key: 'verified-user-123' }]);
-  assert.equal(state.transcribeCalls.length, 0);
-}
-
-// Rate-limit provider errors also fail closed.
-{
-  const { deps, state } = makeDeps();
-  const env = { SUBTITLE_RATE_LIMITER: { limit: async () => { throw new Error('private error'); } } };
-  const response = await handleSubtitleStudioRoutes(makeRequest(), env, {}, deps);
-  assert.equal(response.status, 503);
-  assert.equal((await response.text()).includes('private error'), false);
-}
-
-// Successful request is transient, no-store, Browser BYOK, and does not track usage.
-{
-  const { deps, state } = makeDeps();
-  const env = {
-    SUBTITLE_RATE_LIMITER: {
-      limit: async (args) => {
-        state.rateCalls.push(args);
-        return { success: true };
-      },
-    },
-  };
-  const response = await handleSubtitleStudioRoutes(makeRequest(), env, {}, deps);
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
-  assert.deepEqual(state.rateCalls, [{ key: 'verified-user-123' }]);
   assert.equal(state.transcribeCalls.length, 1);
   assert.equal(state.transcribeCalls[0].audioBase64, PRIVATE_AUDIO);
   assert.equal(state.transcribeCalls[0].apiKey, PRIVATE_KEY);
@@ -160,14 +116,17 @@ function makeDeps(overrides = {}) {
   assert.equal(JSON.stringify(body).includes(PRIVATE_TEXT), true);
 }
 
-// Route source must not add user-content persistence, usage tracking, or logging.
+// Route source must not add user-content persistence, usage tracking, account-keyed limiting, or logging.
 {
   const route = await readFile(new URL('../worker/src/routes/studios/subtitle.routes.js', import.meta.url), 'utf8');
   const guard = await readFile(new URL('../worker/src/middleware/requestGuards.js', import.meta.url), 'utf8');
   assert.equal(route.includes('trackUsageSafe'), false);
   assert.equal(route.includes('console.'), false);
   assert.equal(route.includes('env.DB'), false);
-  assert.equal(guard.includes('subtitle'), false);
+  assert.equal(route.includes('SUBTITLE_RATE_LIMITER'), false);
+  assert.match(guard, /AI_RATE_LIMITER/);
+  assert.match(guard, /X-AICS-Client-ID/);
+  assert.match(guard, /subtitle/);
 }
 
 console.log('Subtitle Audio → Text Route Contracts: PASS');
