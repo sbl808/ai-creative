@@ -647,7 +647,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
   const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const headers = await withToken();
   const paths = [
-    '/api/studio/subtitle/transcribe',
+    '/api/studio/voice/transcribe',
     '/api/studio/subtitle/srt',
     '/api/studio/subtitle/translate-srt',
   ];
@@ -658,7 +658,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/transcribe', {
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/transcribe', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
   const body = await blocked.json();
