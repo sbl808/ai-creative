@@ -86,6 +86,7 @@ function makeDeps() {
   const overLimit = Buffer.alloc(MAX_AUDIO_BYTES + 1).toString('base64');
   assert.equal(base64DecodedByteLength(exactLimit), MAX_AUDIO_BYTES);
   assert.equal(base64DecodedByteLength(overLimit), MAX_AUDIO_BYTES + 1);
+  assert.ok(base64DecodedByteLength('A'.repeat(MAX_AUDIO_BYTES * 2)) > MAX_AUDIO_BYTES);
 
   const { deps, state } = makeDeps();
   const response = await handleVoiceStudioRoutes(
