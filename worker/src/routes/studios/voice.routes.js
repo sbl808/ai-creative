@@ -4,7 +4,7 @@ import { transcribeAudio as transcribeSubtitleAudio } from '../../studios/subtit
 const SUBTITLE_TRANSCRIPTION_MAX_BYTES = 5 * 1024 * 1024;
 
 export function base64DecodedByteLength(value) {
-  if (typeof value !== 'string' || value.length % 4 !== 0) return -1;
+  if (typeof value !== 'string') return -1;
   const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
   return Math.max(0, (value.length / 4) * 3 - padding);
 }
