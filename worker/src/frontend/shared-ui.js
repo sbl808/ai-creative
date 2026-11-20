@@ -539,7 +539,7 @@ ${AICS_RATE_LIMIT_CLIENT_SCRIPT}
 function aicsNeedsRateLimitClientId(path, method) {
   if (method !== 'POST') return false;
   var pathname = String(path || '').split('?')[0];
-  if (pathname === '/api/ideas/generate' || pathname === '/api/cms/prompt' || pathname === '/api/studio/generate') return true;
+  if (pathname === '/api/ideas/generate' || pathname === '/api/studio/generate') return true;
   var segments = pathname.split('/');
   if (segments[1] !== 'api' || segments[2] !== 'studio') return false;
   var studios = ['content', 'story', 'short', 'image', 'voice', 'shop', 'subtitle'];

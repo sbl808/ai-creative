@@ -29,8 +29,10 @@ function makeDeps(overrides = {}) {
 
 assert.equal(isAiGenerationRoute(PATH, 'POST'), true);
 assert.equal(isAiGenerationRoute('/api/studio/generate', 'POST'), true);
+assert.equal(isAiGenerationRoute('/api/cms/prompt', 'POST'), false);
 const sharedUiSource = await readFile('worker/src/frontend/shared-ui.js', 'utf8');
 assert.match(sharedUiSource, /pathname === '\/api\/studio\/generate'/);
+assert.doesNotMatch(sharedUiSource, /pathname === '\/api\/cms\/prompt'/);
 assert.match(sharedUiSource, /requestHeaders\['X-AICS-Client-ID'\]/);
 assert.match(sharedUiSource, /streamHeaders\['X-AICS-Client-ID'\]/);
 assert.equal(isAiGenerationRoute(PATH, 'GET'), false);
