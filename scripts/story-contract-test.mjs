@@ -63,7 +63,10 @@ try {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(authenticated ? { Authorization: 'Bearer ' + token } : {}),
+      ...(authenticated ? {
+        Authorization: 'Bearer ' + token,
+        'X-AICS-Client-ID': '123e4567-e89b-42d3-a456-426614174010',
+      } : {}),
     },
     body: JSON.stringify(body),
   }), routeEnv, {});
