@@ -11,7 +11,9 @@ const sandbox = {
         injected += 1;
         return { ...body, apiKey: 'decrypted-test-key' };
       }
-    }
+    },
+    localStorage: { getItem: () => '', setItem: () => {} },
+    crypto: { randomUUID: () => '123e4567-e89b-42d3-a456-426614174099' },
   },
   fetch: async (url, init) => {
     calls.push({ url, init });
