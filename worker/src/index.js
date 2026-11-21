@@ -299,7 +299,7 @@ export default {
         return json({ error: 'request_body_too_large', message: 'Request body exceeds the 32 MiB limit.' }, 413, cors);
       }
 
-      // STEP 9 — shared Cloudflare Rate Limiting binding (3 requests/user/60 seconds).
+      // STEP 9 — shared Cloudflare Rate Limiting binding (3 requests/browser client/60 seconds).
       const rateLimitResponse = await enforceSharedAiRateLimit(request, env, path, { cookieToken, verifyTokenSafe, json, friendlyError });
       if (rateLimitResponse) {
         const headers = new Headers(rateLimitResponse.headers);

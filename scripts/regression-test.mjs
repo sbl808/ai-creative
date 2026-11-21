@@ -18,6 +18,7 @@ import { STUDIO_REGISTRY } from '../worker/src/config/studios.js';
 import { FEATURE_REGISTRY } from '../worker/src/config/features.js';
 import { validateContactUrl, normalizePlanInput } from '../worker/src/core/planCatalog.js';
 import { appendOAuthProfileName } from '../worker/src/routes/auth.routes.js';
+import { isAiGenerationRoute } from '../worker/src/middleware/requestGuards.js';
 
 // Node-only HTMLRewriter shim for route regression tests.
 // Production requests use Cloudflare Worker's native HTMLRewriter implementation.
@@ -192,11 +193,17 @@ async function check(name, fn) {
   }
 }
 
+const TEST_BROWSER_CLIENT_ID = '123e4567-e89b-42d3-a456-426614174000';
 const get = (path, headers = {}) => worker.fetch(new Request('https://test.local' + path, { method: 'GET', headers }), env, {});
 
 const withToken = async (extra = {}) => {
   const t = await signToken(env, { sub: 'user-1', email: 'a@b.com', name: 'Test' });
-  return { Authorization: 'Bearer ' + t, Cookie: 'aics_token=' + encodeURIComponent(t), ...extra };
+  return {
+    Authorization: 'Bearer ' + t,
+    Cookie: 'aics_token=' + encodeURIComponent(t),
+    'X-AICS-Client-ID': TEST_BROWSER_CLIENT_ID,
+    ...extra,
+  };
 };
 
 // ---------------------------------------------------------------- tests
@@ -466,6 +473,11 @@ await check('GET /api/users/me → 401 (no token)', async () => {
 });
 
 console.log('— CMS prompt Admin authorization —');
+await check('CMS prompt lookup is not an AI-generation rate-limit route', async () => ({
+  ok: isAiGenerationRoute('/api/cms/prompt', 'POST') === false &&
+    isAiGenerationRoute('/api/studio/story/generate', 'POST') === true,
+  msg: 'CMS prompt excluded; Studio generation remains protected',
+}));
 // Use a local helper here so these tests do not depend on the later generic send() declaration.
 const cmsSend = (headers = {}, body = { studio: 'STORY', type: '1' }) => worker.fetch(new Request('https://test.local/api/cms/prompt', {
   method: 'POST',
@@ -635,7 +647,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
   const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const headers = await withToken();
   const paths = [
-    '/api/studio/subtitle/transcribe',
+    '/api/studio/voice/transcribe',
     '/api/studio/subtitle/srt',
     '/api/studio/subtitle/translate-srt',
   ];
@@ -646,7 +658,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/transcribe', {
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/transcribe', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
   const body = await blocked.json();
@@ -659,19 +671,33 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
     msg: `subtitle=${statuses.join(',')} blocked=${blocked.status} error=${body.error}`,
   };
 });
-await check('shared generation limit is isolated per authenticated user', async () => {
+await check('shared generation limit is keyed by browser client ID, not account', async () => {
   const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const userOne = await signToken(env, { sub: 'rate-user-one', email: 'one@example.test' });
   const userTwo = await signToken(env, { sub: 'rate-user-two', email: 'two@example.test' });
-  for (let i = 0; i < 3; i++) {
-    await worker.fetch(new Request('https://test.local/api/studio/story/generate', {
-      method: 'POST', headers: { Authorization: 'Bearer ' + userOne, 'Content-Type': 'application/json' }, body: '{}',
-    }), rateEnv, {});
-  }
-  const r = await worker.fetch(new Request('https://test.local/api/studio/image/prompt', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + userTwo, 'Content-Type': 'application/json' }, body: '{}',
+  const browserOne = '123e4567-e89b-42d3-a456-426614174001';
+  const browserTwo = '123e4567-e89b-42d3-a456-426614174002';
+  const post = (token, clientId) => worker.fetch(new Request('https://test.local/api/studio/story/generate', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'X-AICS-Client-ID': clientId,
+      'Content-Type': 'application/json',
+    },
+    body: '{}',
   }), rateEnv, {});
-  return { ok: r.status === 400, msg: `second user status=${r.status} (expected route validation 400)` };
+  const first = await post(userOne, browserOne);
+  const second = await post(userOne, browserOne);
+  const third = await post(userTwo, browserOne);
+  const blocked = await post(userTwo, browserOne);
+  const separateBrowser = await post(userTwo, browserTwo);
+  const blockedBody = await blocked.json();
+  return {
+    ok: [first.status, second.status, third.status].every(status => status === 400) &&
+      blocked.status === 429 && blockedBody.error === 'rate_limited' &&
+      separateBrowser.status === 400,
+    msg: `shared-browser=[${first.status},${second.status},${third.status},${blocked.status}] separate-browser=${separateBrowser.status}`,
+  };
 });
 await check('shared generation limit fails closed when Cloudflare binding is unavailable', async () => {
   const headers = await withToken();

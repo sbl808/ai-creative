@@ -1,5 +1,4 @@
 import {
-  transcribeAudio,
   generateSubtitleSrt,
   translateSubtitleSrt,
 } from '../../studios/subtitle.js';
@@ -14,39 +13,6 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
     requireFeature,
     friendlyError,
   } = deps;
-
-  // ===== Subtitle — Audio → Text =====
-  if (path === '/api/studio/subtitle/transcribe' && request.method === 'POST') {
-    const token = bearer(request);
-    if (!token) return json({ error: 'unauthorized' }, 401, cors);
-
-    const payload = await verifyTokenSafe(env, token);
-    if (!payload) return json({ error: 'invalid_token' }, 401, cors);
-
-    const body = await request.json().catch(() => null);
-    if (!body || !body.audioBase64) {
-      return json({ error: 'missing_audio' }, 400, cors);
-    }
-
-    const plan = await resolvePlan(env, payload);
-    const reqType = String(body.type || '1');
-    const denied = await requireFeature(env, 'subtitle.transcribe', plan, reqType, cors);
-    if (denied) return denied;
-
-    try {
-      const out = await transcribeAudio(env, {
-        model: body.model,
-        audioBase64: body.audioBase64,
-        mimeType: body.mimeType || 'audio/mpeg',
-        type: reqType,
-        plan,
-        apiKey: body.apiKey,
-      });
-      return json({ ok: true, ...out }, 200, cors);
-    } catch (e) {
-      return json({ error: 'transcribe_error', detail: friendlyError(e) }, 500, cors);
-    }
-  }
 
   // ===== Subtitle — Audio → SRT =====
   if (path === '/api/studio/subtitle/srt' && request.method === 'POST') {

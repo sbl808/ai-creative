@@ -481,9 +481,9 @@ console.log('\n--- E) Shared AI generation rate-limit contract ---');
     (config.match(/name = "AI_GENERATION_RATE_LIMITER"/g) || []).length === 3 &&
     (config.match(/limit = 3/g) || []).length >= 3 &&
     (config.match(/period = 60/g) || []).length >= 3);
-  check('rate-limit covers six Studio families and CMS prompt',
-    /path === '\/api\/cms\/prompt'/.test(guards) &&
-    /content\|story\|short\|image\|voice\|shop/.test(guards));
+  check('rate-limit covers six Studio families and excludes CMS prompt',
+    !/path === '\/api\/cms\/prompt'/.test(guards) &&
+    /content\|story\|short\|image\|voice\|shop\|subtitle/.test(guards));
   console.log('  ↷ Namespace IDs must be checked for account-wide uniqueness before remote deployment.');
 }
 

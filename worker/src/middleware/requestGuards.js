@@ -4,10 +4,11 @@ export const MAX_API_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
 
 const SHARED_AI_RATE_LIMIT = 3;
 const SHARED_AI_RATE_WINDOW_SECONDS = 60;
+const BROWSER_CLIENT_ID_PATTERN = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 export function isAiGenerationRoute(path, method) {
   if (method !== 'POST') return false;
-  if (path === '/api/ideas/generate' || path === '/api/cms/prompt' || path === '/api/studio/generate') return true;
+  if (path === '/api/ideas/generate' || path === '/api/studio/generate') return true;
   return /^\/api\/studio\/(?:content|story|short|image|voice|shop|subtitle)(?:\/.*)?$/.test(path) &&
     /\/(?:generate|revise|tts|transcribe|srt|translate-srt|video|video-image|prompt|ad-prompt)$/.test(path);
 }
@@ -20,23 +21,28 @@ export async function enforceSharedAiRateLimit(request, env, path, deps) {
   const payload = token ? await deps.verifyTokenSafe(env, token) : null;
   if (!payload?.sub) return null; // Let route auth preserve its established response.
 
-  const limiter = env.AI_GENERATION_RATE_LIMITER;
+  const clientId = request.headers.get('X-AICS-Client-ID') || '';
+  if (!BROWSER_CLIENT_ID_PATTERN.test(clientId)) {
+    return deps.json({ error: 'client_id_required' }, 400);
+  }
+
+  const limiter = env && env.AI_GENERATION_RATE_LIMITER;
   if (!limiter || typeof limiter.limit !== 'function') {
     return deps.json({ error: 'rate_limit_unavailable' }, 503);
   }
 
   try {
-    const { success } = await limiter.limit({ key: String(payload.sub) });
-    if (!success) {
+    const decision = await limiter.limit({ key: clientId });
+    if (!decision || !decision.success) {
       return deps.json({
         error: 'rate_limited',
         limit: SHARED_AI_RATE_LIMIT,
         window_seconds: SHARED_AI_RATE_WINDOW_SECONDS,
-      }, 429);
+      }, 429, { 'Retry-After': String(SHARED_AI_RATE_WINDOW_SECONDS) });
     }
     return null;
   } catch (_) {
-    // Do not log request data, identifiers, or exception details.
+    // Do not log request data, browser identifiers, or exception details.
     return deps.json({ error: 'rate_limit_unavailable' }, 503);
   }
 }

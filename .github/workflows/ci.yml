@@ -26,6 +26,8 @@ jobs:
           node-version: 22
       - name: Run route regression tests
         run: node --experimental-default-type=module scripts/regression-test.mjs
+      - name: Run browser-keyed AI rate-limit contract tests
+        run: node --experimental-default-type=module scripts/browser-keyed-ai-rate-limit-contract-test.mjs
       - name: Run Google OAuth-only authentication contract tests
         run: node --experimental-default-type=module scripts/google-oauth-only-contract-test.mjs
       - name: Run Admin Logs privacy contract tests
@@ -50,6 +52,8 @@ jobs:
         run: node --experimental-default-type=module scripts/media-audio-adapters-test.mjs
       - name: Run Shop Audio Route contract tests
         run: node --experimental-default-type=module scripts/shop-audio-route-contract-test.mjs
+      - name: Run Subtitle shared Voice API contract tests
+        run: node --experimental-default-type=module scripts/subtitle-shared-voice-api-contract-test.mjs
       - name: Run Shared SRT Studio Adapter tests
         run: node --experimental-default-type=module scripts/media-srt-adapters-test.mjs
       - name: Run Shared Image Studio Adapter tests

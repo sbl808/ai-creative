@@ -503,7 +503,49 @@ export const AICS_RESULT_BOX_SCRIPT = `
 // Returns a promise with .abort(). A new stream automatically
 // aborts the previous active one (no stuck GENERATING states).
 // ============================================================
+export const AICS_RATE_LIMIT_CLIENT_SCRIPT = `
+var aicsCachedRateLimitClientId = '';
+function aicsRateLimitClientId() {
+  if (aicsCachedRateLimitClientId) return aicsCachedRateLimitClientId;
+  var storageKey = 'aics_rate_limit_client_id';
+  var id = '';
+  try { id = String(window.localStorage.getItem(storageKey) || ''); } catch (e) {}
+  var validId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+  if (!validId.test(id)) {
+    var cryptoApi = window.crypto;
+    if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
+      id = cryptoApi.randomUUID();
+    } else if (cryptoApi && typeof cryptoApi.getRandomValues === 'function') {
+      var bytes = new Uint8Array(16);
+      cryptoApi.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.prototype.map.call(bytes, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      id = hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
+    } else {
+      throw new Error('rate_limit_identity_unavailable');
+    }
+    try { window.localStorage.setItem(storageKey, id); } catch (e) {}
+  }
+  if (!validId.test(id)) throw new Error('rate_limit_identity_unavailable');
+  aicsCachedRateLimitClientId = id;
+  return id;
+}
+window.aicsRateLimitClientId = aicsRateLimitClientId;
+`;
+
 export const AICS_STREAM_SCRIPT = `
+${AICS_RATE_LIMIT_CLIENT_SCRIPT}
+function aicsNeedsRateLimitClientId(path, method) {
+  if (method !== 'POST') return false;
+  var pathname = String(path || '').split('?')[0];
+  if (pathname === '/api/ideas/generate' || pathname === '/api/studio/generate') return true;
+  var segments = pathname.split('/');
+  if (segments[1] !== 'api' || segments[2] !== 'studio') return false;
+  var studios = ['content', 'story', 'short', 'image', 'voice', 'shop', 'subtitle'];
+  var actions = ['generate', 'revise', 'tts', 'transcribe', 'srt', 'translate-srt', 'video', 'video-image', 'prompt', 'ad-prompt'];
+  return studios.indexOf(segments[3]) !== -1 && actions.indexOf(segments[segments.length - 1]) !== -1;
+}
 // Non-streaming AI requests use the same encrypted IndexedDB credential source.
 // Only authenticated AI-generation POST routes receive the transient plaintext key.
 function aicsApiFetch(url, body, init) {
@@ -521,6 +563,16 @@ function aicsApiFetch(url, body, init) {
   }
   return requestBody.then(function (resolvedBody) {
     var requestInit = Object.assign({}, init, { cache: 'no-store' });
+    var requestHeaders = {};
+    if (init.headers && typeof init.headers.forEach === 'function') {
+      init.headers.forEach(function (value, key) { requestHeaders[key] = value; });
+    } else {
+      Object.assign(requestHeaders, init.headers || {});
+    }
+    if (aicsNeedsRateLimitClientId(path, method)) {
+      requestHeaders['X-AICS-Client-ID'] = aicsRateLimitClientId();
+    }
+    if (Object.keys(requestHeaders).length) requestInit.headers = requestHeaders;
     if (body !== undefined) requestInit.body = JSON.stringify(isAiRequest ? resolvedBody : body);
     return fetch(url, requestInit);
   });
@@ -559,10 +611,18 @@ function aicsStreamCall(url, body, opts) {
     }
     return window.AICS_BYOK.withGeminiKey(body || {});
   }).then(function (requestBody) {
+    var streamHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + tk,
+      'Accept': 'application/x-ndjson'
+    };
+    if (aicsNeedsRateLimitClientId(url, 'POST')) {
+      streamHeaders['X-AICS-Client-ID'] = aicsRateLimitClientId();
+    }
     return fetch(url, {
       method: 'POST',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tk, 'Accept': 'application/x-ndjson' },
+      headers: streamHeaders,
       body: JSON.stringify(requestBody || {}),
       signal: ctrl.signal
     });

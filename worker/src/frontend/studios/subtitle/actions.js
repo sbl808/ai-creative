@@ -118,7 +118,7 @@ function subtitleGenerateSrt() {
   if (file.size > 5 * 1024 * 1024) { subtitleSetStatus('ဖိုင်သည် 5MB ထက် မကျော်ရပါ။', true); return; }
   var button = document.getElementById('subtitleGenerateBtn');
   var known = document.getElementById('subtitleKnownText');
-  var path = outputMode === 'text' ? '/api/studio/subtitle/transcribe' : '/api/studio/subtitle/srt';
+  var path = outputMode === 'text' ? '/api/studio/voice/transcribe' : '/api/studio/subtitle/srt';
   SUBTITLE_STATE.processingState = 'processing';
   if (button) button.disabled = true;
   subtitleSetStatus(outputMode === 'text' ? 'စာသားထုတ်ယူနေပါသည်…' : 'SRT ဖန်တီးနေပါသည်…', false);
@@ -138,6 +138,7 @@ function subtitleGenerateSrt() {
       return;
     }
     subtitleApiPost(path, {
+      studio: 'subtitle',
       audioBase64: audioBase64,
       mimeType: mimeType,
       knownText: known ? known.value : '',
@@ -166,7 +167,9 @@ function subtitleGenerateSrt() {
       SUBTITLE_STATE.processingState = 'error';
       SUBTITLE_STATE.errorState = String(error && error.message || 'request_failed');
       var code = SUBTITLE_STATE.errorState;
-      var message = code === 'credentials_unavailable' || code === 'credentials_not_found'
+      var message = code === 'audio_too_large'
+        ? 'အသံဖိုင်သည် 5 MB ထက် မကျော်ရပါ။'
+        : code === 'credentials_unavailable' || code === 'credentials_not_found'
         ? 'Browser ထဲရှိ Gemini API Key ကို Settings မှ စစ်ဆေးပါ。'
         : code === 'unauthorized' || code === 'invalid_token'
         ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။'
