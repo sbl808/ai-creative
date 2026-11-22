@@ -173,6 +173,8 @@ function subtitleGenerateSrt() {
         ? 'Browser ထဲရှိ Gemini API Key ကို Settings မှ စစ်ဆေးပါ。'
         : code === 'unauthorized' || code === 'invalid_token'
         ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။'
+        : code === 'pro_only'
+        ? 'ဒီ Feature ကို အသုံးပြုရန် Pro Plan လိုအပ်ပါသည်။'
         : code === 'feature_denied' || code === 'feature_disabled'
         ? 'ဒီ Feature ကို အသုံးပြုခွင့်မရှိသေးပါ။'
         : 'SRT / စာသား ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။';
@@ -306,6 +308,7 @@ function subtitleTranslateSrt() {
     SUBTITLE_STATE.errorState = String(error && error.message || 'translate_error');
     var code = SUBTITLE_STATE.errorState;
     var message = code === 'unauthorized' || code === 'invalid_token' ? 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။' :
+      code === 'pro_only' ? 'ဒီ Feature ကို အသုံးပြုရန် Pro Plan လိုအပ်ပါသည်။' :
       code === 'feature_denied' || code === 'feature_disabled' ? 'ဒီ Feature ကို အသုံးပြုခွင့်မရှိသေးပါ။' :
       code === 'missing_srt' ? 'ဘာသာပြန်ရန် SRT စာသား ထည့်ပေးပါ။' :
       'SRT ဘာသာပြန်ရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။';
