@@ -684,7 +684,7 @@ console.log('\n--- Admin UI CSP Inline Style Contract ---');
 console.log('\\n--- Worker Test Pages CSP Inline Style Contract ---');
 {
   const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
-  const styleInjectionCount = (index.match(/\\+\\s*TEST_PAGE_STYLES\\s*\\+/g) || []).length;
+  const styleInjectionCount = (index.match(/\+\s*TEST_PAGE_STYLES\s*\+/g) || []).length;
   check('Worker HTML pages contain no inline style attributes',
     !/\\bstyle\\s*=/i.test(index));
   check('Worker HTML pages do not assign element.style properties',
