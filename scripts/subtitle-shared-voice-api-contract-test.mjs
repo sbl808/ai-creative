@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import {
   base64DecodedByteLength,
   handleVoiceStudioRoutes,
 } from '../worker/src/routes/studios/voice.routes.js';
 import { handleSubtitleStudioRoutes } from '../worker/src/routes/studios/subtitle.routes.js';
+import { HELPERS_SCRIPT } from '../worker/src/frontend/studios/subtitle/helpers.js';
 
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 const smallAudio = Buffer.from('test-audio').toString('base64');
@@ -177,6 +179,30 @@ function makeDeps(featureResponse = null) {
   assert.equal(response, null);
 }
 
+
+// SRT cue numbers must be unique; duplicate numbers invalidate the whole document.
+{
+  const sandbox = {};
+  runInNewContext(HELPERS_SCRIPT, sandbox);
+  const validSrt = [
+    '1',
+    '00:00:01,000 --> 00:00:02,000',
+    'ပထမစာကြောင်း',
+    '',
+    '2',
+    '00:00:02,000 --> 00:00:03,000',
+    'ဒုတိယစာကြောင်း',
+  ].join('\\n');
+  const duplicateSrt = validSrt.replace(
+    '2\\n00:00:02,000',
+    '1\\n00:00:02,000',
+  );
+  assert.equal(sandbox.subtitleValidateSrt(validSrt).valid, true);
+  const duplicateResult = sandbox.subtitleValidateSrt(duplicateSrt);
+  assert.equal(duplicateResult.valid, false);
+  assert.ok(duplicateResult.errors.some((error) => error.includes('Subtitle Number 1 ထပ်နေပါသည်။')));
+}
+
 const actions = await readFile(new URL('../worker/src/frontend/studios/subtitle/actions.js', import.meta.url), 'utf8');
 const subtitleRoutes = await readFile(new URL('../worker/src/routes/studios/subtitle.routes.js', import.meta.url), 'utf8');
 const subtitleBrain = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
@@ -184,6 +210,8 @@ const voiceRoutes = await readFile(new URL('../worker/src/routes/studios/voice.r
 
 assert.match(actions, /\/api\/studio\/voice\/transcribe/);
 assert.match(actions, /studio:\s*'subtitle'/);
+assert.equal((actions.match(/code === 'pro_only'/g) || []).length, 2);
+assert.match(actions, /Pro Plan လိုအပ်ပါသည်။/);
 assert.doesNotMatch(actions, /\/api\/studio\/subtitle\/transcribe/);
 assert.doesNotMatch(subtitleRoutes, /\/api\/studio\/subtitle\/transcribe/);
 assert.match(subtitleRoutes, /SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 \* 1024 \* 1024/);
