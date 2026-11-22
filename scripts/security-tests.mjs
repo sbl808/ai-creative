@@ -709,8 +709,8 @@ console.log('\\n--- Worker Test Pages CSP Inline Style Contract ---');
 console.log('\\n--- Settings UI CSP Inline Style Contract ---');
 {
   const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
-  check('Settings UI has no inline style attributes', !/\\bstyle\\s*=/i.test(settings));
-  check('Settings UI does not assign element.style properties', !/\\.style(?:\\.|\\s*\\[)/.test(settings));
+  check('Settings UI has no inline style attributes', !/\bstyle\s*=/i.test(settings));
+  check('Settings UI does not assign element.style properties', !/\.style(?:\.|\s*\[)/.test(settings));
   check('Settings tab visibility uses the hidden property and CSP-safe CSS',
     settings.includes("p.hidden=true") &&
     settings.includes("getElementById(tabs[name]).hidden=false") &&
