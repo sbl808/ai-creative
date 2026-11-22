@@ -454,6 +454,7 @@ export function sidebarScript() {
     '}\n' +
     'function logout() {\n' +
     '  if (!confirm(\'Logout လုပ်မှာလား?\')) return;\n' +
+    '  if (window.AICS_BYOK && typeof window.AICS_BYOK.clearSession === \'function\') window.AICS_BYOK.clearSession();\n' +
     '  localStorage.removeItem(\'aics_token\'); localStorage.removeItem(\'aics_email\'); localStorage.removeItem(\'aics_plan\');\n' +
     '  location.href = \'/api/auth/logout\';\n' +
     '}\n' +
