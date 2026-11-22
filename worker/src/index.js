@@ -188,7 +188,7 @@ function studioDisabledPage(studioId) {
 }
 
 function loginResultPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title>' + TEST_PAGE_STYLES + '</head>' +' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="test-page">' +
     '<h2 class="test-heading-success">✅ Login OK</h2>' +
     '<p>Copy your token below.</p>' +
@@ -203,7 +203,7 @@ function loginResultPage() {
 }
 
 function aiTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title>' + TEST_PAGE_STYLES + '</head>' +' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="test-page">' +
     '<h2 class="test-heading">🤖 AI Router Test</h2>' +
     '<label class="test-label">Session Token</label><br><input id="tok" type="password" class="test-input"><br>' +
@@ -223,7 +223,7 @@ function aiTestPage() {
 }
 
 function cmsTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title>' + TEST_PAGE_STYLES + '</head>' +' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="test-page">' +
     '<h2 class="test-heading">📋 CMS Test</h2>' +
     '<label class="test-label">Session Token</label><br>' +
@@ -246,7 +246,7 @@ function cmsTestPage() {
 }
 
 function studioTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title>' + TEST_PAGE_STYLES + '</head>' +' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="test-page">' +
     '<h2 class="test-heading">🎨 Studio Engine Test</h2>' +
     '<label class="test-label">Session Token</label><br>' +
@@ -274,7 +274,7 @@ function studioTestPage() {
 
 function creationsTestPage() {
   // Phase 13 — Option 2: Creations ကို Server/D1 တွင် မသိမ်းတော့ပါ (Browser IndexedDB သာ)
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title>' + TEST_PAGE_STYLES + '</head>' +' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="test-page">' +
     '<h2 class="test-heading">💾 My Creations</h2>' +
     '<p class="test-copy">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
