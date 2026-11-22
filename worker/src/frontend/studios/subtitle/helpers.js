@@ -26,7 +26,7 @@ function subtitleFormatTimestamp(milliseconds) {
 
 function subtitleValidateSrt(input) {
   var text = String(input == null ? '' : input).replace(/\\r\\n?/g, '\\n').trim();
-  var errors = [], cues = [];
+  var errors = [], cues = [], seenNumbers = new Set();
   if (!text) return { valid: false, errors: ['SRT စာသား ဗလာဖြစ်နေပါသည်။'], cues: [] };
   var blocks = text.split(/\\n[ \\t]*\\n+/);
   for (var i = 0; i < blocks.length; i++) {
@@ -34,6 +34,10 @@ function subtitleValidateSrt(input) {
     if (!/^\\d+$/.test(indexLine) || !Number.isSafeInteger(number) || number < 1) {
       errors.push('အပိုင်း ' + (i + 1) + ' — Subtitle Number မမှန်ကန်ပါ။'); continue;
     }
+    if (seenNumbers.has(number)) {
+      errors.push('အပိုင်း ' + (i + 1) + ' — Subtitle Number ' + number + ' ထပ်နေပါသည်။'); continue;
+    }
+    seenNumbers.add(number);
     var timing = (lines.shift() || '').trim().match(/^(\\d{2,}:\\d{2}:\\d{2},\\d{3})\\s*-->\\s*(\\d{2,}:\\d{2}:\\d{2},\\d{3})$/);
     if (!timing) { errors.push('အပိုင်း ' + (i + 1) + ' — Timestamp ပုံစံ မမှန်ကန်ပါ။'); continue; }
     var start = subtitleParseTimestamp(timing[1]), end = subtitleParseTimestamp(timing[2]);
@@ -52,6 +56,7 @@ function subtitleFriendlyError(code) {
     unauthorized: 'Login ဝင်ထားခြင်း မရှိပါ။ ပြန်လည် Login ဝင်ပါ။',
     invalid_token: 'Login သက်တမ်းကုန်ဆုံးသွားပါသည်။ ပြန်လည် Login ဝင်ပါ။',
     feature_denied: 'ဒီ Feature ကို သင့် Plan နဲ့ အသုံးပြုခွင့်မရှိသေးပါ။',
+    pro_only: 'ဒီ Feature ကို အသုံးပြုရန် Pro Plan လိုအပ်ပါသည်။',
     feature_disabled: 'ဒီ Feature ကို လောလောဆယ် ပိတ်ထားပါသည်။',
     srt_error: 'SRT ဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။'
   };
