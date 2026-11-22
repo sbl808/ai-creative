@@ -407,6 +407,15 @@ assert.equal(userBResult.ownerId, 'user-b');
 assert.equal((await window.AICS_SESSION_RESULTS.list({ sessionId: sessionB.id })).items.length, 1);
 
 activeToken = makeToken('user-a');
+const crossOwnerResultId = 'cross-owner-result-on-user-a-session';
+fakeIndexedDB.records.get('session_results').set(crossOwnerResultId, {
+  id: crossOwnerResultId,
+  sessionId: sessionA.id,
+  ownerId: 'user-b',
+  type: 'story',
+  content: { text: 'must stay private to user-b' },
+  createdAt: '2026-11-01T09:59:59.000Z'
+});
 const resultIds = [firstResult.id];
 for (let index = 1; index < 23; index++) {
   const result = await window.AICS_SESSION_RESULTS.create({
@@ -435,6 +444,8 @@ do {
 
 assert.equal(pages, 3, '23 results should be returned in three pages');
 assert.equal(collected.length, 23, 'pagination should return every result');
+assert.equal(collected.includes(crossOwnerResultId), false,
+  'results owned by another user must be excluded even when linked to this user session');
 assert.equal(new Set(collected).size, 23, 'pagination must not return duplicate results');
 assert.deepEqual(new Set(collected), new Set(resultIds),
   'pagination must not skip results with equal createdAt timestamps');
