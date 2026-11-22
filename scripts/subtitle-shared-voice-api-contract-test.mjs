@@ -75,6 +75,7 @@ function makeDeps(featureResponse = null) {
   assert.equal(base64DecodedByteLength(exactLimit), MAX_AUDIO_BYTES);
   assert.equal(base64DecodedByteLength(overLimit), MAX_AUDIO_BYTES + 1);
   assert.equal(base64DecodedByteLength('not-base64'), -1);
+  assert.equal(base64DecodedByteLength('!!!!'), -1);
 
   const accepted = makeDeps(new Response(null, { status: 204 }));
   const acceptedResponse = await handleSubtitleStudioRoutes(
