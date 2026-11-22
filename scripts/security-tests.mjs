@@ -739,6 +739,8 @@ console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
   const hostile = '"><img src=x onerror=alert(1)>&\'';
   check('Shared HTML escaping encodes text and attribute metacharacters',
     shared.escapeHtml(hostile) === '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&amp;&#39;');
+  check('App and Studio sidebar external links escape configured URLs',
+    (sharedSource.match(/escapeHtml\\(SITE_LINKS\\.(?:telegram|facebook)\\)/g) || []).length === 4);
   check('AI model options use DOM value/textContent instead of HTML interpolation',
     sharedSource.includes('option.value = String(m.id') &&
     sharedSource.includes('option.textContent = String(m.name') &&
