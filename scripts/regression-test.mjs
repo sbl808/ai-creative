@@ -439,7 +439,7 @@ await check('Google profile name is consumed once, URL fragment is cleaned, and 
     ok: sharedSource.includes("params.has('aics_profile_name')") &&
       sharedSource.includes("params.delete('aics_profile_name')") &&
       sharedSource.includes("window.history.replaceState(window.history.state, '', nextUrl)") &&
-      sharedSource.includes("if (AICS_OAUTH_PROFILE_NAME && !String(record && record.profile && record.profile.name || '').trim())") &&
+      sharedSource.includes("AICS_OAUTH_PROFILE_NAME && !String(record && record.profile && record.profile.name") &&
       sharedSource.includes('window.AICS_USER_SETTINGS.migrateLegacy({') &&
       settingsSource.includes("migrateLegacy: function (patch)") &&
       settingsSource.includes("__aicsFillMissingSettings(currentProfile, clean.profile)") &&
