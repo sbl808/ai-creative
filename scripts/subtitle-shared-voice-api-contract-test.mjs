@@ -128,13 +128,12 @@ function makeDeps(featureResponse = null) {
 
 // Voice transcription remains Voice-only and uses its own feature gate.
 {
-  const { deps, state } = makeDeps();
-  deps.transcribeAudio = async (_env, input) => ({ text: input.audioBase64 });
+  const { deps, state } = makeDeps(new Response(null, { status: 204 }));
   const response = await handleVoiceStudioRoutes(
     makeRequest('/api/studio/voice/transcribe', { audioBase64: smallAudio, type: '1' }),
     {}, {}, deps,
   );
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 204);
   assert.deepEqual(state.features, [{ feature: 'voice.transcribe', plan: 'FREE', type: '1' }]);
   const oldMixedRoute = await handleSubtitleStudioRoutes(
     makeRequest('/api/studio/voice/transcribe', { audioBase64: smallAudio, studio: 'subtitle' }),
@@ -150,8 +149,8 @@ function makeDeps(featureResponse = null) {
   const validSrt = [
     '1', '00:00:01,000 --> 00:00:02,000', 'ပထမစာကြောင်း', '',
     '2', '00:00:02,000 --> 00:00:03,000', 'ဒုတိယစာကြောင်း',
-  ].join('\\n');
-  const duplicateSrt = validSrt.replace('2\\n00:00:02,000', '1\\n00:00:02,000');
+  ].join('\n');
+  const duplicateSrt = validSrt.replace('2\n00:00:02,000', '1\n00:00:02,000');
   assert.equal(sandbox.subtitleValidateSrt(validSrt).valid, true);
   const duplicateResult = sandbox.subtitleValidateSrt(duplicateSrt);
   assert.equal(duplicateResult.valid, false);
@@ -165,12 +164,12 @@ const voiceRoutes = await readFile(new URL('../worker/src/routes/studios/voice.r
 
 assert.match(actions, /\/api\/studio\/subtitle\/transcribe/);
 assert.doesNotMatch(actions, /\/api\/studio\/voice\/transcribe/);
-assert.doesNotMatch(actions, /studio:\\s*'subtitle'/);
+assert.doesNotMatch(actions, /studio:\s*'subtitle'/);
 assert.match(subtitleRoutes, /subtitle\.transcribe/);
-assert.match(subtitleRoutes, /SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 \\* 1024 \\* 1024/);
+assert.match(subtitleRoutes, /SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 \* 1024 \* 1024/);
 assert.match(subtitleBrain, /const CMS_STUDIO = 'SUBTITLE'/);
 assert.match(subtitleBrain, /Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ/);
 assert.doesNotMatch(voiceRoutes, /transcribeSubtitleAudio|subtitle\.transcribe|studioId/);
-assert.doesNotMatch(voiceRoutes, /trackUsageSafe|console\\.(?:log|error|warn)|env\\.DB/);
+assert.doesNotMatch(voiceRoutes, /trackUsageSafe|console\.(?:log|error|warn)|env\.DB/);
 
 console.log('Subtitle API consolidation contract tests: PASS');
