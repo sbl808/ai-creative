@@ -535,7 +535,7 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.classList.toggle('is-visible', !!d.is_admin);\n' +
+    '      if (al) al.classList.toggle(\'is-visible\', !!d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
