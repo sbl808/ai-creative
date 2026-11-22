@@ -20,7 +20,18 @@ function makeRequest(body) {
   });
 }
 
-function makeDeps() {
+function makeSubtitleSrtRequest(audioBase64) {
+  return new Request('https://test.local/api/studio/subtitle/srt', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test-token',
+    },
+    body: JSON.stringify({ audioBase64 }),
+  });
+}
+
+function makeDeps(featureResponse = null) {
   const state = {
     features: [],
     transcriptions: [],
@@ -45,7 +56,7 @@ function makeDeps() {
       },
       requireFeature: async (_env, feature, plan, type) => {
         state.features.push({ feature, plan, type });
-        return null;
+        return featureResponse;
       },
       friendlyError: () => 'Safe error',
       transcribeSubtitleAudio: async (_env, input) => {
@@ -103,6 +114,40 @@ function makeDeps() {
   assert.equal(state.transcriptions.length, 0);
 }
 
+// Subtitle SRT endpoint accepts exactly 5 MiB and rejects larger audio before plan/AI work.
+{
+  const exactLimit = Buffer.alloc(MAX_AUDIO_BYTES).toString('base64');
+  const overLimit = Buffer.alloc(MAX_AUDIO_BYTES + 1).toString('base64');
+  const acceptedGateResponse = new Response(null, { status: 204 });
+
+  const accepted = makeDeps(acceptedGateResponse);
+  const acceptedResponse = await handleSubtitleStudioRoutes(
+    makeSubtitleSrtRequest(exactLimit),
+    {},
+    {},
+    accepted.deps,
+  );
+  assert.equal(acceptedResponse.status, 204);
+  assert.equal(accepted.state.planCalls, 1);
+  assert.deepEqual(accepted.state.features, [
+    { feature: 'subtitle.srt', plan: 'FREE', type: '2' },
+  ]);
+
+  const rejected = makeDeps();
+  const rejectedResponse = await handleSubtitleStudioRoutes(
+    makeSubtitleSrtRequest(overLimit),
+    {},
+    {},
+    rejected.deps,
+  );
+  const rejectedBody = await rejectedResponse.json();
+  assert.equal(rejectedResponse.status, 413);
+  assert.equal(rejectedBody.error, 'audio_too_large');
+  assert.equal(rejectedBody.max_bytes, MAX_AUDIO_BYTES);
+  assert.equal(rejected.state.planCalls, 0);
+  assert.equal(rejected.state.features.length, 0);
+}
+
 // Unknown Studio selectors are rejected rather than silently treated as Voice.
 {
   const { deps, state } = makeDeps();
@@ -141,6 +186,7 @@ assert.match(actions, /\/api\/studio\/voice\/transcribe/);
 assert.match(actions, /studio:\s*'subtitle'/);
 assert.doesNotMatch(actions, /\/api\/studio\/subtitle\/transcribe/);
 assert.doesNotMatch(subtitleRoutes, /\/api\/studio\/subtitle\/transcribe/);
+assert.match(subtitleRoutes, /SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 \* 1024 \* 1024/);
 assert.match(subtitleBrain, /const CMS_STUDIO = 'SUBTITLE'/);
 assert.match(subtitleBrain, /Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ/);
 assert.doesNotMatch(voiceRoutes, /trackUsageSafe|console\.(?:log|error|warn)|env\.DB/);
