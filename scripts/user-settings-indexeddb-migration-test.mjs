@@ -27,7 +27,12 @@ const env = {
         },
         async all() {
           if (sql.includes('FROM user_preferences')) {
-            return { results: [\n              { pref_key: 'compact_mode', pref_value: 'true' },\n              { pref_key: 'bad key', pref_value: 'ignored' },\n              { pref_key: 'null_value', pref_value: null },\n              { pref_key: 'long_value', pref_value: 'x'.repeat(501) }\n            ] };
+            return { results: [
+              { pref_key: 'compact_mode', pref_value: 'true' },
+              { pref_key: 'bad key', pref_value: 'ignored' },
+              { pref_key: 'null_value', pref_value: null },
+              { pref_key: 'long_value', pref_value: 'x'.repeat(501) }
+            ] };
           }
           return { results: [] };
         }
