@@ -110,6 +110,17 @@ assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
+assert.match(sharedSource, /legacySettingsMigration/);
+assert.match(sharedSource, /AICS_USER_SETTINGS\.migrateLegacy/);
+assert.match(sharedSource, /legacy_settings_persistence_unverified/);
+assert.match(sharedSource, /existingRecord\) return existingRecord/,
+  'an existing IndexedDB record must remain usable if the legacy endpoint is temporarily unavailable');
+assert.ok(sharedSource.includes("cache: \\'no-store\\'"),
+  'legacy settings response must not be cached');
+assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.get\(\)/,
+  'migration flow must read the IndexedDB record back after migration');
+assert.doesNotMatch(sharedSource, /AICS_USER_SETTINGS\.save\(\{ profile: legacyProfile, settings:/,
+  'legacy settings must use the fill-only-missing migration method');
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
