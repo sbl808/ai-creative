@@ -8,9 +8,26 @@ const SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 export function base64DecodedByteLength(value) {
   if (typeof value !== 'string' || value.length % 4 !== 0) return -1;
-  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) return -1;
+
+  const length = value.length;
   const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
-  return Math.max(0, (value.length / 4) * 3 - padding);
+  const dataLength = length - padding;
+
+  if (padding === 2 && dataLength % 4 !== 2) return -1;
+  if (padding === 1 && dataLength % 4 !== 3) return -1;
+
+  // Scan each character once; avoid regex backtracking on multi-megabyte audio payloads.
+  for (let index = 0; index < dataLength; index += 1) {
+    const code = value.charCodeAt(index);
+    const isUppercase = code >= 65 && code <= 90;
+    const isLowercase = code >= 97 && code <= 122;
+    const isDigit = code >= 48 && code <= 57;
+    if (!isUppercase && !isLowercase && !isDigit && code !== 43 && code !== 47) {
+      return -1;
+    }
+  }
+
+  return Math.max(0, (length / 4) * 3 - padding);
 }
 
 export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
