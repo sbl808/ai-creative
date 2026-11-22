@@ -120,8 +120,8 @@ function studioPageSidebar(activeId) {
     '  <div class="sidebar-bottom">\n' +
     '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
-    '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
-    '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
+    '  <a class="side-btn" id="tgLink" href="' + escapeHtml(SITE_LINKS.telegram) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
+    '  <a class="side-btn" id="fbLink" href="' + escapeHtml(SITE_LINKS.facebook) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
