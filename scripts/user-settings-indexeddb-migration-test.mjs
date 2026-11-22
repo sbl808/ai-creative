@@ -27,7 +27,7 @@ const env = {
         },
         async all() {
           if (sql.includes('FROM user_preferences')) {
-            return { results: [{ pref_key: 'compact_mode', pref_value: 'true' }] };
+            return { results: [\n              { pref_key: 'compact_mode', pref_value: 'true' },\n              { pref_key: 'bad key', pref_value: 'ignored' },\n              { pref_key: 'null_value', pref_value: null },\n              { pref_key: 'long_value', pref_value: 'x'.repeat(501) }\n            ] };
           }
           return { results: [] };
         }
@@ -73,6 +73,8 @@ const legacy = await legacyResponse.json();
 assert.deepEqual(legacy.profile, { name: 'Legacy Profile' });
 assert.equal(legacy.settings.default_voice, 'Kore');
 assert.deepEqual(legacy.preferences, { compact_mode: 'true' });
+assert.deepEqual(legacy.migration, { skippedPreferences: 3 });
+assert.equal(Object.keys(legacy.preferences).length, 1, 'invalid legacy preferences must not be returned');
 assert.ok(sqlCalls.length >= 3);
 assert.ok(sqlCalls.every((sql) => /^\s*SELECT\b/i.test(sql)), 'legacy migration endpoint must be read-only');
 
@@ -111,6 +113,12 @@ assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.match(sharedSource, /legacySettingsMigration/);
+assert.match(sharedSource, /legacy\.migration && legacy\.migration\.skippedPreferences/,
+  'client must read only the server-reported skipped preference count');
+assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast === \'function\'/,
+  'client must notify only when invalid legacy preferences were skipped');
+assert.match(sharedSource, /ကျန်ဆက်တင်များကို ပြန်လည်ရယူထားသည်/,
+  'migration notice must explain that valid settings were still restored');
 assert.match(sharedSource, /AICS_USER_SETTINGS\.migrateLegacy/);
 assert.match(sharedSource, /legacy_settings_persistence_unverified/);
 assert.match(sharedSource, /existingRecord\) return existingRecord/,
