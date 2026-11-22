@@ -567,7 +567,7 @@ export function sidebarScript() {
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
-    '      '      function fill(opts, selected) {\n' +
+    '      function fill(opts, selected) {\n' +
     '        sel.textContent = \'\';\n' +
     '        if (!opts || opts.length === 0) {\n' +
     '          var empty = document.createElement(\'option\'); empty.value = \'\'; empty.textContent = \'(Model မရှိ)\'; sel.appendChild(empty); return;\n' +
@@ -582,7 +582,7 @@ export function sidebarScript() {
     '        }\n' +
     '        if (!sel.value && opts[0]) sel.value = String(opts[0].id == null ? \'\' : opts[0].id);\n' +
     '      }\n' +
-      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '        .then(function (r) { return r.json(); })\n' +
     '        .then(function (d) {\n' +
     '          if (!d || d.error || !d.items || d.items.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
