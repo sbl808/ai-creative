@@ -658,5 +658,27 @@ console.log('--- Admin UI Event Delegation Contract ---');
     !/\beval\s*\(|new\s+Function\s*\(/.test(adminUi));
 }
 
+
+console.log('\n--- Admin UI CSP Inline Style Contract ---');
+{
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  const adminStyleClasses = adminUi.match(/\.admin-style-\d{2}\s*\{/g) || [];
+  check('Admin UI has no inline style attributes', !/\bstyle\s*=/i.test(adminUi));
+  check('Admin UI does not assign element.style properties', !/\.style(?:\.|\[)/.test(adminUi));
+  check('Admin UI maps all former static inline styles to CSS classes',
+    adminStyleClasses.length === 21 &&
+    adminUi.includes('.admin-style-01{') &&
+    adminUi.includes('.admin-style-21{'),
+    'classes=' + adminStyleClasses.length);
+  check('Admin UI replaces dynamic dashboard styles with state classes',
+    adminUi.includes('health-state-on') && adminUi.includes('health-state-off') &&
+    adminUi.includes('health-dot-off') && adminUi.includes('health-status-on') &&
+    adminUi.includes('health-status-off'));
+  check('Admin loading visibility uses CSP-safe CSS classes',
+    adminUi.includes("$('loading').classList.add('loading-error')") &&
+    adminUi.includes("$('loading').classList.add('hidden')") &&
+    adminUi.includes('.loading-error{display:block!important}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
