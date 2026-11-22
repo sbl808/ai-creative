@@ -787,7 +787,7 @@ console.log('\n--- Shared UI CSP Inline Style Contract ---');
     (sharedSource.match(/class="side-btn aics-admin-link"/g) || []).length === 2 &&
     sharedSource.includes('.aics-app .aics-admin-link{display:none;}') &&
     sharedSource.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
-    sharedSource.includes("al.classList.toggle('is-visible', !!d.is_admin)") &&
+    sharedSource.includes("al.classList.toggle(\\'is-visible\\', !!d.is_admin)") &&
     !sharedSource.includes("al.style.display ="));
   check('Story session Load More visibility uses a hidden CSS class',
     sharedSource.includes('class="aics-session-more is-hidden"') &&
