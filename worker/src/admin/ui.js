@@ -67,6 +67,35 @@ button,.btn,.nav-btn,.app-link,.theme-toggle{touch-action:manipulation}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 ${TASK_INSTRUCTIONS_CSS}
+/* CSP-safe replacements for former inline styles. */
+.admin-style-01{margin-top:14px}
+.admin-style-02{margin-top:8px;}
+.admin-style-03{min-height:90px;width:100%;box-sizing:border-box;}
+.admin-style-04{font-size:12px;margin-top:6px;color:#00C853;}
+.admin-style-05{width:100%}
+.admin-style-06{grid-column:1/-1}
+.admin-style-07{color:#d33;text-align:left;}
+.admin-style-08{color:#d33;}
+.admin-style-09{font-size:11px}
+.admin-style-10{font-size:11px;color:#6B7280;}
+.admin-style-11{gap:6px;}
+.admin-style-12{width:70px;}
+.admin-style-13{flex:2;min-width:150px;}
+.admin-style-14{flex:2;min-width:120px;}
+.admin-style-15{font-size:11px;color:#6B7280;margin-top:6px;}
+.admin-style-16{gap:6px;margin-top:6px;}
+.admin-style-17{flex:2;min-width:110px;}
+.admin-style-18{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.admin-style-19{font-size:12px;color:#6B7280;margin-top:6px;}
+.admin-style-20{font-size:12px;color:#6B7280;margin-top:2px;}
+.admin-style-21{font-size:12px;color:#6B7280;margin-top:6px;white-space:pre-wrap;}
+.health-state-off{opacity:.55}
+.health-dot-off{background:#64748B;box-shadow:none}
+.health-name{font-size:11px}
+.health-status{margin-left:auto;font-size:10px}
+.health-status-on{color:#82EFA3}
+.health-status-off{color:#7C8799}
+.loading-error{display:block!important}
 </style>
 ${AICS_DESIGN_SYSTEM_CSS}
 </head>
@@ -98,25 +127,25 @@ ${TASK_INSTRUCTIONS_NAV}
       <section id="dashboardView">
         <div class="page-head"><div><div class="eyebrow">Control Center</div><h1 class="page-title">Good morning, Admin</h1><p class="page-desc">AI Creative Studio ရဲ့ System အခြေအနေကို တစ်နေရာတည်းက စီမံပါ။</p></div><div class="head-actions"><button class="btn primary" data-admin-click="loadDashboard()">↻ Refresh</button></div></div>
         <div class="grid stats-grid" id="statCards"></div>
-        <div class="grid two-col" style="margin-top:14px">
+        <div class="grid two-col admin-style-01">
           <div class="card"><div class="section-head"><div><div class="card-title">Studio Status</div><div class="card-sub">User App မှာ လက်ရှိဖွင့်ထားတဲ့ Studios</div></div></div><div class="grid three-col" id="healthGrid"></div></div>
           <div class="card"><div class="section-head"><div><div class="card-title">Quick Actions</div><div class="card-sub">မကြာခဏသုံးမယ့် Admin actions</div></div></div><div class="quick"><button class="btn" data-admin-click="switchTab('models')">◈ AI Models<small>Model စီမံရန်</small></button><button class="btn" data-admin-click="switchTab('studios')">✦ Studios<small>ON / OFF ပြုလုပ်ရန်</small></button><button class="btn" data-admin-click="switchTab('cms')">▤ Content<small>Prompt / Template ပြင်ရန်</small></button></div></div>
         </div>
-        <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" data-admin-click="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
+        <div class="card admin-style-01"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" data-admin-click="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
       </section>
       <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" data-admin-click="load()">↻ Refresh</button><button class="btn primary" data-admin-click="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" data-admin-click="load()">Apply</button></div></div><div id="list"></div></section>
-      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" data-admin-click="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" data-admin-click="brainReset()">Reset</button><button class="btn primary" data-admin-click="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" data-admin-click="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
+      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" data-admin-click="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div class="admin-style-02"><label>Value</label><textarea id="bValue" class="admin-style-03"></textarea></div><div class="form-actions"><button class="btn gray" data-admin-click="brainReset()">Reset</button><button class="btn primary" data-admin-click="saveBrain()">Save Brain Row</button></div><div id="brainMsg" class="admin-style-04"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" data-admin-click="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
 ${TASK_INSTRUCTIONS_VIEW}
       <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" data-admin-click="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
       <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" data-admin-click="loadStudios()">↻ Refresh</button><button class="btn primary" data-admin-click="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
       <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" data-admin-click="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
-      <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" data-admin-click="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" data-admin-click="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" data-admin-click="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
+      <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" data-admin-click="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" class="admin-style-05"></div><div><label>Name</label><input id="pcNewName" maxlength="80" class="admin-style-05"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" class="admin-style-05"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" class="admin-style-05"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" class="admin-style-05"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" class="admin-style-05"></div><div class="admin-style-06"><label>Description</label><input id="pcNewDesc" maxlength="500" class="admin-style-05"></div><div class="admin-style-06"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" data-admin-click="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" class="admin-style-05"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" class="admin-style-05"></div></div><div class="form-actions"><button class="btn primary" data-admin-click="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
       <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" data-admin-click="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" data-admin-click="mfPlan('')">All</button><button id="mfFree" class="btn sm" data-admin-click="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" data-admin-click="mfPlan('PRO')">PRO</button><select id="mfCat" data-admin-change="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
       <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" data-admin-click="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
     </main>
   </section>
 </div>
-<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" data-admin-click="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" style="width:100%"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" data-admin-click="closeForm()">Cancel</button><button class="btn primary" data-admin-click="save()">Save Changes</button></div></div></div></div>
+<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" data-admin-click="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" class="admin-style-05"></select></div><div><label>Plan</label><select id="iPlan" class="admin-style-05"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" class="admin-style-05"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" data-admin-click="closeForm()">Cancel</button><button class="btn primary" data-admin-click="save()">Save Changes</button></div></div></div></div>
 </div>
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
@@ -126,7 +155,7 @@ function setCrumb(tab){var m={dashboard:'Overview',cms:'Content / CMS',brain:'Br
 <script>
 window.onerror = function(msg, url, line) {
   var el = document.getElementById('loading');
-  if (el) el.innerHTML = '<div style="color:#d33;text-align:left;"><b>JS Error:</b> ' + String(msg) + '<br><b>Line:</b> ' + line + '</div>';
+  if (el) el.innerHTML = '<div class="admin-style-07"><b>JS Error:</b> ' + String(msg) + '<br><b>Line:</b> ' + line + '</div>';
 };
 
 var TOKEN_KEY='aics_token';
@@ -161,11 +190,13 @@ var currentTab='cms';
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function showError(msg){
-  $('loading').style.display='block';
-  $('loading').innerHTML='<div style="color:#d33;"><b>Error:</b> '+esc(String(msg))+'</div>';
+  $('loading').classList.remove('hidden');
+  $('loading').classList.add('loading-error');
+  $('loading').innerHTML='<div class="admin-style-08"><b>Error:</b> '+esc(String(msg))+'</div>';
 }
 function showApp(){
-  $('loading').style.display='none';
+  $('loading').classList.add('hidden');
+  $('loading').classList.remove('loading-error');
   $('app').classList.remove('hidden');
 }
 function login(){location.href='/api/auth/login?next='+encodeURIComponent(location.origin+'/admin');}
@@ -220,14 +251,14 @@ function renderPlans(){
     var key=String(p.plan_key||''), safe=esc(key), features=JSON.stringify(p.features||[]);
     var card=document.createElement('div');card.className='card';
     card.innerHTML='<div class="section-head"><div class="card-title">'+esc(p.icon||'')+' '+esc(p.name||key)+' · '+safe+'</div><span class="badge '+(p.enabled?'on':'off')+'">'+(p.enabled?'ON':'ARCHIVED')+'</span></div>'+
-      '<div class="grid three-col"><div><label>Name</label><input id="pcName-'+safe+'" value="'+esc(p.name||'')+'" style="width:100%"></div>'+
-      '<div><label>Icon</label><input id="pcIcon-'+safe+'" value="'+esc(p.icon||'sparkles')+'" style="width:100%"></div>'+
-      '<div><label>Sort Order</label><input id="pcSort-'+safe+'" type="number" value="'+esc(p.sort_order||0)+'" style="width:100%"></div>'+
-      '<div><label>Price</label><input id="pcPrice-'+safe+'" type="number" min="0" step="0.01" value="'+esc(p.price_amount==null?'':p.price_amount)+'" style="width:100%"></div>'+
-      '<div><label>Currency</label><input id="pcCurrency-'+safe+'" value="'+esc(p.price_currency||'')+'" maxlength="3" style="width:100%"></div>'+
-      '<div><label>Billing Period</label><input id="pcPeriod-'+safe+'" value="'+esc(p.billing_period||'')+'" style="width:100%"></div>'+
-      '<div style="grid-column:1/-1"><label>Description</label><input id="pcDesc-'+safe+'" value="'+esc(p.description||'')+'" style="width:100%"></div>'+
-      '<div style="grid-column:1/-1"><label>Features JSON</label><textarea id="pcFeatures-'+safe+'">'+esc(features)+'</textarea></div></div>'+
+      '<div class="grid three-col"><div><label>Name</label><input id="pcName-'+safe+'" value="'+esc(p.name||'')+'" class="admin-style-05"></div>'+
+      '<div><label>Icon</label><input id="pcIcon-'+safe+'" value="'+esc(p.icon||'sparkles')+'" class="admin-style-05"></div>'+
+      '<div><label>Sort Order</label><input id="pcSort-'+safe+'" type="number" value="'+esc(p.sort_order||0)+'" class="admin-style-05"></div>'+
+      '<div><label>Price</label><input id="pcPrice-'+safe+'" type="number" min="0" step="0.01" value="'+esc(p.price_amount==null?'':p.price_amount)+'" class="admin-style-05"></div>'+
+      '<div><label>Currency</label><input id="pcCurrency-'+safe+'" value="'+esc(p.price_currency||'')+'" maxlength="3" class="admin-style-05"></div>'+
+      '<div><label>Billing Period</label><input id="pcPeriod-'+safe+'" value="'+esc(p.billing_period||'')+'" class="admin-style-05"></div>'+
+      '<div class="admin-style-06"><label>Description</label><input id="pcDesc-'+safe+'" value="'+esc(p.description||'')+'" class="admin-style-05"></div>'+
+      '<div class="admin-style-06"><label>Features JSON</label><textarea id="pcFeatures-'+safe+'">'+esc(features)+'</textarea></div></div>'+
       '<div class="form-actions"><button class="btn primary" data-admin-click="savePlan(\''+safe+'\')">Save</button><button class="btn" data-admin-click="togglePlan(\''+safe+'\','+(!p.enabled)+')">'+(p.enabled?'Archive':'Enable')+'</button>'+
       ((key==='FREE'||key==='PRO')?'':'<button class="btn red" data-admin-click="deletePlan(\''+safe+'\')">Delete</button>')+'</div>';
     list.appendChild(card);
@@ -262,7 +293,7 @@ function loadDashboard(){
     var labels=[['👥','Users','All registered users','users'],['★','PRO Users','Premium accounts','pro'],['▣','Projects','Saved projects','projects']];
     labels.forEach(function(x){html+='<div class="card stat"><div class="stat-label">'+x[0]+' '+x[1]+'</div><div class="stat-value">'+esc(st[x[3]]||0)+'</div><div class="stat-foot">'+x[2]+'</div></div>';});
     $('statCards').innerHTML=html;
-    var hg=$('healthGrid'); if(hg){hg.innerHTML='<div class="muted" style="font-size:11px">Loading studio status…</div>'; api('/api/admin/studios').then(function(sd){var arr=sd.items||[]; hg.innerHTML=arr.map(function(x){return '<div class="health" style="opacity:'+(x.enabled?'1':'.55')+'"><span class="dot" style="background:'+(x.enabled?'var(--green)':'#64748B')+';box-shadow:none"></span><span style="font-size:11px">'+esc(x.nameMy||x.name||x.id)+'</span><span style="margin-left:auto;font-size:10px;color:'+(x.enabled?'#82EFA3':'#7C8799')+'">'+(x.enabled?'ON':'OFF')+'</span></div>';}).join('')||'<div class="muted" style="font-size:11px">No studio data</div>';}).catch(function(){hg.innerHTML='<div class="muted" style="font-size:11px">Studio status unavailable</div>';});}
+    var hg=$('healthGrid'); if(hg){hg.innerHTML='<div class="muted admin-style-09">Loading studio status…</div>'; api('/api/admin/studios').then(function(sd){var arr=sd.items||[]; hg.innerHTML=arr.map(function(x){return '<div class="health '+(x.enabled?'health-state-on':'health-state-off')+'"><span class="dot '+(x.enabled?'':'health-dot-off')+'"></span><span class="health-name">'+esc(x.nameMy||x.name||x.id)+'</span><span class="health-status '+(x.enabled?'health-status-on':'health-status-off')+'">'+(x.enabled?'ON':'OFF')+'</span></div>';}).join('')||'<div class="muted admin-style-09">No studio data</div>';}).catch(function(){hg.innerHTML='<div class="muted admin-style-09">Studio status unavailable</div>';});}
     var ru=$('recentUsers');ru.innerHTML='';
     (d.recent||[]).forEach(function(u){
       ru.innerHTML+='<div class="list-row"><div class="list-main"><div class="list-title">'+esc(u.email||'')+'</div><div class="list-meta">Joined '+esc(u.created_at||'')+'</div></div><span class="badge '+(u.plan==='PRO'?'pro':'free')+'">'+esc(u.plan||'FREE')+'</span></div>';
@@ -281,11 +312,11 @@ function loadFeatures(){
     (d.items||[]).forEach(function(f){
       var c=document.createElement('div');
       c.className='card';
-      c.innerHTML='<div class="user-row"><div><b>'+esc(f.nameMy)+'</b> <span style="font-size:11px;color:#6B7280;">('+esc(f.id)+')</span>'+
+      c.innerHTML='<div class="user-row"><div><b>'+esc(f.nameMy)+'</b> <span class="admin-style-10">('+esc(f.id)+')</span>'+
         '<div class="user-meta">'+esc(f.desc||'')+' · '+(f.enabled?'<span class="badge pro">ON</span>':'<span class="badge free">OFF</span>')+'</div></div>'+
-        '<div class="row" style="gap:6px;">'+
+        '<div class="row admin-style-11">'+
         '<select id="acc-'+esc(f.id)+'"><option value="FREE"'+(f.access!=='PRO'?' selected':'')+'>FREE</option><option value="PRO"'+(f.access==='PRO'?' selected':'')+'>PRO</option></select>'+
-        '<input id="lim-'+esc(f.id)+'" type="number" min="0" value="'+esc(f.limit_value||0)+'" title="Limit" style="width:70px;">'+
+        '<input id="lim-'+esc(f.id)+'" type="number" min="0" value="'+esc(f.limit_value||0)+'" title="Limit" class="admin-style-12">'+
         '<button class="btn sm '+(f.enabled?'red':'green')+'" data-on="'+(f.enabled?'1':'0')+'" data-admin-click="toggleFeature(\\''+esc(f.id)+'\\',this)">'+(f.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
         '<button class="btn sm" data-admin-click="saveFeature(\\''+esc(f.id)+'\\')">💾 Save</button>'+
         '</div></div>';
@@ -337,21 +368,21 @@ function renderModels(){
     return true;
   });
   var html='<div class="card"><b>＋ Model အသစ် ထည့်ရန်</b>'+
-    '<div class="row" style="margin-top:8px;">'+
-    '<input id="nm_id" placeholder="Model ID (ဥပမာ gemini-2.5-pro)" style="flex:2;min-width:150px;">'+
-    '<input id="nm_name" placeholder="ပြမည့်နာမည်" style="flex:2;min-width:120px;">'+
+    '<div class="row admin-style-02">'+
+    '<input id="nm_id" placeholder="Model ID (ဥပမာ gemini-2.5-pro)" class="admin-style-13">'+
+    '<input id="nm_name" placeholder="ပြမည့်နာမည်" class="admin-style-14">'+
     '<select id="nm_cat"><option value="text">📝 Text Only (စာသား)</option><option value="image">🖼️ Image (ပုံ)</option><option value="voice">🎙️ Text → Voice (အသံ)</option><option value="transcribe">🎧 Voice → Text (အသံ→စာသား)</option></select>'+
     '<select id="nm_plan"><option value="FREE">လူတိုင်း</option><option value="PRO">PRO သာ</option></select>'+
     '<button class="btn green" data-admin-click="addModel()">＋ Add</button></div>'+
-    '<div style="font-size:11px;color:#6B7280;margin-top:6px;">⚠️ Model ID သည် Google Gemini API တွင် တကယ်ရှိသော နာမည် ဖြစ်ရမည် — မမှန်ပါက Generate လုပ်သော အခါ အမှား ပြပါမည်။</div></div>';
+    '<div class="admin-style-15">⚠️ Model ID သည် Google Gemini API တွင် တကယ်ရှိသော နာမည် ဖြစ်ရမည် — မမှန်ပါက Generate လုပ်သော အခါ အမှား ပြပါမည်။</div></div>';
   if(rows.length===0){html+='<div class="card">(ဤအပိုင်းတွင် Model မရှိသေး — အောက်ပါ စစ်ထုတ်မှု ပြောင်းပါ သို့မဟုတ် ＋ Add)</div>';}
   rows.forEach(function(m){
     var mid=esc(m.id);
-    html+='<div class="card"><div class="user-row"><div><b>'+esc(m.name||m.id)+'</b> <span style="font-size:11px;color:#6B7280;">('+mid+')</span>'+
+    html+='<div class="card"><div class="user-row"><div><b>'+esc(m.name||m.id)+'</b> <span class="admin-style-10">('+mid+')</span>'+
       '<div class="user-meta">'+catLabel(m.category)+' · '+(m.plan_access==='PRO'?'<span class="badge pro">PRO သာ</span>':'<span class="badge free">လူတိုင်း</span>')+
       (m.is_default?' · <span class="badge pro">★ မူရင်း</span>':'')+'</div></div>'+
-      '<div class="row" style="gap:6px;margin-top:6px;">'+
-      '<input id="nm_'+mid+'" value="'+esc(m.name||m.id)+'" placeholder="ပြမည့်နာမည်" style="flex:2;min-width:110px;">'+
+      '<div class="row admin-style-16">'+
+      '<input id="nm_'+mid+'" value="'+esc(m.name||m.id)+'" placeholder="ပြမည့်နာမည်" class="admin-style-17">'+
       '<select id="pm_'+mid+'"><option value="FREE"'+(m.plan_access!=='PRO'?' selected':'')+'>လူတိုင်း</option><option value="PRO"'+(m.plan_access==='PRO'?' selected':'')+'>PRO သာ</option></select>'+
       '<button class="btn sm" data-admin-click="saveModel(\\''+mid+'\\')">💾 Save</button>'+
       '<button class="btn sm '+(m.enabled?'red':'green')+'" data-on="'+(m.enabled?'1':'0')+'" data-admin-click="toggleModel(\\''+mid+'\\',this)">'+(m.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
@@ -447,11 +478,11 @@ function renderList(){
   rows.forEach(function(it){
     var c=document.createElement('div');
     c.className='card';
-    c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
+    c.innerHTML='<div class="admin-style-18">'+
       '<div><b>'+esc(studioLabel(it.studio))+'</b> <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · Sub-Type '+esc(it.type)+'</div>'+
       '<span><button class="btn sm" data-admin-click="copyRow('+it.id+')">📋</button> <button class="btn sm" data-admin-click="addEdit('+it.id+')">✏️</button> <button class="btn sm red" data-admin-click="del('+it.id+')">🗑️</button></span></div>'+
-      '<div style="font-size:12px;color:#6B7280;margin-top:6px;"><b>core:</b> '+esc((it.core||'').slice(0,80))+'</div>'+
-      '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><b>prompt:</b> '+esc((it.prompt||'').slice(0,80))+'</div>';
+      '<div class="admin-style-19"><b>core:</b> '+esc((it.core||'').slice(0,80))+'</div>'+
+      '<div class="admin-style-20"><b>prompt:</b> '+esc((it.prompt||'').slice(0,80))+'</div>';
     list.appendChild(c);
   });
 }
@@ -525,10 +556,10 @@ function renderBrain(){
   if(rows.length===0){list.innerHTML='<div class="card">(no brain rows yet — အပေါ်မှ Add / Edit လုပ်ပါ)</div>';return;}
   rows.forEach(function(it){
     var c=document.createElement('div');c.className='card';
-    c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
+    c.innerHTML='<div class="admin-style-18">'+
       '<div><b>'+esc(it.scope)+'</b> / <b>'+esc(it.module)+'</b> / <b>'+esc(it.type)+'</b> · <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · key <code>'+esc(it.key)+'</code> · v'+esc(it.version)+' · '+((it.active===0)?'<span class="badge free">inactive</span>':'<span class="badge pro">active</span>')+'</div>'+
       '<span><button class="btn sm" data-admin-click="editBrain('+it.id+')">✏️</button> <button class="btn sm red" data-admin-click="delBrain('+it.id+')">🗑️</button></span></div>'+
-      '<div style="font-size:12px;color:#6B7280;margin-top:6px;white-space:pre-wrap;">'+esc((it.value||'').slice(0,160))+'</div>';
+      '<div class="admin-style-21">'+esc((it.value||'').slice(0,160))+'</div>';
     list.appendChild(c);
   });
 }
@@ -591,7 +622,7 @@ function loadStudios(){
     (d.items||[]).forEach(function(s){
       var c=document.createElement('div');
       c.className='card';
-      c.innerHTML='<div class="user-row"><div><b>'+esc(s.nameMy)+'</b> <span style="font-size:11px;color:#6B7280;">('+esc(s.name)+')</span>'+
+      c.innerHTML='<div class="user-row"><div><b>'+esc(s.nameMy)+'</b> <span class="admin-style-10">('+esc(s.name)+')</span>'+
         '<div class="user-meta">'+(s.enabled?'<span class="badge pro">ON</span>':'<span class="badge free">OFF</span>')+'</div></div>'+
         '<button class="btn sm '+(s.enabled?'red':'green')+'" data-on="'+(s.enabled?'1':'0')+'" data-admin-click="toggleStudio(\\''+esc(s.id)+'\\',this)">'+(s.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button></div>';
       list.appendChild(c);
