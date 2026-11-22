@@ -85,7 +85,7 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn" id="adminLink" class="aics-admin-link" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + escapeHtml(SITE_LINKS.telegram) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + escapeHtml(SITE_LINKS.facebook) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
@@ -103,12 +103,12 @@ function studioPageSidebar(activeId) {
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
       '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more is-hidden" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
       '</section>'
     : '';
   return (
     '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
-    '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
+    '<div class="sidebar aics-studio-sidebar" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
@@ -122,7 +122,7 @@ function studioPageSidebar(activeId) {
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + escapeHtml(SITE_LINKS.telegram) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + escapeHtml(SITE_LINKS.facebook) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn" id="adminLink" class="aics-admin-link" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -169,6 +169,10 @@ function responsiveStyles() {
     '.aics-app .aics-session-date,.aics-app .aics-session-muted{font-size:10px;color:var(--aics-text-muted);line-height:1.5;}\n' +
     '.aics-app .aics-session-muted{padding:6px 10px;}\n' +
     '.aics-app .aics-session-more{display:block;width:calc(100% - 20px);margin:5px 10px;padding:7px 9px;border:1px solid var(--aics-border);border-radius:8px;background:var(--aics-surface-subtle);color:var(--aics-text-muted);font:inherit;font-size:11px;cursor:pointer;}\n' +
+    '.aics-app .aics-session-more.is-hidden{display:none;}\n' +
+    '.aics-app .aics-admin-link{display:none;}\n' +
+    '.aics-app .aics-admin-link.is-visible{display:flex;}\n' +
+    '.aics-app .aics-work-content{max-width:820px;margin:0 auto;width:100%;}\n' +
     '.aics-app .aics-session-more:hover{border-color:var(--aics-primary-border);color:var(--aics-primary);}\n' +
     '.aics-app .aics-session-more:disabled{opacity:.5;cursor:wait;}\n' +
     '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:12px;border-top:1px solid var(--aics-border);width:100%;box-sizing:border-box;}\n' +
@@ -318,11 +322,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
+      if (moreButton) moreButton.classList.toggle('is-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.style.display = 'none';
+      if (moreButton) moreButton.classList.add('is-hidden');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
@@ -531,7 +535,7 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.style.display = d.is_admin ? \'\' : \'none\';\n' +
+    '      if (al) al.classList.toggle('is-visible', !!d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
@@ -900,7 +904,7 @@ export function renderStudioShell(opts) {
     '<main class="main aics-main">\n' +
     '<div class="aics-stepper" id="aicsStepper"></div>\n' +
     '<div class="aics-grid">\n' +
-    '<section class="aics-work" id="aicsWork" style="max-width:820px;margin:0 auto;width:100%;">\n' +
+    '<section class="aics-work aics-work-content" id="aicsWork">\n' +
     content +
     '</section>\n' +
     '</div>\n' +
