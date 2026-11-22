@@ -77,46 +77,46 @@ ${AICS_DESIGN_SYSTEM_CSS}
   <aside class="sidebar" id="sidebar">
     <div class="brand"><div class="brand-mark">✦</div><div><div class="brand-title">AI CREATIVE STUDIO</div><div class="brand-sub">Premium Admin Center</div></div></div>
     <div class="nav-section">Overview</div>
-    <button class="nav-btn active" id="tabDashboard" onclick="switchTab('dashboard');closeNav()"><span class="nav-icon">⌂</span><span class="nav-label">Overview</span></button>
+    <button class="nav-btn active" id="tabDashboard" data-admin-click="switchTab('dashboard');closeNav()"><span class="nav-icon">⌂</span><span class="nav-label">Overview</span></button>
     <div class="nav-section">Management</div>
-    <button class="nav-btn inactive" id="tabUsers" onclick="switchTab('users');closeNav()"><span class="nav-icon">♙</span><span class="nav-label">Users</span></button>
-    <button class="nav-btn inactive" id="tabStudios" onclick="switchTab('studios');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">AI Studios</span></button>
+    <button class="nav-btn inactive" id="tabUsers" data-admin-click="switchTab('users');closeNav()"><span class="nav-icon">♙</span><span class="nav-label">Users</span></button>
+    <button class="nav-btn inactive" id="tabStudios" data-admin-click="switchTab('studios');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">AI Studios</span></button>
     <div class="nav-section">AI System</div>
-    <button class="nav-btn inactive" id="tabModels" onclick="switchTab('models');closeNav()"><span class="nav-icon">◈</span><span class="nav-label">AI Models</span></button>
-    <button class="nav-btn inactive" id="tabFeatures" onclick="switchTab('features');closeNav()"><span class="nav-icon">⚙</span><span class="nav-label">Plans & Features</span></button>
-    <button class="nav-btn inactive" id="tabPlans" onclick="switchTab('plans');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">Plan Catalog</span></button>
-    <button class="nav-btn inactive" id="tabCms" onclick="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
-    <button class="nav-btn inactive" id="tabBrain" onclick="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
+    <button class="nav-btn inactive" id="tabModels" data-admin-click="switchTab('models');closeNav()"><span class="nav-icon">◈</span><span class="nav-label">AI Models</span></button>
+    <button class="nav-btn inactive" id="tabFeatures" data-admin-click="switchTab('features');closeNav()"><span class="nav-icon">⚙</span><span class="nav-label">Plans & Features</span></button>
+    <button class="nav-btn inactive" id="tabPlans" data-admin-click="switchTab('plans');closeNav()"><span class="nav-icon">✦</span><span class="nav-label">Plan Catalog</span></button>
+    <button class="nav-btn inactive" id="tabCms" data-admin-click="switchTab('cms');closeNav()"><span class="nav-icon">▤</span><span class="nav-label">Content / CMS</span></button>
+    <button class="nav-btn inactive" id="tabBrain" data-admin-click="switchTab('brain');closeNav()"><span class="nav-icon">🧠</span><span class="nav-label">Brain CMS</span></button>
 ${TASK_INSTRUCTIONS_NAV}
     <div class="nav-section">Analytics</div>
-    <button class="nav-btn inactive" id="tabLogs" onclick="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
+    <button class="nav-btn inactive" id="tabLogs" data-admin-click="switchTab('logs');closeNav()"><span class="nav-icon">≡</span><span class="nav-label">Activity</span></button>
     <div class="sidebar-footer"><a class="app-link" href="/app">↗ <span>Open User App</span></a></div>
   </aside>
   <section class="main">
-    <header class="topbar"><div class="row"><button class="mobile-menu" onclick="toggleNav()">☰</button><div class="crumb">Admin Center <span class="muted">/</span> <b id="crumbTitle">Overview</b></div></div><div class="top-actions"><button class="theme-toggle" id="adminThemeToggle" type="button" aria-label="Toggle color theme">Light mode</button><div class="admin-pill"><span class="avatar">A</span><span class="email" id="userBox"></span></div></div></header>
+    <header class="topbar"><div class="row"><button class="mobile-menu" data-admin-click="toggleNav()">☰</button><div class="crumb">Admin Center <span class="muted">/</span> <b id="crumbTitle">Overview</b></div></div><div class="top-actions"><button class="theme-toggle" id="adminThemeToggle" type="button" aria-label="Toggle color theme">Light mode</button><div class="admin-pill"><span class="avatar">A</span><span class="email" id="userBox"></span></div></div></header>
     <main class="content">
       <section id="dashboardView">
-        <div class="page-head"><div><div class="eyebrow">Control Center</div><h1 class="page-title">Good morning, Admin</h1><p class="page-desc">AI Creative Studio ရဲ့ System အခြေအနေကို တစ်နေရာတည်းက စီမံပါ။</p></div><div class="head-actions"><button class="btn primary" onclick="loadDashboard()">↻ Refresh</button></div></div>
+        <div class="page-head"><div><div class="eyebrow">Control Center</div><h1 class="page-title">Good morning, Admin</h1><p class="page-desc">AI Creative Studio ရဲ့ System အခြေအနေကို တစ်နေရာတည်းက စီမံပါ။</p></div><div class="head-actions"><button class="btn primary" data-admin-click="loadDashboard()">↻ Refresh</button></div></div>
         <div class="grid stats-grid" id="statCards"></div>
         <div class="grid two-col" style="margin-top:14px">
           <div class="card"><div class="section-head"><div><div class="card-title">Studio Status</div><div class="card-sub">User App မှာ လက်ရှိဖွင့်ထားတဲ့ Studios</div></div></div><div class="grid three-col" id="healthGrid"></div></div>
-          <div class="card"><div class="section-head"><div><div class="card-title">Quick Actions</div><div class="card-sub">မကြာခဏသုံးမယ့် Admin actions</div></div></div><div class="quick"><button class="btn" onclick="switchTab('models')">◈ AI Models<small>Model စီမံရန်</small></button><button class="btn" onclick="switchTab('studios')">✦ Studios<small>ON / OFF ပြုလုပ်ရန်</small></button><button class="btn" onclick="switchTab('cms')">▤ Content<small>Prompt / Template ပြင်ရန်</small></button></div></div>
+          <div class="card"><div class="section-head"><div><div class="card-title">Quick Actions</div><div class="card-sub">မကြာခဏသုံးမယ့် Admin actions</div></div></div><div class="quick"><button class="btn" data-admin-click="switchTab('models')">◈ AI Models<small>Model စီမံရန်</small></button><button class="btn" data-admin-click="switchTab('studios')">✦ Studios<small>ON / OFF ပြုလုပ်ရန်</small></button><button class="btn" data-admin-click="switchTab('cms')">▤ Content<small>Prompt / Template ပြင်ရန်</small></button></div></div>
         </div>
-        <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" onclick="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
+        <div class="card" style="margin-top:14px"><div class="section-head"><div><div class="card-title">Recent Users</div><div class="card-sub">နောက်ဆုံးဝင်လာတဲ့ Users</div></div><button class="btn sm" data-admin-click="switchTab('users')">View all →</button></div><div id="recentUsers" class="list"></div></div>
       </section>
-      <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="load()">↻ Refresh</button><button class="btn primary" onclick="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" onclick="load()">Apply</button></div></div><div id="list"></div></section>
-      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" onclick="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" onclick="brainReset()">Reset</button><button class="btn primary" onclick="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" onclick="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
+      <section id="cmsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Content / CMS</h1><p class="page-desc">Studio တစ်ခုချင်းစီအတွက် Prompt, Template နဲ့ AI instructions ကို စီမံပါ။</p></div><div class="head-actions"><button class="btn" data-admin-click="load()">↻ Refresh</button><button class="btn primary" data-admin-click="addEdit(null)">＋ Add Content</button></div></div><div class="card"><div class="filters"><select id="fStudio"></select><select id="fPlan"><option value="">Plan · All</option><option value="FREE">FREE</option><option value="PRO">PRO</option></select><input id="fType" placeholder="Sub-Type (1–5)"><button class="btn sm" data-admin-click="load()">Apply</button></div></div><div id="list"></div></section>
+      <section id="brainView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Brain CMS (12-Layer)</h1><p class="page-desc">GLOBAL_BRAIN / STORY_TYPES / STORY_VIDEO — knowledge, rules, prompts များကို scope+module+type ဖြင့် သီးခြားစီမံပါ။ Knowledge Isolation: selected type/workflow rows သာ AI context ထဲ ဝင်မည်။</p></div><button class="btn" data-admin-click="loadBrain()">↻ Refresh</button></div><div class="card"><div class="card-title">Add / Edit Brain Row</div><div class="grid three-col"><div><label>Scope</label><select id="bScope"><option>STORY_TYPES</option><option>STORY_VIDEO</option><option>GLOBAL_BRAIN</option></select></div><div><label>Module</label><select id="bModule"><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option><option>GLOBAL_FRAMEWORK</option></select></div><div><label>Type (BASE / TYPE_1 / ANIME / CINEMATIC_FEATURE …)</label><input id="bType" value="TYPE_1"></div><div><label>Plan</label><select id="bPlan"><option>FREE</option><option>PRO</option></select></div><div><label>Key (role/knowledge/rules/structure/prompt/…)</label><input id="bKey" value="knowledge"></div><div><label>Version</label><input id="bVersion" type="number" value="1"></div></div><div style="margin-top:8px;"><label>Value</label><textarea id="bValue" style="min-height:90px;width:100%;box-sizing:border-box;"></textarea></div><div class="form-actions"><button class="btn gray" data-admin-click="brainReset()">Reset</button><button class="btn primary" data-admin-click="saveBrain()">Save Brain Row</button></div><div id="brainMsg" style="font-size:12px;margin-top:6px;color:#00C853;"></div></div><div class="card"><div class="filters"><select id="bScopeF"><option value="">Scope · All</option><option>GLOBAL_BRAIN</option><option>STORY_TYPES</option><option>STORY_VIDEO</option></select><select id="bModuleF"><option value="">Module · All</option><option>GLOBAL_FRAMEWORK</option><option>STORY_TYPE</option><option>VIDEO_KNOWLEDGE</option><option>VISUAL_STYLE</option><option>VIDEO_WORKFLOW</option></select><input id="bTypeF" placeholder="Type (e.g. TYPE_1 / ANIME)"><button class="btn sm" data-admin-click="loadBrain()">Apply</button></div></div><div id="brainList"></div></section>
 ${TASK_INSTRUCTIONS_VIEW}
-      <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" onclick="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
-      <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" onclick="loadStudios()">↻ Refresh</button><button class="btn primary" onclick="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
-      <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" onclick="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
-      <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" onclick="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" onclick="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" onclick="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
-      <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" onclick="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" onclick="mfPlan('')">All</button><button id="mfFree" class="btn sm" onclick="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" onclick="mfPlan('PRO')">PRO</button><select id="mfCat" onchange="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
-      <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" onclick="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
+      <section id="usersView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">Users</h1><p class="page-desc">User plan နဲ့ account အခြေအနေကို စီမံပါ။</p></div><button class="btn" data-admin-click="loadUsers()">↻ Refresh</button></div><div id="usersList"></div></section>
+      <section id="studiosView" class="hidden"><div class="page-head"><div><div class="eyebrow">Management</div><h1 class="page-title">AI Studios</h1><p class="page-desc">User App မှာ ဘယ် Studio တွေကို အသုံးပြုခွင့်ပေးမလဲ စီမံပါ။</p></div><div class="head-actions"><button class="btn" data-admin-click="loadStudios()">↻ Refresh</button><button class="btn primary" data-admin-click="initializeSettings()">Initialize Settings</button></div></div><div class="card"><div class="card-title">Studio Availability</div><div class="card-sub">OFF လုပ်ထားတဲ့ Studio ကို User App မှာ ဝင်သုံးလို့မရတော့ပါ။</div></div><div id="studiosList"></div></section>
+      <section id="featuresView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">Plans & Features</h1><p class="page-desc">FREE / PRO access နဲ့ feature limits ကို Code မပြင်ဘဲ စီမံပါ။</p></div><button class="btn" data-admin-click="loadFeatures()">↻ Refresh</button></div><div id="featuresList"></div></section>
+      <section id="plansView" class="hidden"><div class="page-head"><div><div class="eyebrow">Monetization</div><h1 class="page-title">Plan Catalog</h1><p class="page-desc">Display metadata သာ စီမံသည်။ Feature Gate permissions မပြောင်းပါ။</p></div><button class="btn" data-admin-click="loadPlans()">↻ Refresh</button></div><div class="card"><div class="card-title">Add Plan</div><div class="grid three-col"><div><label>Plan Key</label><input id="pcNewKey" maxlength="32" placeholder="TEAM" style="width:100%"></div><div><label>Name</label><input id="pcNewName" maxlength="80" style="width:100%"></div><div><label>Icon Key</label><input id="pcNewIcon" value="sparkles" maxlength="32" style="width:100%"></div><div><label>Price</label><input id="pcNewPrice" type="number" min="0" step="0.01" style="width:100%"></div><div><label>Currency</label><input id="pcNewCurrency" maxlength="3" placeholder="USD" style="width:100%"></div><div><label>Billing Period</label><input id="pcNewPeriod" maxlength="40" style="width:100%"></div><div style="grid-column:1/-1"><label>Description</label><input id="pcNewDesc" maxlength="500" style="width:100%"></div><div style="grid-column:1/-1"><label>Features (JSON array)</label><textarea id="pcNewFeatures">[]</textarea></div></div><div class="form-actions"><button class="btn primary" data-admin-click="createPlan()">＋ Add Plan</button></div></div><div class="card"><div class="card-title">Upgrade Contact Links</div><div class="grid two-col"><div><label>Facebook Messenger HTTPS URL</label><input id="pcFacebook" type="url" style="width:100%"></div><div><label>Telegram HTTPS URL</label><input id="pcTelegram" type="url" style="width:100%"></div></div><div class="form-actions"><button class="btn primary" data-admin-click="savePlanContacts()">Save Contact Links</button></div><div id="planContactMsg" class="card-sub"></div></div><div id="plansList"></div></section>
+      <section id="modelsView" class="hidden"><div class="page-head"><div><div class="eyebrow">AI System</div><h1 class="page-title">AI Models</h1><p class="page-desc">Text, Image, Voice နဲ့ Transcription models ကို စီမံပါ။</p></div><button class="btn" data-admin-click="loadModels()">↻ Refresh</button></div><div class="card"><div class="filters"><button id="mfAll" class="btn sm active" data-admin-click="mfPlan('')">All</button><button id="mfFree" class="btn sm" data-admin-click="mfPlan('FREE')">FREE</button><button id="mfPro" class="btn sm" data-admin-click="mfPlan('PRO')">PRO</button><select id="mfCat" data-admin-change="mfCat()"><option value="">Category · All</option><option value="text">📝 Text</option><option value="image">🖼️ Image</option><option value="voice">🎙️ Voice</option><option value="transcribe">🎧 Transcribe</option></select></div></div><div id="modelsList"></div></section>
+      <section id="logsView" class="hidden"><div class="page-head"><div><div class="eyebrow">Analytics</div><h1 class="page-title">Activity</h1><p class="page-desc">Admin ပြုလုပ်ထားတဲ့ အရေးကြီးလုပ်ဆောင်ချက်တွေကို Audit လုပ်ပါ။</p></div><button class="btn" data-admin-click="loadLogs()">↻ Refresh</button></div><div id="logsList" class="list"></div></section>
     </main>
   </section>
 </div>
-<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" onclick="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" style="width:100%"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" onclick="closeForm()">Cancel</button><button class="btn primary" onclick="save()">Save Changes</button></div></div></div></div>
+<div id="formWrap" class="hidden"><div class="overlay"><div class="card form"><div class="section-head"><div><div class="eyebrow">Content Editor</div><h3 id="formTitle">Add Content</h3></div><button class="btn gray sm" data-admin-click="closeForm()">✕</button></div><div class="grid three-col"><div><label>Studio</label><select id="iStudio" style="width:100%"></select></div><div><label>Plan</label><select id="iPlan" style="width:100%"><option value="FREE">FREE</option><option value="PRO">PRO</option></select></div><div><label>Type</label><input id="iType" value="1" style="width:100%"></div></div><div class="divider"></div><div class="grid two-col"><div><label>core</label><textarea id="iCore"></textarea></div><div><label>memory</label><textarea id="iMemory"></textarea></div><div><label>knowledge</label><textarea id="iKnowledge"></textarea></div><div><label>workflow</label><textarea id="iWorkflow"></textarea></div><div><label>template</label><textarea id="iTemplate"></textarea></div><div><label>prompt</label><textarea id="iPrompt"></textarea></div><div><label>quality check</label><textarea id="iQuality_check"></textarea></div><div><label>final output</label><textarea id="iFinal_output"></textarea></div></div><div class="form-actions"><button class="btn gray" data-admin-click="closeForm()">Cancel</button><button class="btn primary" data-admin-click="save()">Save Changes</button></div></div></div></div>
 </div>
 <script>
 function toggleNav(){var s=document.getElementById('sidebar');if(s)s.classList.toggle('open');}
@@ -228,8 +228,8 @@ function renderPlans(){
       '<div><label>Billing Period</label><input id="pcPeriod-'+safe+'" value="'+esc(p.billing_period||'')+'" style="width:100%"></div>'+
       '<div style="grid-column:1/-1"><label>Description</label><input id="pcDesc-'+safe+'" value="'+esc(p.description||'')+'" style="width:100%"></div>'+
       '<div style="grid-column:1/-1"><label>Features JSON</label><textarea id="pcFeatures-'+safe+'">'+esc(features)+'</textarea></div></div>'+
-      '<div class="form-actions"><button class="btn primary" onclick="savePlan(\''+safe+'\')">Save</button><button class="btn" onclick="togglePlan(\''+safe+'\','+(!p.enabled)+')">'+(p.enabled?'Archive':'Enable')+'</button>'+
-      ((key==='FREE'||key==='PRO')?'':'<button class="btn red" onclick="deletePlan(\''+safe+'\')">Delete</button>')+'</div>';
+      '<div class="form-actions"><button class="btn primary" data-admin-click="savePlan(\''+safe+'\')">Save</button><button class="btn" data-admin-click="togglePlan(\''+safe+'\','+(!p.enabled)+')">'+(p.enabled?'Archive':'Enable')+'</button>'+
+      ((key==='FREE'||key==='PRO')?'':'<button class="btn red" data-admin-click="deletePlan(\''+safe+'\')">Delete</button>')+'</div>';
     list.appendChild(card);
   });
 }
@@ -286,8 +286,8 @@ function loadFeatures(){
         '<div class="row" style="gap:6px;">'+
         '<select id="acc-'+esc(f.id)+'"><option value="FREE"'+(f.access!=='PRO'?' selected':'')+'>FREE</option><option value="PRO"'+(f.access==='PRO'?' selected':'')+'>PRO</option></select>'+
         '<input id="lim-'+esc(f.id)+'" type="number" min="0" value="'+esc(f.limit_value||0)+'" title="Limit" style="width:70px;">'+
-        '<button class="btn sm '+(f.enabled?'red':'green')+'" data-on="'+(f.enabled?'1':'0')+'" onclick="toggleFeature(\\''+esc(f.id)+'\\',this)">'+(f.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
-        '<button class="btn sm" onclick="saveFeature(\\''+esc(f.id)+'\\')">💾 Save</button>'+
+        '<button class="btn sm '+(f.enabled?'red':'green')+'" data-on="'+(f.enabled?'1':'0')+'" data-admin-click="toggleFeature(\\''+esc(f.id)+'\\',this)">'+(f.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
+        '<button class="btn sm" data-admin-click="saveFeature(\\''+esc(f.id)+'\\')">💾 Save</button>'+
         '</div></div>';
       list.appendChild(c);
     });
@@ -342,7 +342,7 @@ function renderModels(){
     '<input id="nm_name" placeholder="ပြမည့်နာမည်" style="flex:2;min-width:120px;">'+
     '<select id="nm_cat"><option value="text">📝 Text Only (စာသား)</option><option value="image">🖼️ Image (ပုံ)</option><option value="voice">🎙️ Text → Voice (အသံ)</option><option value="transcribe">🎧 Voice → Text (အသံ→စာသား)</option></select>'+
     '<select id="nm_plan"><option value="FREE">လူတိုင်း</option><option value="PRO">PRO သာ</option></select>'+
-    '<button class="btn green" onclick="addModel()">＋ Add</button></div>'+
+    '<button class="btn green" data-admin-click="addModel()">＋ Add</button></div>'+
     '<div style="font-size:11px;color:#6B7280;margin-top:6px;">⚠️ Model ID သည် Google Gemini API တွင် တကယ်ရှိသော နာမည် ဖြစ်ရမည် — မမှန်ပါက Generate လုပ်သော အခါ အမှား ပြပါမည်။</div></div>';
   if(rows.length===0){html+='<div class="card">(ဤအပိုင်းတွင် Model မရှိသေး — အောက်ပါ စစ်ထုတ်မှု ပြောင်းပါ သို့မဟုတ် ＋ Add)</div>';}
   rows.forEach(function(m){
@@ -353,10 +353,10 @@ function renderModels(){
       '<div class="row" style="gap:6px;margin-top:6px;">'+
       '<input id="nm_'+mid+'" value="'+esc(m.name||m.id)+'" placeholder="ပြမည့်နာမည်" style="flex:2;min-width:110px;">'+
       '<select id="pm_'+mid+'"><option value="FREE"'+(m.plan_access!=='PRO'?' selected':'')+'>လူတိုင်း</option><option value="PRO"'+(m.plan_access==='PRO'?' selected':'')+'>PRO သာ</option></select>'+
-      '<button class="btn sm" onclick="saveModel(\\''+mid+'\\')">💾 Save</button>'+
-      '<button class="btn sm '+(m.enabled?'red':'green')+'" data-on="'+(m.enabled?'1':'0')+'" onclick="toggleModel(\\''+mid+'\\',this)">'+(m.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
-      '<button class="btn sm '+(m.is_default?'gray':'')+'" onclick="setDefault(\\''+mid+'\\')">★ မူရင်း</button>'+
-      '<button class="btn sm red" onclick="delModel(\\''+mid+'\\')">🗑 ဖျက်</button>'+
+      '<button class="btn sm" data-admin-click="saveModel(\\''+mid+'\\')">💾 Save</button>'+
+      '<button class="btn sm '+(m.enabled?'red':'green')+'" data-on="'+(m.enabled?'1':'0')+'" data-admin-click="toggleModel(\\''+mid+'\\',this)">'+(m.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button>'+
+      '<button class="btn sm '+(m.is_default?'gray':'')+'" data-admin-click="setDefault(\\''+mid+'\\')">★ မူရင်း</button>'+
+      '<button class="btn sm red" data-admin-click="delModel(\\''+mid+'\\')">🗑 ဖျက်</button>'+
       '</div></div></div>';
   });
   $('modelsList').innerHTML=html;
@@ -449,7 +449,7 @@ function renderList(){
     c.className='card';
     c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
       '<div><b>'+esc(studioLabel(it.studio))+'</b> <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · Sub-Type '+esc(it.type)+'</div>'+
-      '<span><button class="btn sm" onclick="copyRow('+it.id+')">📋</button> <button class="btn sm" onclick="addEdit('+it.id+')">✏️</button> <button class="btn sm red" onclick="del('+it.id+')">🗑️</button></span></div>'+
+      '<span><button class="btn sm" data-admin-click="copyRow('+it.id+')">📋</button> <button class="btn sm" data-admin-click="addEdit('+it.id+')">✏️</button> <button class="btn sm red" data-admin-click="del('+it.id+')">🗑️</button></span></div>'+
       '<div style="font-size:12px;color:#6B7280;margin-top:6px;"><b>core:</b> '+esc((it.core||'').slice(0,80))+'</div>'+
       '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><b>prompt:</b> '+esc((it.prompt||'').slice(0,80))+'</div>';
     list.appendChild(c);
@@ -527,7 +527,7 @@ function renderBrain(){
     var c=document.createElement('div');c.className='card';
     c.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'+
       '<div><b>'+esc(it.scope)+'</b> / <b>'+esc(it.module)+'</b> / <b>'+esc(it.type)+'</b> · <span class="badge '+(it.plan==='PRO'?'pro':'free')+'">'+esc(it.plan)+'</span> · key <code>'+esc(it.key)+'</code> · v'+esc(it.version)+' · '+((it.active===0)?'<span class="badge free">inactive</span>':'<span class="badge pro">active</span>')+'</div>'+
-      '<span><button class="btn sm" onclick="editBrain('+it.id+')">✏️</button> <button class="btn sm red" onclick="delBrain('+it.id+')">🗑️</button></span></div>'+
+      '<span><button class="btn sm" data-admin-click="editBrain('+it.id+')">✏️</button> <button class="btn sm red" data-admin-click="delBrain('+it.id+')">🗑️</button></span></div>'+
       '<div style="font-size:12px;color:#6B7280;margin-top:6px;white-space:pre-wrap;">'+esc((it.value||'').slice(0,160))+'</div>';
     list.appendChild(c);
   });
@@ -593,7 +593,7 @@ function loadStudios(){
       c.className='card';
       c.innerHTML='<div class="user-row"><div><b>'+esc(s.nameMy)+'</b> <span style="font-size:11px;color:#6B7280;">('+esc(s.name)+')</span>'+
         '<div class="user-meta">'+(s.enabled?'<span class="badge pro">ON</span>':'<span class="badge free">OFF</span>')+'</div></div>'+
-        '<button class="btn sm '+(s.enabled?'red':'green')+'" data-on="'+(s.enabled?'1':'0')+'" onclick="toggleStudio(\\''+esc(s.id)+'\\',this)">'+(s.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button></div>';
+        '<button class="btn sm '+(s.enabled?'red':'green')+'" data-on="'+(s.enabled?'1':'0')+'" data-admin-click="toggleStudio(\\''+esc(s.id)+'\\',this)">'+(s.enabled?'⏻ ပိတ်မည်':'⏻ ဖွင့်မည်')+'</button></div>';
       list.appendChild(c);
     });
   }).catch(function(e){
@@ -650,6 +650,67 @@ function tokenFromHash(){
     history.replaceState(null,'',location.pathname);
   }
 }
+
+
+function dispatchAdminCall(source, element) {
+  var calls = String(source || '').split(';');
+  for (var i = 0; i < calls.length; i++) {
+    var call = calls[i].trim();
+    if (!call) continue;
+    var match = call.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([\\s\\S]*)\\)$/);
+    if (!match || !ADMIN_ACTIONS[match[1]]) return false;
+    var rawArgs = match[2];
+    var args = [];
+    var start = 0, quote = '', escaped = false, depth = 0;
+    for (var j = 0; j <= rawArgs.length; j++) {
+      var ch = rawArgs.charAt(j);
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (ch === '\\\\') escaped = true;
+        else if (ch === quote) quote = '';
+      } else if (ch === "'" || ch === '"') quote = ch;
+      else if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      else if ((ch === ',' && depth === 0) || j === rawArgs.length) {
+        var token = rawArgs.slice(start, j).trim();
+        if (token === 'this') args.push(element);
+        else if (token === 'true') args.push(true);
+        else if (token === 'false') args.push(false);
+        else if (token === 'null') args.push(null);
+        else if (/^-?\\d+(?:\\.\\d+)?$/.test(token)) args.push(Number(token));
+        else if (token.length >= 2 && (token.charAt(0) === "'" || token.charAt(0) === '"') && token.charAt(token.length - 1) === token.charAt(0)) {
+          args.push(token.slice(1, -1).replace(/\\\\(['"\\\\])/g, '$1'));
+        } else if (token) return false;
+        start = j + 1;
+      }
+    }
+    ADMIN_ACTIONS[match[1]].apply(window, args);
+  }
+  return true;
+}
+var ADMIN_ACTIONS = Object.create(null);
+[
+  'switchTab','closeNav','toggleNav','loadDashboard','load','addEdit','loadBrain',
+  'brainReset','saveBrain','loadUsers','loadStudios','initializeSettings','loadFeatures',
+  'loadPlans','createPlan','savePlanContacts','loadModels','mfPlan','mfCat','loadLogs',
+  'closeForm','save','savePlan','togglePlan','deletePlan','toggleFeature','saveFeature',
+  'addModel','saveModel','toggleModel','setDefault','delModel','copyRow','del',
+  'editBrain','delBrain','toggleStudio'
+].forEach(function(name) {
+  ADMIN_ACTIONS[name] = function() {
+    if (typeof window[name] === 'function') return window[name].apply(window, arguments);
+  };
+});
+document.addEventListener('click', function(event) {
+  var target = event.target;
+  var button = target && target.closest ? target.closest('[data-admin-click]') : null;
+  if (button) dispatchAdminCall(button.getAttribute('data-admin-click'), button);
+});
+document.addEventListener('change', function(event) {
+  var target = event.target;
+  var control = target && target.closest ? target.closest('[data-admin-change]') : null;
+  if (control) dispatchAdminCall(control.getAttribute('data-admin-change'), control);
+});
 
 ${TASK_INSTRUCTIONS_SCRIPT}
 function init(){
