@@ -731,5 +731,45 @@ console.log('\\n--- Settings UI CSP Inline Style Contract ---');
     settings.includes('@media(max-width:600px){.settings-login-required'));
 }
 
+
+console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
+{
+  const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const shared = await import('../worker/src/frontend/shared.js?shared-xss-contract=' + Date.now());
+  const hostile = '"><img src=x onerror=alert(1)>&\'';
+  check('Shared HTML escaping encodes text and attribute metacharacters',
+    shared.escapeHtml(hostile) === '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&amp;&#39;');
+  check('AI model options use DOM value/textContent instead of HTML interpolation',
+    sharedSource.includes('option.value = String(m.id') &&
+    sharedSource.includes('option.textContent = String(m.name') &&
+    !sharedSource.includes("html += '<option value=\'") &&
+    !sharedSource.includes('sel.innerHTML = html'));
+  check('Audience choices are rendered as text nodes',
+    sharedSource.includes("button.textContent = String(v == null ?") &&
+    !sharedSource.includes(" + v + '</button>'"));
+  check('Studio action labels are rendered as text and class tokens are validated',
+    sharedSource.includes('button.textContent = String(a.label).replace') &&
+    sharedSource.includes('/^[a-zA-Z0-9_-]+$/.test(token)') &&
+    !sharedSource.includes(" + a.label + '</button>'"));
+  check('Stepper labels are rendered through textContent',
+    sharedSource.includes('stepLabel.textContent = String(s.label') &&
+    !sharedSource.includes(" + s.label + '</span>"));
+  const hostileShell = shared.renderStudioShell({
+    id: '</script><script>alert(1)</script>',
+    nameMy: '<img src=x onerror=alert(1)>',
+    modelCat: '" onfocus="alert(1)',
+    modelTask: '"><script>alert(1)</script>',
+    steps: [{ label: '</script><img src=x onerror=alert(1)>' }],
+    content: '<div class="trusted-test-content"></div>',
+  });
+  check('Studio title and model attributes are HTML escaped',
+    hostileShell.includes('&lt;img src=x onerror=alert(1)&gt;') &&
+    hostileShell.includes('data-category="&quot; onfocus=&quot;alert(1)') &&
+    hostileShell.includes('data-task="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"'));
+  check('Shell ID and step JSON cannot terminate the inline script',
+    hostileShell.includes('\\u003c/script\\u003e\\u003cscript\\u003ealert(1)') &&
+    !hostileShell.includes('</script><script>alert(1)</script>'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
