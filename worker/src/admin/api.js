@@ -339,15 +339,12 @@ export async function adminApi(request, path, env, verifyToken) {
     try {
       const users = await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first();
       const pro = await env.DB.prepare("SELECT COUNT(*) AS c FROM users WHERE plan='PRO'").first();
-      // Phase 13 (Option 2): Creations ကို Browser IndexedDB တွင်သာ သိမ်းသည် — Dashboard တွင် မရေတွက်တော့ပါ
-      const projects = await env.DB.prepare('SELECT COUNT(*) AS c FROM projects').first();
       const recent = await env.DB.prepare('SELECT email, plan, created_at FROM users ORDER BY created_at DESC LIMIT 5').all();
       return json({
         ok: true,
         stats: {
           users: (users && users.c) || 0,
           pro: (pro && pro.c) || 0,
-          projects: (projects && projects.c) || 0,
         },
         recent: (recent && recent.results) || [],
       });
