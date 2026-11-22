@@ -769,7 +769,7 @@ console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
   check('Shell ID and step JSON cannot terminate the inline script',
     hostileShell.includes('\\u003c/script\\u003e\\u003cscript\\u003ealert(1)') &&
     !hostileShell.includes('</script><script>alert(1)</script>'));
-  const inlineScript = hostileShell.match(/<script>\\s*([\\s\\S]*?)<\\/script>/i);
+  const inlineScript = hostileShell.match(/<script>\s*([\s\S]*?)<\/script>/i);
   let scriptSyntaxValid = false;
   try { if (inlineScript) { new vm.Script(inlineScript[1]); scriptSyntaxValid = true; } } catch (_) {}
   check('Generated Studio shell script remains syntactically valid', scriptSyntaxValid);
