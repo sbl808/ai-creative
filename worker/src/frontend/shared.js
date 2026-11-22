@@ -108,7 +108,7 @@ function studioPageSidebar(activeId) {
     : '';
   return (
     '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
-    '<div class="sidebar aics-studio-sidebar" id="sidebar">\n' +
+    '<div class="sidebar" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
