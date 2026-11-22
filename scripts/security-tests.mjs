@@ -777,5 +777,32 @@ console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
   check('Generated Studio shell script remains syntactically valid', scriptSyntaxValid);
 }
 
+
+console.log('\n--- Shared UI CSP Inline Style Contract ---');
+{
+  const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const inlineStyles = sharedSource.match(/\bstyle\s*=/gi) || [];
+  check('Shared UI has no inline style attributes', inlineStyles.length === 0, 'inline styles=' + inlineStyles.length);
+  check('Admin links use CSS classes and class-based visibility',
+    (sharedSource.match(/class="side-btn aics-admin-link"/g) || []).length === 2 &&
+    sharedSource.includes('.aics-app .aics-admin-link{display:none;}') &&
+    sharedSource.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
+    sharedSource.includes("al.classList.toggle('is-visible', !!d.is_admin)") &&
+    !sharedSource.includes("al.style.display ="));
+  check('Story session Load More visibility uses a hidden CSS class',
+    sharedSource.includes('class="aics-session-more is-hidden"') &&
+    sharedSource.includes('.aics-app .aics-session-more.is-hidden{display:none;}') &&
+    sharedSource.includes("moreButton.classList.toggle('is-hidden', !hasMore)") &&
+    sharedSource.includes("moreButton.classList.add('is-hidden')") &&
+    !sharedSource.includes('moreButton.style.display'));
+  check('Studio sidebar reuses the shared flex-column layout without inline styles',
+    sharedSource.includes('<div class="sidebar" id="sidebar">') &&
+    sharedSource.includes('.aics-app .layout > .sidebar{display:flex;flex-direction:column;'));
+  check('Studio work area uses a responsive CSS class instead of inline styles',
+    sharedSource.includes('class="aics-work aics-work-content" id="aicsWork"') &&
+    sharedSource.includes('.aics-app .aics-work-content{max-width:820px;margin:0 auto;width:100%;}') &&
+    sharedSource.includes('@media (max-width:767px){'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
