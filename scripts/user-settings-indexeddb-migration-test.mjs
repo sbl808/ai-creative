@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
+import { userSettingsRepositoryScript } from '../worker/src/frontend/storage/repositories/user-settings.js';
 
 const sqlCalls = [];
 const env = {
@@ -86,6 +87,19 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
   );
   assert.equal(response, null, path + ' must no longer be a D1 write endpoint');
 }
+
+const repositorySource = userSettingsRepositoryScript();
+assert.match(repositorySource, /migrateLegacy: function \(patch\)/,
+  'repository must expose a dedicated legacy migration operation');
+assert.match(repositorySource, /legacySettingsMigration:\s*\{\s*status:\s*'complete'/,
+  'migration completion marker must be persisted with the settings record');
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentProfile, clean\.profile\)/);
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentSettings, clean\.settings\)/);
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentPreferences, clean\.preferences\)/);
+assert.match(repositorySource, /!Object\.prototype\.hasOwnProperty\.call\(target, key\)/,
+  'existing values must not be overwritten during legacy migration');
+assert.match(repositorySource, /tx\.oncomplete = function \(\) \{ if \(!settled\) \{ settled = true; resolve\(result\); \} \}/,
+  'migration promise must resolve only after the IndexedDB transaction completes');
 
 const settingsSource = await readFile(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
 const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
