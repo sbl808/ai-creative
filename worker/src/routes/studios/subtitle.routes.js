@@ -6,8 +6,9 @@ import {
 
 const SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
-function base64DecodedByteLength(value) {
+export function base64DecodedByteLength(value) {
   if (typeof value !== 'string' || value.length % 4 !== 0) return -1;
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) return -1;
   const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
   return Math.max(0, (value.length / 4) * 3 - padding);
 }
