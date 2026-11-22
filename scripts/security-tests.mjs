@@ -705,5 +705,31 @@ console.log('\\n--- Worker Test Pages CSP Inline Style Contract ---');
     !index.includes('im.style.'));
 }
 
+
+console.log('\\n--- Settings UI CSP Inline Style Contract ---');
+{
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  check('Settings UI has no inline style attributes', !/\\bstyle\\s*=/i.test(settings));
+  check('Settings UI does not assign element.style properties', !/\\.style(?:\\.|\\s*\\[)/.test(settings));
+  check('Settings tab visibility uses the hidden property and CSP-safe CSS',
+    settings.includes("p.hidden=true") &&
+    settings.includes("getElementById(tabs[name]).hidden=false") &&
+    settings.includes('.tab-panel[hidden]{display:none!important;}'));
+  check('Settings dynamic profile and login markup uses CSS classes',
+    settings.includes('settings-profile-name') &&
+    settings.includes('settings-save-name') &&
+    settings.includes('settings-login-required') &&
+    settings.includes('settings-login-link'));
+  check('Settings plan catalog uses reusable CSS classes, not inline styles',
+    settings.includes('plan-catalog-user') &&
+    settings.includes('plan-catalog-grid') &&
+    settings.includes('plan-catalog-card') &&
+    settings.includes('plan-catalog-features') &&
+    settings.includes('plan-catalog-links'));
+  check('Settings plan cards remain mobile responsive',
+    settings.includes('grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))') &&
+    settings.includes('@media(max-width:600px){.settings-login-required'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
