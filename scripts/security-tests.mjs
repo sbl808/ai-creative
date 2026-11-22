@@ -680,5 +680,30 @@ console.log('\n--- Admin UI CSP Inline Style Contract ---');
     adminUi.includes('.loading-error{display:block!important}'));
 }
 
+
+console.log('\\n--- Worker Test Pages CSP Inline Style Contract ---');
+{
+  const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const styleInjectionCount = (index.match(/TEST_PAGE_STYLES/g) || []).length;
+  check('Worker HTML pages contain no inline style attributes',
+    !/\\bstyle\\s*=/i.test(index));
+  check('Worker HTML pages do not assign element.style properties',
+    !/\\.style(?:\\.|\\s*\\[)/.test(index));
+  check('shared test-page stylesheet is nonce-injected by htmlPage',
+    index.includes('const TEST_PAGE_STYLES =') &&
+    index.includes(".on('style'") &&
+    index.includes("element.setAttribute('nonce', nonce)") &&
+    styleInjectionCount === 6,
+    'style injections=' + styleInjectionCount);
+  check('test-page stylesheet defines responsive page and component classes',
+    index.includes('.test-page{') &&
+    index.includes('.disabled-page{') &&
+    index.includes('.test-output-image{') &&
+    index.includes('@media(max-width:480px)'));
+  check('dynamic test image uses a CSS class instead of inline styles',
+    index.includes('im.className="test-output-image"') &&
+    !index.includes('im.style.'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
