@@ -177,7 +177,7 @@ const TEST_PAGE_STYLES = "<style>.test-page{width:100%;max-width:640px;box-sizin
 function studioDisabledPage(studioId) {
   const s = getStudio(studioId);
   const name = s ? s.nameMy : studioId;
-  return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title></head>' +
+  return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title>' + TEST_PAGE_STYLES + '</head>' +
     '<body class="disabled-page">' +
     '<div class="disabled-card">' +
     '<div class="disabled-icon">🔒</div>' +
