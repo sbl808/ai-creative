@@ -3,6 +3,14 @@ import {
   translateSubtitleSrt,
 } from '../../studios/subtitle.js';
 
+const SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+
+function base64DecodedByteLength(value) {
+  if (typeof value !== 'string' || value.length % 4 !== 0) return -1;
+  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
+  return Math.max(0, (value.length / 4) * 3 - padding);
+}
+
 export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const {
@@ -23,8 +31,19 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
     if (!payload) return json({ error: 'invalid_token' }, 401, cors);
 
     const body = await request.json().catch(() => null);
-    if (!body || !body.audioBase64) {
+    if (!body || typeof body.audioBase64 !== 'string' || !body.audioBase64.trim()) {
       return json({ error: 'missing_audio' }, 400, cors);
+    }
+
+    const audioBytes = base64DecodedByteLength(body.audioBase64);
+    if (audioBytes < 0) {
+      return json({ error: 'invalid_audio' }, 400, cors);
+    }
+    if (audioBytes > SUBTITLE_SRT_MAX_AUDIO_BYTES) {
+      return json({
+        error: 'audio_too_large',
+        max_bytes: SUBTITLE_SRT_MAX_AUDIO_BYTES,
+      }, 413, cors);
     }
 
     const plan = await resolvePlan(env, payload);
