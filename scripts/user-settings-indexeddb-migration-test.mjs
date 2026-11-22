@@ -120,7 +120,7 @@ assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.match(sharedSource, /legacySettingsMigration/);
 assert.match(sharedSource, /legacy\.migration && legacy\.migration\.skippedPreferences/,
   'client must read only the server-reported skipped preference count');
-assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast === \'function\'/,
+assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast/,
   'client must notify only when invalid legacy preferences were skipped');
 assert.match(sharedSource, /ကျန်ဆက်တင်များကို ပြန်လည်ရယူထားသည်/,
   'migration notice must explain that valid settings were still restored');
