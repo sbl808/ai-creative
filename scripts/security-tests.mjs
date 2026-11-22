@@ -640,10 +640,10 @@ console.log('\n--- Shop Reference Removal Delegation Contract ---');
 console.log('--- Admin UI Event Delegation Contract ---');
 {
   const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
-  const delegatedHandlers = adminUi.match(/\\bdata-admin-(?:click|change)\\s*=/g) || [];
+  const delegatedHandlers = adminUi.match(/\bdata-admin-(?:click|change)\s*=/g) || [];
   check('Admin UI has migrated all 54 click/change handlers to data attributes',
     delegatedHandlers.length === 54 &&
-    !/\\bon(?:click|change)\\s*=/i.test(adminUi),
+    !/\bon(?:click|change)\s*=/i.test(adminUi),
     'delegated=' + delegatedHandlers.length);
   check('Admin UI delegates click and change events from document',
     adminUi.includes("document.addEventListener('click'") &&
@@ -655,7 +655,7 @@ console.log('--- Admin UI Event Delegation Contract ---');
     adminUi.includes("'switchTab','closeNav','toggleNav'") &&
     adminUi.includes("'editBrain','delBrain','toggleStudio'"));
   check('Admin UI event dispatcher does not evaluate handler strings as JavaScript',
-    !/\\beval\\s*\\(|new\\s+Function\\s*\\(/.test(adminUi));
+    !/\beval\s*\(|new\s+Function\s*\(/.test(adminUi));
 }
 
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
