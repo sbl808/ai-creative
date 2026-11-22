@@ -15,7 +15,9 @@ for (const action of ['toggle', 'set-api-key', 'logout', 'load-more-sessions', '
   assert.ok(shared.includes('data-aics-sidebar-action="' + action + '"'), 'Sidebar delegated action: ' + action);
 }
 for (const action of ['step', 'audience', 'studio-action']) {
-  assert.ok(shared.includes('data-aics-shell-action="' + action + '"'), 'Shell delegated action: ' + action);
+  const htmlAttribute = shared.includes('data-aics-shell-action="' + action + '"');
+  const domAttribute = shared.includes("button.setAttribute(\\'data-aics-shell-action\\', \\'" + action + "\\')");
+  assert.ok(htmlAttribute || domAttribute, 'Shell delegated action: ' + action);
 }
 assert.ok(shared.includes('document.addEventListener') && shared.includes('sidebarAction'), 'Shared shell delegated listener exists');
 assert.ok(sharedUi.includes('data-aics-hub-action='), 'Result Hub delegated action markers exist');
