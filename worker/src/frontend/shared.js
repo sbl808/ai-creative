@@ -567,21 +567,21 @@ export function sidebarScript() {
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
-    '      function fill(opts, selected) {
-        sel.textContent = '';
-        if (!opts || opts.length === 0) {
-          var empty = document.createElement('option'); empty.value = ''; empty.textContent = '(Model မရှိ)'; sel.appendChild(empty); return;
-        }
-        for (var i = 0; i < opts.length; i++) {
-          var m = opts[i] || {};
-          var option = document.createElement('option');
-          option.value = String(m.id == null ? '' : m.id);
-          option.textContent = String(m.name || m.id || '');
-          if (option.value === String(selected == null ? '' : selected)) option.selected = true;
-          sel.appendChild(option);
-        }
-        if (!sel.value && opts[0]) sel.value = String(opts[0].id == null ? '' : opts[0].id);
-      }
+    '      '      function fill(opts, selected) {\n' +
+    '        sel.textContent = \'\';\n' +
+    '        if (!opts || opts.length === 0) {\n' +
+    '          var empty = document.createElement(\'option\'); empty.value = \'\'; empty.textContent = \'(Model မရှိ)\'; sel.appendChild(empty); return;\n' +
+    '        }\n' +
+    '        for (var i = 0; i < opts.length; i++) {\n' +
+    '          var m = opts[i] || {};\n' +
+    '          var option = document.createElement(\'option\');\n' +
+    '          option.value = String(m.id == null ? \'\' : m.id);\n' +
+    '          option.textContent = String(m.name || m.id || \'\');\n' +
+    '          if (option.value === String(selected == null ? \'\' : selected)) option.selected = true;\n' +
+    '          sel.appendChild(option);\n' +
+    '        }\n' +
+    '        if (!sel.value && opts[0]) sel.value = String(opts[0].id == null ? \'\' : opts[0].id);\n' +
+    '      }\n' +
       fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '        .then(function (r) { return r.json(); })\n' +
     '        .then(function (d) {\n' +
