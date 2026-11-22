@@ -804,5 +804,32 @@ console.log('\n--- Shared UI CSP Inline Style Contract ---');
     sharedSource.includes('@media (max-width:767px){'));
 }
 
+
+console.log('\n--- Task Instructions UI CSP Inline Style Contract ---');
+{
+  const taskUi = readFileSync(new URL('../worker/src/admin/task-instructions-ui.js', import.meta.url), 'utf8');
+  const taskCss = taskUi.match(/export const TASK_INSTRUCTIONS_CSS = `([\s\S]*?)`;/);
+  check('Task Instructions UI has no inline style attributes', !/\bstyle\s*=/i.test(taskUi));
+  check('Task Instructions UI does not assign element.style properties', !/\.style(?:\.|\s*\[)/.test(taskUi));
+  check('Task Instructions form description keeps its full-row layout via CSS class',
+    taskUi.includes('class="task-form-description"') &&
+    !!taskCss && taskCss[1].includes('.task-form-description{grid-column:1/-1}'));
+  check('Task Instructions textareas preserve compact and preview heights via CSS classes',
+    taskUi.includes('class="task-textarea-compact"') &&
+    taskUi.includes('class="task-textarea-preview"') &&
+    !!taskCss &&
+    taskCss[1].includes('.task-field textarea.task-textarea-compact{min-height:70px}') &&
+    taskCss[1].includes('.task-field textarea.task-textarea-preview{min-height:100px}'));
+  check('Task Instructions preview headings and row actions use reusable CSS classes',
+    taskUi.includes('class="card-title task-preview-output-title"') &&
+    taskUi.includes("button.classList.add('task-row-action')") &&
+    !!taskCss &&
+    taskCss[1].includes('.task-preview-output-title{margin-top:12px}') &&
+    taskCss[1].includes('.task-row-action{margin-right:5px}'));
+  check('Task Instructions mobile layout rules remain in place',
+    !!taskCss && taskCss[1].includes('@media(max-width:760px)') &&
+    taskCss[1].includes('.task-form-grid,.task-preview-grid{grid-template-columns:1fr}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
