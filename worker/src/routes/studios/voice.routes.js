@@ -1,14 +1,4 @@
 import { generateVoiceAudio, transcribeAudio, generateVoiceSrt, translateVoiceSrt } from '../../studios/voice/index.js';
-import { transcribeAudio as transcribeSubtitleAudio } from '../../studios/subtitle.js';
-
-const SUBTITLE_TRANSCRIPTION_MAX_BYTES = 5 * 1024 * 1024;
-
-export function base64DecodedByteLength(value) {
-  if (typeof value !== 'string') return -1;
-  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
-  return Math.max(0, (value.length / 4) * 3 - padding);
-}
-
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
   const { bearer, verifyTokenSafe, json, resolvePlan, requireFeature, friendlyError, ndjsonResponse } = deps;
@@ -37,7 +27,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         }
       }
 
-      // ===== Voice Studio — Tab 2: Audio → Text (Transcribe) =====
+      // ===== Voice Studio — Audio → Text (Transcribe) =====
       if (path === '/api/studio/voice/transcribe' && request.method === 'POST') {
         const token = bearer(request);
         if (!token) return json({ error: 'unauthorized' }, 401, cors);
@@ -47,25 +37,18 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
         if (!body || typeof body.audioBase64 !== 'string' || !body.audioBase64.trim()) {
           return json({ error: 'missing_audio' }, 400, cors);
         }
-        const studioId = body.studio == null ? 'voice' : String(body.studio);
-        if (studioId !== 'voice' && studioId !== 'subtitle') {
-          return json({ error: 'invalid_studio' }, 400, cors);
-        }
-        if (studioId === 'subtitle' && base64DecodedByteLength(body.audioBase64) > SUBTITLE_TRANSCRIPTION_MAX_BYTES) {
-          return json({ error: 'audio_too_large', max_bytes: SUBTITLE_TRANSCRIPTION_MAX_BYTES }, 413, cors);
-        }
         const plan = await resolvePlan(env, payload);
         const reqType = String(body.type || '1');
-        { const denied = await requireFeature(env, studioId === 'subtitle' ? 'subtitle.transcribe' : 'voice.transcribe', plan, reqType, cors); if (denied) return denied; }
+        const denied = await requireFeature(env, 'voice.transcribe', plan, reqType, cors);
+        if (denied) return denied;
         try {
-          const apiKey = body.apiKey;
-          const transcribe = studioId === 'subtitle'
-            ? (deps.transcribeSubtitleAudio || transcribeSubtitleAudio)
-            : transcribeAudio;
-          const out = await transcribe(env, { model: body.model,
+          const out = await transcribeAudio(env, {
+            model: body.model,
             audioBase64: body.audioBase64,
             mimeType: body.mimeType || 'audio/mpeg',
-            type: reqType, plan, apiKey,
+            type: reqType,
+            plan,
+            apiKey: body.apiKey,
           });
           return json({ ok: true, ...out }, 200, cors);
         } catch (e) {
