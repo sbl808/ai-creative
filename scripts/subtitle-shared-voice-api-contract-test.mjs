@@ -195,7 +195,7 @@ function makeDeps(featureResponse = null) {
   ].join('\n');
   const duplicateSrt = validSrt.replace(
     '2\n00:00:02,000',
-    '1\\n00:00:02,000',
+    '1\n00:00:02,000',
   );
   assert.equal(sandbox.subtitleValidateSrt(validSrt).valid, true);
   const duplicateResult = sandbox.subtitleValidateSrt(duplicateSrt);
