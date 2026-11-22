@@ -51,7 +51,8 @@ export async function handleSubtitleStudioRoutes(request, env, cors, deps) {
     if (denied) return denied;
 
     try {
-      const out = await transcribeAudio(env, {
+      const transcribe = deps.transcribeSubtitleAudio || transcribeAudio;
+      const out = await transcribe(env, {
         model: body.model,
         audioBase64: body.audioBase64,
         mimeType: body.mimeType || 'audio/mpeg',
