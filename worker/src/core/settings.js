@@ -28,9 +28,25 @@ export async function getLegacyUserPreferences(env, userId) {
   const result = await env.DB.prepare(
     'SELECT pref_key, pref_value FROM user_preferences WHERE user_id = ?'
   ).bind(userId).all();
-  const preferences = {};
+
+  // Match the IndexedDB repository's existing validation contract so one
+  // malformed legacy row cannot block all otherwise valid preferences.
+  const preferences = Object.create(null);
+  let skippedPreferences = 0;
   (result.results || []).forEach((row) => {
-    preferences[row.pref_key] = row.pref_value;
+    const key = row && row.pref_key;
+    const value = row && row.pref_value;
+    if (
+      typeof key !== 'string' ||
+      !/^[a-zA-Z0-9_]{1,32}$/.test(key) ||
+      typeof value !== 'string' ||
+      value.length > 500
+    ) {
+      skippedPreferences += 1;
+      return;
+    }
+    preferences[key] = value;
   });
-  return preferences;
+
+  return { preferences, skippedPreferences };
 }

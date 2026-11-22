@@ -32,7 +32,7 @@ export async function handleUserRoutes(request, env, cors, deps) {
     if (!payload) return json({ error: 'invalid_token' }, 401, cors);
     if (!env.DB) return json({ error: 'legacy_settings_unavailable' }, 503, cors);
     try {
-      const [settings, preferences, profileRow] = await Promise.all([
+      const [settings, preferenceResult, profileRow] = await Promise.all([
         getLegacyUserSettings(env, payload.sub),
         getLegacyUserPreferences(env, payload.sub),
         env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(payload.sub).first()
@@ -40,7 +40,8 @@ export async function handleUserRoutes(request, env, cors, deps) {
       return json({
         profile: { name: profileRow && profileRow.name ? String(profileRow.name).slice(0, 60) : '' },
         settings,
-        preferences
+        preferences: preferenceResult.preferences,
+        migration: { skippedPreferences: preferenceResult.skippedPreferences }
       }, 200, cors);
     } catch (_) {
       return json({ error: 'legacy_settings_unavailable' }, 503, cors);

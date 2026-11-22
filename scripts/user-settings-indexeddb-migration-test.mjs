@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
+import { userSettingsRepositoryScript } from '../worker/src/frontend/storage/repositories/user-settings.js';
 
 const sqlCalls = [];
 const env = {
@@ -26,7 +27,12 @@ const env = {
         },
         async all() {
           if (sql.includes('FROM user_preferences')) {
-            return { results: [{ pref_key: 'compact_mode', pref_value: 'true' }] };
+            return { results: [
+              { pref_key: 'compact_mode', pref_value: 'true' },
+              { pref_key: 'bad key', pref_value: 'ignored' },
+              { pref_key: 'null_value', pref_value: null },
+              { pref_key: 'long_value', pref_value: 'x'.repeat(501) }
+            ] };
           }
           return { results: [] };
         }
@@ -72,6 +78,8 @@ const legacy = await legacyResponse.json();
 assert.deepEqual(legacy.profile, { name: 'Legacy Profile' });
 assert.equal(legacy.settings.default_voice, 'Kore');
 assert.deepEqual(legacy.preferences, { compact_mode: 'true' });
+assert.deepEqual(legacy.migration, { skippedPreferences: 3 });
+assert.equal(Object.keys(legacy.preferences).length, 1, 'invalid legacy preferences must not be returned');
 assert.ok(sqlCalls.length >= 3);
 assert.ok(sqlCalls.every((sql) => /^\s*SELECT\b/i.test(sql)), 'legacy migration endpoint must be read-only');
 
@@ -87,6 +95,19 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
   assert.equal(response, null, path + ' must no longer be a D1 write endpoint');
 }
 
+const repositorySource = userSettingsRepositoryScript();
+assert.match(repositorySource, /migrateLegacy: function \(patch\)/,
+  'repository must expose a dedicated legacy migration operation');
+assert.match(repositorySource, /legacySettingsMigration:\s*\{\s*status:\s*'complete'/,
+  'migration completion marker must be persisted with the settings record');
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentProfile, clean\.profile\)/);
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentSettings, clean\.settings\)/);
+assert.match(repositorySource, /__aicsFillMissingSettings\(currentPreferences, clean\.preferences\)/);
+assert.match(repositorySource, /!Object\.prototype\.hasOwnProperty\.call\(target, key\)/,
+  'existing values must not be overwritten during legacy migration');
+assert.match(repositorySource, /tx\.oncomplete = function \(\) \{ if \(!settled\) \{ settled = true; resolve\(result\); \} \}/,
+  'migration promise must resolve only after the IndexedDB transaction completes');
+
 const settingsSource = await readFile(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
 const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
 const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
@@ -96,6 +117,23 @@ assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
+assert.match(sharedSource, /legacySettingsMigration/);
+assert.match(sharedSource, /legacy\.migration && legacy\.migration\.skippedPreferences/,
+  'client must read only the server-reported skipped preference count');
+assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast/,
+  'client must notify only when invalid legacy preferences were skipped');
+assert.match(sharedSource, /ကျန်ဆက်တင်များကို ပြန်လည်ရယူထားသည်/,
+  'migration notice must explain that valid settings were still restored');
+assert.match(sharedSource, /AICS_USER_SETTINGS\.migrateLegacy/);
+assert.match(sharedSource, /legacy_settings_persistence_unverified/);
+assert.match(sharedSource, /existingRecord\) return existingRecord/,
+  'an existing IndexedDB record must remain usable if the legacy endpoint is temporarily unavailable');
+assert.ok(sharedSource.includes(String.raw`cache: \'no-store\'`),
+  'legacy settings response must not be cached');
+assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.get\(\)/,
+  'migration flow must read the IndexedDB record back after migration');
+assert.doesNotMatch(sharedSource, /AICS_USER_SETTINGS\.save\(\{ profile: legacyProfile, settings:/,
+  'legacy settings must use the fill-only-missing migration method');
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);

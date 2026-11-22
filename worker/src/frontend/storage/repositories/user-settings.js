@@ -27,6 +27,14 @@ const SCRIPT = String.raw`function __aicsValidateUserSettings(input) {
   }
   return { settings: settings, preferences: cleanPreferences, profile: profile };
 }
+function __aicsFillMissingSettings(target, source) {
+  Object.keys(source || {}).forEach(function (key) {
+    if (!Object.prototype.hasOwnProperty.call(target, key) || target[key] === undefined) {
+      target[key] = source[key];
+    }
+  });
+  return target;
+}
 window.AICS_USER_SETTINGS = {
   get: function () {
     var ownerId;
@@ -65,6 +73,48 @@ window.AICS_USER_SETTINGS = {
             profile: Object.assign({}, current && current.profile || {}, clean.profile),
             settings: Object.assign({}, current && current.settings || {}, clean.settings),
             preferences: Object.assign({}, current && current.preferences || {}, clean.preferences),
+            updatedAt: new Date().toISOString()
+          };
+          if (current && current.legacySettingsMigration) result.legacySettingsMigration = current.legacySettingsMigration;
+          try { store.put(result); } catch (error) { fail(__aicsStorageError('indexeddb_write_failed', error)); }
+        };
+        req.onerror = function () { fail(__aicsStorageError('indexeddb_read_failed', req.error)); };
+        tx.oncomplete = function () { if (!settled) { settled = true; resolve(result); } };
+        tx.onerror = function () { if (!settled) { settled = true; reject(__aicsStorageError('indexeddb_transaction_failed', tx.error)); } };
+        tx.onabort = function () { if (!settled) { settled = true; reject(__aicsStorageError('indexeddb_transaction_aborted', tx.error)); } };
+      });
+    });
+  },
+  migrateLegacy: function (patch) {
+    var ownerId, clean;
+    try { ownerId = __aicsRequireUserId(); clean = __aicsValidateUserSettings(patch || {}); }
+    catch (error) { return Promise.reject(error); }
+    return __aicsDbOpen().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx;
+        try { tx = db.transaction('user_settings', 'readwrite'); } catch (error) { reject(__aicsStorageError('indexeddb_transaction_failed', error)); return; }
+        var settled = false, result = null, store = tx.objectStore('user_settings');
+        function fail(error) { if (settled) return; settled = true; try { tx.abort(); } catch (e) {} reject(error); }
+        var req;
+        try { req = store.get(ownerId); } catch (error) { fail(__aicsStorageError('indexeddb_read_failed', error)); return; }
+        req.onsuccess = function () {
+          var current = req.result;
+          if (current && String(current.ownerId || '') !== ownerId) { fail(__aicsStorageError('forbidden')); return; }
+          var currentProfile = Object.assign({}, current && current.profile || {});
+          var currentSettings = Object.assign({}, current && current.settings || {});
+          var currentPreferences = Object.assign({}, current && current.preferences || {});
+          __aicsFillMissingSettings(currentProfile, clean.profile);
+          __aicsFillMissingSettings(currentSettings, clean.settings);
+          __aicsFillMissingSettings(currentPreferences, clean.preferences);
+          result = {
+            id: ownerId, ownerId: ownerId,
+            profile: currentProfile,
+            settings: currentSettings,
+            preferences: currentPreferences,
+            legacySettingsMigration: {
+              status: 'complete',
+              completedAt: new Date().toISOString()
+            },
             updatedAt: new Date().toISOString()
           };
           try { store.put(result); } catch (error) { fail(__aicsStorageError('indexeddb_write_failed', error)); }
