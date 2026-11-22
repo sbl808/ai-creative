@@ -1,6 +1,6 @@
-// Phase 5 — AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Usage / Logs)
+// AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Logs)
 // Phase 4 — Studio Control (ON/OFF) ထည့်သည် (Rule 14 — Admin က Code မပြင်ဘဲ ထိန်းချုပ်နိုင်)
-// Phase 5 — Free/Pro Feature ထိန်းချုပ် + Usage Statistics + Admin Logs (Rules 12/15/16/18)
+// Free/Pro Feature ထိန်းချုပ် + Admin Logs (Rules 12/15/16/18)
 // Served at /admin. Admin-only — Server-side တွင် အမြဲ စစ်ဆေးသည် (Rule 13).
 
 import { listCMSPrompts, createCMSPrompt, updateCMSPrompt, deleteCMSPrompt, listBrainEntries, upsertBrainEntry, updateBrainEntry, deleteBrainEntry } from '../cms/repositories/index.js';
