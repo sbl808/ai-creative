@@ -657,7 +657,7 @@ function dispatchAdminCall(source, element) {
   for (var i = 0; i < calls.length; i++) {
     var call = calls[i].trim();
     if (!call) continue;
-    var match = call.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\\s*\\(([\\s\\S]*)\\)$/);
+    var match = call.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s*\(([\s\S]*)\)$/);
     if (!match || !ADMIN_ACTIONS[match[1]]) return false;
     var rawArgs = match[2];
     var args = [];
@@ -666,7 +666,7 @@ function dispatchAdminCall(source, element) {
       var ch = rawArgs.charAt(j);
       if (quote) {
         if (escaped) escaped = false;
-        else if (ch === '\\\\') escaped = true;
+        else if (ch === '\\') escaped = true;
         else if (ch === quote) quote = '';
       } else if (ch === "'" || ch === '"') quote = ch;
       else if (ch === '(') depth++;
@@ -677,9 +677,9 @@ function dispatchAdminCall(source, element) {
         else if (token === 'true') args.push(true);
         else if (token === 'false') args.push(false);
         else if (token === 'null') args.push(null);
-        else if (/^-?\\d+(?:\\.\\d+)?$/.test(token)) args.push(Number(token));
+        else if (/^-?\d+(?:\.\d+)?$/.test(token)) args.push(Number(token));
         else if (token.length >= 2 && (token.charAt(0) === "'" || token.charAt(0) === '"') && token.charAt(token.length - 1) === token.charAt(0)) {
-          args.push(token.slice(1, -1).replace(/\\\\(['"\\\\])/g, '$1'));
+          args.push(token.slice(1, -1).replace(/\\(['"\\])/g, '$1'));
         } else if (token) return false;
         start = j + 1;
       }
