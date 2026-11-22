@@ -615,5 +615,26 @@ console.log('\n--- CMS prompt authorization contracts ---');
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
   check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
+console.log('\n--- Shop Reference Removal Delegation Contract ---');
+{
+  const shopActions = readFileSync(new URL('../worker/src/frontend/studios/shop/actions.js', import.meta.url), 'utf8');
+  const renderStart = shopActions.indexOf('function renderRefPreview');
+  const renderEnd = shopActions.indexOf('// ===================== Type Chips', renderStart);
+  const render = shopActions.slice(renderStart, renderEnd);
+  const removeStart = shopActions.indexOf('function removeShopReference');
+  const removeEnd = shopActions.indexOf('function setTypeChip', removeStart);
+  const remove = shopActions.slice(removeStart, removeEnd);
+  check('Shop reference remove buttons use delegated data attributes, not onclick handlers',
+    render.includes("setAttribute('data-shop-action','removeShopReference')") &&
+    render.includes("setAttribute('data-shop-arg2',String(idx))") &&
+    !render.includes('x.onclick='));
+  check('Shop reference removal converts delegated string indices before validation',
+    remove.includes('var numericIndex=Number(index)') &&
+    remove.includes('Number.isInteger(numericIndex)') &&
+    remove.includes('list.splice(numericIndex,1)'));
+  check('Shop delegated dispatcher explicitly allows reference removal',
+    shopActions.includes("'shopMainNav','removeShopReference'"));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);
