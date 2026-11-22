@@ -101,12 +101,19 @@ const SCRIPT = String.raw`(function () {
     });
   }
 
+  function clearSession() {
+    passphrase = '';
+    accountToken = '';
+    accountPromise = null;
+  }
+
   window.AICS_BYOK = {
     hasGemini: hasGemini,
     saveGemini: saveGemini,
     getGemini: getGemini,
     withGeminiKey: withGeminiKey,
-    removeGemini: removeGemini
+    removeGemini: removeGemini,
+    clearSession: clearSession
   };
 })();`;
 
