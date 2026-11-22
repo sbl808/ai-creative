@@ -192,9 +192,9 @@ function makeDeps(featureResponse = null) {
     '2',
     '00:00:02,000 --> 00:00:03,000',
     'ဒုတိယစာကြောင်း',
-  ].join('\\n');
+  ].join('\n');
   const duplicateSrt = validSrt.replace(
-    '2\\n00:00:02,000',
+    '2\n00:00:02,000',
     '1\\n00:00:02,000',
   );
   assert.equal(sandbox.subtitleValidateSrt(validSrt).valid, true);
