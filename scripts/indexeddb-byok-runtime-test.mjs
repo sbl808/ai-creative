@@ -21,8 +21,11 @@ assert.match(settings, /AICS_BYOK\.removeGemini/);
 assert.doesNotMatch(settings, /\/api\/user\/apikey/);
 assert.match(shared, /AICS_BYOK\.saveGemini/);
 assert.match(shared, /AICS_BYOK\.clearSession\(\)/);
+// shared.js builds browser JavaScript inside a quoted string, so normalize
+// escaped single quotes before comparing the logout operation order.
+const normalizedShared = shared.replace(/\\'/g, "'");
 assert.ok(
-  shared.indexOf('AICS_BYOK.clearSession()') < shared.indexOf("localStorage.removeItem('aics_token')"),
+  normalizedShared.indexOf('AICS_BYOK.clearSession()') < normalizedShared.indexOf("localStorage.removeItem('aics_token')"),
   'logout must clear the in-memory BYOK session before removing the auth token'
 );
 assert.doesNotMatch(shared, /\/api\/user\/apikey/);
