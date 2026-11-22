@@ -115,7 +115,7 @@ assert.match(sharedSource, /AICS_USER_SETTINGS\.migrateLegacy/);
 assert.match(sharedSource, /legacy_settings_persistence_unverified/);
 assert.match(sharedSource, /existingRecord\) return existingRecord/,
   'an existing IndexedDB record must remain usable if the legacy endpoint is temporarily unavailable');
-assert.ok(sharedSource.includes("cache: \\'no-store\\'"),
+assert.ok(sharedSource.includes(String.raw`cache: \'no-store\'`),
   'legacy settings response must not be cached');
 assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.get\(\)/,
   'migration flow must read the IndexedDB record back after migration');
