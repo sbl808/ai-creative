@@ -25,9 +25,7 @@ const VOICE_STEPS = [
 ];
 // Mode chips (စာမျက်နှာတစ်ခုတည်း)
 const VOICE_MODES = [
-  {id:'text-to-voice',icon:'📝',label:'စာ → အသံ'},
-  {id:'media-to-text',icon:'🎧',label:'အသံ → စာ'},
-  {id:'translate',icon:'🌐',label:'ဘာသာပြန်',pro:true}
+  {id:'text-to-voice',icon:'📝',label:'စာ → အသံ'}
 ];
 function esc(s) {
   const value = s == null ? '' : String(s);
