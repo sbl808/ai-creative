@@ -8,7 +8,7 @@ function buildShopTranslationPrompt(srtText, direction) {
     cnToMy: 'အောက်ပါ SRT ထဲက Text များသည် တရုတ်ဘာသာ ဖြစ်ပါသည်။ Text line တစ်ကြောင်းစီအောက်မှာ ' +
       'ယင်းစာကြောင်း၏ မြန်မာဘာသာပြန် line တစ်ကြောင်းကို ထပ်ထည့်ပါ။ TEXT LINE WRAPPING RULE: ' +
       'ဒီ မြန်မာဘာသာပြန် Line ကို စာလုံးရေ ၁၅ လုံးထက် မကျော်စေရပါ။ ၁၅ လုံးကျော်ရင် Number/Timestamp ' +
-      'အသစ် မဖန်တီးဘဲ Subtitle block တူညီတဲ့အတွင်းမှာပဲ ဘာသာပြန် line ကို line အသစ် ထပ်ခွဲပြီး ရေးပါ။',
+      'အသစ် ထပ်မဖန်တီးဘဲ Subtitle block တူညီတဲ့ အတွင်းမှာပဲ ဘာသာပြန် line ကို line အသစ် ထပ်ခွဲပြီး ရေးပါ။',
   });
 }
 export function createShopTranslationAdapter(engine) {
