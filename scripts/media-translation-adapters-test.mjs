@@ -3,6 +3,7 @@ import { TRANSLATION_CONTRACT_VERSION } from '../worker/src/media-production/con
 import { createTranslationStudioAdapter } from '../worker/src/media-adapters/translation/index.js';
 import { createContentTranslationAdapter } from '../worker/src/media-adapters/content/translation.adapter.js';
 import { createVoiceTranslationAdapter } from '../worker/src/media-adapters/voice/translation.adapter.js';
+import { createSubtitleTranslationAdapter } from '../worker/src/media-adapters/subtitle/translation.adapter.js';
 import { createShopTranslationAdapter } from '../worker/src/media-adapters/shop/translation.adapter.js';
 
 const env = { TEST_ENV: true };
@@ -109,6 +110,24 @@ function createEngine() {
   });
   assert.equal(calls[0][1].input.direction, 'CN_TO_MY');
   assert.ok(calls[0][2].prompt.includes('ဒီ မြန်မာဘာသာပြန် Line'));
+}
+
+// Subtitle shares the prompt structure while retaining its own adapter identity and plan.
+{
+  const { calls, engine } = createEngine();
+  const adapter = createSubtitleTranslationAdapter(engine);
+  await adapter.translate(env, {
+    srtText: SOURCE_SRT,
+    apiKey: API_KEY,
+    plan: 'FREE',
+    type: '3',
+  });
+  assert.equal(calls[0][1].studioId, 'subtitle');
+  assert.equal(calls[0][1].input.direction, 'MY_TO_CN');
+  assert.equal(calls[0][1].input.type, '3');
+  assert.equal(calls[0][2].plan, 'FREE');
+  assert.ok(calls[0][2].prompt.includes('အောက်ပါ SRT ထဲက Text များသည် မြန်မာဘာသာ ဖြစ်ပါသည်'));
+  assert.ok(calls[0][2].prompt.includes('SRT Number'));
 }
 
 // Shop previously called Voice API, so it preserves the same translation prompt,
