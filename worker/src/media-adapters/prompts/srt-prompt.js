@@ -1,6 +1,6 @@
 // Shared SRT prompt instructions used by Subtitle and Shop audio workflows.
 
-const DEFAULT_LINE_RULE =
+export const DEFAULT_LINE_RULE =
   'TEXT LINE RULE (အရေးကြီး): Subtitle Block တစ်ခုစီရဲ့ Text Line ကို ' +
   "'အဓိပ္ပါယ်ပြည့်စုံပြီး အလယ်အလတ် ရှည်လျားမှုရှိသော စကားစု (Phrase)' တစ်ခုအလိုက်သာ ခွဲပါ — " +
   'Character အရေအတွက် ရေတွက်၍ လုံးဝ မခွဲပါနှင့်။\n' +
