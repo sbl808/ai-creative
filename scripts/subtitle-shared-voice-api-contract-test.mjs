@@ -154,6 +154,7 @@ function makeDeps(featureResponse = null) {
     );
     assert.equal(response, null, 'Voice route must not expose ' + endpoint);
   }
+  deps.transcribeSubtitleAudio = async () => ({ text: 'Subtitle transcript' });
   const subtitleTranscribe = await handleSubtitleStudioRoutes(
     makeRequest('/api/studio/subtitle/transcribe', { audioBase64: smallAudio }),
     {}, {}, deps,
