@@ -649,7 +649,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
   const rateEnv = { ...env, AI_GENERATION_RATE_LIMITER: createMockRateLimiter(3) };
   const headers = await withToken();
   const paths = [
-    '/api/studio/voice/transcribe',
+    '/api/studio/subtitle/transcribe',
     '/api/studio/subtitle/srt',
     '/api/studio/subtitle/translate-srt',
   ];
@@ -660,7 +660,7 @@ await check('all Subtitle API endpoints share the same three-request rate-limit 
     }), rateEnv, {});
     statuses.push(r.status);
   }
-  const blocked = await worker.fetch(new Request('https://test.local/api/studio/voice/transcribe', {
+  const blocked = await worker.fetch(new Request('https://test.local/api/studio/subtitle/transcribe', {
     method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: '{}',
   }), rateEnv, {});
   const body = await blocked.json();
@@ -1095,18 +1095,15 @@ await check('Content Studio routes Audio → SRT through the shared Content SRT 
   };
 });
 
-await check('Voice Studio routes Audio → SRT through the shared Voice SRT adapter', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Voice Studio no longer owns Audio → SRT after Subtitle separation', async () => {
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/srt.adapter.js'") &&
-      source.includes('export async function buildVoiceSrtPrompt(env, knownText)') &&
-      source.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')") &&
-      source.includes('return buildVoiceSrtInstruction(lineRule, knownText);') &&
-      source.includes('const instruction = await buildVoiceSrtPrompt(env, knownText);') &&
-      source.includes('return generateVoiceSrtShared(env, {') &&
-      source.includes('prompt: instruction,') &&
-      !source.includes('generateMultimodal'),
-    msg: 'Voice SRT preserves its CMS/knownText instruction and uses the shared adapter',
+    ok: !voice.includes('generateVoiceSrt') &&
+      !voice.includes('buildVoiceSrtPrompt') &&
+      subtitle.includes("from '../media-adapters/subtitle/srt.adapter.js'") &&
+      subtitle.includes('export async function generateSubtitleSrt('),
+    msg: 'Voice no longer owns SRT; Subtitle owns SRT generation through its adapter',
   };
 });
 
@@ -1120,26 +1117,31 @@ await check('Content Studio routes TTS through the shared Content audio adapter'
     msg: 'Content TTS uses the shared adapter while preserving its public function signature',
   };
 });
-await check('Voice Studio routes TTS and transcription through shared Voice adapters', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Voice Studio is TTS-only while Subtitle owns transcription', async () => {
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/audio.adapter.js'") &&
-      source.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
-      source.includes('return transcribeVoiceAudio(env, {') &&
-      source.includes('audioBase64, mimeType, plan, apiKey, model, prompt,') &&
-      !source.includes('generateSpeech(env,'),
-    msg: 'Voice TTS/transcription use shared adapters and retain the CMS prompt',
+    ok: voice.includes("from '../media-adapters/voice/audio.adapter.js'") &&
+      voice.includes('return generateSharedVoiceAudio(env, { text, voiceName, apiKey, model, plan });') &&
+      !voice.includes('transcribeAudio') &&
+      !voice.includes('transcribeVoiceAudio') &&
+      subtitle.includes("from '../media-adapters/subtitle/audio.adapter.js'") &&
+      subtitle.includes('export async function transcribeAudio('),
+    msg: 'Voice exposes TTS only; Subtitle handles transcription through its own adapter',
   };
 });
-await check('Voice and Content SRT workflows remain Studio-owned', async () => {
+await check('Content and Subtitle retain SRT ownership while Voice stays TTS-only', async () => {
   const content = await readFile(new URL('../worker/src/studios/content.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
   return {
     ok: content.includes('export async function generateContentSrt(') &&
       content.includes('export async function translateContentSrt(') &&
-      voice.includes('export async function generateVoiceSrt(') &&
-      voice.includes('export async function translateVoiceSrt('),
-    msg: 'Existing SRT generation and translation exports remain present',
+      subtitle.includes('export async function generateSubtitleSrt(') &&
+      subtitle.includes('export async function translateSubtitleSrt(') &&
+      !voice.includes('generateVoiceSrt') &&
+      !voice.includes('translateVoiceSrt'),
+    msg: 'Content and Subtitle own their SRT workflows; Voice has no SRT exports',
   };
 });
 
@@ -1153,13 +1155,14 @@ await check('Content Studio routes SRT translation through the shared Content tr
     msg: 'Content SRT translation uses the shared adapter and preserves its public arguments',
   };
 });
-await check('Voice Studio routes SRT translation through the shared Voice translation adapter', async () => {
-  const source = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+await check('Subtitle Studio owns SRT translation after Voice separation', async () => {
+  const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+  const subtitle = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
   return {
-    ok: source.includes("from '../media-adapters/voice/translation.adapter.js'") &&
-      source.includes('return translateVoiceSrtShared(env, { srtText, direction, type, plan, apiKey, model });') &&
-      !source.includes("task: 'voice.transcribe', prompt: instruction"),
-    msg: 'Voice SRT translation uses the shared adapter and preserves plan/type arguments',
+    ok: !voice.includes('translateVoiceSrt') &&
+      subtitle.includes("from '../media-adapters/subtitle/translation.adapter.js'") &&
+      subtitle.includes('export async function translateSubtitleSrt('),
+    msg: 'Subtitle uses its own translation adapter; Voice has no SRT translation export',
   };
 });
 
