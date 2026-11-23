@@ -2,6 +2,7 @@
 // Subtitle workflows are isolated from Voice Studio (TTS only).
 
 import { getCMSData } from '../cms/repositories/index.js';
+import { buildSrtInstruction } from '../media-adapters/prompts/srt-prompt.js';
 import { buildSystemPrompt } from '../cms/prompt-templates/index.js';
 import { generateSubtitleSrtShared } from '../media-adapters/subtitle/srt.adapter.js';
 import { translateSubtitleSrtShared } from '../media-adapters/subtitle/translation.adapter.js';
@@ -49,26 +50,8 @@ const DEFAULT_LINE_RULE =
 // Audio ကို Timestamp ခန့်မှန်းရန်သာ သုံးသည် (ပြန် Transcribe မလုပ်ခြင်းဖြင့် စာလုံးပေါင်း မကွဲစေရန်)။
 // မပေးလျှင် အရင်အတိုင်း Audio ကို Transcribe လုပ်သည် (Shop Studio စသည့် ရှိပြီးသား ခေါ်သူများ မပြောင်း)။
 export function buildSubtitleSrtInstruction(lineRule, knownText) {
-  const text = knownText == null ? '' : String(knownText).trim().slice(0, 20000);
-  if (!text) {
-    return (
-      'အောက်ပါ Audio ကို SRT (SubRip Subtitle) format အတိုင်း Transcribe လုပ်ပါ။ ' +
-      'Audio ရဲ့ speech pacing ကို ကြည့်ပြီး Timestamp ကို အကြမ်းဖျင်း ခန့်မှန်းပါ။\n\n' +
-      lineRule +
-      '\n\nSRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။'
-    );
-  }
-  return (
-    'ပါလာသော Audio သည် အောက်ပါ မူရင်းစာသားကို ဖတ်ထားသော အသံဖြစ်သည်။ ' +
-    'မူရင်းစာသားကိုသာ အမှန်အဖြစ် အသုံးပြုပါ — စာလုံး၊ စာလုံးပေါင်း၊ ပုဒ်ဖြတ်ပုဒ်ရပ်ကို ' +
-    'မပြောင်း၊ မထည့်၊ မဖျက်ပါနှင့်။ Audio ကို Timestamp ခန့်မှန်းရန်အတွက်သာ (speech pacing ကြည့်၍) သုံးပါ။ ' +
-    'ရလဒ်ကို SRT (SubRip Subtitle) format ဖြင့် ပေးပါ။\n\n' +
-    lineRule +
-    '\n\nမူရင်းစာသား:\n"""\n' + text + '\n"""' +
-    '\n\nSRT format text ကိုသာ ပြန်ပေးပါ၊ ရှင်းလင်းချက် မထည့်ပါနှင့်။'
-  );
+  return buildSrtInstruction(lineRule, knownText);
 }
-
 export async function buildSubtitleSrtPrompt(env, knownText) {
   let lineRule = '';
   try {
