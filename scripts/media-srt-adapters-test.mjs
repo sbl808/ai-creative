@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { SRT_CONTRACT_VERSION } from '../worker/src/media-production/contracts/srt.contract.js';
 import { createContentSrtAdapter } from '../worker/src/media-adapters/content/srt.adapter.js';
 import { createVoiceSrtAdapter } from '../worker/src/media-adapters/voice/srt.adapter.js';
 import { createShopSrtAdapter } from '../worker/src/media-adapters/shop/srt.adapter.js';
 import { createSrtStudioAdapter } from '../worker/src/media-adapters/srt/index.js';
-import { buildSrtInstruction } from '../worker/src/media-adapters/prompts/srt-prompt.js';
+import { DEFAULT_LINE_RULE, buildSrtInstruction } from '../worker/src/media-adapters/prompts/srt-prompt.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-srt-test-key';
@@ -133,6 +134,18 @@ for (const studioId of ['story', 'short', 'image']) {
     () => adapter.generate(env, { audioBase64: AUDIO, prompt: PROMPT }),
     (error) => error.code === 'missing_api_key',
   );
+}
+
+
+// Subtitle and Shop share one unchanged default phrase rule.
+{
+  const subtitleSource = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
+  const shopPromptSource = await readFile(new URL('../worker/src/studios/shared/voice-srt-prompt.js', import.meta.url), 'utf8');
+  assert.ok(DEFAULT_LINE_RULE.includes('Phrase'));
+  assert.ok(subtitleSource.includes("import { DEFAULT_LINE_RULE, buildSrtInstruction }"));
+  assert.ok(shopPromptSource.includes("import { DEFAULT_LINE_RULE, buildSrtInstruction }"));
+  assert.equal(subtitleSource.includes('const DEFAULT_LINE_RULE ='), false);
+  assert.equal(shopPromptSource.includes('const DEFAULT_LINE_RULE ='), false);
 }
 
 console.log('Shared SRT Studio Adapters: PASS');
