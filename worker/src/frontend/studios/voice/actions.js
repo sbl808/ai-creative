@@ -1,6 +1,5 @@
 // AI Creative Studio — Voice Studio / actions.js (V2.1 Unified Workflow)
-// စာမျက်နှာတစ်ခုတည်း: Mode chips (စာ→အသံ | အသံ→စာ | ဘာသာပြန်) + Stepper ၄ ဆင့် (Input → Format → Generate → Result Hub)
-// SRT / ဘာသာပြန် ဆက်လုပ်ခြင်းကို Result Hub (shared-ui.js aicsResultHub) ထဲတွင်သာ ပြသည် — Stepper မရှည်တော့ပါ။
+// Voice Studio သည် Text → Voice (TTS) workflow တစ်ခုတည်းကို ကိုင်တွယ်သည်။
 // NOTE: String.raw အတွင်း backtick နှင့် dollar-brace မသုံးရ (Browser script string ဖြစ်၍)။
 export const ACTIONS_SCRIPT = String.raw`
 function vEl(id){return document.getElementById(id);}
@@ -22,12 +21,7 @@ function vLockBadge(){return USER_PLAN==='PRO'?'':' <span class="lock">🔒 Pro<
 
 // ===== Body / Stepper / Chips =====
 function vSetBody(html){
-  // aiModelSel2 ကို DOM ပြန်ဆွဲခြင်းကြောင့် မပျောက်စေရန် Store သို့ အရင်ပြန်ထည့်ပြီးမှ Slot ထဲသို့ ရွှေ့သည်
-  var store=vEl('voiceModel2Store'),g=vEl('voiceModel2Group');
-  if(store&&g&&g.parentNode!==store)store.appendChild(g);
   vEl('voiceWorkflowBody').innerHTML=html;
-  var slot=vEl('voiceModel2Slot');
-  if(slot&&g)slot.appendChild(g);
   vFill();
 }
 function vSetStep(n){VOICE_STATE.voiceStep=n;renderStepper(VOICE_STEPS,n);var status=vEl('voiceStatus'),step=VOICE_STEPS.filter(function(x){return x.n===n;})[0];if(status&&step)status.textContent='အဆင့် '+n+' / '+VOICE_STEPS.length+' — '+step.label;}
@@ -35,7 +29,7 @@ function renderStepper(items,current){var c=vEl('voiceStepper'),h='';if(!c)retur
 function vClearValidation(el){if(!el)return;el.removeAttribute('aria-invalid');var id=el.getAttribute('aria-describedby');if(id){var note=vEl(id);if(note&&note.classList.contains('field-error'))note.remove();el.removeAttribute('aria-describedby');}}
 function vShowValidation(id,message){var el=vEl(id);if(!el)return;vClearValidation(el);el.setAttribute('aria-invalid','true');var note=document.createElement('p');note.className='field-error';note.id=id+'Error';note.setAttribute('role','alert');note.textContent=message;el.insertAdjacentElement('afterend',note);el.setAttribute('aria-describedby',note.id);el.focus();var status=vEl('voiceStatus');if(status)status.textContent=message;}
 function renderChips(){}
-// TTS = aiModelSel (Action bar) · အသံ→စာ / ဘာသာပြန် = aiModelSel2 (Format screen ထဲ) — တစ်ကြိမ်တွင် တစ်ခုသာ ပြသည်
+// Voice Studio တွင် TTS Model တစ်ခုတည်းကိုသာ ပြသည်။
 function vSyncModelBar(){
   var m=document.querySelector('.aics-actions-model');
   if(m)m.style.display=(VOICE_STATE.voiceMode==='text-to-voice')?'':'none';
@@ -138,7 +132,7 @@ function vRunTts(){
   }).catch(function(e){if(rid===VOICE_REQUEST_ID){hideLoading();vFail('tts',e);}});
 }
 // Error → သက်ဆိုင်ရာ ယခင် Screen သို့ Auto Back (Input / ရလဒ်များ မပျောက်စေရ)
-function vFail(){
+function vFail(kind,e){
   var raw=(e&&e.message)||'',code=(raw.split('|')[0]||'').trim();
   var msg=friendlyError({error:code||'tts_error',detail:raw.split('|').slice(1).join('|')},'အသံဖန်တီးရာတွင် အခက်အခဲရှိနေပါသည်။ ခဏအကြာတွင် ထပ်မံကြိုးစားပါ။');
   VOICE_STATE.errorState=msg;toast(msg,'error');vRenderFormat();VOICE_STATE.errorState=null;
@@ -216,8 +210,8 @@ window.studioCollectDraft=studioCollectDraft;
 function studioRestoreDraft(){/* Draft is restored by Voice Studio after its DOM is ready. */}
 window.studioRestoreDraft=studioRestoreDraft;
 
-function vResultAvailable(){return k==='audio'&&!!LAST_AUDIO.base64;}
-function vHandleDelegatedAction(){
+function vResultAvailable(k){return k==='audio'&&!!LAST_AUDIO.base64;}
+function vHandleDelegatedAction(event){
   var target=event.target;
   if(!target||!target.closest)return;
   var action=target.closest('[data-voice-action]');
@@ -233,7 +227,7 @@ function vHandleDelegatedInput(event){
   if(action==='grow'||action==='grow-clear')autoGrow(target);
   if(action==='grow-clear')vClearValidation(target);
 }
-function vHandleDelegatedChange(){
+function vHandleDelegatedChange(event){
   var target=event.target;
   if(!target||!target.matches)return;
   if(target.getAttribute('data-voice-change')==='clear-validation')vClearValidation(target);
