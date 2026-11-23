@@ -2,6 +2,7 @@ import { generateVoiceAudio } from '../../studios/voice/index.js';
 
 export async function handleVoiceStudioRoutes(request, env, cors, deps) {
   const path = new URL(request.url).pathname;
+  const generateVoice = deps.generateVoiceAudio || generateVoiceAudio;
   const {
     bearer,
     verifyTokenSafe,
@@ -28,7 +29,7 @@ export async function handleVoiceStudioRoutes(request, env, cors, deps) {
     if (denied) return denied;
 
     try {
-      const out = await generateVoiceAudio(env, {
+      const out = await generateVoice(env, {
         model: body.model,
         text: body.text,
         voiceName: body.voiceName || 'Kore',
