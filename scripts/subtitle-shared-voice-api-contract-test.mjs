@@ -190,7 +190,11 @@ assert.match(subtitleRoutes, /subtitle\.transcribe/);
 assert.match(subtitleRoutes, /SUBTITLE_SRT_MAX_AUDIO_BYTES = 5 \* 1024 \* 1024/);
 assert.match(subtitleBrain, /const CMS_STUDIO = 'SUBTITLE'/);
 assert.match(subtitleBrain, /Audio ကို Text အဖြစ် တိကျစွာ Transcribe လုပ်ပါ/);
-assert.doesNotMatch(voiceRoutes, /transcribeSubtitleAudio|subtitle\.transcribe|studioId/);
+assert.match(voiceRoutes, /\/api\/studio\/voice\/tts/);
+assert.doesNotMatch(voiceRoutes, /\/api\/studio\/voice\/(?:transcribe|srt|translate-srt)/);
+assert.doesNotMatch(voiceActions, /\/api\/studio\/voice\/(?:transcribe|srt|translate-srt)/);
+assert.doesNotMatch(voiceActions, /media-to-text|translationDirection|srtEditor/);
+assert.doesNotMatch(voiceBrain, /transcribeAudio|generateVoiceSrt|translateVoiceSrt/);
 assert.doesNotMatch(voiceRoutes, /trackUsageSafe|console\.(?:log|error|warn)|env\.DB/);
 
 console.log('Subtitle API consolidation contract tests: PASS');
