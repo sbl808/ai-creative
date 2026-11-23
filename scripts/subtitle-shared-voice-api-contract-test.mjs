@@ -129,22 +129,37 @@ function makeDeps(featureResponse = null) {
   assert.equal(rejected.state.planCalls, 0);
 }
 
-// Voice transcription remains Voice-only and uses its own feature gate.
+// Voice Studio owns TTS only; transcription/SRT/translation belong to Subtitle Studio.
 {
-  const { deps, state } = makeDeps(new Response(null, { status: 204 }));
+  const { deps, state } = makeDeps();
+  deps.generateVoiceAudio = async (_env, input) => {
+    state.transcriptions.push(input);
+    return { data: 'dGVzdA==', mimeType: 'audio/wav' };
+  };
   const response = await handleVoiceStudioRoutes(
-    makeRequest('/api/studio/voice/transcribe', { audioBase64: smallAudio, type: '1' }),
+    makeRequest('/api/studio/voice/tts', { text: 'မင်္ဂလာပါ', voiceName: 'Kore', type: '1' }),
     {}, {}, deps,
   );
-  assert.equal(response.status, 204);
-  assert.deepEqual(state.features, [{ feature: 'voice.transcribe', plan: 'FREE', type: '1' }]);
-  const oldMixedRoute = await handleSubtitleStudioRoutes(
-    makeRequest('/api/studio/voice/transcribe', { audioBase64: smallAudio, studio: 'subtitle' }),
-    {}, {}, deps,
-  );
-  assert.equal(oldMixedRoute, null);
-}
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.data, 'dGVzdA==');
+  assert.deepEqual(state.features, [{ feature: 'voice.tts', plan: 'FREE', type: '1' }]);
+  assert.equal(state.transcriptions.length, 1);
+  assert.equal(state.transcriptions[0].text, 'မင်္ဂလာပါ');
 
+  for (const endpoint of ['transcribe', 'srt', 'translate-srt']) {
+    const response = await handleVoiceStudioRoutes(
+      makeRequest('/api/studio/voice/' + endpoint, { audioBase64: smallAudio, srtText: '1' }),
+      {}, {}, deps,
+    );
+    assert.equal(response, null, 'Voice route must not expose ' + endpoint);
+  }
+  const subtitleTranscribe = await handleSubtitleStudioRoutes(
+    makeRequest('/api/studio/subtitle/transcribe', { audioBase64: smallAudio }),
+    {}, {}, deps,
+  );
+  assert.equal(subtitleTranscribe.status, 200);
+}
 // SRT cue numbers must be unique; duplicate numbers invalidate the whole document.
 {
   const sandbox = {};
@@ -164,6 +179,8 @@ const actions = await readFile(new URL('../worker/src/frontend/studios/subtitle/
 const subtitleRoutes = await readFile(new URL('../worker/src/routes/studios/subtitle.routes.js', import.meta.url), 'utf8');
 const subtitleBrain = await readFile(new URL('../worker/src/studios/subtitle.js', import.meta.url), 'utf8');
 const voiceRoutes = await readFile(new URL('../worker/src/routes/studios/voice.routes.js', import.meta.url), 'utf8');
+const voiceActions = await readFile(new URL('../worker/src/frontend/studios/voice/actions.js', import.meta.url), 'utf8');
+const voiceBrain = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
 
 assert.match(actions, /\/api\/studio\/subtitle\/transcribe/);
 assert.doesNotMatch(actions, /\/api\/studio\/voice\/transcribe/);
