@@ -4,6 +4,7 @@ import { createContentSrtAdapter } from '../worker/src/media-adapters/content/sr
 import { createVoiceSrtAdapter } from '../worker/src/media-adapters/voice/srt.adapter.js';
 import { createShopSrtAdapter } from '../worker/src/media-adapters/shop/srt.adapter.js';
 import { createSrtStudioAdapter } from '../worker/src/media-adapters/srt/index.js';
+import { buildSrtInstruction } from '../worker/src/media-adapters/prompts/srt-prompt.js';
 
 const env = { TEST_ENV: true };
 const API_KEY = 'browser-byok-srt-test-key';
@@ -97,6 +98,20 @@ function createEngine() {
   assert.deepEqual(result, { srt: SRT });
   assert.equal(calls[0][1].studioId, 'shop');
   assert.equal(calls[0][2].prompt, PROMPT);
+}
+
+// Shared SRT prompt utility preserves the empty-input and known-text instruction formats.
+{
+  const emptyPrompt = buildSrtInstruction(PROMPT, '   ');
+  assert.ok(emptyPrompt.includes('Audio ရဲ့ speech pacing'));
+  assert.ok(emptyPrompt.includes(PROMPT));
+  assert.ok(emptyPrompt.includes('SRT format text ကိုသာ'));
+
+  const knownPrompt = buildSrtInstruction(PROMPT, '  မူရင်းစာသား  ');
+  assert.ok(knownPrompt.includes('မူရင်းစာသား'));
+  assert.ok(knownPrompt.includes('Audio ကို Timestamp ခန့်မှန်းရန်အတွက်သာ'));
+  assert.ok(knownPrompt.includes(PROMPT));
+  assert.equal(knownPrompt.includes('  မူရင်းစာသား  '), false);
 }
 
 // Unverified Studios cannot obtain the shared SRT adapter.
