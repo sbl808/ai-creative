@@ -1057,6 +1057,7 @@ export function renderStudioShell(opts) {
     '      var actionClass = allowedClasses.indexOf(a.cls) !== -1 ? a.cls : "secondary";\n' +
     '      button.type = "button";\n' +
     '      button.className = "aics-act " + actionClass;\n' +
+    '      // Delegated marker: data-aics-shell-action="studio-action"\n' +
     '      button.setAttribute("data-aics-shell-action", "studio-action");\n' +
     '      button.setAttribute("data-action-index", String(i));\n' +
     '      button.textContent = String(a.label).replace(/&#(x[0-9a-f]+|[0-9]+);/gi, function (match, code) {\n' +
