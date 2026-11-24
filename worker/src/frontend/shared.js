@@ -557,24 +557,33 @@ export function sidebarScript() {
     '      var key = sel.id === \'aiModelSel\' ? \'aics_default_model\' : \'aics_default_model_\' + cat;\n' +
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
+    '      function setPlaceholder(label) {\n' +
+    '        sel.textContent = \'\';\n' +
+    '        var option = document.createElement(\'option\');\n' +
+    '        option.value = \'\';\n' +
+    '        option.textContent = label;\n' +
+    '        sel.appendChild(option);\n' +
+    '      }\n' +
     '      function fill(opts, selected) {\n' +
-    '        if (!opts || opts.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
-    '        var html = \'\';\n' +
+    '        sel.textContent = \'\';\n' +
+    '        if (!opts || opts.length === 0) { setPlaceholder(\'(Model မရှိ)\'); return; }\n' +
     '        for (var i = 0; i < opts.length; i++) {\n' +
-    '          var m = opts[i];\n' +
-    '          var isSel = m.id === selected;\n' +
-    '          html += \'<option value="\' + m.id + \'"\' + (isSel ? \' selected\' : \'\') + \'>\' + String(m.name || m.id) + \'</option>\';\n' +
+    '          var m = opts[i] || {};\n' +
+    '          var option = document.createElement(\'option\');\n' +
+    '          option.value = String(m.id == null ? \'\' : m.id);\n' +
+    '          option.textContent = String(m.name || option.value);\n' +
+    '          if (option.value === String(selected == null ? \'\' : selected)) option.selected = true;\n' +
+    '          sel.appendChild(option);\n' +
     '        }\n' +
-    '        sel.innerHTML = html;\n' +
-    '        if (!sel.value) sel.value = opts[0].id;\n' +
+    '        if (!sel.value && opts[0]) sel.value = String(opts[0].id == null ? \'\' : opts[0].id);\n' +
     '      }\n' +
     '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '        .then(function (r) { return r.json(); })\n' +
     '        .then(function (d) {\n' +
-    '          if (!d || d.error || !d.items || d.items.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
+    '          if (!d || d.error || !d.items || d.items.length === 0) { setPlaceholder(\'(Model မရှိ)\'); return; }\n' +
     '          fill(d.items, saved);\n' +
     '        })\n' +
-    '        .catch(function () { sel.innerHTML = \'<option value="">(Default)</option>\'; });\n' +
+    '        .catch(function () { setPlaceholder(\'(Default)\'); });\n' +
     '      sel.addEventListener(\'change\', function () {\n' +
     '        try { localStorage.setItem(key, sel.value); } catch (e) {}\n' +
     '      });\n' +
