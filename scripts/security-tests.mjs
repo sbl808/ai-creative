@@ -321,6 +321,24 @@ console.log('\n--- C) OAuth redirect and state security ---');
     sharedFrontend.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
     /al\.classList\.toggle/.test(sharedFrontend) &&
     !/al\.style\.display\s*=/.test(sharedFrontend));
+  const modelDropdownStart = sharedFrontend.indexOf('function setPlaceholder(label)');
+  const modelDropdownEnd = sharedFrontend.indexOf('})(sels[k]);', modelDropdownStart);
+  const modelDropdownBlock = modelDropdownStart >= 0 && modelDropdownEnd > modelDropdownStart
+    ? sharedFrontend.slice(modelDropdownStart, modelDropdownEnd)
+    : '';
+  check('AI model dropdown renders API values through DOM text nodes',
+    !!modelDropdownBlock &&
+    modelDropdownBlock.includes("document.createElement(\\'option\\')") &&
+    modelDropdownBlock.includes('option.textContent') &&
+    modelDropdownBlock.includes('option.value = String(') &&
+    !modelDropdownBlock.includes('innerHTML') &&
+    !modelDropdownBlock.includes('html +='));
+  check('AI model dropdown preserves empty/error placeholders and saved selection',
+    modelDropdownBlock.includes('setPlaceholder') &&
+    modelDropdownBlock.includes('(Model မရှိ)') &&
+    modelDropdownBlock.includes('(Default)') &&
+    modelDropdownBlock.includes('option.value === String(selected') &&
+    modelDropdownBlock.includes('sel.value = String(opts[0].id'));
   check('OAuth callback requires matching browser-bound state',
     authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
   check('OAuth callback redirects with browser-only profile fragment and without token in URL',
