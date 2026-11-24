@@ -340,6 +340,27 @@ console.log('\n--- C) OAuth redirect and state security ---');
     modelDropdownBlock.includes('option.value === String(selected') &&
     modelDropdownBlock.includes('sel.value = String(opts[0].id'));
 
+  const sessionHistoryStart = sharedFrontend.indexOf('  function renderMessage(message) {');
+  const sessionHistoryEnd = sharedFrontend.indexOf('  function loadPage(append) {', sessionHistoryStart);
+  const sessionHistoryBlock = sessionHistoryStart >= 0 && sessionHistoryEnd > sessionHistoryStart
+    ? sharedFrontend.slice(sessionHistoryStart, sessionHistoryEnd)
+    : '';
+  check('Story session history renders user data through safe DOM text nodes',
+    !!sessionHistoryBlock &&
+    sessionHistoryBlock.includes('document.createElement("button")') &&
+    sessionHistoryBlock.includes('titleNode.textContent = title') &&
+    sessionHistoryBlock.includes('dateNode.textContent = formatDate(session.updatedAt)') &&
+    sessionHistoryBlock.includes('button.setAttribute(\'data-session-id\'') &&
+    sessionHistoryBlock.includes('button.setAttribute(\'data-aics-sidebar-action\', \'open-story-session\')') &&
+    !sessionHistoryBlock.includes('innerHTML') &&
+    !sessionHistoryBlock.includes('insertAdjacentHTML') &&
+    !sessionHistoryBlock.includes('html +='));
+  check('Story session history keeps pagination and safe status messages',
+    sessionHistoryBlock.includes('function renderMessage(message)') &&
+    sessionHistoryBlock.includes('messageNode.textContent = message') &&
+    sharedFrontend.includes('renderItems(result.items || [], append)') &&
+    sharedFrontend.includes('cursor: append ? cursor : null'));
+
   const studioActionsStart = sharedFrontend.indexOf('window.studioSetActions = function (list) {');
   const studioActionsEnd = sharedFrontend.indexOf('window.studioAct = function (i) {', studioActionsStart);
   const studioActionsBlock = studioActionsStart >= 0 && studioActionsEnd > studioActionsStart
