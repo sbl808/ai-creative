@@ -7,6 +7,9 @@ assert.match(runtime, /window\.AICS_BYOK/);
 assert.match(runtime, /window\.AICS_API_KEYS\.save/);
 assert.match(runtime, /window\.AICS_API_KEYS\.decrypt/);
 assert.match(runtime, /window\.AICS_API_KEYS\.remove/);
+assert.match(runtime, /function clearSession\(\)/);
+assert.match(runtime, /passphrase = '';[\s\S]*accountToken = '';[\s\S]*accountPromise = null;/);
+assert.match(runtime, /clearSession: clearSession/);
 assert.match(runtime, /fetch\('\/api\/users\/me'/);
 assert.doesNotMatch(runtime, /localStorage\.setItem|sessionStorage|document\.cookie/);
 
@@ -17,6 +20,14 @@ assert.match(settings, /AICS_BYOK\.withGeminiKey/);
 assert.match(settings, /AICS_BYOK\.removeGemini/);
 assert.doesNotMatch(settings, /\/api\/user\/apikey/);
 assert.match(shared, /AICS_BYOK\.saveGemini/);
+assert.match(shared, /AICS_BYOK\.clearSession\(\)/);
+// shared.js builds browser JavaScript inside a quoted string, so normalize
+// escaped single quotes before comparing the logout operation order.
+const normalizedShared = shared.replace(/\\'/g, "'");
+assert.ok(
+  normalizedShared.indexOf('AICS_BYOK.clearSession()') < normalizedShared.indexOf("localStorage.removeItem('aics_token')"),
+  'logout must clear the in-memory BYOK session before removing the auth token'
+);
 assert.doesNotMatch(shared, /\/api\/user\/apikey/);
 
 console.log('IndexedDB BYOK runtime contract tests passed.');

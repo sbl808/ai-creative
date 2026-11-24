@@ -82,9 +82,13 @@ assert.equal(frontend.includes('/api/studio/voice/srt'), false);
 assert.equal(frontend.includes('/api/studio/voice/translate-srt'), false);
 
 const voice = await readFile(new URL('../worker/src/studios/voice.js', import.meta.url), 'utf8');
+const sharedPrompt = await readFile(new URL('../worker/src/studios/shared/voice-srt-prompt.js', import.meta.url), 'utf8');
 const shopAudio = await readFile(new URL('../worker/src/studios/shop/audio.js', import.meta.url), 'utf8');
-assert.ok(voice.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')"));
-assert.ok(voice.includes('export async function buildVoiceSrtPrompt(env, knownText)'));
+assert.ok(voice.includes('export async function generateVoiceAudio('));
+assert.equal(voice.includes('buildVoiceSrtPrompt'), false);
+assert.ok(sharedPrompt.includes("getCMSData(env, CMS_STUDIO, 'PRO', '3')"));
+assert.ok(sharedPrompt.includes('export async function buildVoiceSrtPrompt(env, knownText)'));
+assert.ok(shopAudio.includes("from '../shared/voice-srt-prompt.js'"));
 assert.ok(shopAudio.includes('buildVoiceSrtPrompt(env, input.knownText)'));
 assert.ok(shopAudio.includes('generateShopSrtShared'));
 assert.ok(shopAudio.includes('translateShopSrtShared'));

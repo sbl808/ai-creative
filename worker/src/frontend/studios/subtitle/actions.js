@@ -118,7 +118,7 @@ function subtitleGenerateSrt() {
   if (file.size > 5 * 1024 * 1024) { subtitleSetStatus('ဖိုင်သည် 5MB ထက် မကျော်ရပါ။', true); return; }
   var button = document.getElementById('subtitleGenerateBtn');
   var known = document.getElementById('subtitleKnownText');
-  var path = outputMode === 'text' ? '/api/studio/voice/transcribe' : '/api/studio/subtitle/srt';
+  var path = outputMode === 'text' ? '/api/studio/subtitle/transcribe' : '/api/studio/subtitle/srt';
   SUBTITLE_STATE.processingState = 'processing';
   if (button) button.disabled = true;
   subtitleSetStatus(outputMode === 'text' ? 'စာသားထုတ်ယူနေပါသည်…' : 'SRT ဖန်တီးနေပါသည်…', false);
@@ -138,7 +138,6 @@ function subtitleGenerateSrt() {
       return;
     }
     subtitleApiPost(path, {
-      studio: 'subtitle',
       audioBase64: audioBase64,
       mimeType: mimeType,
       knownText: known ? known.value : '',

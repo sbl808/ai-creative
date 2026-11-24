@@ -214,7 +214,10 @@ window.AICS_SESSION_RESULTS = {
               return;
             }
 
-            if (items.length < limit + 1) items.push(cursor.value);
+            var value = cursor.value;
+            if (value && String(value.ownerId || '') === String(ownerId) && items.length < limit + 1) {
+              items.push(value);
+            }
             if (items.length >= limit + 1) return;
             cursor.continue();
           };

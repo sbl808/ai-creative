@@ -1,6 +1,6 @@
-// Phase 5 — AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Usage / Logs)
+// AI Creative Studio Admin Panel (Dashboard / CMS / Users / Studios / Features / Logs)
 // Phase 4 — Studio Control (ON/OFF) ထည့်သည် (Rule 14 — Admin က Code မပြင်ဘဲ ထိန်းချုပ်နိုင်)
-// Phase 5 — Free/Pro Feature ထိန်းချုပ် + Usage Statistics + Admin Logs (Rules 12/15/16/18)
+// Free/Pro Feature ထိန်းချုပ် + Admin Logs (Rules 12/15/16/18)
 // Served at /admin. Admin-only — Server-side တွင် အမြဲ စစ်ဆေးသည် (Rule 13).
 
 import { listCMSPrompts, createCMSPrompt, updateCMSPrompt, deleteCMSPrompt, listBrainEntries, upsertBrainEntry, updateBrainEntry, deleteBrainEntry } from '../cms/repositories/index.js';
@@ -339,15 +339,12 @@ export async function adminApi(request, path, env, verifyToken) {
     try {
       const users = await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first();
       const pro = await env.DB.prepare("SELECT COUNT(*) AS c FROM users WHERE plan='PRO'").first();
-      // Phase 13 (Option 2): Creations ကို Browser IndexedDB တွင်သာ သိမ်းသည် — Dashboard တွင် မရေတွက်တော့ပါ
-      const projects = await env.DB.prepare('SELECT COUNT(*) AS c FROM projects').first();
       const recent = await env.DB.prepare('SELECT email, plan, created_at FROM users ORDER BY created_at DESC LIMIT 5').all();
       return json({
         ok: true,
         stats: {
           users: (users && users.c) || 0,
           pro: (pro && pro.c) || 0,
-          projects: (projects && projects.c) || 0,
         },
         recent: (recent && recent.results) || [],
       });
