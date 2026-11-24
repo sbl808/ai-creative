@@ -310,17 +310,17 @@ console.log('\n--- C) OAuth redirect and state security ---');
 
   const authRoute = readFileSync(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
   const sharedFrontend = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
-  const adminLinkTags = [...sharedFrontend.matchAll(/<a\\b[^>]*\\bid="adminLink"[^>]*>/g)].map((match) => match[0]);
+  const adminLinkTags = [...sharedFrontend.matchAll(/<a\b[^>]*\bid="adminLink"[^>]*>/g)].map((match) => match[0]);
   check('Admin links have one class attribute and safe class-based visibility',
     adminLinkTags.length === 2 &&
     adminLinkTags.every((tag) =>
-      (tag.match(/\\bclass\\s*=/g) || []).length === 1 &&
-      /\\bclass="side-btn aics-admin-link"/.test(tag)
+      (tag.match(/\bclass\s*=/g) || []).length === 1 &&
+      /\bclass="side-btn aics-admin-link"/.test(tag)
     ) &&
     sharedFrontend.includes('.aics-app .aics-admin-link{display:none;}') &&
     sharedFrontend.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
-    /al\\.classList\\.toggle/.test(sharedFrontend) &&
-    !/al\\.style\\.display\\s*=/.test(sharedFrontend));
+    /al\.classList\.toggle/.test(sharedFrontend) &&
+    !/al\.style\.display\s*=/.test(sharedFrontend));
   check('OAuth callback requires matching browser-bound state',
     authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
   check('OAuth callback redirects with browser-only profile fragment and without token in URL',
