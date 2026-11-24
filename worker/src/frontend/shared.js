@@ -1047,15 +1047,27 @@ export function renderStudioShell(opts) {
     '  window.studioSetActions = function (list) {\n' +
     '    var c = el("aicsActionsInner"); if (!c) return;\n' +
     '    var model = c.querySelector(".aics-actions-model");\n' +
+    '    var allowedClasses = ["primary", "success", "purple", "secondary", "ghost"];\n' +
     '    var acts = (list || []).filter(function(a){ return a && a.label; });\n' +
-    '    var html = \'\';\n' +
+    '    c.textContent = "";\n' +
+    '    if (model) c.appendChild(model);\n' +
     '    for (var i = 0; i < acts.length; i++) {\n' +
     '      var a = acts[i];\n' +
-    '      html += \'<button class="aics-act \' + (a.cls || "secondary") + \'" data-aics-shell-action="studio-action" data-action-index="\' + i + \'">\' + a.label + \'</button>\';\n' +
+    '      var button = document.createElement("button");\n' +
+    '      var actionClass = allowedClasses.indexOf(a.cls) !== -1 ? a.cls : "secondary";\n' +
+    '      button.type = "button";\n' +
+    '      button.className = "aics-act " + actionClass;\n' +
+    '      button.setAttribute("data-aics-shell-action", "studio-action");\n' +
+    '      button.setAttribute("data-action-index", String(i));\n' +
+    '      button.textContent = String(a.label).replace(/&#(x[0-9a-f]+|[0-9]+);/gi, function (match, code) {\n' +
+    '        var point = code.charAt(0).toLowerCase() === "x" ? parseInt(code.slice(1), 16) : parseInt(code, 10);\n' +
+    '        if (!isFinite(point) || point < 0 || point > 0x10ffff) return match;\n' +
+    '        if (point <= 0xffff) return String.fromCharCode(point);\n' +
+    '        point -= 0x10000;\n' +
+    '        return String.fromCharCode(0xd800 + (point >> 10), 0xdc00 + (point & 0x3ff));\n' +
+    '      });\n' +
+    '      c.appendChild(button);\n' +
     '    }\n' +
-    '    c.innerHTML = \'\';\n' +
-    '    if (model) c.appendChild(model);\n' +
-    '    c.insertAdjacentHTML("beforeend", html);\n' +
     '    window.__studioActions = acts;\n' +
     '  };\n' +
     '  window.studioAct = function (i) {\n' +
