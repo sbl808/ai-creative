@@ -339,6 +339,32 @@ console.log('\n--- C) OAuth redirect and state security ---');
     modelDropdownBlock.includes('(Default)') &&
     modelDropdownBlock.includes('option.value === String(selected') &&
     modelDropdownBlock.includes('sel.value = String(opts[0].id'));
+
+  const studioActionsStart = sharedFrontend.indexOf('window.studioSetActions = function (list) {');
+  const studioActionsEnd = sharedFrontend.indexOf('window.studioAct = function (i) {', studioActionsStart);
+  const studioActionsBlock = studioActionsStart >= 0 && studioActionsEnd > studioActionsStart
+    ? sharedFrontend.slice(studioActionsStart, studioActionsEnd)
+    : '';
+  check('Studio action buttons render labels as text nodes without HTML insertion',
+    !!studioActionsBlock &&
+    studioActionsBlock.includes('document.createElement("button")') &&
+    studioActionsBlock.includes('button.textContent') &&
+    !studioActionsBlock.includes('innerHTML') &&
+    !studioActionsBlock.includes('insertAdjacentHTML') &&
+    !studioActionsBlock.includes('html +='));
+  check('Studio action buttons restrict CSS classes to the existing allowlist',
+    studioActionsBlock.includes('["primary", "success", "purple", "secondary", "ghost"]') &&
+    studioActionsBlock.includes('allowedClasses.indexOf(a.cls) !== -1') &&
+    studioActionsBlock.includes('button.className = "aics-act " + actionClass'));
+  check('Studio action button delegation and action indexes are preserved',
+    studioActionsBlock.includes('data-aics-shell-action", "studio-action"') &&
+    studioActionsBlock.includes('data-action-index", String(i)') &&
+    studioActionsBlock.includes('window.__studioActions = acts') &&
+    sharedFrontend.includes('window.studioAct = function (i)'));
+  check('Studio action labels safely decode existing numeric icon entities',
+    studioActionsBlock.includes('&#(x[0-9a-f]+|[0-9]+);') &&
+    studioActionsBlock.includes('String.fromCharCode(0xd800') &&
+    studioActionsBlock.includes('String.fromCharCode(point)'));
   check('OAuth callback requires matching browser-bound state',
     authRoute.includes('suppliedState === statePayload.state') && authRoute.includes('invalid_oauth_state'));
   check('OAuth callback redirects with browser-only profile fragment and without token in URL',
