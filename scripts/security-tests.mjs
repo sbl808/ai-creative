@@ -351,7 +351,7 @@ console.log('\n--- C) OAuth redirect and state security ---');
     sessionHistoryBlock.includes('titleNode.textContent = title') &&
     sessionHistoryBlock.includes('dateNode.textContent = formatDate(session.updatedAt)') &&
     sessionHistoryBlock.includes('button.setAttribute(\'data-session-id\'') &&
-    sessionHistoryBlock.includes('button.setAttribute(\'data-aics-sidebar-action\', \'open-story-session\')') &&
+    sessionHistoryBlock.includes("button.setAttribute('data-aics-sidebar-action', 'open-story-session')") &&
     !sessionHistoryBlock.includes('innerHTML') &&
     !sessionHistoryBlock.includes('insertAdjacentHTML') &&
     !sessionHistoryBlock.includes('html +='));
