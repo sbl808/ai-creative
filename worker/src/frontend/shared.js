@@ -73,7 +73,7 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn aics-admin-link" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
@@ -110,7 +110,7 @@ function studioPageSidebar(activeId) {
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
     '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
     '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn aics-admin-link" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -161,7 +161,7 @@ function responsiveStyles() {
     '.aics-app .aics-session-more:disabled{opacity:.5;cursor:wait;}\n' +
     '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:12px;border-top:1px solid var(--aics-border);width:100%;box-sizing:border-box;}\n' +
     '.aics-app .side-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;text-align:left;padding:8px 10px;min-height:40px;border-radius:var(--aics-radius-sm);background:transparent;color:var(--aics-text-muted);border:1px solid transparent;font-size:12.5px;cursor:pointer;margin-bottom:3px;text-decoration:none;transition:background .16s,color .16s,border-color .16s;font-family:inherit;}\n' +
-    '.aics-app .side-btn:hover,.aics-app .side-btn.active{background:var(--aics-surface-subtle);border-color:var(--aics-border);color:var(--aics-text);}\n' +
+    '.aics-app .side-btn:hover,.aics-app .side-btn.active{background:var(--aics-surface-subtle);border-color:var(--aics-border);color:var(--aics-text);}\n' +\n    '.aics-app .aics-admin-link{display:none;}\n' +\n    '.aics-app .aics-admin-link.is-visible{display:flex;}\n' +
     '.aics-app .aics-main{flex:1 1 auto;min-width:0;max-width:none;margin:0;padding:20px 24px;box-sizing:border-box;}\n' +
     '.aics-app .main-content{flex:1 1 auto;min-width:0;max-width:none;margin:0;padding:20px 24px;box-sizing:border-box;}\n' +
     '.aics-app .backdrop{display:none;position:fixed;inset:0;background:rgba(16,24,40,.38);z-index:298;backdrop-filter:blur(2px);}\n' +
@@ -519,7 +519,7 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.style.display = d.is_admin ? \'\' : \'none\';\n' +
+    '      if (al) al.classList.toggle(\'is-visible\', !!d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
