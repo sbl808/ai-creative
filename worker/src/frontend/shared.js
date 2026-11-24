@@ -284,6 +284,7 @@ function sidebarSessionHistoryScript() {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'aics-session-item';
+      // Delegated event contract: data-aics-sidebar-action="open-story-session"
       button.setAttribute('data-session-id', String(session.id == null ? '' : session.id));
       button.setAttribute('data-aics-sidebar-action', 'open-story-session');
       button.title = title;
