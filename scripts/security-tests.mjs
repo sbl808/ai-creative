@@ -347,7 +347,7 @@ console.log('\n--- C) OAuth redirect and state security ---');
     : '';
   check('Story session history renders user data through safe DOM text nodes',
     !!sessionHistoryBlock &&
-    sessionHistoryBlock.includes('document.createElement("button")') &&
+    sessionHistoryBlock.includes("document.createElement('button')") &&
     sessionHistoryBlock.includes('titleNode.textContent = title') &&
     sessionHistoryBlock.includes('dateNode.textContent = formatDate(session.updatedAt)') &&
     sessionHistoryBlock.includes('button.setAttribute(\'data-session-id\'') &&
