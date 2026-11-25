@@ -118,6 +118,20 @@ assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.match(sharedSource, /legacySettingsMigration/);
+assert.match(sharedSource, /function isRecord\(value\)/,
+  'legacy response fields must be validated as non-array objects');
+assert.match(sharedSource, /typeof legacy\.profile\.name !== \'string\'/,
+  'legacy profile name must have the expected string type');
+assert.match(sharedSource, /Number\.isSafeInteger\(legacy\.migration\.skippedPreferences\)/,
+  'legacy skipped preference count must be a non-negative safe integer');
+assert.match(sharedSource, /legacy_settings_invalid_response/,
+  'invalid legacy response must fail before IndexedDB migration');
+assert.doesNotMatch(sharedSource, /profile: legacy\.profile \|\| \{\}/,
+  'invalid or missing profile must not be silently replaced with an empty object');
+assert.doesNotMatch(sharedSource, /settings: legacy\.settings \|\| \{\}/,
+  'invalid or missing settings must not be silently replaced with an empty object');
+assert.doesNotMatch(sharedSource, /preferences: legacy\.preferences \|\| \{\}/,
+  'invalid or missing preferences must not be silently replaced with an empty object');
 assert.match(sharedSource, /legacy\.migration && legacy\.migration\.skippedPreferences/,
   'client must read only the server-reported skipped preference count');
 assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast/,
