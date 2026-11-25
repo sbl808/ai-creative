@@ -11,6 +11,18 @@ import { AICS_RESULT_BOX_CSS, AICS_RESULT_BOX_SCRIPT, AICS_STREAM_SCRIPT } from 
 import { AICS_DESIGN_SYSTEM_CSS, AICS_STUDIO_UI_CSS } from './design-system.js';
 import { clientStorageScript } from './storage/client-storage.js';
 
+export function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+  });
+}
+
+function safeScriptJson(value) {
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, function (char) {
+    return ({ '<': '\\u003c', '>': '\\u003e', '&': '\\u0026', '\u2028': '\\u2028', '\u2029': '\\u2029' })[char];
+  });
+}
+
 // Dependency-free Lucide-compatible outline SVGs for shared navigation.
 const SHELL_ICONS = {
   home: '<path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/>',
@@ -43,8 +55,8 @@ function studioLinks(activeId) {
     .map(function (s) {
       const act = s.id === activeId ? ' active' : '';
       return (
-        '<a class="nav-item' + act + '" href="' + s.route + '" data-studio="' + s.id + '">' +
-        '<span class="nav-icon-circle">' + shellIcon(STUDIO_SHELL_ICONS[s.id] || 'sparkles') + '</span><span class="nav-text">' + s.nameMy + '</span></a>'
+        '<a class="nav-item' + act + '" href="'  + escapeHtml(s.route) + '" data-studio="'  + escapeHtml(s.id) + '">' +
+        '<span class="nav-icon-circle">' + shellIcon(STUDIO_SHELL_ICONS[s.id] || 'sparkles') + '</span><span class="nav-text">'  + escapeHtml(s.nameMy) + '</span></a>'
       );
     })
     .join('\n  ');
@@ -73,9 +85,9 @@ function appShellSidebar(activeId) {
     '    <div class="nav-label">SETTINGS</div>\n' +
     '    <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></button>\n' +
-    '    <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
-    '    <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
-    '    <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
+    '    <a class="side-btn aics-admin-link" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '    <a class="side-btn" id="tgLink" href="' + escapeHtml(SITE_LINKS.telegram) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
+    '    <a class="side-btn" id="fbLink" href="' + escapeHtml(SITE_LINKS.facebook) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
     '    <button class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></button>\n' +
     '  </div>\n' +
     '</nav>'
@@ -91,12 +103,12 @@ function studioPageSidebar(activeId) {
     ? '<section class="aics-session-history" id="aicsSessionHistory" aria-label="Recent Story Sessions">' +
       '<div class="nav-label">RECENT HISTORY</div>' +
       '<div id="aicsSessionHistoryList" aria-live="polite"><div class="aics-session-muted">Loading...</div></div>' +
-      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more" style="display:none;" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
+      '<button type="button" id="aicsSessionLoadMore" class="aics-session-more is-hidden" data-aics-sidebar-action="load-more-sessions">Load More</button>' +
       '</section>'
     : '';
   return (
     '<div class="backdrop" id="backdrop" data-aics-sidebar-action="toggle"></div>\n' +
-    '<div class="sidebar" id="sidebar" style="display:flex;flex-direction:column;">\n' +
+    '<div class="sidebar" id="sidebar">\n' +
     '  <div class="sidebar-nav">\n' +
     '  <a class="nav-item' + homeActive + '" href="/app"><span class="nav-icon-circle">' + shellIcon('home') + '</span><span class="nav-text">ပင်မ</span></a>\n' +
     '  <div class="nav-label">STUDIOS</div>\n' +
@@ -108,9 +120,9 @@ function studioPageSidebar(activeId) {
     '  <div class="sidebar-bottom">\n' +
     '  <a class="side-btn' + (activeId === 'settings' ? ' active' : '') + '" href="/app/settings">' + shellIcon('settings') + '<span class="nav-text">ဆက်တင်များ</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="set-api-key">' + shellIcon('key') + '<span class="nav-text">API Key Setting</span></a>\n' +
-    '  <a class="side-btn" id="tgLink" href="' + SITE_LINKS.telegram + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
-    '  <a class="side-btn" id="fbLink" href="' + SITE_LINKS.facebook + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
-    '  <a class="side-btn" id="adminLink" href="/admin" style="display:none;">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
+    '  <a class="side-btn" id="tgLink" href="' + escapeHtml(SITE_LINKS.telegram) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('send') + '<span class="nav-text">Telegram</span></a>\n' +
+    '  <a class="side-btn" id="fbLink" href="' + escapeHtml(SITE_LINKS.facebook) + '" target="_blank" rel="noopener noreferrer">' + shellIcon('message') + '<span class="nav-text">Facebook</span></a>\n' +
+    '  <a class="side-btn aics-admin-link" id="adminLink" href="/admin">' + shellIcon('shield') + '<span class="nav-text">Admin Panel</span></a>\n' +
     '  <a class="side-btn" data-aics-sidebar-action="logout">' + shellIcon('logOut') + '<span class="nav-text">Logout</span></a>\n' +
     '  </div>\n' +
     '</div>'
@@ -157,6 +169,10 @@ function responsiveStyles() {
     '.aics-app .aics-session-date,.aics-app .aics-session-muted{font-size:10px;color:var(--aics-text-muted);line-height:1.5;}\n' +
     '.aics-app .aics-session-muted{padding:6px 10px;}\n' +
     '.aics-app .aics-session-more{display:block;width:calc(100% - 20px);margin:5px 10px;padding:7px 9px;border:1px solid var(--aics-border);border-radius:8px;background:var(--aics-surface-subtle);color:var(--aics-text-muted);font:inherit;font-size:11px;cursor:pointer;}\n' +
+    '.aics-app .aics-session-more.is-hidden{display:none;}\n' +
+    '.aics-app .aics-admin-link{display:none;}\n' +
+    '.aics-app .aics-admin-link.is-visible{display:flex;}\n' +
+    '.aics-app .aics-work-content{max-width:820px;margin:0 auto;width:100%;}\n' +
     '.aics-app .aics-session-more:hover{border-color:var(--aics-primary-border);color:var(--aics-primary);}\n' +
     '.aics-app .aics-session-more:disabled{opacity:.5;cursor:wait;}\n' +
     '.aics-app .sidebar-bottom{flex-shrink:0;margin-top:16px;padding-top:12px;border-top:1px solid var(--aics-border);width:100%;box-sizing:border-box;}\n' +
@@ -306,11 +322,11 @@ function sidebarSessionHistoryScript() {
       renderItems(result.items || [], append);
       cursor = result.nextCursor || null;
       hasMore = !!result.hasMore;
-      if (moreButton) moreButton.style.display = hasMore ? '' : 'none';
+      if (moreButton) moreButton.classList.toggle('is-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
       if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
-      if (moreButton) moreButton.style.display = 'none';
+      if (moreButton) moreButton.classList.add('is-hidden');
     }).then(function () {
       loading = false;
       if (moreButton) moreButton.disabled = false;
@@ -520,7 +536,7 @@ export function sidebarScript() {
     '      var pb = document.getElementById(\'planBadge\');\n' +
     '      if (pb) pb.textContent = d.plan || \'FREE\';\n' +
     '      var al = document.getElementById(\'adminLink\');\n' +
-    '      if (al) al.style.display = d.is_admin ? \'\' : \'none\';\n' +
+    '      if (al) al.classList.toggle(\'is-visible\', !!d.is_admin);\n' +
     '      var ss = d.studio_settings || null;\n' +
     '      if (ss) {\n' +
     '        var links = document.querySelectorAll(\'[data-studio]\');\n' +
@@ -557,15 +573,19 @@ export function sidebarScript() {
     '      var saved = \'\';\n' +
     '      try { saved = localStorage.getItem(key) || \'\'; } catch (e) {}\n' +
     '      function fill(opts, selected) {\n' +
-    '        if (!opts || opts.length === 0) { sel.innerHTML = \'<option value="">(Model မရှိ)</option>\'; return; }\n' +
-    '        var html = \'\';\n' +
-    '        for (var i = 0; i < opts.length; i++) {\n' +
-    '          var m = opts[i];\n' +
-    '          var isSel = m.id === selected;\n' +
-    '          html += \'<option value="\' + m.id + \'"\' + (isSel ? \' selected\' : \'\') + \'>\' + String(m.name || m.id) + \'</option>\';\n' +
+    '        sel.textContent = \'\';\n' +
+    '        if (!opts || opts.length === 0) {\n' +
+    '          var empty = document.createElement(\'option\'); empty.value = \'\'; empty.textContent = \'(Model မရှိ)\'; sel.appendChild(empty); return;\n' +
     '        }\n' +
-    '        sel.innerHTML = html;\n' +
-    '        if (!sel.value) sel.value = opts[0].id;\n' +
+    '        for (var i = 0; i < opts.length; i++) {\n' +
+    '          var m = opts[i] || {};\n' +
+    '          var option = document.createElement(\'option\');\n' +
+    '          option.value = String(m.id == null ? \'\' : m.id);\n' +
+    '          option.textContent = String(m.name || m.id || \'\');\n' +
+    '          if (option.value === String(selected == null ? \'\' : selected)) option.selected = true;\n' +
+    '          sel.appendChild(option);\n' +
+    '        }\n' +
+    '        if (!sel.value && opts[0]) sel.value = String(opts[0].id == null ? \'\' : opts[0].id);\n' +
     '      }\n' +
     '      fetch(\'/api/ai-models?category=\' + encodeURIComponent(cat) + \'&task=\' + encodeURIComponent(task), { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
     '        .then(function (r) { return r.json(); })\n' +
@@ -867,7 +887,7 @@ export function renderStudioShell(opts) {
   const modelTask = opts.modelTask || '';
   const steps = opts.steps || [];
   const content = opts.content || '';
-  const stepsJson = JSON.stringify(steps.map(function (s, i) {
+  const stepsJson = safeScriptJson(steps.map(function (s, i) {
     return { n: i + 1, label: s.label || 'Step ' + (i + 1), sub: s.sub || '', req: s.req || (i === 0 ? [] : [i]), lock: !!s.lock, loading: s.loading || '' };
   }));
 
@@ -877,7 +897,7 @@ export function renderStudioShell(opts) {
     '<div class="aics-app" id="aicsApp">\n' +
     '<header class="header aics-header">\n' +
     '<button class="aics-menu-btn" aria-label="Menu ဖွင့်ရန် / ပိတ်ရန်" title="Menu" data-aics-sidebar-action="toggle">' + shellIcon('menu') + '</button>\n' +
-    '<div class="aics-brand"><span class="aics-brand-icon">' + shellIcon('sparkles') + '</span><span class="aics-title">' + nameMy + '</span></div>\n' +
+    '<div class="aics-brand"><span class="aics-brand-icon">' + shellIcon('sparkles') + '</span><span class="aics-title">' + escapeHtml(nameMy) + '</span></div>\n' +
     '<div class="aics-pro" id="sidePlan">FREE</div>\n' +
     '</header>\n' +
     '<div class="layout">\n' +
@@ -885,19 +905,19 @@ export function renderStudioShell(opts) {
     '<main class="main aics-main">\n' +
     '<div class="aics-stepper" id="aicsStepper"></div>\n' +
     '<div class="aics-grid">\n' +
-    '<section class="aics-work" id="aicsWork" style="max-width:820px;margin:0 auto;width:100%;">\n' +
+    '<section class="aics-work aics-work-content" id="aicsWork">\n' +
     content +
     '</section>\n' +
     '</div>\n' +
     '<div class="aics-actions">\n' +
-    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + modelCat + '"' + (modelTask ? ' data-task="' + modelTask + '"' : '') + '></select></div></div>\n' +
+    '<div class="aics-actions-inner" id="aicsActionsInner"><div class="aics-actions-model"><span class="aics-actions-model-label">&#129302; AI မော်ဒယ်</span><select id="aiModelSel" data-category="' + escapeHtml(modelCat) + '"' + (modelTask ? ' data-task="' + escapeHtml(modelTask) + '"' : '') + '></select></div></div>\n' +
     '</div>\n' +
     '</main>\n' +
     '</div>\n' +
     '</div>\n' +
     '<script>\n' +
     '(function () {\n' +
-    '  var SHELL_ID = ' + JSON.stringify(id) + ';\n' +
+    '  var SHELL_ID = ' + safeScriptJson(id) + ';\n' +
     '  var STEPS = ' + stepsJson + ';\n' +
     '  var draftKey = "aics_draft_" + SHELL_ID;\n' +
     '  var cur = 1;\n' +
@@ -919,16 +939,21 @@ export function renderStudioShell(opts) {
     '  }\n' +
     '  function renderStepper() {\n' +
     '    var c = el("aicsStepper"); if (!c) return;\n' +
-    '    var html = \'<div class="aics-stepper-inner">\';\n' +
+    '    c.textContent = \'\';\n' +
+    '    var inner = document.createElement(\'div\'); inner.className = \'aics-stepper-inner\';\n' +
     '    for (var i = 0; i < STEPS.length; i++) {\n' +
     '      var s = STEPS[i];\n' +
-    '      html += \'<button class="aics-step-btn" data-step="\' + s.n + \'"\' + (s.lock ? \' data-lock="1"\' : \'\') + \' data-aics-shell-action="step">\' +\n' +
-    '        \'<span class="aics-step-txt"><span class="aics-step-label">\' + s.label + \'</span></span>\' +\n' +
-    '        \'<span class="aics-step-loading"><span class="aics-step-spinner"></span>ဖန်တီးနေသည်...</span></button>\';\n' +
-    '      if (i < STEPS.length - 1) html += \'<span class="aics-step-link"></span>\';\n' +
+    '      var button = document.createElement(\'button\'); button.type = \'button\'; button.className = \'aics-step-btn\';\n' +
+    '      button.setAttribute(\'data-step\', String(s.n)); button.setAttribute(\'data-aics-shell-action\', \'step\');\n' +
+    '      if (s.lock) button.setAttribute(\'data-lock\', \'1\');\n' +
+    '      var stepText = document.createElement(\'span\'); stepText.className = \'aics-step-txt\';\n' +
+    '      var stepLabel = document.createElement(\'span\'); stepLabel.className = \'aics-step-label\'; stepLabel.textContent = String(s.label == null ? \'\' : s.label); stepText.appendChild(stepLabel);\n' +
+    '      var loading = document.createElement(\'span\'); loading.className = \'aics-step-loading\';\n' +
+    '      var spinner = document.createElement(\'span\'); spinner.className = \'aics-step-spinner\'; loading.appendChild(spinner); loading.appendChild(document.createTextNode(\'ဖန်တီးနေသည်...\'));\n' +
+    '      button.appendChild(stepText); button.appendChild(loading); inner.appendChild(button);\n' +
+    '      if (i < STEPS.length - 1) { var link = document.createElement(\'span\'); link.className = \'aics-step-link\'; inner.appendChild(link); }\n' +
     '    }\n' +
-    '    html += \'</div>\';\n' +
-    '    c.innerHTML = html;\n' +
+    '    c.appendChild(inner);\n' +
     '  }\n' +
     '  function stepMeta(n) {\n' +
     '    for (var k = 0; k < STEPS.length; k++) if (STEPS[k].n === n) return STEPS[k];\n' +
@@ -1020,12 +1045,13 @@ export function renderStudioShell(opts) {
     '  window.aichBuildAud = function (containerId, selected) {\n' +
     '    var c = el(containerId); if (!c) return;\n' +
     '    window.aichAud = selected || window.aichAud;\n' +
-    '    var html = \'\';\n' +
+    '    c.textContent = \'\';\n' +
     '    for (var i = 0; i < window.aichAudChoices.length; i++) {\n' +
     '      var v = window.aichAudChoices[i];\n' +
-    '      html += \'<button type="button" class="aich-chip\' + (v === window.aichAud ? \' active\' : \'\') + \'" data-aics-shell-action="audience">\' + v + \'</button>\';\n' +
+    '      var button = document.createElement(\'button\'); button.type = \'button\'; button.className = \'aich-chip\';\n' +
+    '      if (v === window.aichAud) button.classList.add(\'active\');\n' +
+    '      button.setAttribute(\'data-aics-shell-action\', \'audience\'); button.textContent = String(v == null ? \'\' : v); c.appendChild(button);\n' +
     '    }\n' +
-    '    c.innerHTML = html;\n' +
     '  };\n' +
     '  window.aichPickAud = function (btn) {\n' +
     '    var p = btn.parentElement;\n' +
@@ -1038,14 +1064,18 @@ export function renderStudioShell(opts) {
     '    var c = el("aicsActionsInner"); if (!c) return;\n' +
     '    var model = c.querySelector(".aics-actions-model");\n' +
     '    var acts = (list || []).filter(function(a){ return a && a.label; });\n' +
-    '    var html = \'\';\n' +
+    '    c.textContent = \'\';\n' +
+    '    if (model) c.appendChild(model);\n' +
     '    for (var i = 0; i < acts.length; i++) {\n' +
     '      var a = acts[i];\n' +
-    '      html += \'<button class="aics-act \' + (a.cls || "secondary") + \'" data-aics-shell-action="studio-action" data-action-index="\' + i + \'">\' + a.label + \'</button>\';\n' +
+    '      var button = document.createElement(\'button\'); button.type = \'button\'; button.className = \'aics-act\';\n' +
+    '      var classTokens = String(a.cls || \'secondary\').split(/\\s+/).filter(function(token){ return /^[a-zA-Z0-9_-]+$/.test(token); });\n' +
+    '      if (!classTokens.length) classTokens = [\'secondary\'];\n' +
+    '      classTokens.forEach(function(token){ button.classList.add(token); });\n' +
+    '      button.setAttribute(\'data-aics-shell-action\', \'studio-action\'); button.setAttribute(\'data-action-index\', String(i));\n' +
+    '      button.textContent = String(a.label).replace(/&#(x[0-9a-f]{1,6}|[0-9]{1,7});/gi, function(entity){ var raw = entity.slice(2, -1); var code = raw.charAt(0).toLowerCase() === \'x\' ? parseInt(raw.slice(1), 16) : parseInt(raw, 10); return code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : \'�\'; });\n' +
+    '      c.appendChild(button);\n' +
     '    }\n' +
-    '    c.innerHTML = \'\';\n' +
-    '    if (model) c.appendChild(model);\n' +
-    '    c.insertAdjacentHTML("beforeend", html);\n' +
     '    window.__studioActions = acts;\n' +
     '  };\n' +
     '  window.studioAct = function (i) {\n' +

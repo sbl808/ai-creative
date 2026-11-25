@@ -615,5 +615,225 @@ console.log('\n--- CMS prompt authorization contracts ---');
   check('CMS test page remains non-production only', index.includes("if (!isProdEnv && path === '/cms-test') return htmlPage(cmsTestPage())"));
   check('Studio generation keeps server-side CMS integration', genericStudioRoute.includes('generateStudio') && /getCMSData|buildSystemPrompt/.test(studio) && cms.includes('export { getCMSData, buildSystemPrompt }'));
 }
+console.log('\n--- Shop Reference Removal Delegation Contract ---');
+{
+  const shopActions = readFileSync(new URL('../worker/src/frontend/studios/shop/actions.js', import.meta.url), 'utf8');
+  const renderStart = shopActions.indexOf('function renderRefPreview');
+  const renderEnd = shopActions.indexOf('// ===================== Type Chips', renderStart);
+  const render = shopActions.slice(renderStart, renderEnd);
+  const removeStart = shopActions.indexOf('function removeShopReference');
+  const removeEnd = shopActions.indexOf('function setTypeChip', removeStart);
+  const remove = shopActions.slice(removeStart, removeEnd);
+  check('Shop reference remove buttons use delegated data attributes, not onclick handlers',
+    render.includes("setAttribute('data-shop-action','removeShopReference')") &&
+    render.includes("setAttribute('data-shop-arg2',String(idx))") &&
+    !render.includes('x.onclick='));
+  check('Shop reference removal converts delegated string indices before validation',
+    remove.includes('var numericIndex=Number(index)') &&
+    remove.includes('Number.isInteger(numericIndex)') &&
+    remove.includes('list.splice(numericIndex,1)'));
+  check('Shop delegated dispatcher explicitly allows reference removal',
+    shopActions.includes("'shopMainNav','removeShopReference'"));
+}
+
+
+console.log('--- Admin UI Event Delegation Contract ---');
+{
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  const delegatedHandlers = adminUi.match(/\bdata-admin-(?:click|change)\s*=/g) || [];
+  check('Admin UI has migrated all 54 click/change handlers to data attributes',
+    delegatedHandlers.length === 54 &&
+    !/\bon(?:click|change)\s*=/i.test(adminUi),
+    'delegated=' + delegatedHandlers.length);
+  check('Admin UI delegates click and change events from document',
+    adminUi.includes("document.addEventListener('click'") &&
+    adminUi.includes("document.addEventListener('change'") &&
+    adminUi.includes("closest('[data-admin-click]')") &&
+    adminUi.includes("closest('[data-admin-change]')"));
+  check('Admin UI dispatcher only accepts allow-listed action names',
+    adminUi.includes('if (!match || !ADMIN_ACTIONS[match[1]]) return false;') &&
+    adminUi.includes("'switchTab','closeNav','toggleNav'") &&
+    adminUi.includes("'editBrain','delBrain','toggleStudio'"));
+  check('Admin UI event dispatcher does not evaluate handler strings as JavaScript',
+    !/\beval\s*\(|new\s+Function\s*\(/.test(adminUi));
+}
+
+
+console.log('\n--- Admin UI CSP Inline Style Contract ---');
+{
+  const adminUi = readFileSync(new URL('../worker/src/admin/ui.js', import.meta.url), 'utf8');
+  const adminStyleClasses = adminUi.match(/\.admin-style-\d{2}\s*\{/g) || [];
+  check('Admin UI has no inline style attributes', !/\bstyle\s*=/i.test(adminUi));
+  check('Admin UI does not assign element.style properties', !/\.style(?:\.|\[)/.test(adminUi));
+  check('Admin UI maps all former static inline styles to CSS classes',
+    adminStyleClasses.length === 21 &&
+    adminUi.includes('.admin-style-01{') &&
+    adminUi.includes('.admin-style-21{'),
+    'classes=' + adminStyleClasses.length);
+  check('Admin UI replaces dynamic dashboard styles with state classes',
+    adminUi.includes('health-state-on') && adminUi.includes('health-state-off') &&
+    adminUi.includes('health-dot-off') && adminUi.includes('health-status-on') &&
+    adminUi.includes('health-status-off'));
+  check('Admin loading visibility uses CSP-safe CSS classes',
+    adminUi.includes("$('loading').classList.add('loading-error')") &&
+    adminUi.includes("$('loading').classList.add('hidden')") &&
+    adminUi.includes('.loading-error{display:block!important}'));
+}
+
+
+console.log('\\n--- Worker Test Pages CSP Inline Style Contract ---');
+{
+  const index = readFileSync(new URL('../worker/src/index.js', import.meta.url), 'utf8');
+  const styleInjectionCount = (index.match(/\+\s*TEST_PAGE_STYLES\s*\+/g) || []).length;
+  check('Worker HTML pages contain no inline style attributes',
+    !/\bstyle\s*=/i.test(index));
+  check('Worker HTML pages do not assign element.style properties',
+    !/\.style(?:\.|\s*\[)/.test(index));
+  check('shared test-page stylesheet is nonce-injected by htmlPage',
+    index.includes('const TEST_PAGE_STYLES =') &&
+    index.includes(".on('style'") &&
+    index.includes("element.setAttribute('nonce', nonce)") &&
+    styleInjectionCount === 6,
+    'style injections=' + styleInjectionCount);
+  check('test-page stylesheet defines responsive page and component classes',
+    index.includes('.test-page{') &&
+    index.includes('.disabled-page{') &&
+    index.includes('.test-output-image{') &&
+    index.includes('@media(max-width:480px)'));
+  check('dynamic test image uses a CSS class instead of inline styles',
+    index.includes('im.className="test-output-image"') &&
+    !index.includes('im.style.'));
+}
+
+
+console.log('\\n--- Settings UI CSP Inline Style Contract ---');
+{
+  const settings = readFileSync(new URL('../worker/src/frontend/settings.js', import.meta.url), 'utf8');
+  check('Settings UI has no inline style attributes', !/\bstyle\s*=/i.test(settings));
+  check('Settings UI does not assign element.style properties', !/\.style(?:\.|\s*\[)/.test(settings));
+  check('Settings tab visibility uses the hidden property and CSP-safe CSS',
+    settings.includes("p.hidden=true") &&
+    settings.includes("getElementById(tabs[name]).hidden=false") &&
+    settings.includes('.tab-panel[hidden]{display:none!important;}'));
+  check('Settings dynamic profile and login markup uses CSS classes',
+    settings.includes('settings-profile-name') &&
+    settings.includes('settings-save-name') &&
+    settings.includes('settings-login-required') &&
+    settings.includes('settings-login-link'));
+  check('Settings plan catalog uses reusable CSS classes, not inline styles',
+    settings.includes('plan-catalog-user') &&
+    settings.includes('plan-catalog-grid') &&
+    settings.includes('plan-catalog-card') &&
+    settings.includes('plan-catalog-features') &&
+    settings.includes('plan-catalog-links'));
+  check('Settings plan cards remain mobile responsive',
+    settings.includes('grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))') &&
+    settings.includes('@media(max-width:600px){.settings-login-required'));
+}
+
+
+console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
+{
+  const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const shared = await import('../worker/src/frontend/shared.js?shared-xss-contract=' + Date.now());
+  const hostile = '"><img src=x onerror=alert(1)>&\'';
+  check('Shared HTML escaping encodes text and attribute metacharacters',
+    shared.escapeHtml(hostile) === '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;&amp;&#39;');
+  check('App and Studio sidebar external links escape configured URLs',
+    (sharedSource.match(/escapeHtml\(SITE_LINKS\.(?:telegram|facebook)\)/g) || []).length === 4);
+  check('AI model options use DOM value/textContent instead of HTML interpolation',
+    sharedSource.includes('option.value = String(m.id') &&
+    sharedSource.includes('option.textContent = String(m.name') &&
+    !sharedSource.includes("html += '<option value=\'") &&
+    !sharedSource.includes('sel.innerHTML = html'));
+  check('Audience choices are rendered as text nodes',
+    sharedSource.includes("button.textContent = String(v == null ?") &&
+    !sharedSource.includes(" + v + '</button>'"));
+  check('Studio action labels are rendered as text and class tokens are validated',
+    sharedSource.includes('button.textContent = String(a.label).replace') &&
+    sharedSource.includes('/^[a-zA-Z0-9_-]+$/.test(token)') &&
+    !sharedSource.includes(" + a.label + '</button>'"));
+  check('Stepper labels are rendered through textContent',
+    sharedSource.includes('stepLabel.textContent = String(s.label') &&
+    !sharedSource.includes(" + s.label + '</span>"));
+  const hostileShell = shared.renderStudioShell({
+    id: '</script><script>alert(1)</script>',
+    nameMy: '<img src=x onerror=alert(1)>',
+    modelCat: '" onfocus="alert(1)',
+    modelTask: '"><script>alert(1)</script>',
+    steps: [{ label: '</script><img src=x onerror=alert(1)>' }],
+    content: '<div class="trusted-test-content"></div>',
+  });
+  check('Studio title and model attributes are HTML escaped',
+    hostileShell.includes('&lt;img src=x onerror=alert(1)&gt;') &&
+    hostileShell.includes('data-category="&quot; onfocus=&quot;alert(1)') &&
+    hostileShell.includes('data-task="&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"'));
+  check('Shell ID and step JSON cannot terminate the inline script',
+    hostileShell.includes('\\u003c/script\\u003e\\u003cscript\\u003ealert(1)') &&
+    !hostileShell.includes('</script><script>alert(1)</script>'));
+  const inlineScript = hostileShell.match(/<script>\s*([\s\S]*?)<\/script>/i);
+  let scriptSyntaxValid = false;
+  try { if (inlineScript) { new vm.Script(inlineScript[1]); scriptSyntaxValid = true; } } catch (_) {}
+  check('Generated Studio shell script remains syntactically valid', scriptSyntaxValid);
+}
+
+
+console.log('\n--- Shared UI CSP Inline Style Contract ---');
+{
+  const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const inlineStyles = sharedSource.match(/\bstyle\s*=/gi) || [];
+  check('Shared UI has no inline style attributes', inlineStyles.length === 0, 'inline styles=' + inlineStyles.length);
+  check('Admin links use CSS classes and class-based visibility',
+    (sharedSource.match(/class="side-btn aics-admin-link"/g) || []).length === 2 &&
+    sharedSource.includes('.aics-app .aics-admin-link{display:none;}') &&
+    sharedSource.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
+    sharedSource.includes("al.classList.toggle(\\'is-visible\\', !!d.is_admin)") &&
+    !sharedSource.includes("al.style.display ="));
+  const adminLinkTags = [...sharedSource.matchAll(/<a\b[^>]*\bid="adminLink"[^>]*>/g)].map(([tag]) => tag);
+  check('Admin sidebar links have exactly one class attribute',
+    adminLinkTags.length === 2 &&
+    adminLinkTags.every((tag) => (tag.match(/\bclass\s*=/g) || []).length === 1));
+  check('Story session Load More visibility uses a hidden CSS class',
+    sharedSource.includes('class="aics-session-more is-hidden"') &&
+    sharedSource.includes('.aics-app .aics-session-more.is-hidden{display:none;}') &&
+    sharedSource.includes("moreButton.classList.toggle('is-hidden', !hasMore)") &&
+    sharedSource.includes("moreButton.classList.add('is-hidden')") &&
+    !sharedSource.includes('moreButton.style.display'));
+  check('Studio sidebar reuses the shared flex-column layout without inline styles',
+    sharedSource.includes('<div class="sidebar" id="sidebar">') &&
+    sharedSource.includes('.aics-app .layout > .sidebar{display:flex;flex-direction:column;'));
+  check('Studio work area uses a responsive CSS class instead of inline styles',
+    sharedSource.includes('class="aics-work aics-work-content" id="aicsWork"') &&
+    sharedSource.includes('.aics-app .aics-work-content{max-width:820px;margin:0 auto;width:100%;}') &&
+    sharedSource.includes('@media (max-width:767px){'));
+}
+
+
+console.log('\n--- Task Instructions UI CSP Inline Style Contract ---');
+{
+  const taskUi = readFileSync(new URL('../worker/src/admin/task-instructions-ui.js', import.meta.url), 'utf8');
+  const taskCss = taskUi.match(/export const TASK_INSTRUCTIONS_CSS = `([\s\S]*?)`;/);
+  check('Task Instructions UI has no inline style attributes', !/\bstyle\s*=/i.test(taskUi));
+  check('Task Instructions UI does not assign element.style properties', !/\.style(?:\.|\s*\[)/.test(taskUi));
+  check('Task Instructions form description keeps its full-row layout via CSS class',
+    taskUi.includes('class="task-form-description"') &&
+    !!taskCss && taskCss[1].includes('.task-form-description{grid-column:1/-1}'));
+  check('Task Instructions textareas preserve compact and preview heights via CSS classes',
+    taskUi.includes('class="task-textarea-compact"') &&
+    taskUi.includes('class="task-textarea-preview"') &&
+    !!taskCss &&
+    taskCss[1].includes('.task-field textarea.task-textarea-compact{min-height:70px}') &&
+    taskCss[1].includes('.task-field textarea.task-textarea-preview{min-height:100px}'));
+  check('Task Instructions preview headings and row actions use reusable CSS classes',
+    taskUi.includes('class="card-title task-preview-output-title"') &&
+    taskUi.includes("button.classList.add('task-row-action')") &&
+    !!taskCss &&
+    taskCss[1].includes('.task-preview-output-title{margin-top:12px}') &&
+    taskCss[1].includes('.task-row-action{margin-right:5px}'));
+  check('Task Instructions mobile layout rules remain in place',
+    !!taskCss && taskCss[1].includes('@media(max-width:760px)') &&
+    taskCss[1].includes('.task-form-grid,.task-preview-grid{grid-template-columns:1fr}'));
+}
+
 console.log('\n=== SECURITY RESULT: ' + passed + ' passed, ' + failed + ' failed ===');
 process.exit(failed ? 1 : 0);

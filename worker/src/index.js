@@ -171,67 +171,69 @@ async function requireFeature(env, featureId, plan, reqType, corsHeaders) {
   return json({ error: r.reason === 'disabled' ? 'feature_disabled' : 'pro_only', detail: msg }, 403, corsHeaders);
 }
 
+const TEST_PAGE_STYLES = "<style>.test-page{width:100%;max-width:640px;box-sizing:border-box;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C;font-family:sans-serif}.test-page h2{color:#1b6d96}.test-page .test-heading-success{color:#52C41A}.test-page .test-label{font-size:13px;font-weight:600}.test-page .test-input{width:100%;max-width:100%;box-sizing:border-box;padding:8px;font-size:13px}.test-page .test-textarea{width:100%;max-width:100%;box-sizing:border-box;font-family:monospace;font-size:12px}.test-page .test-prompt{font-size:13px}.test-page .test-button{margin-top:8px;padding:10px 22px;font-size:14px}.test-page .test-status{margin-top:8px;font-size:13px}.test-page .test-output{margin-top:10px;padding:12px;background:#fff;border:1px solid #E4E3DD;border-radius:8px;font-size:13px;white-space:pre-wrap;min-height:60px}.test-page .test-output-large{min-height:80px}.test-page .test-copy{font-size:14px;line-height:1.6}.test-page .test-copy-small{font-size:14px}.test-output-image{display:block;max-width:100%;border-radius:8px}.disabled-page{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:100vh;margin:0;padding:16px;background:#080c18;color:#e8ecf4;font-family:sans-serif}.disabled-card{width:100%;max-width:420px;box-sizing:border-box;padding:32px;text-align:center;background:#151b2b;border:1px solid #26324a;border-radius:14px}.disabled-icon{font-size:40px}.disabled-title{margin:12px 0;color:#00e5ff}.disabled-description{color:#94a3b8;font-size:14px;line-height:1.7}.disabled-home-link{display:inline-block;margin-top:16px;padding:11px 22px;background:#00e5ff;color:#001014;border-radius:10px;text-decoration:none;font-weight:bold}@media(max-width:480px){.test-page{margin:16px auto;padding:0 16px}.disabled-card{padding:24px}}</style>";
+
 // Studio Disabled ဖြစ်ပါက ပြမည့် Friendly စာမျက်နှာ (Phase 4 — Rule 14)
 function studioDisabledPage(studioId) {
   const s = getStudio(studioId);
   const name = s ? s.nameMy : studioId;
-  return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title></head>' +
-    '<body style="font-family:sans-serif;background:#080c18;color:#e8ecf4;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px">' +
-    '<div style="max-width:420px;text-align:center;background:#151b2b;border:1px solid #26324a;border-radius:14px;padding:32px">' +
-    '<div style="font-size:40px">🔒</div>' +
-    '<h2 style="margin:12px 0;color:#00e5ff">' + name + ' ကို ယခု ပိတ်ထားပါသည်</h2>' +
-    '<p style="color:#94a3b8;font-size:14px;line-height:1.7">ဤ Studio ကို Admin မှ ခေတ္တ ပိတ်ထားပါသည်။ နောက်မှ ပြန်ဖွင့်ပါမည်။</p>' +
-    '<a href="/app" style="display:inline-block;margin-top:16px;padding:11px 22px;background:#00e5ff;color:#001014;border-radius:10px;text-decoration:none;font-weight:bold">🏠 ပင်မသို့ ပြန်သွားရန်</a>' +
+  return '<!DOCTYPE html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + name + ' — ပိတ်ထားသည်</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="disabled-page">' +
+    '<div class="disabled-card">' +
+    '<div class="disabled-icon">🔒</div>' +
+    '<h2 class="disabled-title">' + name + ' ကို ယခု ပိတ်ထားပါသည်</h2>' +
+    '<p class="disabled-description">ဤ Studio ကို Admin မှ ခေတ္တ ပိတ်ထားပါသည်။ နောက်မှ ပြန်ဖွင့်ပါမည်။</p>' +
+    '<a href="/app" class="disabled-home-link">🏠 ပင်မသို့ ပြန်သွားရန်</a>' +
     '</div></body></html>';
 }
 
 function loginResultPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#52C41A">✅ Login OK</h2>' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login OK</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="test-page">' +
+    '<h2 class="test-heading-success">✅ Login OK</h2>' +
     '<p>Copy your token below.</p>' +
-    '<textarea id="tok" rows="4" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<br><button onclick="cp()" style="margin-top:8px;padding:10px 22px;font-size:14px">📋 Copy Token</button>' +
-    '<div id="status" style="margin-top:8px;font-size:13px"></div>' +
+    '<textarea id="tok" rows="4" class="test-textarea"></textarea>' +
+    '<br><button id="copy-token" class="test-button">📋 Copy Token</button>' +
+    '<div id="status" class="test-status"></div>' +
     '<script>' +
     'var h=location.hash.replace("#token=","");' +
     'document.getElementById("tok").value=decodeURIComponent(h);' +
-    'function cp(){var t=document.getElementById("tok");t.select();document.execCommand("copy");document.getElementById("status").textContent="Copied ✅";}' +
+    'function cp(){var t=document.getElementById("tok");t.select();document.execCommand("copy");document.getElementById("status").textContent="Copied ✅";}document.getElementById("copy-token").addEventListener("click",cp);' +
     '<\/script></body></html>';
 }
 
 function aiTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">🤖 AI Router Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br><input id="tok" type="password" style="width:100%;padding:8px;box-sizing:border-box"><br>' +
-    '<label style="font-size:13px;font-weight:600">Prompt</label><br>' +
-    '<textarea id="p" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Hello</textarea>' +
-    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
-    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Test</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="test-page">' +
+    '<h2 class="test-heading">🤖 AI Router Test</h2>' +
+    '<label class="test-label">Session Token</label><br><input id="tok" type="password" class="test-input"><br>' +
+    '<label class="test-label">Prompt</label><br>' +
+    '<textarea id="p" rows="3" class="test-input test-prompt">Hello</textarea>' +
+    '<label class="test-label">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" class="test-input">' +
+    '<br><button id="run-ai-test" class="test-button">▶ Run</button>' +
+    '<div id="out" class="test-output">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/ai/test",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value.trim()},' +
     'body:JSON.stringify({prompt:document.getElementById("p").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){o.textContent=d.output?("✅ "+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
-    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}document.getElementById("run-ai-test").addEventListener("click",run);' +
     '<\/script></body></html>';
 }
 
 function cmsTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">📋 CMS Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
-    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<label style="font-size:13px;font-weight:600">Studio</label><br>' +
-    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
-    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">📥 Get Prompt</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:60px">Result will show here.</div>' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CMS Test</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="test-page">' +
+    '<h2 class="test-heading">📋 CMS Test</h2>' +
+    '<label class="test-label">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" class="test-textarea"></textarea>' +
+    '<label class="test-label">Studio</label><br>' +
+    '<input id="st" value="STORY" class="test-input">' +
+    '<label class="test-label">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" class="test-input">' +
+    '<br><button id="run-cms-test" class="test-button">📥 Get Prompt</button>' +
+    '<div id="out" class="test-output">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/cms/prompt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
@@ -239,45 +241,45 @@ function cmsTestPage() {
     '.then(function(r){return r.json();}).then(function(d){' +
     'if(d.found){o.textContent="FOUND ✅ "+d.studio+"/"+d.plan+"/"+d.type+"\\n\\n"+d.system_prompt;}' +
     'else{o.textContent="NOT FOUND — "+document.getElementById("st").value+"/"+document.getElementById("ty").value;}})' +
-    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}document.getElementById("run-cms-test").addEventListener("click",run);' +
     '<\/script></body></html>';
 }
 
 function studioTestPage() {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">🎨 Studio Engine Test</h2>' +
-    '<label style="font-size:13px;font-weight:600">Session Token</label><br>' +
-    '<textarea id="tok" rows="3" style="width:100%;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>' +
-    '<label style="font-size:13px;font-weight:600">Studio (STORY / IMAGE / CONTENT ...)</label><br>' +
-    '<input id="st" value="STORY" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">Type (1-5)</label><br>' +
-    '<input id="ty" value="1" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<label style="font-size:13px;font-weight:600">User Idea</label><br>' +
-    '<textarea id="id" rows="3" style="width:100%;font-size:13px;box-sizing:border-box">Write a short story about a boy and his dog.</textarea>' +
-    '<label style="font-size:13px;font-weight:600">Gemini API Key (BYOK — optional)</label><br>' +
-    '<input id="key" type="password" style="width:100%;font-size:13px;box-sizing:border-box;padding:8px">' +
-    '<br><button onclick="run()" style="margin-top:8px;padding:10px 22px;font-size:14px">▶ Run Studio</button>' +
-    '<div id="out" style="margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1px solid #E4E3DD;font-size:13px;white-space:pre-wrap;min-height:80px">Result will show here.</div>' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Studio Test</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="test-page">' +
+    '<h2 class="test-heading">🎨 Studio Engine Test</h2>' +
+    '<label class="test-label">Session Token</label><br>' +
+    '<textarea id="tok" rows="3" class="test-textarea"></textarea>' +
+    '<label class="test-label">Studio (STORY / IMAGE / CONTENT ...)</label><br>' +
+    '<input id="st" value="STORY" class="test-input">' +
+    '<label class="test-label">Type (1-5)</label><br>' +
+    '<input id="ty" value="1" class="test-input">' +
+    '<label class="test-label">User Idea</label><br>' +
+    '<textarea id="id" rows="3" class="test-input test-prompt">Write a short story about a boy and his dog.</textarea>' +
+    '<label class="test-label">Gemini API Key (BYOK — optional)</label><br>' +
+    '<input id="key" type="password" class="test-input">' +
+    '<br><button id="run-studio-test" class="test-button">▶ Run Studio</button>' +
+    '<div id="out" class="test-output test-output-large">Result will show here.</div>' +
     '<script>' +
     'function run(){var o=document.getElementById("out");o.textContent="Loading...";' +
     'fetch("/api/studio/generate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+document.getElementById("tok").value},' +
     'body:JSON.stringify({studio:document.getElementById("st").value,type:document.getElementById("ty").value,idea:document.getElementById("id").value,apiKey:document.getElementById("key").value})})' +
     '.then(function(r){return r.json();}).then(function(d){' +
-    'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.style.maxWidth="100%";im.style.borderRadius="8px";o.appendChild(im);return;}' +
+    'if(d.data){o.innerHTML="";var im=document.createElement("img");im.src="data:"+d.mimeType+";base64,"+d.data;im.className="test-output-image";o.appendChild(im);return;}' +
     'o.textContent=d.output?("["+d.studio+"/"+d.plan+"/"+d.type+"]\\n\\n"+d.output):("ERROR: "+(d.error||"")+" "+(d.detail||""));})' +
-    '.catch(function(e){o.textContent="Network error: "+e;});}' +
+    '.catch(function(e){o.textContent="Network error: "+e;});}document.getElementById("run-studio-test").addEventListener("click",run);' +
     '<\/script></body></html>';
 }
 
 function creationsTestPage() {
   // Phase 13 — Option 2: Creations ကို Server/D1 တွင် မသိမ်းတော့ပါ (Browser IndexedDB သာ)
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title></head>' +
-    '<body style="font-family:sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#F4F3EE;color:#1A1B1C">' +
-    '<h2 style="color:#1b6d96">💾 My Creations</h2>' +
-    '<p style="font-size:14px;line-height:1.6">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creations — Client-side</title>' + TEST_PAGE_STYLES + '</head>' +
+    '<body class="test-page">' +
+    '<h2 class="test-heading">💾 My Creations</h2>' +
+    '<p class="test-copy">Phase 13 (Option 2) မှစ၍ User ဖန်တီးမှုအားလုံးကို <b>Browser (IndexedDB)</b> တွင်သာ သိမ်းပါသည်။<br>' +
     'Server/D1 တွင် User Content မသိမ်းတော့ပါ — <code>/api/creations</code> endpoint များကို ဖယ်ရှားပြီးပါပြီ။</p>' +
-    '<p style="font-size:14px">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
+    '<p class="test-copy-small">My Creations စာမျက်နှာ: <a href="/app/creations">/app/creations</a> (Login ဝင်ပြီးမှ ကြည့်ရှုနိုင်ပါသည်)</p>' +
     '</body></html>';
 }
 
