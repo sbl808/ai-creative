@@ -315,7 +315,7 @@ assert.equal(retryResult.settings.default_studio, 'story');
 assert.equal(retryResult.preferences.show_tips, 'true');
 assert.equal(migrationDb.putCalls, 1,
   'a completed migration retry must not write to IndexedDB again');
-assert.deepEqual(retryResult, migratedRecord,
+assert.equal(JSON.stringify(retryResult), JSON.stringify(migratedRecord),
   'a completed migration retry must return the original migrated record');
 
 const failedAttemptDb = createMigrationTestDatabase({
