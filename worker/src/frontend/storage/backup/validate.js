@@ -156,6 +156,17 @@ function installBackupValidator(target, config) {
       return !/^[a-zA-Z0-9_]{1,32}$/.test(key) || typeof preferences[key] !== 'string' || preferences[key].length > 500;
     })) throw fail('backup_invalid_record');
     optionalDate(record, 'updatedAt');
+    if (hasOwn(record, 'legacySettingsMigration')) {
+      var migration = record.legacySettingsMigration;
+      if (!isObject(migration) ||
+          Object.keys(migration).some(function (key) {
+            return key !== 'status' && key !== 'completedAt';
+          }) ||
+          migration.status !== 'complete' ||
+          !validDate(migration.completedAt)) {
+        throw fail('backup_invalid_record');
+      }
+    }
   }
 
   function validateIdea(record, ownerId) {
@@ -197,25 +208,30 @@ function installBackupValidator(target, config) {
     if (!isObject(envelope.stores)) throw fail('backup_invalid_stores');
 
     var storeKeys = Object.keys(envelope.stores);
+    var introducedInVersion = {
+      ideas: 6,
+      media_assets: 7,
+      user_settings: 8
+    };
     var requiredStoreNames = storeNames.filter(function (name) {
-      if (envelope.schemaVersion < 7 && name === 'media_assets') return false;
-      if (envelope.schemaVersion < 8 && name === 'user_settings') return false;
-      return true;
+      return !introducedInVersion[name] ||
+        envelope.schemaVersion >= introducedInVersion[name];
     });
     for (var s = 0; s < requiredStoreNames.length; s++) {
-      if (!hasOwn(envelope.stores, requiredStoreNames[s]) ||
-          !Array.isArray(envelope.stores[requiredStoreNames[s]])) {
+      var requiredName = requiredStoreNames[s];
+      if (!hasOwn(envelope.stores, requiredName) ||
+          !Array.isArray(envelope.stores[requiredName])) {
         throw fail('backup_invalid_stores');
       }
     }
-    if (hasOwn(envelope.stores, 'ideas') && !Array.isArray(envelope.stores.ideas)) {
-      throw fail('backup_invalid_stores');
-    }
-    if (hasOwn(envelope.stores, 'drafts') && !Array.isArray(envelope.stores.drafts)) {
-      throw fail('backup_invalid_stores');
-    }
     for (var k = 0; k < storeKeys.length; k++) {
-      if (storeNames.indexOf(storeKeys[k]) === -1) throw fail('backup_unknown_store');
+      var storeName = storeKeys[k];
+      if (storeNames.indexOf(storeName) === -1) throw fail('backup_unknown_store');
+      if (!Array.isArray(envelope.stores[storeName])) throw fail('backup_invalid_stores');
+      if (introducedInVersion[storeName] &&
+          envelope.schemaVersion < introducedInVersion[storeName]) {
+        throw fail('backup_invalid_stores');
+      }
     }
 
     scanJson(envelope, 0, { count: 0 });

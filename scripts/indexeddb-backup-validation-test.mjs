@@ -78,6 +78,10 @@ v8Backup.stores.user_settings = [{
   profile: { name: 'User A' },
   settings: { theme: 'dark', language: 'my' },
   preferences: { compact_mode: 'true' },
+  legacySettingsMigration: {
+    status: 'complete',
+    completedAt: '2026-11-04T07:00:00.000Z'
+  },
   updatedAt: '2026-11-04T07:00:00.000Z'
 }];
 assert.equal(validateBackupEnvelope(v8Backup, ownerId).recordCount, 9);
@@ -95,8 +99,42 @@ for (const invalidSettings of [
   }, invalidSettings.ownerId === 'user-b' ? 'backup_owner_mismatch' : 'backup_invalid_record');
 }
 
+for (const invalidMarker of [
+  { status: 'pending', completedAt: '2026-11-04T07:00:00.000Z' },
+  { status: 'complete', completedAt: 'not-a-date' },
+  { status: 'complete', completedAt: '2026-11-04T07:00:00.000Z', extra: true },
+  ['complete', '2026-11-04T07:00:00.000Z']
+]) {
+  expectCode({
+    ...v8Backup,
+    stores: {
+      ...v8Backup.stores,
+      user_settings: [{
+        ...v8Backup.stores.user_settings[0],
+        legacySettingsMigration: invalidMarker
+      }]
+    }
+  }, 'backup_invalid_record');
+}
+
 const v7WithoutSettings = JSON.parse(JSON.stringify(currentBackup));
 assert.equal(validateBackupEnvelope(v7WithoutSettings, ownerId).recordCount, 8);
+
+const v6WithFutureMedia = JSON.parse(JSON.stringify(validBackup));
+v6WithFutureMedia.stores.media_assets = [];
+expectCode(v6WithFutureMedia, 'backup_invalid_stores');
+
+const v7MissingMedia = JSON.parse(JSON.stringify(currentBackup));
+delete v7MissingMedia.stores.media_assets;
+expectCode(v7MissingMedia, 'backup_invalid_stores');
+
+const v7WithFutureSettings = JSON.parse(JSON.stringify(currentBackup));
+v7WithFutureSettings.stores.user_settings = [];
+expectCode(v7WithFutureSettings, 'backup_invalid_stores');
+
+const v8MissingSettings = JSON.parse(JSON.stringify(v8Backup));
+delete v8MissingSettings.stores.user_settings;
+expectCode(v8MissingSettings, 'backup_invalid_stores');
 
 // Media Asset V1 accepts exactly the six contract fields.
 const validMediaAsset = currentBackup.stores.media_assets[0];
@@ -150,10 +188,14 @@ expectCode(validBackup, 'backup_owner_mismatch', 'other-user');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId: 'user-b', studio: 'short', data: {} }] } }, 'backup_owner_mismatch');
 expectCode({ ...validBackup, stores: { ...validBackup.stores, drafts: [{ id: 'd-2', ownerId, studio: 'unknown', data: {} }] } }, 'backup_invalid_record');
 const legacyBackup = JSON.parse(JSON.stringify(validBackup));
-delete legacyBackup.stores.drafts;
 delete legacyBackup.stores.ideas;
 legacyBackup.schemaVersion = 5;
-expectCode(legacyBackup, 'backup_invalid_stores');
+assert.equal(validateBackupEnvelope(legacyBackup, ownerId).recordCount, 6,
+  'Version 5 backups include drafts but predate ideas');
+
+const invalidV5Backup = JSON.parse(JSON.stringify(legacyBackup));
+invalidV5Backup.stores.ideas = [];
+expectCode(invalidV5Backup, 'backup_invalid_stores');
 const missingDraftsBackup = JSON.parse(JSON.stringify(validBackup));
 delete missingDraftsBackup.stores.drafts;
 expectCode(missingDraftsBackup, 'backup_invalid_stores');
