@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
 import { userSettingsRepositoryScript } from '../worker/src/frontend/storage/repositories/user-settings.js';
