@@ -789,6 +789,10 @@ console.log('\n--- Shared UI CSP Inline Style Contract ---');
     sharedSource.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
     sharedSource.includes("al.classList.toggle(\\'is-visible\\', !!d.is_admin)") &&
     !sharedSource.includes("al.style.display ="));
+  const adminLinkTags = [...sharedSource.matchAll(/<a\\b[^>]*\\bid="adminLink"[^>]*>/g)].map(([tag]) => tag);
+  check('Admin sidebar links have exactly one class attribute',
+    adminLinkTags.length === 2 &&
+    adminLinkTags.every((tag) => (tag.match(/\\bclass\\s*=/g) || []).length === 1));
   check('Story session Load More visibility uses a hidden CSS class',
     sharedSource.includes('class="aics-session-more is-hidden"') &&
     sharedSource.includes('.aics-app .aics-session-more.is-hidden{display:none;}') &&
