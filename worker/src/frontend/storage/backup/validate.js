@@ -134,7 +134,7 @@ function installBackupValidator(target, config) {
     if (!isObject(record) || record.id !== ownerId || record.ownerId !== ownerId) {
       throw fail('backup_owner_mismatch');
     }
-    var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'updatedAt'];
+    var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'legacySettingsMigration', 'updatedAt'];
     if (Object.keys(record).some(function (key) { return allowedTop.indexOf(key) === -1; })) {
       throw fail('backup_invalid_record');
     }
