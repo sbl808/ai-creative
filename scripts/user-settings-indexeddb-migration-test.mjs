@@ -98,6 +98,13 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
 const repositorySource = userSettingsRepositoryScript();
 assert.match(repositorySource, /migrateLegacy: function \(patch\)/,
   'repository must expose a dedicated legacy migration operation');
+const migrationMethodStart = repositorySource.indexOf('migrateLegacy: function (patch)');
+const idempotencyGuardIndex = repositorySource.indexOf("if (current && current.legacySettingsMigration && current.legacySettingsMigration.status === 'complete')", migrationMethodStart);
+const migrationMergeIndex = repositorySource.indexOf('__aicsFillMissingSettings(currentProfile, clean.profile)', migrationMethodStart);
+assert.ok(idempotencyGuardIndex > migrationMethodStart && idempotencyGuardIndex < migrationMergeIndex,
+  'completed legacy migrations must return before applying legacy values again');
+assert.match(repositorySource, /if \(current && current\.legacySettingsMigration && current\.legacySettingsMigration\.status === 'complete'\) \{\s*result = current;\s*return;\s*\}/,
+  'a completed migration must return the existing IndexedDB record without another write');
 assert.match(repositorySource, /legacySettingsMigration:\s*\{\s*status:\s*'complete'/,
   'migration completion marker must be persisted with the settings record');
 assert.match(repositorySource, /__aicsFillMissingSettings\(currentProfile, clean\.profile\)/);
