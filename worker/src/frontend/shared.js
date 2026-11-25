@@ -401,13 +401,17 @@ export function sidebarScript() {
     '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN }, cache: \'no-store\' })\n' +
     '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
     '      .then(function (legacy) {\n' +
-    '        var skippedCount = Number(legacy && legacy.migration && legacy.migration.skippedPreferences);\n' +
-    '        if (isFinite(skippedCount) && skippedCount > 0) skippedLegacyPreferences = Math.floor(skippedCount);\n' +
-    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
+    '        function isRecord(value) { return value !== null && typeof value === \'object\' && !Array.isArray(value); }\n' +
+    '        if (!isRecord(legacy) || !isRecord(legacy.profile) || typeof legacy.profile.name !== \'string\' ||\n' +
+    '            !isRecord(legacy.settings) || !isRecord(legacy.preferences) || !isRecord(legacy.migration) ||\n' +
+    '            !Number.isSafeInteger(legacy.migration.skippedPreferences) || legacy.migration.skippedPreferences < 0) {\n' +
+    '          throw new Error(\'legacy_settings_invalid_response\');\n' +
+    '        }\n' +
+    '        skippedLegacyPreferences = legacy.migration.skippedPreferences;\n' +
     '        return window.AICS_USER_SETTINGS.migrateLegacy({\n' +
-    '          profile: legacy.profile || {},\n' +
-    '          settings: legacy.settings || {},\n' +
-    '          preferences: legacy.preferences || {}\n' +
+    '          profile: legacy.profile,\n' +
+    '          settings: legacy.settings,\n' +
+    '          preferences: legacy.preferences\n' +
     '        });\n' +
     '      })\n' +
     '      .then(function () { return window.AICS_USER_SETTINGS.get(); })\n' +
