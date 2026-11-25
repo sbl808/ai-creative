@@ -132,7 +132,7 @@ assert.doesNotMatch(sharedSource, /settings: legacy\.settings \|\| \{\}/,
   'invalid or missing settings must not be silently replaced with an empty object');
 assert.doesNotMatch(sharedSource, /preferences: legacy\.preferences \|\| \{\}/,
   'invalid or missing preferences must not be silently replaced with an empty object');
-assert.match(sharedSource, /legacy\.migration && legacy\.migration\.skippedPreferences/,
+assert.match(sharedSource, /skippedLegacyPreferences = legacy\.migration\.skippedPreferences/,
   'client must read only the server-reported skipped preference count');
 assert.match(sharedSource, /skippedLegacyPreferences > 0 && typeof __sbToast/,
   'client must notify only when invalid legacy preferences were skipped');
