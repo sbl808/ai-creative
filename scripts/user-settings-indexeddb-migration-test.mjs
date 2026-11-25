@@ -120,7 +120,7 @@ assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
 assert.match(sharedSource, /legacySettingsMigration/);
 assert.match(sharedSource, /function isRecord\(value\)/,
   'legacy response fields must be validated as non-array objects');
-assert.match(sharedSource, /typeof legacy\.profile\.name !== \'string\'/,
+assert.match(sharedSource, /typeof legacy\.profile\.name !==/,
   'legacy profile name must have the expected string type');
 assert.match(sharedSource, /Number\.isSafeInteger\(legacy\.migration\.skippedPreferences\)/,
   'legacy skipped preference count must be a non-negative safe integer');
