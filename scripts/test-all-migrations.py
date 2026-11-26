@@ -138,6 +138,117 @@ def main():
         ).fetchone()[0] != 1:
             raise AssertionError("Plan catalog enabled/order index is missing")
 
+        expected_studios = {
+            "story", "content", "short", "image", "voice", "subtitle", "shop",
+        }
+        studio_rows = {
+            row[0]: row[1]
+            for row in db.execute("SELECT studio_id, enabled FROM studio_settings")
+        }
+        if studio_rows != {studio_id: 1 for studio_id in expected_studios}:
+            raise AssertionError(f"Unexpected Studio seeds: {studio_rows}")
+
+        expected_feature_access = {
+            "generate": "FREE",
+            "ideas.generate": "FREE",
+            "content.generate": "FREE",
+            "content.revise": "FREE",
+            "content.tts": "FREE",
+            "content.video": "FREE",
+            "content.video_image": "FREE",
+            "content.srt": "FREE",
+            "content.translate_srt": "FREE",
+            "story.generate": "FREE",
+            "story.revise": "FREE",
+            "story.video": "PRO",
+            "story.video_image": "PRO",
+            "short.generate": "FREE",
+            "short.revise": "FREE",
+            "short.video": "FREE",
+            "short.video_image": "FREE",
+            "image.prompt": "FREE",
+            "image.ad_prompt": "FREE",
+            "image.generate": "FREE",
+            "voice.tts": "FREE",
+            "voice.transcribe": "FREE",
+            "voice.srt": "PRO",
+            "voice.translate_srt": "PRO",
+            "subtitle.transcribe": "FREE",
+            "subtitle.srt": "PRO",
+            "subtitle.translate_srt": "PRO",
+            "shop.content_generate": "FREE",
+            "shop.content_revise": "FREE",
+            "shop.video_generate": "FREE",
+            "shop.video_image": "FREE",
+        }
+        feature_rows = {
+            row[0]: (row[1], row[2], row[3])
+            for row in db.execute(
+                "SELECT feature_id, enabled, access, limit_value FROM feature_settings"
+            )
+        }
+        expected_feature_rows = {
+            feature_id: (1, access, 0)
+            for feature_id, access in expected_feature_access.items()
+        }
+        if feature_rows != expected_feature_rows:
+            raise AssertionError(f"Unexpected Feature seeds: {feature_rows}")
+
+        canonical_model = db.execute(
+            "SELECT category, enabled, is_default, plan_access, provider, "
+            "capabilities_json, supported_tasks_json, status "
+            "FROM ai_models WHERE id='gemini-3.6-flash'"
+        ).fetchone()
+        expected_model = (
+            "transcribe", 1, 1, "FREE", "gemini",
+            '["audio-transcription","subtitle-generation","text-translation"]',
+            '["content.transcribe","voice.transcribe","subtitle.transcribe"]',
+            "active",
+        )
+        if canonical_model != expected_model:
+            raise AssertionError(f"Unexpected canonical transcription model seed: {canonical_model}")
+
+        legacy_model = db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE id='gemini-3.5-transcribe'"
+        ).fetchone()
+        if not legacy_model or legacy_model[0] != '["content.transcribe","voice.transcribe"]':
+            raise AssertionError(f"Legacy transcription model was not preserved: {legacy_model}")
+
+        # Re-applying 0011 must not overwrite persisted Admin settings or model overrides.
+        migration_0011 = MIGRATIONS_DIR / "0011_subtitle_platform_seed.sql"
+        db.execute(
+            "UPDATE studio_settings SET enabled=0, updated_at='admin-kept' "
+            "WHERE studio_id='subtitle'"
+        )
+        db.execute(
+            "UPDATE feature_settings SET enabled=0, access='PRO', limit_value=7, "
+            "updated_at='admin-kept' WHERE feature_id='subtitle.transcribe'"
+        )
+        db.execute(
+            "UPDATE ai_models SET enabled=0, is_default=0, "
+            "supported_tasks_json='[\"voice.transcribe\"]', updated_at='admin-kept' "
+            "WHERE id='gemini-3.6-flash'"
+        )
+        apply_migrations(db, [migration_0011])
+
+        preserved_studio = db.execute(
+            "SELECT enabled, updated_at FROM studio_settings WHERE studio_id='subtitle'"
+        ).fetchone()
+        preserved_feature = db.execute(
+            "SELECT enabled, access, limit_value, updated_at FROM feature_settings "
+            "WHERE feature_id='subtitle.transcribe'"
+        ).fetchone()
+        preserved_model = db.execute(
+            "SELECT enabled, is_default, supported_tasks_json, updated_at "
+            "FROM ai_models WHERE id='gemini-3.6-flash'"
+        ).fetchone()
+        if preserved_studio != (0, "admin-kept"):
+            raise AssertionError(f"Admin Studio override was overwritten: {preserved_studio}")
+        if preserved_feature != (0, "PRO", 7, "admin-kept"):
+            raise AssertionError(f"Admin Feature override was overwritten: {preserved_feature}")
+        if preserved_model != (0, 0, '["voice.transcribe"]', "admin-kept"):
+            raise AssertionError(f"Admin model override was overwritten: {preserved_model}")
+
         print("=== PLATFORM MIGRATIONS OFFLINE RESULT: PASS ===")
         print(
             f"Applied {len(migration_paths)} Platform SQL migration files twice "
