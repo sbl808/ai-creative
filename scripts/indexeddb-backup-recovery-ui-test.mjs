@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { SETTINGS_HTML } from '../worker/src/frontend/settings.js';
 import { backupRecoveryPanelHtml, backupRecoveryUiScript } from '../worker/src/frontend/storage/backup/recovery-ui.js';
+import { BACKUP_STORE_NAMES } from '../worker/src/frontend/storage/backup/format.js';
 
 const panel = backupRecoveryPanelHtml();
 const script = backupRecoveryUiScript();
@@ -25,16 +26,17 @@ assert.match(script, /AICS_BACKUP\.download/);
 assert.match(script, /AICS_BACKUP_IMPORT\.validateFile/);
 assert.match(script, /AICS_BACKUP_IMPORT\.restore/);
 
-const expectedBackupStores = [
-  'creations', 'projects', 'studio_sessions', 'studio_handoffs',
-  'session_results', 'ideas', 'drafts', 'media_assets'
-];
-for (const storeName of expectedBackupStores) {
-  assert.ok(
-    script.includes("'" + storeName + "'"),
-    'Backup recovery preview and confirmation must include ' + storeName
-  );
-}
+const expectedBackupStores = BACKUP_STORE_NAMES;
+assert.equal(expectedBackupStores.length, 9, 'canonical backup store list must contain all nine stores');
+assert.ok(expectedBackupStores.includes('user_settings'), 'canonical backup store list must include user_settings');
+assert.ok(
+  script.includes('var storeNames = ' + JSON.stringify(BACKUP_STORE_NAMES) + ';'),
+  'recovery UI store list must be generated from the canonical export list, including future additions'
+);
+assert.ok(
+  script.includes(JSON.stringify(expectedBackupStores)),
+  'recovery UI must embed the complete canonical store list using its generated JSON representation'
+);
 assert.match(script, /storeNames\.map\(function \(name\)/);
 assert.match(script, /storeNames\.reduce\(function \(total, name\)/);
 
@@ -152,18 +154,18 @@ assert.equal(modernHarness.nodes.get('backup-preview').hidden, false, 'valid bac
 assert.equal(
   modernHarness.nodes.get('backup-preview-counts').textContent,
   expectedBackupStores.map((name, index) => name + ': ' + (index + 1)).join(' · '),
-  'preview must show the correct record count for all eight stores'
+  'preview must show the correct record count for all nine canonical stores'
 );
 assert.match(
   modernHarness.nodes.get('backup-preview-summary').textContent,
-  /စုစုပေါင်း: 36 ခု/,
+  /စုစုပေါင်း: 45 ခု/,
   'preview summary must show the combined record count'
 );
 assert.equal(modernHarness.nodes.get('backup-restore').disabled, false);
 
 await modernHarness.clickRestore();
 assert.equal(modernHarness.calls.confirmations.length, 1, 'Restore must request confirmation');
-assert.match(modernHarness.calls.confirmations[0], /ဒေတာ 36 ခု/);
+assert.match(modernHarness.calls.confirmations[0], /ဒေတာ 45 ခု/);
 assert.equal(modernHarness.calls.restore.length, 0, 'canceling confirmation must not restore data');
 assert.equal(modernHarness.nodes.get('backup-restore').disabled, false);
 
@@ -258,7 +260,7 @@ assert.equal(
 assert.equal(clearHarness.calls.restore.length, 0);
 
 const legacyStores = Object.fromEntries(
-  expectedBackupStores.filter(name => name !== 'media_assets')
+  expectedBackupStores.filter(name => name !== 'media_assets' && name !== 'user_settings')
     .map((name, index) => [name, Array.from({ length: index + 1 }, (_, item) => ({ id: name + '-' + item }))])
 );
 const legacyBackup = {
@@ -272,8 +274,8 @@ const legacyHarness = createRecoveryHarness(legacyBackup);
 await legacyHarness.selectBackup();
 assert.equal(
   legacyHarness.nodes.get('backup-preview-counts').textContent,
-  expectedBackupStores.map(name => name + ': ' + (name === 'media_assets' ? 0 : legacyStores[name].length)).join(' · '),
-  'legacy backups without media_assets must show zero for that store'
+  expectedBackupStores.map(name => name + ': ' + (legacyStores[name] ? legacyStores[name].length : 0)).join(' · '),
+  'legacy backups missing media_assets and user_settings must show zero for both stores'
 );
 assert.match(
   legacyHarness.nodes.get('backup-preview-summary').textContent,

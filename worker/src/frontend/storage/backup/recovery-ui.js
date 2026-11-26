@@ -31,9 +31,11 @@ const PANEL_HTML = `
   <p class="hint" style="margin-top:18px;">သတိပြုရန် — Persistence ခွင့်ပြုချက်သည် ဒေတာမပျောက်ရန် အာမခံချက်မဟုတ်ပါ။ Safari အပါအဝင် Browser အချို့တွင် Storage ဖယ်ရှားခံရနိုင်သည်။ ဤဒေတာများသည် စက်တစ်ခုနှင့်တစ်ခု အလိုအလျောက် Sync မလုပ်ပါ။</p>
 </section>`;
 
+import { BACKUP_STORE_NAMES } from './format.js';
+
 const SCRIPT = String.raw`(function () {
   var pendingBackup = null;
-  var storeNames = ['creations', 'projects', 'studio_sessions', 'studio_handoffs', 'session_results', 'ideas', 'drafts', 'media_assets'];
+  var storeNames = ${JSON.stringify(BACKUP_STORE_NAMES)};
   function byId(id) { return document.getElementById(id); }
   function message(text, isError) {
     var node = byId('backup-recovery-message');
