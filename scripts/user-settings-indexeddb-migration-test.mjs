@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
 import { userSettingsRepositoryScript } from '../worker/src/frontend/storage/repositories/user-settings.js';
@@ -98,6 +99,13 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
 const repositorySource = userSettingsRepositoryScript();
 assert.match(repositorySource, /migrateLegacy: function \(patch\)/,
   'repository must expose a dedicated legacy migration operation');
+const migrationMethodStart = repositorySource.indexOf('migrateLegacy: function (patch)');
+const idempotencyGuardIndex = repositorySource.indexOf("if (current && current.legacySettingsMigration && current.legacySettingsMigration.status === 'complete')", migrationMethodStart);
+const migrationMergeIndex = repositorySource.indexOf('__aicsFillMissingSettings(currentProfile, clean.profile)', migrationMethodStart);
+assert.ok(idempotencyGuardIndex > migrationMethodStart && idempotencyGuardIndex < migrationMergeIndex,
+  'completed legacy migrations must return before applying legacy values again');
+assert.match(repositorySource, /if \(current && current\.legacySettingsMigration && current\.legacySettingsMigration\.status === 'complete'\) \{\s*result = current;\s*return;\s*\}/,
+  'a completed migration must return the existing IndexedDB record without another write');
 assert.match(repositorySource, /legacySettingsMigration:\s*\{\s*status:\s*'complete'/,
   'migration completion marker must be persisted with the settings record');
 assert.match(repositorySource, /__aicsFillMissingSettings\(currentProfile, clean\.profile\)/);
@@ -141,4 +149,194 @@ assert.match(loginSource, /\$\{userSettingsRepositoryScript\(\)\}/);
 assert.doesNotMatch(loginSource, /\/api\/auth\/(?:signup|signin)/);
 assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: AICS_OAUTH_PROFILE_NAME \} \}\)/);
 
-console.log('User Settings IndexedDB migration contract tests passed.');
+// Exercise the repository migration against a transaction-aware IndexedDB test double.
+function createMigrationTestDatabase(initialRecord, options = {}) {
+  let persisted = initialRecord ? JSON.parse(JSON.stringify(initialRecord)) : null;
+  let putCalls = 0;
+  let failNextPut = options.failNextPut === true;
+
+  const database = {
+    transaction(storeNames, mode) {
+      assert.equal(mode, 'readwrite');
+      assert.deepEqual(Array.isArray(storeNames) ? storeNames : [storeNames], ['user_settings']);
+      let working = persisted ? JSON.parse(JSON.stringify(persisted)) : null;
+      const tx = {
+        pending: 0,
+        aborted: false,
+        completionQueued: false,
+        error: null,
+        oncomplete: null,
+        onerror: null,
+        onabort: null,
+        abort() {
+          if (this.aborted) return;
+          this.aborted = true;
+          queueMicrotask(() => { if (this.onabort) this.onabort(); });
+        },
+        scheduleCompletion() {
+          if (this.pending || this.completionQueued || this.aborted) return;
+          this.completionQueued = true;
+          queueMicrotask(() => {
+            this.completionQueued = false;
+            if (this.pending || this.aborted) return;
+            persisted = working ? JSON.parse(JSON.stringify(working)) : null;
+            if (this.oncomplete) this.oncomplete();
+          });
+        },
+        objectStore(name) {
+          assert.equal(name, 'user_settings');
+          return {
+            get(key) {
+              const request = { result: undefined, error: null, onsuccess: null, onerror: null };
+              tx.pending += 1;
+              queueMicrotask(() => {
+                if (tx.aborted) {
+                  tx.pending -= 1;
+                  tx.scheduleCompletion();
+                  return;
+                }
+                request.result = working && working.id === key
+                  ? JSON.parse(JSON.stringify(working))
+                  : undefined;
+                if (request.onsuccess) request.onsuccess();
+                tx.pending -= 1;
+                tx.scheduleCompletion();
+              });
+              return request;
+            },
+            put(value) {
+              if (failNextPut) {
+                failNextPut = false;
+                throw new Error('simulated IndexedDB write failure');
+              }
+              putCalls += 1;
+              const request = { result: undefined, error: null, onsuccess: null, onerror: null };
+              tx.pending += 1;
+              queueMicrotask(() => {
+                if (tx.aborted) {
+                  tx.pending -= 1;
+                  tx.scheduleCompletion();
+                  return;
+                }
+                working = JSON.parse(JSON.stringify(value));
+                request.result = value.id;
+                if (request.onsuccess) request.onsuccess();
+                tx.pending -= 1;
+                tx.scheduleCompletion();
+              });
+              return request;
+            }
+          };
+        }
+      };
+      return tx;
+    }
+  };
+
+  return {
+    database,
+    getRecord: () => persisted ? JSON.parse(JSON.stringify(persisted)) : null,
+    get putCalls() { return putCalls; }
+  };
+}
+
+function createMigrationRepository(testDatabase) {
+  const window = {};
+  const context = {
+    window,
+    Promise,
+    Object,
+    Array,
+    String,
+    Date,
+    Error,
+    __aicsRequireUserId: () => 'user-a',
+    __aicsDbOpen: () => Promise.resolve(testDatabase.database),
+    __aicsStorageError(code) {
+      const error = new Error(code);
+      error.code = code;
+      return error;
+    }
+  };
+  vm.runInNewContext(userSettingsRepositoryScript(), context, { timeout: 1000 });
+  return window.AICS_USER_SETTINGS;
+}
+
+const migrationDb = createMigrationTestDatabase({
+  id: 'user-a',
+  ownerId: 'user-a',
+  profile: { name: 'Existing Name' },
+  settings: { theme: 'dark' },
+  preferences: { compact_mode: 'false' },
+  updatedAt: '2026-11-01T00:00:00.000Z'
+});
+const migrationRepository = createMigrationRepository(migrationDb);
+const migratedRecord = await migrationRepository.migrateLegacy({
+  profile: { name: 'Legacy Name' },
+  settings: { theme: 'light', default_studio: 'story', default_voice: 'Kore' },
+  preferences: { compact_mode: 'true', show_tips: 'true' }
+});
+assert.equal(migratedRecord.profile.name, 'Existing Name',
+  'legacy profile data must not overwrite an existing user value');
+assert.equal(migratedRecord.settings.theme, 'dark',
+  'legacy settings must not overwrite an existing user value');
+assert.equal(migratedRecord.settings.default_studio, 'story',
+  'missing settings must be filled from the legacy source');
+assert.equal(migratedRecord.settings.default_voice, 'Kore');
+assert.equal(migratedRecord.preferences.compact_mode, 'false',
+  'legacy preferences must not overwrite an existing user value');
+assert.equal(migratedRecord.preferences.show_tips, 'true',
+  'missing preferences must be filled from the legacy source');
+assert.equal(migratedRecord.legacySettingsMigration.status, 'complete');
+assert.equal(migrationDb.putCalls, 1);
+
+const retryResult = await migrationRepository.migrateLegacy({
+  profile: { name: 'A later legacy value' },
+  settings: { theme: 'light', default_studio: 'short' },
+  preferences: { compact_mode: 'true', show_tips: 'false' }
+});
+assert.equal(retryResult.profile.name, 'Existing Name');
+assert.equal(retryResult.settings.default_studio, 'story');
+assert.equal(retryResult.preferences.show_tips, 'true');
+assert.equal(migrationDb.putCalls, 1,
+  'a completed migration retry must not write to IndexedDB again');
+assert.equal(JSON.stringify(retryResult), JSON.stringify(migratedRecord),
+  'a completed migration retry must return the original migrated record');
+
+const failedAttemptDb = createMigrationTestDatabase({
+  id: 'user-a',
+  ownerId: 'user-a',
+  profile: { name: 'Keep This Name' },
+  settings: { theme: 'dark' },
+  preferences: {}
+}, { failNextPut: true });
+const failedAttemptRepository = createMigrationRepository(failedAttemptDb);
+await assert.rejects(
+  failedAttemptRepository.migrateLegacy({
+    profile: { name: 'Legacy Name' },
+    settings: { theme: 'light', default_voice: 'Kore' },
+    preferences: { compact_mode: 'true' }
+  }),
+  error => error && error.code === 'indexeddb_write_failed'
+);
+assert.equal(failedAttemptDb.getRecord().profile.name, 'Keep This Name',
+  'a failed migration write must leave the existing IndexedDB record unchanged');
+assert.equal(failedAttemptDb.getRecord().legacySettingsMigration, undefined,
+  'a failed migration must not persist the completion marker');
+
+const successfulRetry = await failedAttemptRepository.migrateLegacy({
+  profile: { name: 'Legacy Name' },
+  settings: { theme: 'light', default_voice: 'Kore' },
+  preferences: { compact_mode: 'true' }
+});
+assert.equal(successfulRetry.profile.name, 'Keep This Name',
+  'retry after a failed write must still preserve existing values');
+assert.equal(successfulRetry.settings.theme, 'dark');
+assert.equal(successfulRetry.settings.default_voice, 'Kore');
+assert.equal(successfulRetry.preferences.compact_mode, 'true');
+assert.equal(successfulRetry.legacySettingsMigration.status, 'complete');
+assert.equal(failedAttemptDb.putCalls, 1,
+  'the failed write must not count as a persisted write; the successful retry writes once');
+
+
+console.log('User Settings IndexedDB migration contract and runtime tests passed.');
