@@ -377,20 +377,27 @@ export function sidebarScript() {
     '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
     '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
     '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
-    '    if (record) return record;\n' +
-    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN } })\n' +
+    '    if (record && record.legacySettingsMigration && record.legacySettingsMigration.status === \'complete\') return record;\n' +
+    '    var existingRecord = record;\n' +
+    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN }, cache: \'no-store\' })\n' +
     '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
     '      .then(function (legacy) {\n' +
     '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
-    '        return window.AICS_USER_SETTINGS.save({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
-    '      });\n' +
+    '        return window.AICS_USER_SETTINGS.migrateLegacy({ profile: legacy.profile || {}, settings: legacy.settings || {}, preferences: legacy.preferences || {} });\n' +
+    '      })\n' +
+    '      .then(function () { return window.AICS_USER_SETTINGS.get(); })\n' +
+    '      .then(function (savedRecord) {\n' +
+    '        if (!savedRecord || !savedRecord.legacySettingsMigration || savedRecord.legacySettingsMigration.status !== \'complete\') throw new Error(\'legacy_settings_persistence_unverified\');\n' +
+    '        return savedRecord;\n' +
+    '      })\n' +
+    '      .catch(function (error) { if (existingRecord) return existingRecord; throw error; });\n' +
     '  }).then(function (record) {\n' +
     '    try { if (record && record.settings && record.settings.default_model) localStorage.setItem(\'aics_default_model\', record.settings.default_model); else localStorage.removeItem(\'aics_default_model\'); } catch (e) {}\n' +
     '    return record;\n' +
     '  }).catch(function (error) { window.__aicsUserSettingsPromise = null; throw error; });\n' +
     '  return window.__aicsUserSettingsPromise;\n' +
     '};\n' +
-    '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
+        '// Phase 12-fix — Remember Session: localStorage မရှိသော်လည်း Cookie ရှိလျှင် Token ပြန်ရယူသည် (Rule 14)\n' +
     'if (!SB_TOKEN) {\n' +
     '  fetch(\'/api/auth/session\').then(function (r) { return r.json(); }).then(function (d) {\n' +
     '    if (d && d.token) {\n' +
