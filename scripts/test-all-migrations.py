@@ -5,6 +5,7 @@ Uses an in-memory SQLite database only. This does NOT connect to or validate
 the state of any remote Cloudflare D1 database.
 """
 from pathlib import Path
+import json
 import sqlite3
 import sys
 
@@ -211,8 +212,78 @@ def main():
         legacy_model = db.execute(
             "SELECT supported_tasks_json FROM ai_models WHERE id='gemini-3.5-transcribe'"
         ).fetchone()
-        if not legacy_model or legacy_model[0] != '["content.transcribe","voice.transcribe"]':
+        if not legacy_model or legacy_model[0] != '["content.transcribe","voice.transcribe","subtitle.transcribe"]':
             raise AssertionError(f"Legacy transcription model was not preserved: {legacy_model}")
+
+        # Existing installations may have persisted model metadata from before
+        # subtitle.transcribe was added. Migration 0012 must append the task without
+        # overwriting Admin-managed model settings or duplicating existing tasks.
+        migration_0012 = MIGRATIONS_DIR / "0012_subtitle_transcribe_task_metadata.sql"
+        db.execute(
+            "UPDATE ai_models SET supported_tasks_json=?, enabled=0, is_default=0, "
+            "plan_access='PRO', provider='custom', capabilities_json='[\"custom-capability\"]', "
+            "status='deprecated', updated_at='admin-kept' WHERE id='gemini-3.6-flash'",
+            ('["content.transcribe","voice.transcribe"]',),
+        )
+        db.execute(
+            "UPDATE ai_models SET supported_tasks_json=? WHERE id='gemini-3.5-transcribe'",
+            ('["voice.transcribe"]',),
+        )
+        db.execute(
+            "INSERT INTO ai_models "
+            "(id, name, category, supported_tasks_json) "
+            "VALUES ('m-invalid-transcribe', 'Invalid metadata', 'transcribe', 'not-json')"
+        )
+        voice_before = db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE category='voice' LIMIT 1"
+        ).fetchone()
+        apply_migrations(db, [migration_0012])
+
+        canonical_after = db.execute(
+            "SELECT supported_tasks_json, enabled, is_default, plan_access, provider, "
+            "capabilities_json, status, updated_at "
+            "FROM ai_models WHERE id='gemini-3.6-flash'"
+        ).fetchone()
+        expected_canonical_after = (
+            '["content.transcribe","voice.transcribe","subtitle.transcribe"]',
+            0, 0, "PRO", "custom", '["custom-capability"]', "deprecated", "admin-kept",
+        )
+        if canonical_after != expected_canonical_after:
+            raise AssertionError(
+                f"Subtitle task migration did not preserve canonical model metadata: {canonical_after}"
+            )
+
+        legacy_tasks = json.loads(db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE id='gemini-3.5-transcribe'"
+        ).fetchone()[0])
+        if legacy_tasks != ["voice.transcribe", "subtitle.transcribe"]:
+            raise AssertionError(f"Legacy model task list was not extended safely: {legacy_tasks}")
+
+        invalid_tasks = db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE id='m-invalid-transcribe'"
+        ).fetchone()[0]
+        if invalid_tasks != "not-json":
+            raise AssertionError("Invalid task metadata must remain untouched for review")
+
+        voice_after = db.execute(
+            "SELECT supported_tasks_json FROM ai_models WHERE category='voice' LIMIT 1"
+        ).fetchone()
+        if voice_after != voice_before:
+            raise AssertionError("Subtitle migration changed a non-transcribe model")
+
+        migrated_snapshot = db.execute(
+            "SELECT id, supported_tasks_json, enabled, is_default, plan_access, provider, "
+            "capabilities_json, status, updated_at FROM ai_models ORDER BY id"
+        ).fetchall()
+        apply_migrations(db, [migration_0012])
+        rerun_snapshot = db.execute(
+            "SELECT id, supported_tasks_json, enabled, is_default, plan_access, provider, "
+            "capabilities_json, status, updated_at FROM ai_models ORDER BY id"
+        ).fetchall()
+        if rerun_snapshot != migrated_snapshot:
+            raise AssertionError("Subtitle task migration is not idempotent")
+        if json.loads(canonical_after[0]).count("subtitle.transcribe") != 1:
+            raise AssertionError("Subtitle task must appear exactly once per model")
 
         # Re-applying 0011 must not overwrite persisted Admin settings or model overrides.
         migration_0011 = MIGRATIONS_DIR / "0011_subtitle_platform_seed.sql"
