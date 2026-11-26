@@ -250,7 +250,7 @@ export function themeControllerScript(options = {}) {
   ].join('\n');
 }
 function sidebarSessionHistoryScript() {
-  return String.raw\`
+  return String.raw`
 // ===== Story Studio Recent Session History =====
 (function () {
   if (typeof document === 'undefined') return;
@@ -394,7 +394,7 @@ function sidebarSessionHistoryScript() {
     }
   });
 })();
-\`;
+`;
 }
 function oauthProfileNameBootstrapScript() {
   return String.raw`var AICS_OAUTH_PROFILE_NAME = (function () {
