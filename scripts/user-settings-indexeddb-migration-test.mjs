@@ -133,56 +133,30 @@ assert.ok(persistedTranscriber.supported_tasks.includes('content.transcribe'));
 assert.ok(persistedTranscriber.supported_tasks.includes('subtitle.transcribe'),
   'legacy persisted transcribe models must gain Subtitle support without losing configured tasks');
 
-const studioRows = new Map([['story', 0]]);
-const featureRows = new Map([['story.generate', { enabled: 0, access: 'FREE', limit_value: 0 }]]);
-const seedSql = [];
-const seedEnv = {
+
+const missingRowEnv = {
   DB: {
     prepare(sql) {
-      seedSql.push(sql);
-      const statement = {
+      return {
         values: [],
         bind(...values) { this.values = values; return this; },
-        async run() {
-          if (sql.includes('INSERT OR IGNORE INTO studio_settings')) {
-            const [id, enabled] = this.values;
-            if (!studioRows.has(id)) studioRows.set(id, enabled);
-            return { meta: { changes: 1 } };
-          }
-          if (sql.includes('INSERT OR IGNORE INTO feature_settings')) {
-            const [id, access] = this.values;
-            if (!featureRows.has(id)) featureRows.set(id, { enabled: 1, access, limit_value: 0 });
-            return { meta: { changes: 1 } };
-          }
-          return { meta: { changes: 0 } };
-        },
+        async run() { return { meta: { changes: 0 } }; },
         async all() {
           if (sql.includes('FROM studio_settings')) {
-            return { results: [...studioRows].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
+            return { results: [{ studio_id: 'story', enabled: 0 }] };
           }
           return { results: [] };
         },
-        async first() {
-          if (sql.includes('FROM feature_settings WHERE feature_id')) {
-            const row = featureRows.get(this.values[0]);
-            return row || null;
-          }
-          return null;
-        }
+        async first() { return null; }
       };
-      return statement;
     }
   }
 };
-const seededStudios = await getStudioSettings(seedEnv);
-assert.equal(seededStudios.story, false, 'an existing admin-disabled Studio must stay disabled');
-assert.equal(seededStudios.subtitle, true, 'a newly registered Studio must be seeded for existing installations');
-const newSubtitleFeature = await checkFeature(seedEnv, 'subtitle.transcribe', 'FREE', '1');
-assert.deepEqual(newSubtitleFeature, { ok: true }, 'new Subtitle feature must be seeded with registry defaults');
-const existingDisabledFeature = await checkFeature(seedEnv, 'story.generate', 'FREE', '1');
-assert.deepEqual(existingDisabledFeature, { ok: false, reason: 'disabled' },
-  'INSERT OR IGNORE must preserve an existing admin-disabled feature');
-assert.ok(seedSql.some((sql) => sql.includes('INSERT OR IGNORE INTO studio_settings')));
-assert.ok(seedSql.some((sql) => sql.includes('INSERT OR IGNORE INTO feature_settings')));
-
+const missingStudioRows = await getStudioSettings(missingRowEnv);
+assert.equal(missingStudioRows.story, false, 'existing Admin-disabled Studio must remain disabled');
+assert.equal(missingStudioRows.subtitle, false,
+  'a missing Studio row after settings persistence must fail closed; initialization is explicit Admin-only');
+const missingSubtitleFeature = await checkFeature(missingRowEnv, 'subtitle.transcribe', 'FREE', '1');
+assert.deepEqual(missingSubtitleFeature, { ok: false, reason: 'disabled' },
+  'a missing Feature row after settings persistence must fail closed until explicit initialization');
 console.log('User Settings IndexedDB migration contract tests passed.');
