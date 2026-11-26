@@ -237,20 +237,24 @@ await check('AI model metadata resolver exposes provider and enforces active tas
 await check('AI model API applies Studio task filtering', async () => {
   const compatible = await get('/api/ai-models?category=text&task=story.text', await withToken());
   const incompatible = await get('/api/ai-models?category=voice&task=story.text', await withToken());
-  const subtitleCompatible = await get('/api/ai-models?category=transcribe&task=voice.transcribe', await withToken());
-  const subtitleIncompatible = await get('/api/ai-models?category=transcribe&task=subtitle.transcribe', await withToken());
+  const subtitleCompatible = await get('/api/ai-models?category=transcribe&task=subtitle.transcribe', await withToken());
+  const voiceCompatible = await get('/api/ai-models?category=transcribe&task=voice.transcribe', await withToken());
+  const subtitleIncompatible = await get('/api/ai-models?category=transcribe&task=voice.voice', await withToken());
   const good = await compatible.json();
   const bad = await incompatible.json();
   const subtitleGood = await subtitleCompatible.json();
+  const voiceGood = await voiceCompatible.json();
   const subtitleBad = await subtitleIncompatible.json();
   return {
     ok: compatible.status === 200 && incompatible.status === 200 &&
       good.items.length > 0 && good.items.every(m => m.category === 'text') &&
       bad.items.length === 0 &&
-      subtitleCompatible.status === 200 && subtitleIncompatible.status === 200 &&
+      subtitleCompatible.status === 200 && voiceCompatible.status === 200 &&
+      subtitleIncompatible.status === 200 &&
       subtitleGood.items.length > 0 && subtitleGood.items.every(m => m.category === 'transcribe') &&
+      voiceGood.items.length > 0 && voiceGood.items.every(m => m.category === 'transcribe') &&
       subtitleBad.items.length === 0,
-    msg: `compatible=${good.items.length} incompatible=${bad.items.length} subtitleCompatible=${subtitleGood.items.length} subtitleWrongTask=${subtitleBad.items.length}`,
+    msg: `compatible=${good.items.length} incompatible=${bad.items.length} subtitleCompatible=${subtitleGood.items.length} voiceCompatible=${voiceGood.items.length} subtitleWrongTask=${subtitleBad.items.length}`,
   };
 });
 
@@ -1189,7 +1193,7 @@ await check('GET /app/subtitle renders Subtitle UI with BYOK and IndexedDB save 
   const translationRequest = translationRequestStart >= 0 && translationRequestEnd > translationRequestStart ? actionSource.slice(translationRequestStart, translationRequestEnd) : '';
   return {
     ok: r.status === 200 && body.includes('Subtitle Studio') &&
-      body.includes('data-task="voice.transcribe"') &&
+      body.includes('data-task="subtitle.transcribe"') &&
       sharedSource.includes('data-task') && sharedSource.includes('opts.modelTask') &&
       actionSource.includes('function subtitleSelectedModel()') &&
       audioRequest.includes('model: subtitleSelectedModel()') &&
