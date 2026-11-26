@@ -250,7 +250,7 @@ export function themeControllerScript(options = {}) {
   ].join('\n');
 }
 function sidebarSessionHistoryScript() {
-  return String.raw`
+  return String.raw\`
 // ===== Story Studio Recent Session History =====
 (function () {
   if (typeof document === 'undefined') return;
@@ -259,16 +259,11 @@ function sidebarSessionHistoryScript() {
 
   var listNode = document.getElementById('aicsSessionHistoryList');
   var moreButton = document.getElementById('aicsSessionLoadMore');
+  if (!listNode) return;
   var cursor = null;
   var loading = false;
   var hasMore = false;
   var pageSize = 10;
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
-    });
-  }
 
   function formatDate(value) {
     var date = new Date(value);
@@ -282,26 +277,46 @@ function sidebarSessionHistoryScript() {
     }
   }
 
+  function renderMessage(message) {
+    listNode.textContent = '';
+    var messageNode = document.createElement('div');
+    messageNode.className = 'aics-session-muted';
+    messageNode.textContent = message;
+    listNode.appendChild(messageNode);
+  }
+
   function renderItems(items, append) {
-    if (!append) listNode.innerHTML = '';
+    if (!append) listNode.textContent = '';
     if (!items || !items.length) {
       if (!append && !listNode.children.length) {
-        listNode.innerHTML = '<div class="aics-session-muted">Session မရှိသေးပါ</div>';
+        renderMessage('Session မရှိသေးပါ');
       }
       return;
     }
 
-    var html = '';
     items.forEach(function (session) {
-      html += '<button type="button" class="aics-session-item" data-session-id="' +
-        escapeHtml(session.id) + '" data-aics-sidebar-action="open-story-session" title="' +
-        escapeHtml(session.title || 'Untitled Story') + '">' +
-        '<span class="aics-session-title">' + escapeHtml(session.title || 'Untitled Story') + '</span>' +
-        '<span class="aics-session-date">' + escapeHtml(formatDate(session.updatedAt)) + '</span>' +
-        '</button>';
+      if (!session || typeof session !== 'object') return;
+      var title = String(session.title || 'Untitled Story');
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'aics-session-item';
+      // Delegated event contract: data-aics-sidebar-action="open-story-session"
+      button.setAttribute('data-session-id', String(session.id == null ? '' : session.id));
+      button.setAttribute('data-aics-sidebar-action', 'open-story-session');
+      button.title = title;
+
+      var titleNode = document.createElement('span');
+      titleNode.className = 'aics-session-title';
+      titleNode.textContent = title;
+
+      var dateNode = document.createElement('span');
+      dateNode.className = 'aics-session-date';
+      dateNode.textContent = formatDate(session.updatedAt);
+
+      button.appendChild(titleNode);
+      button.appendChild(dateNode);
+      listNode.appendChild(button);
     });
-    if (append) listNode.insertAdjacentHTML('beforeend', html);
-    else listNode.innerHTML = html;
   }
 
   function loadPage(append) {
@@ -310,7 +325,7 @@ function sidebarSessionHistoryScript() {
     if (!append) {
       cursor = null;
       hasMore = false;
-      listNode.innerHTML = '<div class="aics-session-muted">Loading...</div>';
+      renderMessage('Loading...');
     }
     if (moreButton) moreButton.disabled = true;
 
@@ -325,7 +340,7 @@ function sidebarSessionHistoryScript() {
       if (moreButton) moreButton.classList.toggle('is-hidden', !hasMore);
     }).catch(function (error) {
       console.error('Story session history load failed:', error);
-      if (!append) listNode.innerHTML = '<div class="aics-session-muted">History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။</div>';
+      if (!append) renderMessage('History ဖတ်မရပါ။ ပြန်ဖွင့်ကြည့်ပါ။');
       if (moreButton) moreButton.classList.add('is-hidden');
     }).then(function () {
       loading = false;
@@ -379,9 +394,8 @@ function sidebarSessionHistoryScript() {
     }
   });
 })();
-`;
+\`;
 }
-
 function oauthProfileNameBootstrapScript() {
   return String.raw`var AICS_OAUTH_PROFILE_NAME = (function () {
   try {
