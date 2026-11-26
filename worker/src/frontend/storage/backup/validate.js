@@ -134,7 +134,7 @@ function installBackupValidator(target, config) {
     if (!isObject(record) || record.id !== ownerId || record.ownerId !== ownerId) {
       throw fail('backup_owner_mismatch');
     }
-    var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'updatedAt'];
+    var allowedTop = ['id', 'ownerId', 'profile', 'settings', 'preferences', 'updatedAt', 'legacySettingsMigration'];
     if (Object.keys(record).some(function (key) { return allowedTop.indexOf(key) === -1; })) {
       throw fail('backup_invalid_record');
     }
@@ -156,6 +156,14 @@ function installBackupValidator(target, config) {
       return !/^[a-zA-Z0-9_]{1,32}$/.test(key) || typeof preferences[key] !== 'string' || preferences[key].length > 500;
     })) throw fail('backup_invalid_record');
     optionalDate(record, 'updatedAt');
+    if (hasOwn(record, 'legacySettingsMigration')) {
+      var migration = record.legacySettingsMigration;
+      if (!isObject(migration) || migration.status !== 'complete' ||
+          Object.keys(migration).some(function (key) { return key !== 'status' && key !== 'completedAt'; })) {
+        throw fail('backup_invalid_record');
+      }
+      optionalDate(migration, 'completedAt');
+    }
   }
 
   function validateIdea(record, ownerId) {
