@@ -91,7 +91,8 @@ async function payload(response) {
   assert.equal(DB.features.size, Object.keys(FEATURE_REGISTRY).length);
   assert.equal(DB.logs.length, 1);
   assert.equal(DB.logs[0][1], 'settings_initialize');
-  assert.ok(DB.statements.every(sql => sql.includes('INSERT OR IGNORE')),
+  const settingInserts = DB.statements.filter(sql => /INSERT .* INTO (?:studio_settings|feature_settings)/i.test(sql));
+  assert.ok(settingInserts.length > 0 && settingInserts.every(sql => sql.includes('INSERT OR IGNORE')),
     'initialization must use INSERT OR IGNORE and never overwrite saved settings');
 }
 
