@@ -33,12 +33,10 @@ assert.ok(
   script.includes('var storeNames = ' + JSON.stringify(BACKUP_STORE_NAMES) + ';'),
   'recovery UI store list must be generated from the canonical export list, including future additions'
 );
-for (const storeName of expectedBackupStores) {
-  assert.ok(
-    script.includes("'" + storeName + "'"),
-    'Backup recovery preview and confirmation must include canonical store ' + storeName
-  );
-}
+assert.ok(
+  script.includes(JSON.stringify(expectedBackupStores)),
+  'recovery UI must embed the complete canonical store list using its generated JSON representation'
+);
 assert.match(script, /storeNames\.map\(function \(name\)/);
 assert.match(script, /storeNames\.reduce\(function \(total, name\)/);
 
