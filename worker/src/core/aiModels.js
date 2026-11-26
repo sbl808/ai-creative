@@ -10,13 +10,21 @@ function parseArray(value, fallback) {
   catch (_) { return fallback.slice(); }
 }
 
+function normalizeSupportedTasks(model, category) {
+  const tasks = parseArray(model.supported_tasks_json ?? model.supported_tasks, AI_TASKS_BY_CATEGORY[category]);
+  // Older persisted transcribe rows predate Subtitle Studio. Preserve every
+  // configured task and add the new capability without rewriting admin data.
+  if (category === 'transcribe' && !tasks.includes('subtitle.transcribe')) tasks.push('subtitle.transcribe');
+  return [...new Set(tasks)];
+}
+
 function normalizeModel(model) {
   const category = MODEL_CATEGORIES.includes(model.category) ? model.category : 'text';
   return {
     id: model.id, name: model.name || model.id, category,
     provider: model.provider || 'gemini',
     capabilities: parseArray(model.capabilities_json ?? model.capabilities, AI_CAPABILITIES_BY_CATEGORY[category]),
-    supported_tasks: parseArray(model.supported_tasks_json ?? model.supported_tasks, AI_TASKS_BY_CATEGORY[category]),
+    supported_tasks: normalizeSupportedTasks(model, category),
     status: model.status === 'deprecated' ? 'deprecated' : 'active',
     enabled: model.enabled !== 0 && model.enabled !== false,
     is_default: model.is_default === 1 || model.is_default === true,
