@@ -83,6 +83,18 @@ v8Backup.stores.user_settings = [{
 assert.equal(validateBackupEnvelope(v8Backup, ownerId).recordCount, 9);
 assert.equal(validateBackupText(JSON.stringify(v8Backup), ownerId).recordCount, 9);
 
+const migratedSettingsBackup = JSON.parse(JSON.stringify(v8Backup));
+migratedSettingsBackup.stores.user_settings[0].legacySettingsMigration = {
+  status: 'complete',
+  completedAt: '2026-11-04T07:05:00.000Z'
+};
+assert.equal(validateBackupEnvelope(migratedSettingsBackup, ownerId).recordCount, 9,
+  'backup must preserve the safe legacy migration marker');
+assert.equal(validateBackupText(JSON.stringify(migratedSettingsBackup), ownerId).recordCount, 9);
+const invalidMigrationMarker = JSON.parse(JSON.stringify(migratedSettingsBackup));
+invalidMigrationMarker.stores.user_settings[0].legacySettingsMigration = { status: 'pending', unexpected: true };
+expectCode(invalidMigrationMarker, 'backup_invalid_record');
+
 for (const invalidSettings of [
   { ...v8Backup.stores.user_settings[0], ownerId: 'user-b' },
   { ...v8Backup.stores.user_settings[0], profile: { name: 123 } },
