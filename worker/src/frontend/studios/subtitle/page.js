@@ -93,7 +93,7 @@ ${renderStudioShell({
   desc:'SRT ဖန်တီးခြင်း၊ ပြင်ဆင်ခြင်းနှင့် ဘာသာပြန်ခြင်း',
   icon:'💬',
   modelCat:'transcribe',
-  modelTask:'voice.transcribe',
+  modelTask:'subtitle.transcribe',
   steps:[],
   content:SUBTITLE_HOME_HTML
 })}
