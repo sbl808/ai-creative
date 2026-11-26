@@ -2,7 +2,7 @@ export const AI_TASKS_BY_CATEGORY = {
   text: ['story.text', 'content.text', 'short.text', 'image.text', 'shop.text'],
   image: ['story.image', 'content.image', 'short.image', 'image.image', 'shop.image'],
   voice: ['content.voice', 'voice.voice'],
-  transcribe: ['content.transcribe', 'voice.transcribe'],
+  transcribe: ['content.transcribe', 'voice.transcribe', 'subtitle.transcribe'],
 };
 export const AI_CAPABILITIES_BY_CATEGORY = {
   text: ['text-generation', 'text-revision', 'multimodal-input'],
