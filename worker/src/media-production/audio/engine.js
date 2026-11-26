@@ -13,7 +13,7 @@ const AUDIO_TASK_BY_STUDIO = Object.freeze({
     tts: 'voice.voice',
     transcribe: 'voice.transcribe',
   }),
-  // Subtitle has an independent API feature gate but reuses the provider model task.
+  // Subtitle has an independent API feature gate and a dedicated model task.
   subtitle: Object.freeze({ transcribe: 'subtitle.transcribe' }),
   // Shop preserves the current Voice TTS model task while owning its adapter/API.
   shop: Object.freeze({ tts: 'voice.voice' }),
