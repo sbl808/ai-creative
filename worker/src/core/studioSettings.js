@@ -20,6 +20,13 @@ export async function getStudioSettings(env) {
     return out;
   }
   try {
+    // Idempotently add registry entries introduced after an installation was
+    // initialized. INSERT OR IGNORE preserves every existing admin override.
+    for (const id of Object.keys(STUDIO_REGISTRY)) {
+      await env.DB.prepare(
+        "INSERT OR IGNORE INTO studio_settings (studio_id, enabled, updated_at) VALUES (?, ?, datetime('now'))"
+      ).bind(id, STUDIO_REGISTRY[id].enabled === false ? 0 : 1).run();
+    }
     const r = await env.DB.prepare('SELECT studio_id, enabled FROM studio_settings').all();
     const rows = r.results || [];
     // An empty table is a fresh installation. After any setting is persisted,
