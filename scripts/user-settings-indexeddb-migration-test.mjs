@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { handleUserRoutes } from '../worker/src/routes/users.routes.js';
+import { getAiModels } from '../worker/src/core/aiModels.js';
+import { getStudioSettings } from '../worker/src/core/studioSettings.js';
+import { checkFeature } from '../worker/src/core/featureSettings.js';
 
 const sqlCalls = [];
 const env = {
@@ -91,14 +94,95 @@ const settingsSource = await readFile(new URL('../worker/src/frontend/settings.j
 const sharedSource = await readFile(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
 const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js', import.meta.url), 'utf8');
 const loginSource = await readFile(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
+const userSettingsSource = await readFile(new URL('../worker/src/frontend/storage/repositories/user-settings.js', import.meta.url), 'utf8');
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{profile:/);
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
+assert.match(sharedSource, /AICS_USER_SETTINGS\.migrateLegacy/);
+assert.match(sharedSource, /legacySettingsMigration/);
+assert.match(userSettingsSource, /__aicsFillMissingSettings/);
+assert.match(userSettingsSource, /legacySettingsMigration/);
+assert.match(userSettingsSource, /status: 'complete'/);
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
 assert.match(loginSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: name \} \}\)/);
+
+
+const persistedModelEnv = {
+  DB: {
+    prepare() {
+      return {
+        async all() {
+          return { results: [{
+            id: 'admin-transcriber', name: 'Admin Transcriber', category: 'transcribe',
+            enabled: 1, is_default: 1, plan_access: 'FREE', provider: 'gemini',
+            capabilities_json: '["audio-transcription"]',
+            supported_tasks_json: '["content.transcribe"]', status: 'active'
+          }] };
+        }
+      };
+    }
+  }
+};
+const persistedModels = await getAiModels(persistedModelEnv);
+const persistedTranscriber = persistedModels.find((model) => model.id === 'admin-transcriber');
+assert.ok(persistedTranscriber.supported_tasks.includes('content.transcribe'));
+assert.ok(persistedTranscriber.supported_tasks.includes('subtitle.transcribe'),
+  'legacy persisted transcribe models must gain Subtitle support without losing configured tasks');
+
+const studioRows = new Map([['story', 0]]);
+const featureRows = new Map([['story.generate', { enabled: 0, access: 'FREE', limit_value: 0 }]]);
+const seedSql = [];
+const seedEnv = {
+  DB: {
+    prepare(sql) {
+      seedSql.push(sql);
+      const statement = {
+        values: [],
+        bind(...values) { this.values = values; return this; },
+        async run() {
+          if (sql.includes('INSERT OR IGNORE INTO studio_settings')) {
+            const [id, enabled] = this.values;
+            if (!studioRows.has(id)) studioRows.set(id, enabled);
+            return { meta: { changes: 1 } };
+          }
+          if (sql.includes('INSERT OR IGNORE INTO feature_settings')) {
+            const [id, access] = this.values;
+            if (!featureRows.has(id)) featureRows.set(id, { enabled: 1, access, limit_value: 0 });
+            return { meta: { changes: 1 } };
+          }
+          return { meta: { changes: 0 } };
+        },
+        async all() {
+          if (sql.includes('FROM studio_settings')) {
+            return { results: [...studioRows].map(([studio_id, enabled]) => ({ studio_id, enabled })) };
+          }
+          return { results: [] };
+        },
+        async first() {
+          if (sql.includes('FROM feature_settings WHERE feature_id')) {
+            const row = featureRows.get(this.values[0]);
+            return row || null;
+          }
+          return null;
+        }
+      };
+      return statement;
+    }
+  }
+};
+const seededStudios = await getStudioSettings(seedEnv);
+assert.equal(seededStudios.story, false, 'an existing admin-disabled Studio must stay disabled');
+assert.equal(seededStudios.subtitle, true, 'a newly registered Studio must be seeded for existing installations');
+const newSubtitleFeature = await checkFeature(seedEnv, 'subtitle.transcribe', 'FREE', '1');
+assert.deepEqual(newSubtitleFeature, { ok: true }, 'new Subtitle feature must be seeded with registry defaults');
+const existingDisabledFeature = await checkFeature(seedEnv, 'story.generate', 'FREE', '1');
+assert.deepEqual(existingDisabledFeature, { ok: false, reason: 'disabled' },
+  'INSERT OR IGNORE must preserve an existing admin-disabled feature');
+assert.ok(seedSql.some((sql) => sql.includes('INSERT OR IGNORE INTO studio_settings')));
+assert.ok(seedSql.some((sql) => sql.includes('INSERT OR IGNORE INTO feature_settings')));
 
 console.log('User Settings IndexedDB migration contract tests passed.');
