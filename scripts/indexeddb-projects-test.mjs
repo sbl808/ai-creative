@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 /**
  * IndexedDB Projects Repository ownership and schema-upgrade contract.
  * Run: node --experimental-default-type=module scripts/indexeddb-projects-test.mjs
@@ -9,7 +10,7 @@ import { clientStorageScript } from '../worker/src/frontend/storage/client-stora
 
 const source = clientStorageScript();
 new vm.Script(source, { filename: 'client-storage.js' });
-assert.match(source, /indexedDB\.open\('aics_creations_v1', 8\)/);
+assert.ok(source.includes("indexedDB.open('aics_creations_v1', " + STORAGE_SCHEMA_VERSION + ")"));
 assert.match(source, /createObjectStore\('projects'/);
 assert.match(source, /createObjectStore\('studio_sessions'/);
 assert.match(source, /createObjectStore\('session_results'/);
@@ -159,7 +160,7 @@ vm.runInNewContext(source, context, { timeout: 1000 });
 
 assert.equal(fakeIndexedDB.version, 3, 'database should be v3 before handoff schema upgrade');
 const projectA = await window.AICS_PROJECTS.create({ title: 'User A Project' });
-assert.equal(fakeIndexedDB.version, 8, 'database must upgrade from v3 to v8');
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION, 'database must upgrade to the current schema version');
 assert.equal(projectA.user_id, 'user-a');
 assert.equal(projectA.description, '');
 assert.equal((await window.AICS_PROJECTS.list()).length, 2, 'existing project must survive upgrade');

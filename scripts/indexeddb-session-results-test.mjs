@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { STORAGE_SCHEMA_VERSION } from '../worker/src/frontend/storage/schema/version.js';
 /**
  * IndexedDB Studio Session Results Repository behavior tests.
  * Run: node --experimental-default-type=module scripts/indexeddb-session-results-test.mjs
@@ -356,7 +357,7 @@ async function expectCode(promise, code) {
 }
 
 const sessionA = await window.AICS_SESSIONS.create({ studio: 'story', title: 'User A session' });
-assert.equal(fakeIndexedDB.version, 8, 'repository should use IndexedDB schema v8');
+assert.equal(fakeIndexedDB.version, STORAGE_SCHEMA_VERSION, 'repository should use the current IndexedDB schema version');
 
 const firstResult = await window.AICS_SESSION_RESULTS.create({
   sessionId: sessionA.id,

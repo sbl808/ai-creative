@@ -75,6 +75,15 @@ const SCRIPT = String.raw`const __AICS_SCHEMA_MIGRATIONS = [
         settings.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
     }
+  },
+  // v9 is reserved for browser-global app preferences. Later migrations must use v10+.
+  {
+    version: 9,
+    up: function (db) {
+      if (!db.objectStoreNames.contains('app_preferences')) {
+        db.createObjectStore('app_preferences', { keyPath: 'key' });
+      }
+    }
   }
 ];
 
