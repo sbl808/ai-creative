@@ -169,7 +169,7 @@ const env = {};
   assert.deepEqual(response.result, { text: 'မြန်မာဘာသာဖြင့် ပြောင်းထားသော စာသား' });
   assert.equal(response.studioId, 'subtitle');
 }
- 
+
 // API credentials are passed only through execution context/provider calls,
 // never copied into the versioned request or response.
 {
