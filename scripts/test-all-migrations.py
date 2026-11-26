@@ -212,7 +212,7 @@ def main():
         legacy_model = db.execute(
             "SELECT supported_tasks_json FROM ai_models WHERE id='gemini-3.5-transcribe'"
         ).fetchone()
-        if not legacy_model or legacy_model[0] != '["content.transcribe","voice.transcribe"]':
+        if not legacy_model or legacy_model[0] != '["content.transcribe","voice.transcribe","subtitle.transcribe"]':
             raise AssertionError(f"Legacy transcription model was not preserved: {legacy_model}")
 
         # Existing installations may have persisted model metadata from before
