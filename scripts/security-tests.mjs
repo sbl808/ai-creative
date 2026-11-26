@@ -778,6 +778,135 @@ console.log('\n--- Shared UI Dynamic HTML Injection Contract ---');
 }
 
 
+
+console.log('\\n--- Story Session History DOM XSS Regression ---');
+{
+  const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
+  const functionStart = sharedSource.indexOf('function sidebarSessionHistoryScript() {');
+  const functionEnd = sharedSource.indexOf('\nfunction oauthProfileNameBootstrapScript()', functionStart);
+  const functionSource = functionStart >= 0 && functionEnd > functionStart
+    ? sharedSource.slice(functionStart, functionEnd)
+    : '';
+  check('Story session history script is present', !!functionSource);
+  check('Story session history rendering does not use HTML parsing sinks',
+    !!functionSource &&
+    !functionSource.includes('.innerHTML') &&
+    !functionSource.includes('insertAdjacentHTML'));
+
+  if (functionSource) {
+    const factoryContext = { String, Date, Intl, Promise, isNaN };
+    vm.runInNewContext(functionSource + '\nthis.createSessionHistoryScript = sidebarSessionHistoryScript;', factoryContext);
+    const sessionScript = factoryContext.createSessionHistoryScript();
+    const hostileId = 'session-"><img src=x onerror=alert(1)>';
+    const hostileTitle = '<img src=x onerror=alert(1)> & "Story"';
+    const records = [
+      { id: hostileId, title: hostileTitle, updatedAt: '2026-11-26T08:00:00.000Z' },
+      { id: 'session-page-2', title: '<svg onload=alert(2)>Page 2</svg>', updatedAt: '2026-11-26T08:01:00.000Z' },
+    ];
+    let listCalls = 0;
+    let htmlSinkCalls = 0;
+
+    function makeNode(tagName) {
+      let textValue = '';
+      const node = {
+        tagName: String(tagName).toUpperCase(),
+        children: [],
+        attributes: {},
+        className: '',
+        type: '',
+        title: '',
+        disabled: false,
+        isConnected: true,
+        classList: {
+          values: new Set(),
+          add(value) { this.values.add(value); },
+          remove(value) { this.values.delete(value); },
+          toggle(value, force) {
+            const enabled = force === undefined ? !this.values.has(value) : !!force;
+            if (enabled) this.values.add(value);
+            else this.values.delete(value);
+            return enabled;
+          },
+          contains(value) { return this.values.has(value); },
+        },
+        setAttribute(name, value) { this.attributes[name] = String(value); },
+        getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null; },
+        appendChild(child) { this.children.push(child); child.parentNode = this; return child; },
+        querySelector(selector) {
+          if (selector === '.aics-session-item') return this.children.find((child) => child.className === 'aics-session-item') || null;
+          return null;
+        },
+        querySelectorAll(selector) {
+          if (selector === '.aics-session-item') return this.children.filter((child) => child.className === 'aics-session-item');
+          return [];
+        },
+        insertAdjacentHTML() { htmlSinkCalls++; },
+      };
+      Object.defineProperty(node, 'textContent', {
+        get() { return textValue + this.children.map((child) => child.textContent || '').join(''); },
+        set(value) { textValue = String(value == null ? '' : value); this.children = []; },
+      });
+      Object.defineProperty(node, 'innerHTML', {
+        get() { return ''; },
+        set() { htmlSinkCalls++; },
+      });
+      return node;
+    }
+
+    const root = makeNode('section');
+    const listNode = makeNode('div');
+    const moreButton = makeNode('button');
+    const nodes = {
+      aicsSessionHistory: root,
+      aicsSessionHistoryList: listNode,
+      aicsSessionLoadMore: moreButton,
+    };
+    const document = {
+      getElementById(id) { return nodes[id] || null; },
+      createElement(tagName) { return makeNode(tagName); },
+    };
+    const window = {
+      AICS_SESSIONS: {
+        list() {
+          const result = listCalls++ === 0
+            ? { items: [records[0]], nextCursor: 'cursor-2', hasMore: true }
+            : { items: [records[1]], nextCursor: null, hasMore: false };
+          return Promise.resolve(result);
+        },
+      },
+    };
+    vm.runInNewContext(sessionScript, {
+      document, window, Promise, Date, Intl, isNaN, String,
+      console: { error() {} },
+      setTimeout() { return 0; },
+      __sbToast() {},
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const firstButton = listNode.children.find((child) => child.className === 'aics-session-item');
+    const firstTitle = firstButton && firstButton.children.find((child) => child.className === 'aics-session-title');
+    check('hostile session title remains literal text in a DOM text node',
+      !!firstTitle && firstTitle.textContent === hostileTitle);
+    check('hostile session ID is stored as an attribute value, not parsed as markup',
+      !!firstButton && firstButton.getAttribute('data-session-id') === hostileId);
+    check('delegated Story session action marker is preserved',
+      !!firstButton && firstButton.getAttribute('data-aics-sidebar-action') === 'open-story-session');
+    check('session history performs no innerHTML or insertAdjacentHTML writes',
+      htmlSinkCalls === 0);
+
+    if (window.aicsLoadMoreStorySessions) {
+      await window.aicsLoadMoreStorySessions();
+    }
+    const sessionButtons = listNode.children.filter((child) => child.className === 'aics-session-item');
+    const secondTitle = sessionButtons[1] && sessionButtons[1].children.find((child) => child.className === 'aics-session-title');
+    check('Load More appends the next page without replacing the first page',
+      sessionButtons.length === 2 && !!secondTitle && secondTitle.textContent === records[1].title);
+    check('Load More visibility continues to use the existing CSS class contract',
+      moreButton.classList.contains('is-hidden'));
+    check('pagination also avoids HTML parsing sinks', htmlSinkCalls === 0);
+  }
+}
+
 console.log('\n--- Shared UI CSP Inline Style Contract ---');
 {
   const sharedSource = readFileSync(new URL('../worker/src/frontend/shared.js', import.meta.url), 'utf8');
