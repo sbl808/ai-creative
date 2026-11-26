@@ -99,7 +99,10 @@ for (const path of ['/api/users/me/profile', '/api/users/me/settings']) {
 const repositorySource = userSettingsRepositoryScript();
 assert.match(repositorySource, /migrateLegacy: function \(patch\)/,
   'repository must expose a dedicated legacy migration operation');
+const saveMethodStart = repositorySource.indexOf('save: function (patch)');
 const migrationMethodStart = repositorySource.indexOf('migrateLegacy: function (patch)');
+assert.ok(saveMethodStart >= 0 && !repositorySource.slice(saveMethodStart, migrationMethodStart).includes("current.legacySettingsMigration.status === 'complete'"),
+  'normal settings saves must remain available after legacy migration completes');
 const idempotencyGuardIndex = repositorySource.indexOf("if (current && current.legacySettingsMigration && current.legacySettingsMigration.status === 'complete')", migrationMethodStart);
 const migrationMergeIndex = repositorySource.indexOf('__aicsFillMissingSettings(currentProfile, clean.profile)', migrationMethodStart);
 assert.ok(idempotencyGuardIndex > migrationMethodStart && idempotencyGuardIndex < migrationMergeIndex,
@@ -302,6 +305,12 @@ assert.equal(migrationDb.putCalls, 1,
   'a completed migration retry must not write to IndexedDB again');
 assert.equal(JSON.stringify(retryResult), JSON.stringify(migratedRecord),
   'a completed migration retry must return the original migrated record');
+
+const savedAfterMigration = await migrationRepository.save({ settings: { theme: 'light' } });
+assert.equal(savedAfterMigration.settings.theme, 'light',
+  'users must still be able to save settings after legacy migration completes');
+assert.equal(migrationDb.putCalls, 2,
+  'a normal settings save after migration must persist exactly once');
 
 const failedAttemptDb = createMigrationTestDatabase({
   id: 'user-a',
