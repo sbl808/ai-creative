@@ -149,18 +149,19 @@ function testDashboardLocalizationContract() {
     'dashboard.quickCreate.title',
     'dashboard.studio.story.title', 'dashboard.studio.content.title',
     'dashboard.studio.short.title', 'dashboard.studio.image.title',
-    'dashboard.studio.voice.title', 'dashboard.studio.shop.title',
+    'dashboard.studio.voice.title', 'dashboard.studio.subtitle.title', 'dashboard.studio.shop.title',
     'dashboard.studio.story.description.1', 'dashboard.studio.story.description.2',
     'dashboard.studio.content.description.1', 'dashboard.studio.content.description.2',
     'dashboard.studio.short.description.1', 'dashboard.studio.short.description.2',
     'dashboard.studio.image.description.1', 'dashboard.studio.image.description.2',
     'dashboard.studio.voice.description.1', 'dashboard.studio.voice.description.2',
+    'dashboard.studio.subtitle.description.1', 'dashboard.studio.subtitle.description.2',
     'dashboard.studio.shop.description.1', 'dashboard.studio.shop.description.2',
     'dashboard.recent.title', 'dashboard.recent.viewAll',
     'dashboard.aria.viewAll', 'dashboard.aria.studio.story',
     'dashboard.aria.studio.content', 'dashboard.aria.studio.short',
     'dashboard.aria.studio.image', 'dashboard.aria.studio.voice',
-    'dashboard.aria.studio.shop', 'dashboard.loading',
+    'dashboard.aria.studio.shop', 'dashboard.aria.studio.subtitle', 'dashboard.loading',
     'dashboard.empty.title', 'dashboard.empty.description',
     'dashboard.project.open', 'dashboard.storage.error',
     'dashboard.login.required', 'dashboard.login.link',
@@ -177,6 +178,8 @@ function testDashboardLocalizationContract() {
     }
   }
 
+  assert.ok(APP_HTML.includes('data-studio="subtitle"'), 'dashboard retains Subtitle Studio navigation');
+  assert.ok(APP_HTML.includes("'subtitle', 'shop'"), 'dashboard navigation allowlist retains Subtitle Studio');
   assert.ok(
     APP_HTML.includes('Object.keys(CARD_MESSAGE_KEYS)'),
     'dashboard card rotation iterates over defined message keys'

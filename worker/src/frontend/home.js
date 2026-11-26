@@ -164,6 +164,11 @@ ${renderSidebar('home',{variant:'studio'})}
       <div class="title" data-i18n="dashboard.studio.voice.title">အသံ Studio</div>
       <div class="desc" id="desc-voice" data-i18n="dashboard.studio.voice.description.1">Voice နဲ့ Text ပြောင်းပါ</div>
     </div>
+    <div class="studio-card card-subtitle" data-studio="subtitle" role="link" tabindex="0" aria-label="Open subtitle studio" data-i18n-aria-label="dashboard.aria.studio.subtitle" data-home-action="navigate-studio">
+      <div class="sparkle">✨</div><div class="bg-icon">💬</div>
+      <div class="title" data-i18n="dashboard.studio.subtitle.title">စာတန်းထိုး Studio</div>
+      <div class="desc" id="desc-subtitle" data-i18n="dashboard.studio.subtitle.description.1">အသံ/ဗီဒီယိုမှ SRT နှင့် စာသား ဖန်တီးပါ</div>
+    </div>
     <div class="studio-card card-shop" data-studio="shop" role="link" tabindex="0" aria-label="Open shop studio" data-i18n-aria-label="dashboard.aria.studio.shop" data-home-action="navigate-studio">
       <div class="sparkle">✨</div><div class="bg-icon">🛒</div>
       <div class="title" data-i18n="dashboard.studio.shop.title">ရောင်းချရေး Studio</div>
@@ -208,7 +213,7 @@ document.addEventListener('click', function (event) {
   else if (type === 'navigate-creations') location.href = '/app/creations';
   else if (type === 'navigate-studio') {
     var studio = action.getAttribute('data-studio');
-    if (['story', 'content', 'short', 'image', 'voice', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
+    if (['story', 'content', 'short', 'image', 'voice', 'subtitle', 'shop'].indexOf(studio) !== -1) location.href = '/app/' + studio;
   }
 });
 document.addEventListener('keydown', function (event) {
@@ -235,6 +240,7 @@ var CARD_MESSAGE_KEYS={
   short:["dashboard.studio.short.description.1","dashboard.studio.short.description.2"],
   image:["dashboard.studio.image.description.1","dashboard.studio.image.description.2"],
   voice:["dashboard.studio.voice.description.1","dashboard.studio.voice.description.2"],
+  subtitle:["dashboard.studio.subtitle.description.1","dashboard.studio.subtitle.description.2"],
   shop:["dashboard.studio.shop.description.1","dashboard.studio.shop.description.2"]
 };
 function rotateCard(key,index){
@@ -244,7 +250,7 @@ function rotateCard(key,index){
   setTimeout(function(){index=(index+1)%list.length;el.innerText=homeT(list[index]);el.style.opacity=1;el.style.transform='translateY(0)';setTimeout(function(){rotateCard(key,index);},3200);},500);
 }
 Object.keys(CARD_MESSAGE_KEYS).forEach(function(key,i){setTimeout(function(){rotateCard(key,0);},3200+(i*250));});
-var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
+var STUDIO_ICONS={"STORY":"📖","STORYVIDEO":"🎬","CONTENT":"✍️","CONTENTVIDEO":"🎥","SHORT":"🎬","SHORTVIDEO":"🎬","IMAGE":"🎨","VOICE":"🎙","VOICETRANSCRIBE":"📝","SUBTITLE":"💬","SHOPCONTENT":"🛒","SHOPVIDEO":"🛒"};
 // Greeting is localized through the shared data-i18n runtime.
 function api(path,opts){opts=opts||{};var h=opts.headers||{};h['Content-Type']='application/json';if(TOKEN)h['Authorization']='Bearer '+TOKEN;return fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined}).then(function(r){return r.json();});}
 // Phase 8 — အခမဲ့ API Key လမ်းညွှန် Modal ဖွင့်/ပိတ်
