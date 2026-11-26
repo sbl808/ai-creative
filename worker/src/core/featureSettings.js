@@ -16,11 +16,6 @@ async function getFeatureSetting(env, featureId) {
   // A missing/unavailable database must not silently re-enable an Admin-disabled feature.
   if (!env || !env.DB) return { ...base, enabled: false, unavailable: true };
   try {
-    // Add newly registered features to already-initialized installations.
-    // INSERT OR IGNORE is idempotent and never replaces an admin override.
-    await env.DB.prepare(
-      "INSERT OR IGNORE INTO feature_settings (feature_id, enabled, access, limit_value, updated_at) VALUES (?, 1, ?, 0, datetime('now'))"
-    ).bind(featureId, def.access).run();
     const row = await env.DB.prepare('SELECT enabled, access, limit_value FROM feature_settings WHERE feature_id=?').bind(featureId).first();
     if (!row) {
       // An entirely empty table is a fresh installation; retain registry defaults.
