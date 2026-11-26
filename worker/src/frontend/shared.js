@@ -170,8 +170,10 @@ function responsiveStyles() {
     '.aics-app .aics-session-muted{padding:6px 10px;}\n' +
     '.aics-app .aics-session-more{display:block;width:calc(100% - 20px);margin:5px 10px;padding:7px 9px;border:1px solid var(--aics-border);border-radius:8px;background:var(--aics-surface-subtle);color:var(--aics-text-muted);font:inherit;font-size:11px;cursor:pointer;}\n' +
     '.aics-app .aics-session-more.is-hidden{display:none;}\n' +
-    '.aics-app .aics-admin-link{display:none;}\n' +
-    '.aics-app .aics-admin-link.is-visible{display:flex;}\n' +
+    '.side-btn.aics-admin-link{display:none;}\n' +
+    '.aics-app .side-btn.aics-admin-link{display:none;}\n' +
+    '.side-btn.aics-admin-link.is-visible{display:flex;}\n' +
+    '.aics-app .side-btn.aics-admin-link.is-visible{display:flex;}\n' +
     '.aics-app .aics-work-content{max-width:820px;margin:0 auto;width:100%;}\n' +
     '.aics-app .aics-session-more:hover{border-color:var(--aics-primary-border);color:var(--aics-primary);}\n' +
     '.aics-app .aics-session-more:disabled{opacity:.5;cursor:wait;}\n' +

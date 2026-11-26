@@ -914,10 +914,17 @@ console.log('\n--- Shared UI CSP Inline Style Contract ---');
   check('Shared UI has no inline style attributes', inlineStyles.length === 0, 'inline styles=' + inlineStyles.length);
   check('Admin links use CSS classes and class-based visibility',
     (sharedSource.match(/class="side-btn aics-admin-link"/g) || []).length === 2 &&
-    sharedSource.includes('.aics-app .aics-admin-link{display:none;}') &&
-    sharedSource.includes('.aics-app .aics-admin-link.is-visible{display:flex;}') &&
+    sharedSource.includes('.side-btn.aics-admin-link{display:none;}') &&
+    sharedSource.includes('.aics-app .side-btn.aics-admin-link{display:none;}') &&
+    sharedSource.includes('.side-btn.aics-admin-link.is-visible{display:flex;}') &&
+    sharedSource.includes('.aics-app .side-btn.aics-admin-link.is-visible{display:flex;}') &&
     sharedSource.includes("al.classList.toggle(\\'is-visible\\', !!d.is_admin)") &&
     !sharedSource.includes("al.style.display ="));
+  const ideasSource = readFileSync(new URL('../worker/src/frontend/ideas.js', import.meta.url), 'utf8');
+  check('Ideas page admin link visibility works without the app shell wrapper',
+    ideasSource.includes("${renderSidebar('ideas')}") &&
+    !ideasSource.includes('class="aics-app"') &&
+    sharedSource.includes('.side-btn.aics-admin-link{display:none;}'));
   const adminLinkTags = [...sharedSource.matchAll(/<a\b[^>]*\bid="adminLink"[^>]*>/g)].map(([tag]) => tag);
   check('Admin sidebar links have exactly one class attribute',
     adminLinkTags.length === 2 &&
