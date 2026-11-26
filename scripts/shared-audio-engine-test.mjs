@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { AI_TASKS_BY_CATEGORY } from '../worker/src/config/models.js';
 import {
   AUDIO_CONTRACT_VERSION,
 } from '../worker/src/media-production/contracts/audio.contract.js';
@@ -93,7 +94,24 @@ const env = {};
   assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });
 }
 
-// Shop TTS uses the existing Voice provider task without routing through Voice API.\n{\n  const { calls, generate } = makeServices();\n  const response = await generate(env, {\n    contractVersion: AUDIO_CONTRACT_VERSION,\n    studioId: 'shop',\n    operation: 'tts',\n    input: { text: 'Shop product narration', voiceName: 'Kore' },\n  }, executionContext);\n  const modelCall = calls.find((call) => call.type === 'resolveModel');\n  const speechCall = calls.find((call) => call.type === 'generateSpeech');\n  assert.deepEqual(modelCall.args, [env, 'voice', 'PRO', 'selected-audio-model', 'voice.voice']);\n  assert.equal(speechCall.args.task, 'voice.voice');\n  assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });\n  assert.equal(response.studioId, 'shop');\n}\n\n// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
+// Shop TTS uses the existing Voice provider task without routing through Voice API.
+{
+  const { calls, generate } = makeServices();
+  const response = await generate(env, {
+    contractVersion: AUDIO_CONTRACT_VERSION,
+    studioId: 'shop',
+    operation: 'tts',
+    input: { text: 'Shop product narration', voiceName: 'Kore' },
+  }, executionContext);
+  const modelCall = calls.find((call) => call.type === 'resolveModel');
+  const speechCall = calls.find((call) => call.type === 'generateSpeech');
+  assert.deepEqual(modelCall.args, [env, 'voice', 'PRO', 'selected-audio-model', 'voice.voice']);
+  assert.equal(speechCall.args.task, 'voice.voice');
+  assert.deepEqual(response.result, { data: 'UklGRg==', mimeType: 'audio/wav' });
+  assert.equal(response.studioId, 'shop');
+}
+
+// Voice transcription must use voice.transcribe and accept Studio-specific instructions.
 {
   const { calls, generate } = makeServices();
   const prompt = 'VOICE_STUDIO_TRANSCRIPTION_INSTRUCTION';
@@ -120,6 +138,38 @@ const env = {};
   assert.deepEqual(response.result, { text: 'မြန်မာဘာသာဖြင့် ပြောင်းထားသော စာသား' });
 }
 
+// Subtitle transcription uses its own model task ID while Voice remains independent.
+{
+  assert.ok(AI_TASKS_BY_CATEGORY.transcribe.includes('content.transcribe'));
+  assert.ok(AI_TASKS_BY_CATEGORY.transcribe.includes('voice.transcribe'));
+  assert.ok(AI_TASKS_BY_CATEGORY.transcribe.includes('subtitle.transcribe'));
+
+  const { calls, generate } = makeServices();
+  const prompt = 'SUBTITLE_STUDIO_TRANSCRIPTION_INSTRUCTION';
+  const response = await generate(env, {
+    contractVersion: AUDIO_CONTRACT_VERSION,
+    studioId: 'subtitle',
+    operation: 'transcribe',
+    input: { audioBase64: PRIVATE_AUDIO, mimeType: 'audio/mpeg' },
+  }, {
+    ...executionContext,
+    prompt,
+  });
+  const modelCall = calls.find((call) => call.type === 'resolveModel');
+  const transcriptionCall = calls.find((call) => call.type === 'generateMultimodal');
+
+  assert.deepEqual(modelCall.args, [env, 'transcribe', 'PRO', 'selected-audio-model', 'subtitle.transcribe']);
+  assert.equal(transcriptionCall.args.task, 'subtitle.transcribe');
+  assert.equal(transcriptionCall.args.prompt, prompt);
+  assert.equal(transcriptionCall.args.apiKey, API_KEY);
+  assert.deepEqual(transcriptionCall.args.images, [{
+    mimeType: 'audio/mpeg',
+    base64: PRIVATE_AUDIO,
+  }]);
+  assert.deepEqual(response.result, { text: 'မြန်မာဘာသာဖြင့် ပြောင်းထားသော စာသား' });
+  assert.equal(response.studioId, 'subtitle');
+}
+ 
 // API credentials are passed only through execution context/provider calls,
 // never copied into the versioned request or response.
 {
