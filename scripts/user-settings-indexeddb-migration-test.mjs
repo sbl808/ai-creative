@@ -145,6 +145,9 @@ const missingRowEnv = {
           if (sql.includes('FROM studio_settings')) {
             return { results: [{ studio_id: 'story', enabled: 0 }] };
           }
+          if (sql.includes('FROM feature_settings LIMIT 1')) {
+            return { results: [{ feature_id: 'story.generate' }] };
+          }
           return { results: [] };
         },
         async first() { return null; }
