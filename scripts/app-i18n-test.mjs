@@ -45,8 +45,8 @@ function testLoginLocalizationContract() {
   assert.ok(LOGIN_HTML.includes('data-i18n="auth.welcome"'), 'login heading uses a translation marker');
   assert.ok(LOGIN_HTML.includes('data-i18n="auth.google"'), 'Google OAuth action uses a translation marker');
   assert.ok(LOGIN_HTML.includes('href="/api/auth/login?next=/app"'), 'Google OAuth destination remains unchanged');
-  assert.ok(LOGIN_HTML.includes('userSettingsRepositoryScript'), 'legacy Profile Name repository remains available');
-  assert.ok(LOGIN_HTML.includes('appPreferencesRepositoryScript'), 'browser-global language preferences are available');
+  assert.ok(LOGIN_HTML.includes('window.AICS_USER_SETTINGS'), 'legacy Profile Name repository remains available');
+  assert.ok(LOGIN_HTML.includes('window.AICS_APP_PREFERENCES'), 'browser-global language preferences are available');
   assert.ok(!LOGIN_HTML.includes("fetch('/api/auth/signup'"), 'localization does not add an email/password signup flow');
 }
 

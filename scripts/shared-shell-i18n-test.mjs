@@ -10,7 +10,7 @@ const shell = renderStudioShell({ id: 'story', nameMy: 'ဇာတ်လမ်း
 assert.ok(shell.includes('data-i18n-aria-label="menu.toggle"'), 'mobile menu aria label is localizable');
 assert.ok(shell.includes('data-i18n-title="menu.title"'), 'mobile menu title is localizable');
 const script = sidebarScript();
-assert.ok(script.includes('window.AICS_APP_PREFERENCES.getLanguage()'), 'shared shell reads browser-global language preference');
+assert.ok(script.includes('var preferences = window.AICS_APP_PREFERENCES') && script.includes('preferences.getLanguage()'), 'shared shell reads browser-global language preference');
 assert.ok(script.includes('window.AICS_I18N.setLocale(locale)'), 'shared shell applies saved language');
 assert.ok(script.includes('confirm.logout'), 'logout confirmation uses a translation key');
 assert.ok(script.includes('sideName'), 'existing sidebar Profile Name display is preserved');
