@@ -68,10 +68,6 @@ window.AICS_USER_SETTINGS = {
         req.onsuccess = function () {
           var current = req.result;
           if (current && String(current.ownerId || '') !== ownerId) { fail(__aicsStorageError('forbidden')); return; }
-          if (current && current.legacySettingsMigration && current.legacySettingsMigration.status === 'complete') {
-            result = current;
-            return;
-          }
           result = {
             id: ownerId, ownerId: ownerId,
             profile: Object.assign({}, current && current.profile || {}, clean.profile),
@@ -104,6 +100,10 @@ window.AICS_USER_SETTINGS = {
         req.onsuccess = function () {
           var current = req.result;
           if (current && String(current.ownerId || '') !== ownerId) { fail(__aicsStorageError('forbidden')); return; }
+          if (current && current.legacySettingsMigration && current.legacySettingsMigration.status === 'complete') {
+            result = current;
+            return;
+          }
           var currentProfile = Object.assign({}, current && current.profile || {});
           var currentSettings = Object.assign({}, current && current.settings || {});
           var currentPreferences = Object.assign({}, current && current.preferences || {});
