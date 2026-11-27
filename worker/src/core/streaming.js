@@ -40,7 +40,7 @@ export function ndjsonResponse(run, cors) {
     status: 200,
     headers: {
       'Content-Type': 'application/x-ndjson; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
+      'Cache-Control': 'no-store, no-transform',
       'X-Accel-Buffering': 'no',
       ...(cors || {}),
     },
