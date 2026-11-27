@@ -2,6 +2,8 @@ import { storageErrorsScript } from './storage/storage-errors.js';
 import { databaseScript } from './storage/database.js';
 import { storageOwnerScript } from './storage/storage-owner.js';
 import { userSettingsRepositoryScript } from './storage/repositories/user-settings.js';
+import { appPreferencesRepositoryScript } from './storage/repositories/app-preferences.js';
+import { i18nRuntimeScript } from './i18n/runtime.js';
 // AI Creative Studio — Google OAuth-only login page.
 const LOGIN_HTML = `<!DOCTYPE html>
 <html lang="my">
@@ -49,8 +51,8 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:
     <div class="brand-title">AI CREATIVE STUDIO</div>
   </div>
   <div class="welcome">
-    <h1 id="headline">Welcome back</h1>
-    <p>သင့် Workspace သို့ Google Account ဖြင့် ဝင်ရောက်ပါ။</p>
+    <h1 id="headline" data-i18n="auth.welcome">Welcome back</h1>
+    <p data-i18n="auth.signin.subtitle">သင့် Workspace သို့ Google Account ဖြင့် ဝင်ရောက်ပါ။</p>
   </div>
   <div id="alertBox" class="alert" role="status" aria-live="polite"></div>
   <a class="btn" id="googleBtn" href="/api/auth/login?next=/app">
@@ -60,7 +62,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
       <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
     </svg>
-    Continue with Google
+    <span data-i18n="auth.google">Google ဖြင့် ဆက်လက်ရန်</span>
   </a>
   <p class="hint">Login ဝင်ပြီးနောက် My Studios၊ Projects၊ Creations၊ Settings နှင့် API Keys ကို အသုံးပြုနိုင်ပါမည်။</p>
 </main>
@@ -69,13 +71,21 @@ ${storageErrorsScript()}
 ${databaseScript()}
 ${storageOwnerScript()}
 ${userSettingsRepositoryScript()}
+${appPreferencesRepositoryScript()}
+${i18nRuntimeScript()}
 (function () {
+  var preferences = window.AICS_APP_PREFERENCES;
+  if (preferences && typeof preferences.getLanguage === 'function') {
+    preferences.getLanguage().then(function (locale) {
+      if (window.AICS_I18N) window.AICS_I18N.setLocale(locale);
+    }).catch(function () {});
+  }
   'use strict';
   var box = document.getElementById('alertBox');
   var query = new URLSearchParams(location.search);
   if (query.get('msg') === 'expired') {
     box.className = 'alert show info';
-    box.textContent = '⏳ Session သက်တမ်းကုန်သွားပါပြီ — Google ဖြင့် ပြန်ဝင်ပါ။';
+    box.textContent = '⏳ ' + (window.AICS_I18N ? window.AICS_I18N.t('auth.session.expired') : 'Session သက်တမ်းကုန်သွားပါပြီ — Google ဖြင့် ပြန်ဝင်ပါ။');
   }
 })();
 <\/script>

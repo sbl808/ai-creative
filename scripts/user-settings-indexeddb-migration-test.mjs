@@ -125,6 +125,11 @@ const authSource = await readFile(new URL('../worker/src/routes/auth.routes.js',
 const loginSource = await readFile(new URL('../worker/src/frontend/login.js', import.meta.url), 'utf8');
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{profile:/);
 assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{settings:/);
+assert.match(settingsSource, /window\.AICS_APP_PREFERENCES\.getLanguage\(legacyLanguage\)/, 'legacy browser language is used as fallback when no app preference exists');
+assert.match(settingsSource, /window\.AICS_APP_PREFERENCES\.setLanguage\(language\)/, 'App Language is persisted in the browser-global store');
+assert.match(settingsSource, /default_studio:document\.getElementById\('pref_studio'\)\.value/, 'Default Studio remains available');
+assert.match(settingsSource, /default_voice:document\.getElementById\('pref_voice'\)\.value\.trim\(\)/, 'Default Voice remains available');
+assert.match(settingsSource, /window\.AICS_USER_SETTINGS\.save\(\{profile:/, 'Profile Name remains available');
 assert.doesNotMatch(settingsSource, /\/api\/users\/me\/(?:profile|settings)/);
 assert.match(sharedSource, /window\.AICS_LOAD_USER_SETTINGS/);
 assert.match(sharedSource, /\/api\/users\/me\/legacy-settings/);
@@ -148,6 +153,8 @@ assert.doesNotMatch(sharedSource, /AICS_USER_SETTINGS\.save\(\{ profile: legacyP
 assert.doesNotMatch(authSource, /INSERT INTO users \(email, name/);
 assert.doesNotMatch(authSource, /UPDATE users SET name/);
 assert.match(loginSource, /userSettingsRepositoryScript/);
+assert.match(loginSource, /appPreferencesRepositoryScript/);
+assert.match(loginSource, /i18nRuntimeScript/);
 assert.match(loginSource, /\$\{userSettingsRepositoryScript\(\)\}/);
 assert.doesNotMatch(loginSource, /\/api\/auth\/(?:signup|signin)/);
 assert.match(sharedSource, /window\.AICS_USER_SETTINGS\.save\(\{ profile: \{ name: AICS_OAUTH_PROFILE_NAME \} \}\)/);
