@@ -444,10 +444,11 @@ await check('Google profile name is consumed once, URL fragment is cleaned, and 
       sharedSource.includes("params.delete('aics_profile_name')") &&
       sharedSource.includes("window.history.replaceState(window.history.state, '', nextUrl)") &&
       sharedSource.includes("AICS_OAUTH_PROFILE_NAME && !String(record && record.profile && record.profile.name") &&
-      sharedSource.includes('window.AICS_USER_SETTINGS.migrateLegacy({') &&
-      settingsSource.includes("migrateLegacy: function (patch)") &&
-      settingsSource.includes("__aicsFillMissingSettings(currentProfile, clean.profile)") &&
-      settingsSource.includes("!Object.prototype.hasOwnProperty.call(target, key)") &&
+      sharedSource.includes("window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } })") &&
+      !sharedSource.includes("migrateLegacy") &&
+      !settingsSource.includes("migrateLegacy") &&
+      !settingsSource.includes("legacySettingsMigration") &&
+      settingsSource.includes("profile: Object.assign({}, current && current.profile || {}, clean.profile)") &&
       settingsSource.includes("profile.name !== undefined") &&
       settingsSource.includes("profile.name = input.profile.name"),
     msg: 'fragment cleanup, IndexedDB seed and existing-name guard checked',
