@@ -309,7 +309,7 @@ function loadSettings(){
     loadKeyStatus();
     loadPlanCatalog();
   }).catch(function(){
-    document.getElementById('tab-profile').innerHTML='<div class="empty-state">Browser ထဲရှိ Settings ကို ရယူခြင်း သို့မဟုတ် အဟောင်းဒေတာ ပြောင်းရွှေ့ခြင်း မအောင်မြင်ပါ။ ဒေတာမပြောင်းလဲထားပါ။ Browser Storage ကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။</div>';
+    document.getElementById('tab-profile').innerHTML='<div class="empty-state">Browser ထဲရှိ Settings ကို ရယူ၍ မရပါ။ ဒေတာမပြောင်းလဲထားပါ။ Browser Storage ကို စစ်ဆေးပြီး ပြန်ကြိုးစားပါ။</div>';
   });
 }
 function loadPlanCatalog(){
