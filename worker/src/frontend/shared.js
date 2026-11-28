@@ -434,31 +434,8 @@ export function sidebarScript() {
     'var SB_TOKEN = localStorage.getItem(\'aics_token\') || \'\';\n' +
     'window.AICS_LOAD_USER_SETTINGS = window.AICS_LOAD_USER_SETTINGS || function () {\n' +
     '  if (window.__aicsUserSettingsPromise) return window.__aicsUserSettingsPromise;\n' +
-    '  if (!window.AICS_USER_SETTINGS || !SB_TOKEN) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
+    '  if (!window.AICS_USER_SETTINGS) return Promise.reject(new Error(\'settings_storage_unavailable\'));\n' +
     '  window.__aicsUserSettingsPromise = window.AICS_USER_SETTINGS.get().then(function (record) {\n' +
-    '    if (record && record.legacySettingsMigration && record.legacySettingsMigration.status === \'complete\') return record;\n' +
-    '    var existingRecord = record;\n' +
-    '    var skippedLegacyPreferences = 0;\n' +
-    '    return fetch(\'/api/users/me/legacy-settings\', { headers: { \'Authorization\': \'Bearer \' + SB_TOKEN }, cache: \'no-store\' })\n' +
-    '      .then(function (response) { if (!response.ok) throw new Error(\'legacy_settings_unavailable\'); return response.json(); })\n' +
-    '      .then(function (legacy) {\n' +
-    '        var skippedCount = Number(legacy && legacy.migration && legacy.migration.skippedPreferences);\n' +
-    '        if (isFinite(skippedCount) && skippedCount > 0) skippedLegacyPreferences = Math.floor(skippedCount);\n' +
-    '        if (!legacy || legacy.error) throw new Error(\'legacy_settings_unavailable\');\n' +
-    '        return window.AICS_USER_SETTINGS.migrateLegacy({\n' +
-    '          profile: legacy.profile || {},\n' +
-    '          settings: legacy.settings || {},\n' +
-    '          preferences: legacy.preferences || {}\n' +
-    '        });\n' +
-    '      })\n' +
-    '      .then(function () { return window.AICS_USER_SETTINGS.get(); })\n' +
-    '      .then(function (savedRecord) {\n' +
-    '        if (!savedRecord || !savedRecord.legacySettingsMigration || savedRecord.legacySettingsMigration.status !== \'complete\') throw new Error(\'legacy_settings_persistence_unverified\');\n' +
-    '        if (skippedLegacyPreferences > 0 && typeof __sbToast === \'function\') __sbToast(\'ဆက်တင်အဟောင်းမှ မကိုက်ညီသော အချက်အလက် \' + skippedLegacyPreferences + \' ခုကို ကျော်ခဲ့သည်။ ကျန်ဆက်တင်များကို ပြန်လည်ရယူထားသည်။\');\n' +
-    '        return savedRecord;\n' +
-    '      })\n' +
-    '      .catch(function (error) { if (existingRecord) return existingRecord; throw error; });\n' +
-    '  }).then(function (record) {\n' +
     '    if (AICS_OAUTH_PROFILE_NAME && !String(record && record.profile && record.profile.name || \'\').trim()) {\n' +
     '      return window.AICS_USER_SETTINGS.save({ profile: { name: AICS_OAUTH_PROFILE_NAME } }).then(function () { return window.AICS_USER_SETTINGS.get(); });\n' +
     '    }\n' +
